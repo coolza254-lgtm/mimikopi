@@ -21,7 +21,7 @@ import com.id.mimikopi.ui.components.WavyDivider
 import com.id.mimikopi.ui.theme.Tokens
 
 @Composable
-fun HomeScreen(onOpenDiagnostics: () -> Unit, onOpenAbout: () -> Unit) {
+fun HomeScreen(onOpenDiagnostics: () -> Unit, onOpenAbout: () -> Unit, onOpenSettings: () -> Unit) {
     ScreenScaffold(title = "", onBack = null) {
         Image(
             painter = painterResource(R.drawable.wordmark),
@@ -39,6 +39,9 @@ fun HomeScreen(onOpenDiagnostics: () -> Unit, onOpenAbout: () -> Unit) {
         PageCard(title = stringResource(R.string.home_status_title)) {
             Spacer(Modifier.height(Tokens.Space.xs))
             Text(stringResource(R.string.home_status_body), style = MaterialTheme.typography.bodyMedium)
+        }
+        PageCard(title = stringResource(R.string.home_settings_title), onClick = onOpenSettings) {
+            Text(stringResource(R.string.home_settings_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         PageCard(title = stringResource(R.string.home_diagnostics_title), onClick = onOpenDiagnostics) {
             Text(stringResource(R.string.home_diagnostics_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -21,10 +21,16 @@ core/   com.id.mimikopi.core
   srs/       Leitner 5-box scheduler (6.6)
   config/    LearningConfig (+ content/config/learning.json)
   diag/      DiagnosticsReport model (JSON)
+  update/    UpdateManifest (latest.json), UpdatePolicy (newer + safe URL/hash/size), Sha256
+  backup/    BackupFile/BackupData (JSON mirror of all tables), BackupValidator
   time/      Clock
 app/    com.id.mimikopi
   data/db/   Room: practice_sessions, attempts, attempt_events, item_stats, settings
   diag/      DiagnosticsCollector (reads device facts)
+  backup/    BackupService: export/import via the document picker, automatic backups in app storage,
+             restore in one transaction after a safety backup
+  update/    UpdateService: check, streaming download with SHA-256, APK package/version/signer check,
+             PackageInstaller session; InstallResultReceiver -> InstallEvents -> UI
   ui/        theme, components, home, diag, about
 engine/ (M3) C++ / Oboe sampler + metronome behind an AudioEngine interface
 ```
@@ -39,6 +45,15 @@ engine/ (M3) C++ / Oboe sampler + metronome behind an AudioEngine interface
 | `settings` | Key/value settings, kept in the DB so one JSON backup covers everything |
 
 Migrations are explicit; there is no destructive fallback, so user progress is never wiped silently.
+
+## Update flow (M2)
+`latest.json` is fetched from `https://github.com/coolza254-lgtm/mimikopi-releases/releases/latest/download/latest.json`
+(no token). `UpdatePolicy` accepts only schema 1, an HTTPS `github.com` APK URL, a lowercase SHA-256 and a sane
+size, and only a higher versionCode. Before downloading, an automatic backup is written. The APK is streamed to
+`cache/updates/*.part`, hashed while downloading, checked (size, hash, package, versionCode, signing
+certificate equal to the installed app's) and only then renamed and handed to `PackageInstaller` with
+`USER_ACTION_REQUIRED`. The system confirmation intent is launched from the foreground screen. Any failure
+deletes the download; the installed app and its data are untouched.
 
 ## Input and timing (from M3/M5)
 All input sources (USB MIDI, the on-screen keyboard, the debug simulator) emit one stream of timestamped

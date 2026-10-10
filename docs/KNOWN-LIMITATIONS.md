@@ -2,6 +2,13 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## As of M2 (v0.2.x)
+- Automatic backups live inside the app's storage: they survive updates but **not uninstalling**.
+  Save a backup file elsewhere for that.
+- The update check runs only when the user taps it (no background checks, no notifications).
+- Install success is confirmed only by the app restarting on the new version (the old process is replaced).
+- No piano sound (M3), metronome (M4), MIDI (M5) or lessons (M6) yet.
+
 ## As of M1 (v0.1.0)
 - Only the app shell, the Diagnostics screen and the About/credits screen exist.
 - No in-app update check or JSON backup yet (M2). Install new versions manually from the releases page.

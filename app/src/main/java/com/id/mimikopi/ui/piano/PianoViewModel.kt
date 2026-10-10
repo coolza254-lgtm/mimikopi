@@ -1,0 +1,202 @@
+package com.id.mimikopi.ui.piano
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.id.mimikopi.MimikopiApp
+import com.id.mimikopi.core.music.NoteNameStyle
+import com.id.mimikopi.core.music.isBlackKey
+import com.id.mimikopi.data.db.SettingEntity
+import com.id.mimikopi.data.db.SettingKeys
+import com.id.mimikopi.piano.PackException
+import com.id.mimikopi.piano.PackProgress
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+sealed interface PackUi {
+    data object Checking : PackUi
+    data class Missing(val downloadBytes: Long?, val decodedBytes: Long?) : PackUi
+    data class Downloading(val fraction: Float) : PackUi
+    data class Decoding(val done: Int, val total: Int) : PackUi
+    data class Failed(val kind: PackException.Kind?, val detail: String?) : PackUi
+    data object Ready : PackUi
+}
+
+data class KeyboardUi(
+    val lowNote: Int = 48, // C3
+    val whiteKeyDp: Int = 44,
+    val velocity: Int = 90,
+    val gain: Float = 0.6f,
+    val showNames: Boolean = false,
+    val nameStyle: NoteNameStyle = NoteNameStyle.BOTH,
+    val sustain: Boolean = false,
+    val pressed: Set<Int> = emptySet(),
+    val soundOn: Boolean = false,
+)
+
+class PianoViewModel(app: Application) : AndroidViewModel(app) {
+    private val services = app as MimikopiApp
+    private val packs = services.samplePacks
+    private val piano = services.piano
+    private val settings = services.database.settingsDao()
+
+    private val _pack = MutableStateFlow<PackUi>(PackUi.Checking)
+    val pack: StateFlow<PackUi> = _pack.asStateFlow()
+
+    private val _keys = MutableStateFlow(KeyboardUi())
+    val keys: StateFlow<KeyboardUi> = _keys.asStateFlow()
+
+    val engineError: StateFlow<String?> = piano.lastError
+
+    private var installJob: Job? = null
+    private var acquired = false
+
+    init {
+        viewModelScope.launch {
+            loadSettings()
+            refreshPack()
+        }
+    }
+
+    private suspend fun loadSettings() {
+        fun String?.int(default: Int) = this?.toIntOrNull() ?: default
+        val s = _keys.value
+        _keys.value = s.copy(
+            lowNote = settings.get(SettingKeys.PIANO_LOW_NOTE).int(s.lowNote),
+            whiteKeyDp = settings.get(SettingKeys.PIANO_KEY_WIDTH).int(s.whiteKeyDp),
+            velocity = settings.get(SettingKeys.PIANO_VELOCITY).int(s.velocity),
+            gain = settings.get(SettingKeys.PIANO_GAIN)?.toFloatOrNull() ?: s.gain,
+            nameStyle = settings.get(SettingKeys.NOTE_NAME_STYLE)?.let { runCatching { NoteNameStyle.valueOf(it) }.getOrNull() } ?: s.nameStyle,
+        )
+    }
+
+    private suspend fun refreshPack() {
+        if (withContext(Dispatchers.IO) { packs.installed() } != null) {
+            _pack.value = PackUi.Ready
+            return
+        }
+        _pack.value = PackUi.Missing(null, null)
+        // Show the size before asking; failure here is fine (offline), the button still works.
+        runCatching { withContext(Dispatchers.IO) { packs.fetchDescriptor() } }
+            .onSuccess { _pack.value = PackUi.Missing(it.size, it.decodedBytes) }
+    }
+
+    fun installPack() {
+        if (installJob?.isActive == true) return
+        installJob = viewModelScope.launch {
+            _pack.value = PackUi.Downloading(0f)
+            try {
+                withContext(Dispatchers.IO) {
+                    val d = packs.fetchDescriptor()
+                    packs.install(d) { p ->
+                        _pack.value = when (p) {
+                            is PackProgress.Downloading -> PackUi.Downloading(p.fraction)
+                            is PackProgress.Decoding -> PackUi.Decoding(p.done, p.total)
+                        }
+                    }
+                }
+                piano.reset()
+                _pack.value = PackUi.Ready
+                if (acquired) startSound()
+            } catch (e: PackException) {
+                _pack.value = PackUi.Failed(e.kind, e.message)
+            } catch (e: java.io.IOException) {
+                _pack.value = PackUi.Failed(null, e.message)
+            }
+        }
+    }
+
+    /** Screen visible: open the audio stream. */
+    fun onStart() {
+        acquired = true
+        startSound()
+    }
+
+    /** Screen hidden: release the stream so other apps get audio back. */
+    fun onStop() {
+        if (!acquired) return
+        acquired = false
+        _keys.update { it.copy(pressed = emptySet(), sustain = false, soundOn = false) }
+        viewModelScope.launch(Dispatchers.IO) { piano.release() }
+    }
+
+    private fun startSound() {
+        if (_pack.value != PackUi.Ready) return
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) { piano.acquire() }
+            if (ok) piano.setGain(_keys.value.gain)
+            _keys.update { it.copy(soundOn = ok) }
+        }
+    }
+
+    fun noteOn(note: Int) {
+        piano.noteOn(note, _keys.value.velocity)
+        _keys.update { it.copy(pressed = it.pressed + note) }
+    }
+
+    fun noteOff(note: Int) {
+        piano.noteOff(note)
+        _keys.update { it.copy(pressed = it.pressed - note) }
+    }
+
+    fun setSustain(down: Boolean) {
+        piano.sustain(down)
+        _keys.update { it.copy(sustain = down) }
+    }
+
+    /** Move the visible range by one octave, staying on the 88 keys (A0..C8). */
+    fun shiftOctave(delta: Int) {
+        var low = (_keys.value.lowNote + 12 * delta).coerceIn(21, 96)
+        if (isBlackKey(low)) low -= 1
+        _keys.update { it.copy(lowNote = low) }
+        save(SettingKeys.PIANO_LOW_NOTE, low.toString())
+    }
+
+    fun zoom(deltaDp: Int) {
+        val w = (_keys.value.whiteKeyDp + deltaDp).coerceIn(28, 80)
+        _keys.update { it.copy(whiteKeyDp = w) }
+        save(SettingKeys.PIANO_KEY_WIDTH, w.toString())
+    }
+
+    fun setVelocity(v: Int) {
+        _keys.update { it.copy(velocity = v.coerceIn(20, 127)) }
+        save(SettingKeys.PIANO_VELOCITY, _keys.value.velocity.toString())
+    }
+
+    fun setGain(g: Float) {
+        _keys.update { it.copy(gain = g) }
+        piano.setGain(g)
+        save(SettingKeys.PIANO_GAIN, g.toString())
+    }
+
+    /** Showing names is a helper (learning-system.md 2.4); every use is counted. */
+    fun toggleNames() {
+        val show = !_keys.value.showNames
+        _keys.update { it.copy(showNames = show) }
+        if (show) {
+            viewModelScope.launch {
+                val n = (settings.get(SettingKeys.HELPER_NOTE_NAMES_COUNT)?.toIntOrNull() ?: 0) + 1
+                settings.put(SettingEntity(SettingKeys.HELPER_NOTE_NAMES_COUNT, n.toString()))
+            }
+        }
+    }
+
+    fun setNameStyle(style: NoteNameStyle) {
+        _keys.update { it.copy(nameStyle = style) }
+        save(SettingKeys.NOTE_NAME_STYLE, style.name)
+    }
+
+    private fun save(key: String, value: String) {
+        viewModelScope.launch { settings.put(SettingEntity(key, value)) }
+    }
+
+    override fun onCleared() {
+        onStop()
+    }
+}

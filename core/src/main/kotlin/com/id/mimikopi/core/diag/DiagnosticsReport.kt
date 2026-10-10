@@ -17,6 +17,7 @@ data class DiagnosticsReport(
     val features: Map<String, Boolean>,
     val audio: AudioInfo,
     val midi: MidiInfo,
+    val engine: EngineInfo? = null,
     val metronomeJitter: JitterResult? = null,
     val lastUpdateCheck: String? = null,
     val database: DatabaseInfo? = null,
@@ -57,6 +58,25 @@ data class AudioInfo(
     /** Device(s) currently used for media playback, e.g. "BUILTIN_SPEAKER" or "BLUETOOTH_A2DP". */
     val currentRoute: List<String>,
     val availableOutputs: List<String>,
+)
+
+/** Measured from the app's own Oboe output stream (M3). */
+@Serializable
+data class EngineInfo(
+    val sampleRate: Int,
+    val framesPerBurst: Int,
+    val bufferSizeFrames: Int,
+    /** Oboe calculateLatencyMillis(): estimate from stream timestamps, not a touch-to-sound measurement. */
+    val estimatedLatencyMs: Double?,
+    val exclusive: Boolean,
+    val lowLatency: Boolean,
+    val xRuns: Int?,
+    val maxActiveVoices: Int,
+    val maxCallbackMicros: Double,
+    val streamRestarts: Int,
+    val samplePackInstalled: Boolean,
+    val samplePackBytes: Long,
+    val residentSampleBytes: Long,
 )
 
 @Serializable

@@ -67,4 +67,10 @@ interface SettingsDao {
 /** Setting keys, in one place. */
 object SettingKeys {
     const val LAST_UPDATE_CHECK = "update.lastCheck"
+    const val PIANO_LOW_NOTE = "piano.lowNote"
+    const val PIANO_KEY_WIDTH = "piano.whiteKeyDp"
+    const val PIANO_VELOCITY = "piano.velocity"
+    const val PIANO_GAIN = "piano.gain"
+    const val NOTE_NAME_STYLE = "notes.nameStyle"
+    const val HELPER_NOTE_NAMES_COUNT = "helper.noteNames.count"
 }

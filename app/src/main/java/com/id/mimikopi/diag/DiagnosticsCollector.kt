@@ -18,14 +18,23 @@ import com.id.mimikopi.core.diag.MidiDeviceSummary
 import com.id.mimikopi.core.diag.MidiInfo
 import com.id.mimikopi.data.db.AppDatabase
 import com.id.mimikopi.data.db.SettingKeys
+import com.id.mimikopi.core.diag.EngineInfo
+import com.id.mimikopi.piano.PianoController
+import com.id.mimikopi.piano.SamplePackManager
 import java.time.Instant
 
 /** Reads device facts for the Diagnostics screen. Only reads; never changes system state. */
-class DiagnosticsCollector(private val context: Context, private val database: AppDatabase) {
+class DiagnosticsCollector(
+    private val context: Context,
+    private val database: AppDatabase,
+    private val piano: PianoController,
+    private val packs: SamplePackManager,
+) {
 
     suspend fun collect(): DiagnosticsReport {
+        val metrics = runCatching { piano.probeMetrics() }.getOrNull()
         val notes = mutableListOf(
-            "audio.framesPerBurst / estimatedOutputLatencyMs: measured from an Oboe stream starting M3.",
+            "engine.estimatedLatencyMs is Oboe's estimate for the current route; true touch-to-sound latency needs the external test in docs/DEVICE-TESTING.md.",
             "metronomeJitter: self-test arrives with the metronome (M4).",
             "midi.probe: velocity capability probe arrives in M5.",
         )
@@ -44,7 +53,27 @@ class DiagnosticsCollector(private val context: Context, private val database: A
                 supportedAbis = Build.SUPPORTED_ABIS.toList(),
             ),
             features = features(),
-            audio = audio(),
+            audio = audio().copy(
+                framesPerBurst = metrics?.framesPerBurst,
+                estimatedOutputLatencyMs = metrics?.estimatedLatencyMs,
+            ),
+            engine = metrics?.let {
+                EngineInfo(
+                    sampleRate = it.sampleRate,
+                    framesPerBurst = it.framesPerBurst,
+                    bufferSizeFrames = it.bufferSizeFrames,
+                    estimatedLatencyMs = it.estimatedLatencyMs,
+                    exclusive = it.exclusive,
+                    lowLatency = it.lowLatency,
+                    xRuns = it.xRuns,
+                    maxActiveVoices = it.maxActiveVoices,
+                    maxCallbackMicros = it.maxCallbackMicros,
+                    streamRestarts = it.restarts,
+                    samplePackInstalled = packs.installed() != null,
+                    samplePackBytes = packs.installedBytes(),
+                    residentSampleBytes = it.residentBytes,
+                )
+            },
             midi = MidiInfo(midiDevices()),
             lastUpdateCheck = database.settingsDao().get(SettingKeys.LAST_UPDATE_CHECK),
             database = databaseInfo(),

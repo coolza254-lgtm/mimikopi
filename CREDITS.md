@@ -15,7 +15,18 @@
 - Kotlin, kotlinx.coroutines, kotlinx.serialization (JetBrains)
 - AndroidX: Core, Activity, Lifecycle, Navigation, Compose, Material 3, Room (Google)
 
+## Piano samples
+- **Salamander Grand Piano V3** by Alexander Holm (Yamaha C5), licensed **CC BY 3.0**
+  (https://creativecommons.org/licenses/by/3.0/). Source: https://github.com/sfzinstruments/SalamanderGrandPiano
+  (originally archive.org/details/SalamanderGrandPianoV3). License confirmed from the repository's LICENSE file.
+- Changes made for ミミコピ (`tools/samples/build_samples.py`): 8 of 16 velocity layers kept; leading silence
+  trimmed using the SFZ offsets; decay tails trimmed at -60 dB (capped per register) with a 300 ms fade-out;
+  one global gain to -1 dBFS; converted to 16-bit with TPDF dither. The pack is downloaded by the app from the
+  public releases repo; it is not stored in git.
+- Considered and not used: University of Iowa MIS piano (only 3 dynamics, small-room recording).
+
+## Audio
+- **Oboe** (Google), Apache License 2.0, linked as a prefab package (`com.google.oboe:oboe`).
+
 ## Planned (added when used)
-- Salamander Grand Piano V3 samples by Alexander Holm, CC BY 3.0 (M3)
-- Oboe audio library (Google), Apache 2.0 (M3)
 - Bravura music font (Steinberg), SIL OFL 1.1 (M6)

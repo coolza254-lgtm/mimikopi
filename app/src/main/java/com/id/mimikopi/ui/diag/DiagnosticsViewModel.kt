@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class DiagnosticsViewModel(app: Application) : AndroidViewModel(app) {
-    private val collector = DiagnosticsCollector(app, (app as MimikopiApp).database)
+    private val collector = (app as MimikopiApp).let { DiagnosticsCollector(it, it.database, it.piano, it.samplePacks) }
 
     private val _report = MutableStateFlow<DiagnosticsReport?>(null)
     val report: StateFlow<DiagnosticsReport?> = _report.asStateFlow()

@@ -23,16 +23,26 @@ core/   com.id.mimikopi.core
   diag/      DiagnosticsReport model (JSON)
   update/    UpdateManifest (latest.json), UpdatePolicy (newer + safe URL/hash/size), Sha256
   backup/    BackupFile/BackupData (JSON mirror of all tables), BackupValidator
+  piano/     PackDescriptor/PackManifest (+ validation), SampleMap (note/velocity -> sample, pitch ratio)
+  keyboard/  KeyboardLayout (key geometry and multi-touch hit testing)
   time/      Clock
 app/    com.id.mimikopi
   data/db/   Room: practice_sessions, attempts, attempt_events, item_stats, settings
-  diag/      DiagnosticsCollector (reads device facts)
+  diag/      DiagnosticsCollector (reads device facts, probes the Oboe stream)
+  piano/     SamplePackManager (download, SHA-256, safe unzip, decode, atomic install),
+             PianoController (shares one engine; stream open only while a screen plays)
   backup/    BackupService: export/import via the document picker, automatic backups in app storage,
              restore in one transaction after a safety backup
   update/    UpdateService: check, streaming download with SHA-256, APK package/version/signer check,
              PackageInstaller session; InstallResultReceiver -> InstallEvents -> UI
   ui/        theme, components, home, diag, about
-engine/ (M3) C++ / Oboe sampler + metronome behind an AudioEngine interface
+audio/  com.id.mimikopi.audio (Android library + C++)
+  PianoEngine   Kotlin interface (note on/off, sustain, gain, metrics); NativePiano = JNI implementation
+  FlacDecoder   pack FLAC -> raw PCM with the platform MediaCodec (decoded once at install)
+  cpp/          Oboe output stream (LowLatency, Exclusive, float stereo), 48-voice sampler with
+                cubic interpolation, exponential release, sustain, voice stealing, soft limiter;
+                lock-free command queue into the audio callback; samples memory-mapped with the first
+                1.5 s in RAM and a prefetch thread paging ahead of active voices
 ```
 
 ## Data model (Room, schema v1)

@@ -66,6 +66,9 @@ android {
         disable += "MissingTranslation"
         abortOnError = true
         warningsAsErrors = false
+        // Also print findings to the build log.
+        textReport = true
+        textOutput = file("stdout")
     }
 }
 

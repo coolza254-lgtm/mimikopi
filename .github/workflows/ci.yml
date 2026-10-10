@@ -30,6 +30,20 @@ jobs:
       - name: Unit tests, lint, debug APK
         run: ./gradlew --stacktrace :core:test :app:lintDebug :app:assembleDebug
 
+      # The build session cannot download artifacts, so print what it needs into the log.
+      - name: Print Room schema
+        if: always()
+        run: |
+          for f in app/schemas/*/*.json; do
+            [[ -f "$f" ]] || continue
+            echo "=== $f"; cat "$f"
+            if ! git ls-files --error-unmatch "$f" > /dev/null 2>&1; then
+              echo "::warning::Room schema $f is not committed yet"
+            elif ! git diff --quiet -- "$f"; then
+              echo "::error::Committed Room schema $f differs from the generated one"; exit 1
+            fi
+          done
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
         with:

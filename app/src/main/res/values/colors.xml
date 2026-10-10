@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window/launcher background before Compose draws. Compose colours live in ui/theme/Tokens.kt. -->
+    <color name="brand_paper">#FFFEF5E6</color>
+</resources>

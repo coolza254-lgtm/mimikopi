@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">ミミコピ</string>
+    <string name="tagline">สมุดฝึกเปียโนและแกะเพลงของอิด</string>
+    <string name="action_back">ย้อนกลับ</string>
+
+    <!-- Home -->
+    <string name="home_status_title">สถานะของแอพตอนนี้</string>
+    <string name="home_status_body">นี่คือโครงแอพรุ่นแรก (M1) ใช้ทดสอบการติดตั้งและเก็บข้อมูลเครื่อง บทเรียน เสียงเปียโน เมโทรนอม และ MIDI จะตามมาในรุ่นถัดๆ ไป</string>
+    <string name="home_diagnostics_title">ข้อมูลเครื่อง (Diagnostics)</string>
+    <string name="home_diagnostics_body">ดูและคัดลอกข้อมูลเครื่องเป็น JSON เพื่อส่งกลับมาให้ตรวจ</string>
+    <string name="home_about_title">เกี่ยวกับแอพและเครดิต</string>
+    <string name="home_about_body">เวอร์ชัน เครดิต และสิ่งที่ยังทำไม่เสร็จ</string>
+
+    <!-- Diagnostics -->
+    <string name="diag_title">ข้อมูลเครื่อง</string>
+    <string name="diag_intro">ถ้ามีปัญหาหรือผมขอข้อมูล ให้กด \"คัดลอก JSON\" แล้ววางส่งในแชท ไม่มีข้อมูลส่วนตัวในนี้</string>
+    <string name="diag_copy">คัดลอก JSON</string>
+    <string name="diag_share">แชร์</string>
+    <string name="diag_refresh">อ่านค่าใหม่</string>
+    <string name="diag_copied">คัดลอกแล้ว</string>
+    <string name="diag_section_device">เครื่อง</string>
+    <string name="diag_section_features">ความสามารถของเครื่อง</string>
+    <string name="diag_section_audio">เสียง</string>
+    <string name="diag_section_midi">MIDI</string>
+    <string name="diag_section_app">แอพ</string>
+    <string name="diag_section_notes">หมายเหตุ</string>
+    <string name="diag_sample_rate">อัตราสุ่มตัวอย่างเสียงขาออก</string>
+    <string name="diag_frames_hint">ขนาดบัฟเฟอร์ที่ระบบแนะนำ</string>
+    <string name="diag_route">อุปกรณ์เสียงที่ใช้อยู่</string>
+    <string name="diag_outputs">อุปกรณ์เสียงทั้งหมด</string>
+    <string name="diag_midi_none">ยังไม่พบอุปกรณ์ MIDI</string>
+    <string name="diag_yes">มี</string>
+    <string name="diag_no">ไม่มี</string>
+    <string name="diag_unknown">ไม่ทราบ</string>
+    <string name="diag_loading">กำลังอ่านค่า…</string>
+
+    <!-- About -->
+    <string name="about_title">เกี่ยวกับแอพ</string>
+    <string name="about_version">เวอร์ชัน %1$s (%2$d)</string>
+    <string name="about_credits_title">เครดิต</string>
+    <string name="about_credit_logo">โลโก้และไอคอน: สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
+    <string name="about_credit_font">ตัวอักษรโลโก้ ミミコピ: ฟอนต์ Zen Maru Gothic (SIL Open Font License 1.1) แปลงเป็นเส้นเวกเตอร์</string>
+    <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
+    <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
+    <string name="about_limit_1">บทเรียนและหน้าจอวันนี้ (M6)</string>
+    <string name="about_limit_2">เสียงเปียโนจริงและคีย์บอร์ดบนจอ (M3)</string>
+    <string name="about_limit_3">เมโทรนอม (M4)</string>
+    <string name="about_limit_4">ต่อเปียโนผ่าน MIDI (M5)</string>
+    <string name="about_limit_5">ตรวจหาอัปเดตในแอพ และสำรอง/กู้คืนข้อมูล (M2)</string>
+    <string name="about_limit_6">ธีมมืด และภาษาอังกฤษ</string>
+    <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพไม่ส่งข้อมูลออกไปไหน</string>
+</resources>

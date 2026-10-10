@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Unit tests, lint, debug APK
+        run: ./gradlew --stacktrace :core:test :app:lintDebug :app:assembleDebug
+
+      # The build session cannot download artifacts, so print what it needs into the log.
+      - name: Print Room schema
+        if: always()
+        run: |
+          for f in app/schemas/*/*.json; do
+            [[ -f "$f" ]] || continue
+            echo "=== $f"; cat "$f"
+            if ! git ls-files --error-unmatch "$f" > /dev/null 2>&1; then
+              echo "::warning::Room schema $f is not committed yet"
+            elif ! git diff --quiet -- "$f"; then
+              echo "::error::Committed Room schema $f differs from the generated one"; exit 1
+            fi
+          done
+
+      - name: Print lint findings
+        if: always()
+        run: |
+          f=app/build/reports/lint-results-debug.sarif
+          [[ -f "$f" ]] || exit 0
+          python3 - "$f" <<'PY'
+          import json, sys
+          runs = json.load(open(sys.argv[1]))["runs"]
+          results = [r for run in runs for r in run.get("results", [])]
+          print(f"lint: {len(results)} finding(s)")
+          for r in results:
+              loc = r["locations"][0]["physicalLocation"] if r.get("locations") else {}
+              path = loc.get("artifactLocation", {}).get("uri", "?")
+              line = loc.get("region", {}).get("startLine", "?")
+              print(f"  [{r.get('level', '?')}] {r['ruleId']}: {path}:{line} {r['message']['text']}")
+          PY
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v5
+        with:
+          name: mimikopi-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload reports and Room schema
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: reports-${{ github.sha }}
+          path: |
+            core/build/reports/tests/
+            app/build/reports/lint-results-debug.*
+            app/schemas/
+          if-no-files-found: ignore

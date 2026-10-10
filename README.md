@@ -33,7 +33,8 @@ Locally (needs JDK 17+ and the Android SDK with API 36):
 ## Releasing
 
 1. Add Thai notes at `release-notes/vX.Y.Z.md`.
-2. Push the tag `vX.Y.Z` (versionCode = X·10000 + Y·100 + Z).
+2. Push the tag `vX.Y.Z`, or run the **Release** workflow manually with version `X.Y.Z` (it creates
+   the tag). versionCode = X·10000 + Y·100 + Z.
 3. The release workflow publishes `mimikopi-vX.Y.Z.apk` and `latest.json` to the releases repo.
 
 Required Actions secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `RELEASES_TOKEN`.

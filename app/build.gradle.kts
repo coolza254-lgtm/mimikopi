@@ -15,7 +15,9 @@ val keystorePath: String? = System.getenv("MIMIKOPI_KEYSTORE_FILE")
 
 android {
     namespace = "com.id.mimikopi"
-    compileSdk = 36
+    // Current AndroidX (Compose 1.12, Navigation 2.10) requires compiling against API 37.
+    // targetSdk stays 36: runtime behaviour is opted in separately.
+    compileSdk = 37
 
     defaultConfig {
         // Frozen in M0. Changing it breaks updates over installed copies.

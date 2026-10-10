@@ -51,4 +51,4 @@ timestamp. Judging subtracts the calibrated latency of the active route, then ap
   verifies the signature, then publishes `mimikopi-vX.Y.Z.apk` and `latest.json` to
   `coolza254-lgtm/mimikopi-releases`.
 - Toolchain: AGP 9.3 (built-in Kotlin), Gradle 9.6, Kotlin 2.4, KSP 2.3, Room 2.8, Compose BOM 2026.08,
-  compileSdk/targetSdk 36, minSdk 26.
+  compileSdk 37, targetSdk 36, minSdk 26.

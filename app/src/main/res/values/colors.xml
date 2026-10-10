@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand colours sampled from docs/brand/*-source.png. Keep in sync with ui/theme/Tokens.kt. -->
+    <color name="brand_paper">#FFFEF5E6</color>
+    <color name="brand_rose">#FFE6889E</color>
+    <color name="brand_mustard">#FFF3BE52</color>
+    <color name="brand_ink">#FF3A3030</color>
+</resources>

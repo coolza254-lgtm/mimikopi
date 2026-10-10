@@ -1,0 +1,29 @@
+{
+  "cleanRun": {
+    "minNoteAccuracy": 0.95,
+    "minFractionWithinTiming": 0.90,
+    "maxStumbles": 1
+  },
+  "timing": {
+    "stageToleranceMs": { "1": 150, "2": 120, "3": 110, "4": 100, "5": 90, "6": 90 },
+    "slowTempoBpm": 80,
+    "fastTempoBeatFraction": 0.25,
+    "strictMultiplier": 0.75,
+    "normalMultiplier": 1.0,
+    "forgivingMultiplier": 1.3
+  },
+  "tempoRamp": {
+    "startFraction": 0.5,
+    "minStartBpm": 40,
+    "stepBpm": 5,
+    "percentStepAboveBpm": 80,
+    "stepPercent": 0.10,
+    "cleanRunsToStepUp": 3,
+    "failedRunsToStepDown": 2
+  },
+  "srs": {
+    "boxIntervalsDays": [1, 2, 4, 8, 16],
+    "noteReadingMaxResponseMs": 3000,
+    "maxItemsPerSession": 20
+  }
+}

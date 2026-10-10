@@ -1,0 +1,121 @@
+name: Release
+
+# Push a tag like v0.1.0 to build a signed APK and publish it to the public releases repo.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  RELEASES_REPO: coolza254-lgtm/mimikopi-releases
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Derive version from tag
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          VER="${TAG#v}"
+          if [[ ! "$VER" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Tag must look like vMAJOR.MINOR.PATCH, got $TAG"; exit 1
+          fi
+          CODE=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+          NOTES="release-notes/$TAG.md"
+          if [[ ! -s "$NOTES" ]]; then echo "::error::Missing Thai release notes $NOTES"; exit 1; fi
+          {
+            echo "TAG=$TAG"
+            echo "VERSION_NAME=$VER"
+            echo "VERSION_CODE=$CODE"
+            echo "NOTES_FILE=$NOTES"
+          } >> "$GITHUB_ENV"
+
+      - name: Check secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          missing=0
+          for s in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS RELEASES_TOKEN; do
+            if [[ -z "${!s}" ]]; then echo "::error::Actions secret $s is not set"; missing=1; fi
+          done
+          exit $missing
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
+
+      - name: Test and build signed release APK
+        env:
+          MIMIKOPI_KEYSTORE_FILE: ${{ runner.temp }}/release.p12
+          MIMIKOPI_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          MIMIKOPI_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          # PKCS12 keystores use the store password for the key.
+          MIMIKOPI_KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: >
+          ./gradlew --stacktrace :core:test :app:assembleRelease
+          -PversionCode=${{ env.VERSION_CODE }} -PversionName=${{ env.VERSION_NAME }}
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.p12"
+
+      - name: Verify signature and prepare assets
+        run: |
+          APK_IN=app/build/outputs/apk/release/app-release.apk
+          test -f "$APK_IN" || { echo "::error::No signed release APK produced"; ls -R app/build/outputs/apk; exit 1; }
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$BT/apksigner" verify --print-certs "$APK_IN" | tee signer.txt
+          APK="mimikopi-$TAG.apk"
+          cp "$APK_IN" "$APK"
+          SHA256=$(sha256sum "$APK" | cut -d' ' -f1)
+          SIZE=$(stat -c %s "$APK")
+          python3 - <<PY
+          import json, os, datetime
+          notes = open(os.environ["NOTES_FILE"], encoding="utf-8").read().strip()
+          repo = os.environ["RELEASES_REPO"]; tag = os.environ["TAG"]
+          data = {
+              "schema": 1,
+              "versionCode": int(os.environ["VERSION_CODE"]),
+              "versionName": os.environ["VERSION_NAME"],
+              "tag": tag,
+              "apkUrl": f"https://github.com/{repo}/releases/download/{tag}/mimikopi-{tag}.apk",
+              "apkSize": $SIZE,
+              "sha256": "$SHA256",
+              "notesTh": notes,
+              "publishedAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+          }
+          json.dump(data, open("latest.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          PY
+          cat latest.json
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
+      - name: Publish to releases repo
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          # latest.json on the default branch (this also creates the first commit in an empty repo).
+          OLD_SHA=$(gh api "repos/$RELEASES_REPO/contents/latest.json" --jq .sha 2>/dev/null || true)
+          ARGS=(-X PUT "repos/$RELEASES_REPO/contents/latest.json"
+                -f message="Release $TAG" -f content="$(base64 -w0 latest.json)")
+          if [[ -n "$OLD_SHA" ]]; then ARGS+=(-f sha="$OLD_SHA"); fi
+          gh api "${ARGS[@]}" > /dev/null
+          gh release create "$TAG" "$APK" latest.json \
+            --repo "$RELEASES_REPO" \
+            --title "ミミコピ $VERSION_NAME" \
+            --notes-file "$NOTES_FILE"

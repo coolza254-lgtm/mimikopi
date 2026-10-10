@@ -70,18 +70,43 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Decode keystore
+      - name: Decode and check keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          # SHA-256 of the keystore file itself (not secret); catches truncated/garbled base64.
+          EXPECTED_KEYSTORE_SHA256: 4472e34acc1507d4f4e54d0579d93f5f7ccd31d19484860078bb20df657efc6c
+        run: |
+          KS="$RUNNER_TEMP/release.p12"
+          # Pasting into the GitHub form can add spaces or line breaks; base64 and our password never contain them.
+          printf '%s' "$KEYSTORE_BASE64" | tr -d ' \r\n\t' | base64 -d > "$KS" || { echo "::error::KEYSTORE_BASE64 is not valid base64"; exit 1; }
+          ACTUAL=$(sha256sum "$KS" | cut -d' ' -f1)
+          if [[ "$ACTUAL" != "$EXPECTED_KEYSTORE_SHA256" ]]; then
+            echo "::error::KEYSTORE_BASE64 does not decode to the expected keystore (got $(stat -c %s "$KS") bytes, sha256 $ACTUAL). Re-paste the whole file content."
+            exit 1
+          fi
+          PW=$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d ' \r\n\t')
+          echo "::add-mask::$PW"
+          if ! keytool -list -keystore "$KS" -storetype PKCS12 -storepass "$PW" > /dev/null 2>&1; then
+            echo "::error::KEYSTORE_PASSWORD does not open the keystore (${#PW} characters after trimming; expected 28)."
+            exit 1
+          fi
+          ALIAS=$(printf '%s' "$KEY_ALIAS" | tr -d ' \r\n\t')
+          if ! keytool -list -keystore "$KS" -storetype PKCS12 -storepass "$PW" -alias "$ALIAS" > /dev/null 2>&1; then
+            echo "::error::KEY_ALIAS '$ALIAS' is not in the keystore (expected: mimikopi)."
+            exit 1
+          fi
+          echo "Keystore OK"
+          echo "MIMIKOPI_KEY_ALIAS=$ALIAS" >> "$GITHUB_ENV"
+          echo "MIMIKOPI_KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
+          echo "MIMIKOPI_KEY_PASSWORD=$PW" >> "$GITHUB_ENV"
 
       - name: Test and build signed release APK
         env:
           MIMIKOPI_KEYSTORE_FILE: ${{ runner.temp }}/release.p12
-          MIMIKOPI_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          MIMIKOPI_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          # PKCS12 keystores use the store password for the key.
-          MIMIKOPI_KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          # MIMIKOPI_KEY_ALIAS, MIMIKOPI_KEYSTORE_PASSWORD and MIMIKOPI_KEY_PASSWORD (PKCS12: same value)
+          # come from the check step, trimmed.
         run: >
           ./gradlew --stacktrace :core:test :app:assembleRelease
           -PversionCode=${{ env.VERSION_CODE }} -PversionName=${{ env.VERSION_NAME }}

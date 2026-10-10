@@ -64,6 +64,8 @@ android {
     lint {
         // Thai-only UI for now; English strings are added later.
         disable += "MissingTranslation"
+        // targetSdk follows Google's current requirement (36), not the newest SDK; see docs/M0-PLAN.md.
+        disable += "OldTargetApi"
         abortOnError = true
         warningsAsErrors = false
     }

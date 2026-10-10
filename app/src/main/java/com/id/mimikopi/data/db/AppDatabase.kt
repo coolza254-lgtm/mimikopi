@@ -38,6 +38,8 @@ interface StatsDao {
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun statsDao(): StatsDao
+    abstract fun backupDao(): BackupDao
+    abstract fun settingsDao(): SettingsDao
 
     companion object {
         const val VERSION = 1

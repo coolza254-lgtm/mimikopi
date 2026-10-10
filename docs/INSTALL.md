@@ -17,10 +17,18 @@ The app is not on Google Play. Releases are APK files on the public
 6. Open ミミコピ, go to **ข้อมูลเครื่อง** (Diagnostics), tap **คัดลอก JSON** and paste the result into the chat.
 
 ## Updating
-- Until M2: download and install the newer APK the same way. Android updates the installed app in place
-  and keeps your data, because every release uses the same package name (`com.id.mimikopi`) and the same
-  signing key.
-- From M2: **Settings → Check for updates** inside the app.
+From v0.2.0: **Home → ตั้งค่า อัปเดต และสำรองข้อมูล → ตรวจหาอัปเดต**.
+1. The app fetches `latest.json` from the public releases repo and shows the new version and Thai notes.
+2. **ดาวน์โหลดและติดตั้ง** → the app always saves an automatic backup inside the phone first, and offers
+   to also save a backup file elsewhere (e.g. Google Drive).
+3. The APK is downloaded and checked: size, SHA-256 from `latest.json`, package name, version code, and
+   that it is signed with the same key as the installed app. Any mismatch deletes the file and stops.
+4. The first time, Android asks to allow ミミコピ to install apps (**Allow from this source**), then
+   press back. 5. Android shows its own install screen; tap **Update**. The app restarts on the new version.
+
+Updating from v0.1.0 (which has no update button): install v0.2.0 manually from the releases page once.
+Android updates the installed app in place and keeps your data, because every release uses the same package
+name (`com.id.mimikopi`) and the same signing key.
 - If Android ever says "App not installed" / "package conflicts", **do not uninstall** without making a
   backup first: it means the signature differs, and uninstalling deletes your progress.
 

@@ -3,14 +3,61 @@
     <string name="app_name" translatable="false">ミミコピ</string>
     <string name="tagline">สมุดฝึกเปียโนและแกะเพลงของอิด</string>
     <string name="action_back">ย้อนกลับ</string>
+    <string name="action_cancel">ยกเลิก</string>
 
     <!-- Home -->
     <string name="home_status_title">สถานะของแอพตอนนี้</string>
-    <string name="home_status_body">นี่คือโครงแอพรุ่นแรก (M1) ใช้ทดสอบการติดตั้งและเก็บข้อมูลเครื่อง บทเรียน เสียงเปียโน เมโทรนอม และ MIDI จะตามมาในรุ่นถัดๆ ไป</string>
+    <string name="home_status_body">รุ่นนี้มีการอัปเดตในแอพ สำรองข้อมูล และข้อมูลเครื่อง บทเรียน เสียงเปียโน เมโทรนอม และ MIDI จะตามมาในรุ่นถัดๆ ไป</string>
     <string name="home_diagnostics_title">ข้อมูลเครื่อง (Diagnostics)</string>
     <string name="home_diagnostics_body">ดูและคัดลอกข้อมูลเครื่องเป็น JSON เพื่อส่งกลับมาให้ตรวจ</string>
     <string name="home_about_title">เกี่ยวกับแอพและเครดิต</string>
     <string name="home_about_body">เวอร์ชัน เครดิต และสิ่งที่ยังทำไม่เสร็จ</string>
+
+    <string name="home_settings_title">ตั้งค่า อัปเดต และสำรองข้อมูล</string>
+    <string name="home_settings_body">ตรวจหารุ่นใหม่ และบันทึก/กู้คืนข้อมูลการฝึก</string>
+
+    <!-- Settings: update -->
+    <string name="settings_title">ตั้งค่า</string>
+    <string name="update_title">อัปเดตแอพ</string>
+    <string name="update_current">รุ่นที่ใช้อยู่: %1$s (%2$d)</string>
+    <string name="update_last_check">ตรวจล่าสุด: %1$s</string>
+    <string name="update_check">ตรวจหาอัปเดต</string>
+    <string name="update_checking">กำลังตรวจ…</string>
+    <string name="update_up_to_date">ใช้รุ่นล่าสุดอยู่แล้ว (รุ่นล่าสุด %1$s)</string>
+    <string name="update_available">มีรุ่นใหม่: %1$s</string>
+    <string name="update_size">ขนาดประมาณ %1$.1f MB</string>
+    <string name="update_install">ดาวน์โหลดและติดตั้ง</string>
+    <string name="update_later">ไว้ทีหลัง</string>
+    <string name="update_downloading">กำลังดาวน์โหลด… %1$d%%</string>
+    <string name="update_need_permission">ต้องอนุญาตให้ ミミコピ ติดตั้งแอพก่อน (ทำครั้งเดียว) กดปุ่มด้านล่าง เปิดสวิตช์ "อนุญาตจากแหล่งนี้" แล้วกดย้อนกลับ</string>
+    <string name="update_open_permission">เปิดหน้าตั้งค่าการอนุญาต</string>
+    <string name="update_installing">ตรวจไฟล์ผ่านแล้ว รอหน้าติดตั้งของระบบ แล้วกด "อัปเดต" เพื่อยืนยัน</string>
+    <string name="update_backup_q_title">สำรองข้อมูลก่อนอัปเดต</string>
+    <string name="update_backup_q_body">แอพจะสำรองข้อมูลไว้ในเครื่องให้อัตโนมัติก่อนอัปเดตเสมอ ถ้าอยากเก็บไฟล์สำรองไว้ที่อื่นด้วย (เช่น Google Drive) กด "บันทึกไฟล์ก่อน"</string>
+    <string name="update_backup_q_save">บันทึกไฟล์ก่อน</string>
+    <string name="update_backup_q_skip">อัปเดตเลย</string>
+    <string name="update_err_network">เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่</string>
+    <string name="update_err_manifest">ข้อมูลรุ่นใหม่บนเซิร์ฟเวอร์ไม่ถูกต้อง จึงไม่ติดตั้ง</string>
+    <string name="update_err_checksum">ไฟล์ที่ดาวน์โหลดไม่ตรงกับที่ประกาศ (SHA-256) ลบทิ้งแล้วและไม่ติดตั้ง ลองใหม่อีกครั้ง</string>
+    <string name="update_err_wrong_apk">ไฟล์ไม่ใช่ ミミコピ รุ่นที่ถูกต้องหรือกุญแจเซ็นไม่ตรง จึงไม่ติดตั้ง</string>
+    <string name="update_err_install">ติดตั้งไม่สำเร็จ ข้อมูลเดิมยังอยู่ครบ</string>
+    <string name="update_err_cancelled">ยกเลิกการติดตั้งแล้ว ข้อมูลเดิมยังอยู่ครบ</string>
+    <string name="update_err_debug">รุ่น debug อัปเดตตัวเองไม่ได้ ใช้รุ่นปกติ (release) เพื่ออัปเดต</string>
+
+    <!-- Settings: backup -->
+    <string name="backup_title">สำรองและกู้คืนข้อมูล</string>
+    <string name="backup_body">บันทึกข้อมูลการฝึกทั้งหมดเป็นไฟล์ JSON ไฟล์เดียว เก็บไว้ที่ไหนก็ได้ ข้อมูลอยู่ในเครื่องเท่านั้น จึงควรสำรองเป็นระยะ</string>
+    <string name="backup_auto_count">สำรองอัตโนมัติในเครื่อง: %1$d ชุด (เก็บ 5 ชุดล่าสุด)</string>
+    <string name="backup_export">บันทึกไฟล์สำรอง</string>
+    <string name="backup_import">กู้คืนจากไฟล์</string>
+    <string name="backup_restore_auto">กู้คืนจากสำรองอัตโนมัติล่าสุด</string>
+    <string name="backup_exported">บันทึกแล้ว (%1$d รายการ)</string>
+    <string name="backup_restored">กู้คืนแล้ว (%1$d รายการ)</string>
+    <string name="backup_rejected">ใช้ไฟล์นี้ไม่ได้: %1$s ข้อมูลเดิมไม่ถูกแตะ</string>
+    <string name="backup_error">เกิดข้อผิดพลาด: %1$s ข้อมูลเดิมไม่ถูกแตะ</string>
+    <string name="restore_confirm_title">แทนที่ข้อมูลทั้งหมด?</string>
+    <string name="restore_confirm_body">ไฟล์สำรองเมื่อ %1$s (รุ่น %2$s, %3$d รายการ) จะแทนที่ข้อมูลปัจจุบันทั้งหมด แอพจะสำรองข้อมูลปัจจุบันไว้ให้ก่อนอัตโนมัติ</string>
+    <string name="restore_confirm_yes">แทนที่</string>
 
     <!-- Diagnostics -->
     <string name="diag_title">ข้อมูลเครื่อง</string>
@@ -47,7 +94,6 @@
     <string name="about_limit_2">เสียงเปียโนจริงและคีย์บอร์ดบนจอ (M3)</string>
     <string name="about_limit_3">เมโทรนอม (M4)</string>
     <string name="about_limit_4">ต่อเปียโนผ่าน MIDI (M5)</string>
-    <string name="about_limit_5">ตรวจหาอัปเดตในแอพ และสำรอง/กู้คืนข้อมูล (M2)</string>
     <string name="about_limit_6">ธีมมืด และภาษาอังกฤษ</string>
-    <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพไม่ส่งข้อมูลออกไปไหน</string>
+    <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (ไปที่หน้า release สาธารณะบน GitHub) และไม่ส่งข้อมูลของคุณออกไป</string>
 </resources>

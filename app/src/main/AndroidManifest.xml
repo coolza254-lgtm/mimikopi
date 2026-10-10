@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Update check and APK download from the public releases repo only (M2). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Lets the user approve installing app updates; every install still needs their confirmation. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- Optional hardware: the app must still install and work without them. -->
     <uses-feature android:name="android.software.midi" android:required="false" />
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
@@ -24,5 +29,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <receiver
+            android:name=".update.InstallResultReceiver"
+            android:exported="false" />
     </application>
 </manifest>

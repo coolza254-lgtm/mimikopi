@@ -17,6 +17,7 @@ import com.id.mimikopi.core.diag.DiagnosticsReport
 import com.id.mimikopi.core.diag.MidiDeviceSummary
 import com.id.mimikopi.core.diag.MidiInfo
 import com.id.mimikopi.data.db.AppDatabase
+import com.id.mimikopi.data.db.SettingKeys
 import java.time.Instant
 
 /** Reads device facts for the Diagnostics screen. Only reads; never changes system state. */
@@ -26,7 +27,6 @@ class DiagnosticsCollector(private val context: Context, private val database: A
         val notes = mutableListOf(
             "audio.framesPerBurst / estimatedOutputLatencyMs: measured from an Oboe stream starting M3.",
             "metronomeJitter: self-test arrives with the metronome (M4).",
-            "lastUpdateCheck: in-app update arrives in M2.",
             "midi.probe: velocity capability probe arrives in M5.",
         )
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
@@ -46,6 +46,7 @@ class DiagnosticsCollector(private val context: Context, private val database: A
             features = features(),
             audio = audio(),
             midi = MidiInfo(midiDevices()),
+            lastUpdateCheck = database.settingsDao().get(SettingKeys.LAST_UPDATE_CHECK),
             database = databaseInfo(),
             notes = notes,
         )

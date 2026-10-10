@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import com.id.mimikopi.ui.about.AboutScreen
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
 import com.id.mimikopi.ui.home.HomeScreen
+import com.id.mimikopi.ui.settings.SettingsScreen
 import com.id.mimikopi.ui.theme.MimikopiTheme
 
 class MainActivity : ComponentActivity() {
@@ -27,6 +28,7 @@ private object Routes {
     const val HOME = "home"
     const val DIAGNOSTICS = "diagnostics"
     const val ABOUT = "about"
+    const val SETTINGS = "settings"
 }
 
 @Composable
@@ -37,9 +39,11 @@ private fun AppNavigation() {
             HomeScreen(
                 onOpenDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },
                 onOpenAbout = { nav.navigate(Routes.ABOUT) },
+                onOpenSettings = { nav.navigate(Routes.SETTINGS) },
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.ABOUT) { AboutScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
     }
 }

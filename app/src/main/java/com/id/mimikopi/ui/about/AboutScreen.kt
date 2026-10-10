@@ -34,7 +34,7 @@ fun AboutScreen(onBack: () -> Unit) {
         WavyDivider()
         PageCard(title = stringResource(R.string.about_limits_title)) {
             listOf(
-                R.string.about_limit_5, R.string.about_limit_2, R.string.about_limit_3,
+                R.string.about_limit_2, R.string.about_limit_3,
                 R.string.about_limit_4, R.string.about_limit_1, R.string.about_limit_6,
             ).forEach { Bullet(stringResource(it)) }
         }

@@ -44,6 +44,23 @@ jobs:
             fi
           done
 
+      - name: Print lint findings
+        if: always()
+        run: |
+          f=app/build/reports/lint-results-debug.sarif
+          [[ -f "$f" ]] || exit 0
+          python3 - "$f" <<'PY'
+          import json, sys
+          runs = json.load(open(sys.argv[1]))["runs"]
+          results = [r for run in runs for r in run.get("results", [])]
+          print(f"lint: {len(results)} finding(s)")
+          for r in results:
+              loc = r["locations"][0]["physicalLocation"] if r.get("locations") else {}
+              path = loc.get("artifactLocation", {}).get("uri", "?")
+              line = loc.get("region", {}).get("startLine", "?")
+              print(f"  [{r.get('level', '?')}] {r['ruleId']}: {path}:{line} {r['message']['text']}")
+          PY
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
         with:

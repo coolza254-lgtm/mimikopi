@@ -28,24 +28,30 @@ jobs:
           QUERY: ${{ inputs.query }}
         run: |
           set -u
-          for q in "$QUERY" "Borgo Del Cervo" "Rivai" "Sofia_MZ"; do
-            echo "=== Musical Artifacts: $q"
-            curl -sSL --get --data-urlencode "q=$q" "https://musical-artifacts.com/artifacts.json" -o ma.json || continue
-            python3 - <<'PY'
-          import json
-          try:
-              data = json.load(open("ma.json"))
-          except Exception as e:
-              print("not json:", e); raise SystemExit
-          for a in data if isinstance(data, list) else data.get("artifacts", []):
-              print(json.dumps({k: a.get(k) for k in ("id", "name", "author", "license", "license_name", "file", "mirrors", "download_url", "more_info", "description", "tags", "formats", "created_at")}, ensure_ascii=False, indent=1)[:3000])
-          PY
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36"
+          links() { grep -oE 'https?://[^"<> ]*(sourceforge\.net|mega\.nz|drive\.google|musical-artifacts\.com/artifacts/[0-9]+|wixsite|github\.com/[^"<> ]*|dropbox|archive\.org)[^"<> ]*' | sort -u | head -60; }
+          pages=(
+            "https://musical-artifacts.com/artifacts?q=Sofia+MZ"
+            "https://musical-artifacts.com/artifacts?formats=sfz&order=created_at&tags=grand+piano"
+            "https://linuxmusicians.com/viewtopic.php?t=26432"
+            "https://pianoclack.com/forum/d/1152-my-free-sfz-piano-libraries"
+            "https://pianoclack.com/forum/d/1152-my-free-sfz-piano-libraries?page=2"
+            "https://forum.pianoworld.com/ubbthreads.php/topics/3430735/my-free-piano-libraries-in-sfz-format.html"
+            "https://vi-control.net/community/threads/my-free-sfz-piano-libraries.145758/"
+            "https://sourceforge.net/directory/?q=sofia+mz+piano"
+            "https://sourceforge.net/directory/?q=borgo+del+cervo"
+            "https://sourceforge.net/directory/?q=rivai"
+          )
+          for u in "${pages[@]}"; do
+            echo "=== $u"
+            curl -sSL -A "$UA" --max-time 30 "$u" -o page.html || { echo "fetch failed"; continue; }
+            echo "bytes: $(wc -c < page.html)  title: $(grep -o '<title>[^<]*' page.html | head -1)"
+            links < page.html
+            # Licence mentions near the text, for context.
+            grep -oiE '.{0,120}(creative commons|cc0|cc by|licen[cs]e).{0,160}' page.html | sed 's/<[^>]*>//g' | sort -u | head -15
           done
-          for slug in borgo-del-cervo borgodelcervo rivai-darsie rivai-d-arsie sofia-mz-pianos; do
-            echo "=== SourceForge $slug"
-            curl -sSL "https://sourceforge.net/projects/$slug/rss?path=/" | grep -oE "<(title|link)>[^<]+" | head -20 || true
-            curl -sSL "https://sourceforge.net/rest/p/$slug" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('name'), d.get('url'), d.get('categories',{}).get('license'))" 2>/dev/null || true
-          done
+          # Musical Artifacts artifact pages found above: print their licence and download links.
+          for u in $(cat /dev/null); do :; done
 
       - name: Download and inspect archive
         if: inputs.url != ''

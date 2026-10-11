@@ -1,0 +1,25 @@
+{
+  "id": "ex-scale-d-both",
+  "title": "สเกล D เมเจอร์ สองมือ",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise (scale with standard fingering).",
+  "level": "L6",
+  "key": 2,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 72,
+  "rh": [
+    "D4/q@1 E4/q@2 F#4/q@3 G4/q@1",
+    "A4/q@2 B4/q@3 C#5/q@4 D5/q@5",
+    "C#5/q@4 B4/q@3 A4/q@2 G4/q@1",
+    "F#4/q@3 E4/q@2 D4/h@1"
+  ],
+  "lh": [
+    "D3/q@5 E3/q@4 F#3/q@3 G3/q@2",
+    "A3/q@1 B3/q@3 C#4/q@2 D4/q@1",
+    "C#4/q@2 B3/q@3 A3/q@1 G3/q@2",
+    "F#3/q@3 E3/q@4 D3/h@5"
+  ]
+}

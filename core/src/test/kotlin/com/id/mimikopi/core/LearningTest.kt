@@ -54,7 +54,8 @@ class LessonContentTest {
         val lessons = all()
         val ids = lessons.map { it.id }.toSet()
         val expected = (listOf("1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.10") +
-            (1..9).map { "2.$it" } + (1..8).map { "3.$it" }).toSet()
+            (1..9).map { "2.$it" } + (1..8).map { "3.$it" } + (1..8).map { "4.$it" } + (1..10).map { "5.$it" } +
+            (1..7).map { "6.$it" }).toSet()
         assertEquals(expected, ids)
         // Prerequisites exist and come earlier in the order (no cycles).
         val order = lessons.sortedWith(compareBy({ it.stage }, { it.id.substringAfter('.').toInt() })).map { it.id }
@@ -85,15 +86,31 @@ class LessonContentTest {
                 com.id.mimikopi.core.lesson.ExerciseType.E_RHYTHM_TAP ->
                     com.id.mimikopi.core.score.Score.from(com.id.mimikopi.core.exercise.ScoreGenerators.rhythm(d, seed))
                 com.id.mimikopi.core.lesson.ExerciseType.E_READ_PIECE ->
-                    com.id.mimikopi.core.score.Score.from(com.id.mimikopi.core.exercise.ScoreGenerators.sightReading(d, seed))
+                    com.id.mimikopi.core.score.Score.from(com.id.mimikopi.core.exercise.ScoreGenerators.read(d, seed))
+                com.id.mimikopi.core.lesson.ExerciseType.E_COMP_PATTERN ->
+                    com.id.mimikopi.core.score.ScoreLayout.of(com.id.mimikopi.core.score.Score.from(com.id.mimikopi.core.exercise.ScoreGenerators.comp(d, seed)))
+                com.id.mimikopi.core.lesson.ExerciseType.E_CHORD_BUILD ->
+                    assertEquals(d.items, com.id.mimikopi.core.exercise.ChordDrills.build(d, seed).size, "${l.id}/${d.title}")
+                com.id.mimikopi.core.lesson.ExerciseType.E_CHORD_CHANGE ->
+                    assertTrue(com.id.mimikopi.core.exercise.ChordDrills.changes(d).isNotEmpty())
+                com.id.mimikopi.core.lesson.ExerciseType.E_TRANSPOSE -> d.targetKeys.forEach { to ->
+                    val (a, b) = com.id.mimikopi.core.theory.StageGenerators.transposePair(d.keys.first(), to, seed)
+                    com.id.mimikopi.core.score.ScoreLayout.of(com.id.mimikopi.core.score.Score.from(b))
+                    assertEquals(com.id.mimikopi.core.score.Score.from(a).events.size, com.id.mimikopi.core.score.Score.from(b).events.size)
+                }
+                com.id.mimikopi.core.lesson.ExerciseType.E_EAR ->
+                    com.id.mimikopi.core.ear.EarLevel.valueOf(d.level)
                 com.id.mimikopi.core.lesson.ExerciseType.E_INTERVAL_READ ->
                     assertEquals(d.items, com.id.mimikopi.core.exercise.ScoreGenerators.intervalSets(d, seed).size)
                 com.id.mimikopi.core.lesson.ExerciseType.E_PIECE ->
-                    d.pieces.forEach { assertTrue(it in pieceIds || it in exerciseIds, "${l.id}: missing piece $it") }
+                    d.pieces.forEach { assertTrue(it in pieceIds || it in exerciseIds || it in SPECIAL_PIECES, "${l.id}: missing piece $it") }
                 else -> Unit
             }
         }
     }
+
+    /** Placeholders the app fills in: the user's Capstone A score and the score linked to a library song. */
+    private val SPECIAL_PIECES = setOf("capstone", "song")
 
     @Test
     fun noCopyrightedSongContent() {

@@ -1,0 +1,25 @@
+{
+  "id": "ex-contrary-motion",
+  "title": "การเคลื่อนที่ตรงข้าม (สองมือ)",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise.",
+  "level": "L6",
+  "key": 0,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 72,
+  "rh": [
+    "C4/q@1 D4/q@2 E4/q@3 F4/q@4",
+    "G4/h@5 F4/q@4 E4/q@3",
+    "D4/q@2 E4/q@3 D4/q@2 C4/q@1",
+    "C4/w@1"
+  ],
+  "lh": [
+    "C4/q@1 B3/q@2 A3/q@3 G3/q@4",
+    "F3/h@5 G3/q@4 A3/q@3",
+    "B3/q@2 A3/q@3 B3/q@2 C4/q@1",
+    "C4/w@1"
+  ]
+}

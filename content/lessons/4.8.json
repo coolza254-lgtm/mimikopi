@@ -1,0 +1,92 @@
+{
+  "id": "4.8",
+  "stage": 4,
+  "title": "สอบจบด่าน 4",
+  "goal": "ยืนยันว่าอ่านและเล่นสองมือจากโน้ตจริงได้ในหลายคีย์ พร้อมไปด่านคอร์ดและ lead sheet",
+  "minutes": 25,
+  "tracks": [
+    "READ_PITCH",
+    "HANDS",
+    "THEORY"
+  ],
+  "prerequisites": [
+    "4.7",
+    "4.4",
+    "4.5"
+  ],
+  "explain": [
+    "ต้องผ่าน 3 ส่วนในวันเดียวกัน: อ่านเส้นน้อย, สเกลสองมือ (คีย์ D), และบทอ่านใหม่สองมือ L6",
+    "เพลงสองมือ 2 เพลงของสอบนี้คือเพลงที่ผ่านในบท 4.7 แล้ว"
+  ],
+  "tryIt": [
+    {
+      "text": "อุ่นเครื่องด้วยสเกล C สองมือช้าๆ"
+    }
+  ],
+  "drills": [
+    {
+      "type": "E_NOTEID",
+      "title": "ส่วนที่ 1: เส้นน้อยทั้งสองกุญแจ",
+      "items": 20,
+      "pool": [
+        "C4:treble",
+        "B3:treble",
+        "A3:treble",
+        "G3:treble",
+        "A5:treble",
+        "B5:treble",
+        "C6:treble",
+        "C4:bass",
+        "D4:bass",
+        "E4:bass",
+        "F4:bass",
+        "E2:bass",
+        "D2:bass",
+        "C2:bass"
+      ]
+    },
+    {
+      "type": "E_PIECE",
+      "title": "ส่วนที่ 2: สเกล D สองมือ",
+      "items": 1,
+      "pieces": [
+        "ex-scale-d-both"
+      ],
+      "hand": "BOTH",
+      "mode": "TEMPO",
+      "bpm": 72
+    },
+    {
+      "type": "E_READ_PIECE",
+      "title": "ส่วนที่ 3: บทอ่านใหม่ L6",
+      "items": 1,
+      "level": "L6",
+      "keys": [
+        0,
+        1,
+        -1,
+        2,
+        -2
+      ],
+      "mode": "TEMPO",
+      "bpm": 66
+    }
+  ],
+  "pass": {
+    "drill": 0,
+    "alsoDrills": [
+      1,
+      2
+    ],
+    "minAccuracy": 0.9,
+    "cleanRuns": 1,
+    "inRow": false,
+    "days": 2
+  },
+  "passText": "ผ่านครบ 3 ส่วนในวันเดียวกัน (อ่านเส้นน้อย ≥ 90%, สเกล D และบทอ่าน L6 เล่นสะอาดอย่างละครั้ง) ใน 2 วันคนละวัน",
+  "srsItems": [],
+  "tips": [
+    "สอบตอนต้นเซสชัน"
+  ],
+  "caveats": []
+}

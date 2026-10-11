@@ -41,6 +41,7 @@ fun TodayScreen(
     onOpenDrill: (String, Int) -> Unit,
     onOpenReview: () -> Unit,
     onOpenPiano: () -> Unit,
+    onOpenPieces: () -> Unit,
     vm: TodayViewModel = viewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -92,6 +93,9 @@ fun TodayScreen(
                         Text(stringResource(R.string.block_lesson_body, l.id, l.title, l.goal), style = MaterialTheme.typography.bodyMedium)
                         Button(onClick = { onOpenLesson(l.id) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
                             Text(stringResource(R.string.block_open_lesson))
+                        }
+                        OutlinedButton(onClick = onOpenPieces, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
+                            Text(stringResource(R.string.block_open_pieces))
                         }
                     }
                     BlockKind.FREE_PLAY -> {

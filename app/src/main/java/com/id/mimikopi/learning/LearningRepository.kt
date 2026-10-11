@@ -141,13 +141,15 @@ class LearningRepository(private val context: Context, private val db: AppDataba
         helperUses: Int,
         events: List<AttemptEvent>,
         sessionId: Long?,
+        hand: String? = null,
+        stumbles: Int? = null,
     ) {
         val dao = db.learningDao()
         val id = dao.insertAttempt(
             AttemptEntity(
                 sessionId = sessionId, exerciseId = exerciseId, paramsJson = paramsJson, startedAtMillis = startedAt,
-                hand = null, tempoBpm = tempoBpm, noteAccuracy = noteAccuracy, timingWithinTol = timingWithinTol,
-                stumbles = null, clean = clean, helperUses = helperUses,
+                hand = hand, tempoBpm = tempoBpm, noteAccuracy = noteAccuracy, timingWithinTol = timingWithinTol,
+                stumbles = stumbles, clean = clean, helperUses = helperUses,
             ),
         )
         dao.insertEvents(events.map {

@@ -293,7 +293,62 @@
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
     <string name="about_limit_1">บทเรียนตอนนี้มีบท 1.1 1.3 1.5 (บทอื่น วอร์มอัพ อ่านโน้ตใหม่ และ ear training ตามมาในรุ่นถัดไป)</string>
     <string name="about_limit_2">เสียงปล่อยคีย์และเสียงสะท้อนสายของเปียโน</string>
+    <string name="about_limit_3">ตัวอ่านโน้ตยังไม่วาดเส้นรวบเขบ็ต (beam) เส้นโยง และไม่ตัดบรรทัด (โน้ตเลื่อนเป็นแถวยาว) ยังไม่มีมุมมองโน้ตตก (falling notes) และยังใส่เพลงเองไม่ได้ (มากับเครื่องมือเขียนโน้ต)</string>
     <string name="about_limit_4">Bluetooth MIDI (ยังไม่ได้ทดสอบ อุปกรณ์ที่จับคู่ในระบบอาจใช้ได้)</string>
     <string name="about_limit_6">ธีมมืด และภาษาอังกฤษ</string>
     <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (ไปที่หน้า release สาธารณะบน GitHub) และไม่ส่งข้อมูลของคุณออกไป</string>
+
+    <!-- M7: reader and play-along -->
+    <string name="home_reader_title">อ่านโน้ตและเล่นตาม</string>
+    <string name="home_reader_body">อ่านโน้ตบรรทัดคู่ เล่นตามแบบรอหรือตามจังหวะ วนท่อน แยกมือ แอพบอกโน้ตที่ถูก เร็ว ช้า หรือพลาด</string>
+    <string name="pieces_title">อ่านโน้ตและเล่นตาม</string>
+    <string name="pieces_intro">เลือกเพลงที่จะฝึก เริ่มจากโหมด "รอ" (แอพรอจนกดถูก) แล้วค่อยไปโหมด "ตามจังหวะ" ฝึกทีละท่อนช้าๆ ดีกว่าเล่นทั้งเพลงวนๆ</string>
+    <string name="pieces_source_note">เพลงในแอพเป็นทำนองสาธารณะ (public domain) ที่แอพเรียบเรียงใหม่แบบง่าย หรือเพลงที่แต่งใหม่สำหรับแอพ ไม่มีโน้ตหรือเนื้อร้องที่มีลิขสิทธิ์</string>
+    <string name="pieces_meta">ระดับ %1$s · %2$d/%3$d · เป้าหมาย %4$d bpm · %5$d บาร์</string>
+    <string name="pieces_status_new">ยังไม่ได้ฝึก</string>
+    <string name="pieces_status_runs">ฝึกแล้ว %1$d รอบ</string>
+    <string name="pieces_status_best">เล่นสะอาดเร็วสุด %1$d bpm</string>
+    <string name="pieces_status_days">เล่นสะอาดที่ความเร็วเป้าหมาย %1$d/2 วัน</string>
+    <string name="pieces_status_passed">ผ่านเพลงนี้แล้ว</string>
+    <string name="reader_not_found">ไม่พบเพลงนี้</string>
+    <string name="reader_start">เริ่ม</string>
+    <string name="reader_listen">ฟังตัวอย่าง</string>
+    <string name="reader_stop">หยุด</string>
+    <string name="reader_again">เล่นอีกครั้ง</string>
+    <string name="reader_back_to_setup">ปรับการฝึก</string>
+    <string name="reader_mode_wait">รอ</string>
+    <string name="reader_mode_tempo">ตามจังหวะ</string>
+    <string name="reader_hand_right">มือขวา</string>
+    <string name="reader_hand_left">มือซ้าย</string>
+    <string name="reader_hand_both">สองมือ</string>
+    <string name="reader_bpm">%1$d bpm</string>
+    <string name="reader_bpm_target">เป้าหมาย %1$d</string>
+    <string name="reader_slower">ช้าลง</string>
+    <string name="reader_faster">เร็วขึ้น</string>
+    <string name="reader_section">บาร์ %1$d–%2$d</string>
+    <string name="reader_section_one">บาร์ %1$d</string>
+    <string name="reader_whole_piece">ทั้งเพลง</string>
+    <string name="reader_tap_hint">แตะบาร์บนโน้ตเพื่อเลือกท่อน (แตะบาร์แรก แล้วแตะบาร์สุดท้าย)</string>
+    <string name="reader_tap_end_hint">แตะบาร์สุดท้ายของท่อน</string>
+    <string name="reader_hot">จุดที่พลาดบ่อย:</string>
+    <string name="reader_hot_measure">บาร์ %1$d</string>
+    <string name="reader_names">ชื่อโน้ต</string>
+    <string name="reader_more">ตัวเลือก</string>
+    <string name="reader_options_title">ตัวเลือกการเล่นตาม</string>
+    <string name="reader_opt_other_hand">ให้แอพเล่นมือที่ไม่ได้เล่น</string>
+    <string name="reader_opt_other_hand_body">ปิดไว้ = มือนั้นเงียบ</string>
+    <string name="reader_opt_metronome">เมโทรนอมระหว่างเล่น (โหมดตามจังหวะ)</string>
+    <string name="reader_opt_metronome_body">ช่วงนับเข้ามีเสียงคลิกเสมอ</string>
+    <string name="reader_opt_ramp">ปรับความเร็วอัตโนมัติ</string>
+    <string name="reader_opt_ramp_body">เริ่มที่ราวครึ่งหนึ่งของความเร็วเป้าหมาย เพิ่มหลังเล่นสะอาด 3 รอบติด ลดหลังพลาด 2 รอบติด แยกตามท่อนและมือ</string>
+    <string name="reader_opt_keyboard">แสดงคีย์บอร์ดบนจอ</string>
+    <string name="reader_opt_keyboard_body">ปิดได้เมื่อต่อเปียโนจริง ให้โน้ตมีที่มากขึ้น</string>
+    <string name="block_open_pieces">ฝึกเพลง (อ่านโน้ตและเล่นตาม)</string>
+    <string name="reader_done">เสร็จ</string>
+    <string name="reader_count_in">นับเข้า %1$d</string>
+    <string name="reader_playing_wait">โหมดรอ: กดโน้ตที่เคอร์เซอร์ แอพจะรอจนกดถูก</string>
+    <string name="reader_playing_tempo">โหมดตามจังหวะ · %1$d bpm</string>
+    <string name="reader_listening">กำลังเล่นตัวอย่าง · %1$d bpm</string>
+    <string name="reader_pack_missing">ยังไม่ได้ติดตั้งเสียงเปียโน แอพจะเล่นมืออื่นและตัวอย่างไม่ได้ (ติดตั้งได้ที่หน้า "เปียโน")</string>
+    <string name="reader_legend">สี: เขียว = ถูก · ส้ม ← เร็วไป / → ช้าไป · แดง × = ไม่ได้เล่น · แดง ! = แก้หลังกดผิด · วงแดง = คีย์ที่กดผิด</string>
 </resources>

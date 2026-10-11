@@ -1,0 +1,631 @@
+package com.id.mimikopi.ui.reader
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
+import com.id.mimikopi.MimikopiApp
+import com.id.mimikopi.core.input.InputConfig
+import com.id.mimikopi.core.input.InputEvent
+import com.id.mimikopi.core.input.InputSource
+import com.id.mimikopi.core.metronome.FrameTimestamp
+import com.id.mimikopi.core.metronome.JitterAnalysis
+import com.id.mimikopi.core.music.NoteNameStyle
+import com.id.mimikopi.core.playalong.Advice
+import com.id.mimikopi.core.playalong.Coach
+import com.id.mimikopi.core.playalong.Feedback
+import com.id.mimikopi.core.playalong.NoteResult
+import com.id.mimikopi.core.playalong.PieceRules
+import com.id.mimikopi.core.playalong.PlayAlongJudge
+import com.id.mimikopi.core.playalong.PlayMode
+import com.id.mimikopi.core.playalong.PlayResult
+import com.id.mimikopi.core.playalong.PlaySetup
+import com.id.mimikopi.core.practice.TimingRules
+import com.id.mimikopi.core.practice.isClean
+import com.id.mimikopi.core.score.Hand
+import com.id.mimikopi.core.score.NoteKey
+import com.id.mimikopi.core.score.Score
+import com.id.mimikopi.core.score.ScoreLayout
+import com.id.mimikopi.data.db.SettingEntity
+import com.id.mimikopi.data.db.SettingKeys
+import com.id.mimikopi.input.OutputRoute
+import com.id.mimikopi.learning.AttemptEvent
+import com.id.mimikopi.piano.NoteScheduler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlin.math.roundToInt
+
+enum class Phase { IDLE, COUNT_IN, PLAYING, LISTENING, RESULT }
+
+enum class HandChoice(val hands: Set<Hand>) {
+    RIGHT(setOf(Hand.RIGHT)), LEFT(setOf(Hand.LEFT)), BOTH(setOf(Hand.RIGHT, Hand.LEFT))
+}
+
+/** Reader preferences remembered between pieces. */
+@Serializable
+data class ReaderOptions(
+    val mode: PlayMode = PlayMode.WAIT,
+    val hands: HandChoice = HandChoice.RIGHT,
+    /** The app plays the hand(s) you are not playing; off = that hand stays silent. */
+    val playOtherHand: Boolean = true,
+    /** Click during tempo-mode runs (the count-in always clicks). */
+    val metronome: Boolean = true,
+    /** Tempo ramp (learning-system.md 6.3) in tempo mode; off = set the tempo by hand. */
+    val useRamp: Boolean = true,
+    val showKeyboard: Boolean = true,
+)
+
+sealed interface ResultAction {
+    data class Loop(val from: Int, val to: Int) : ResultAction
+    data class Hands(val choice: HandChoice) : ResultAction
+    data class Tempo(val bpm: Int) : ResultAction
+}
+
+data class CoachLine(val text: String, val action: ResultAction? = null)
+
+data class ResultUi(
+    val headline: String,
+    val details: String,
+    val clean: Boolean?,
+    val coach: List<CoachLine>,
+    val progressLine: String?,
+)
+
+data class ReaderUi(
+    val phase: Phase = Phase.IDLE,
+    val options: ReaderOptions = ReaderOptions(),
+    val bpm: Int = 60,
+    val targetBpm: Int = 60,
+    val section: IntRange = 0..0,
+    /** First bar tapped while choosing a section, waiting for the second tap. */
+    val pendingSectionStart: Int? = null,
+    val countIn: Int? = null,
+    val results: Map<NoteKey, NoteResult> = emptyMap(),
+    val wrongMarks: List<WrongMark> = emptyList(),
+    val hotMeasures: List<Int> = emptyList(),
+    val result: ResultUi? = null,
+    val showNames: Boolean = false,
+    val packMissing: Boolean = false,
+    val passDays: Int = 0,
+    val message: String? = null,
+)
+
+/**
+ * Sheet reader and play-along (PROMPT.md section 3): wait and tempo modes, per-note judging, section
+ * loops, separate hands with the app playing the other hand, tempo ramp, demo playback, problem spots.
+ * All judging happens on the main thread with timestamps from the shared input stream; the count-in
+ * clicks come from the native metronome and fix the timeline (the downbeat time t0).
+ */
+class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewModel(app) {
+    private val services = app as MimikopiApp
+    private val pieces = services.pieces
+    private val learning = services.learning
+    private val hub = services.inputHub
+    private val piano = services.piano
+    private val scheduler = NoteScheduler(piano)
+    private val json = Json { ignoreUnknownKeys = true }
+
+    val score: Score? = args.get<String>("pieceId")?.let { pieces.piece(it) }
+    val layout: ScoreLayout? = score?.let { ScoreLayout.of(it) }
+
+    private val _ui = MutableStateFlow(ReaderUi(section = 0..((score?.measures ?: 1) - 1), bpm = score?.tempo ?: 60, targetBpm = score?.tempo ?: 60))
+    val ui: StateFlow<ReaderUi> = _ui.asStateFlow()
+    val pressed = hub.pressed
+
+    var nameStyle: NoteNameStyle = NoteNameStyle.BOTH
+        private set
+
+    /** Keyboard range covering the piece, from a C to a C. */
+    val keyRange: IntRange = score?.events?.flatMap { e -> e.pitches.map { it.midi } }.orEmpty().let { notes ->
+        val lo = minOf(notes.minOrNull() ?: 48, 48)
+        val hi = maxOf(notes.maxOrNull() ?: 72, 72)
+        (lo - lo % 12)..(if (hi % 12 == 0) hi else hi - hi % 12 + 12)
+    }
+
+    private var holding = false
+    private var runJob: Job? = null
+    private var judge: PlayAlongJudge? = null
+    private var latencies: Map<InputSource, Double> = emptyMap()
+    private var helperUsedThisRun = false
+    private var runStartedAt = 0L
+    private var hitPitch = mutableMapOf<NoteKey, Int>()
+
+    // Cursor clock, read by the score view every frame.
+    @Volatile private var clockT0 = 0L
+    @Volatile private var clockBeatNanos = 1L
+    @Volatile private var clockStartBeat = 0.0
+    @Volatile private var clockEndBeat = 0.0
+    @Volatile private var clockRunning = false
+    @Volatile private var waitBeat = 0.0
+
+    init {
+        viewModelScope.launch {
+            pieces.load()
+            learning.load()
+            services.database.settingsDao().get(SettingKeys.NOTE_NAME_STYLE)?.let { runCatching { nameStyle = NoteNameStyle.valueOf(it) } }
+            val options = services.database.settingsDao().get(SettingKeys.READER_OPTIONS)
+                ?.let { runCatching { json.decodeFromString(ReaderOptions.serializer(), it) }.getOrNull() } ?: ReaderOptions()
+            val missing = withContext(Dispatchers.IO) { services.samplePacks.installed() == null }
+            _ui.update { it.copy(options = options, packMissing = missing) }
+            refreshProgress()
+            applyRampTempo()
+        }
+        viewModelScope.launch { hub.events.collect(::onInput) }
+    }
+
+    fun onStart() {
+        if (holding) return
+        holding = true
+        viewModelScope.launch { withContext(Dispatchers.IO) { piano.acquire(needPack = false) } }
+    }
+
+    fun onStop() {
+        stop()
+        if (!holding) return
+        holding = false
+        hub.releaseAll()
+        viewModelScope.launch(Dispatchers.IO) { piano.release() }
+    }
+
+    // ---------------- options ----------------
+
+    fun setMode(mode: PlayMode) = updateOptions { it.copy(mode = mode) }
+    fun setHands(choice: HandChoice) = updateOptions { it.copy(hands = choice) }
+    fun setPlayOtherHand(on: Boolean) = updateOptions { it.copy(playOtherHand = on) }
+    fun setMetronome(on: Boolean) = updateOptions { it.copy(metronome = on) }
+    fun setUseRamp(on: Boolean) = updateOptions { it.copy(useRamp = on) }
+    fun setShowKeyboard(on: Boolean) = updateOptions { it.copy(showKeyboard = on) }
+
+    private fun updateOptions(change: (ReaderOptions) -> ReaderOptions) {
+        if (!editable()) return
+        val next = change(_ui.value.options)
+        _ui.update { it.copy(options = next) }
+        viewModelScope.launch {
+            services.database.settingsDao().put(SettingEntity(SettingKeys.READER_OPTIONS, json.encodeToString(ReaderOptions.serializer(), next)))
+        }
+        applyRampTempo()
+    }
+
+    fun changeBpm(delta: Int) {
+        if (!editable()) return
+        val s = score ?: return
+        _ui.update { it.copy(bpm = (it.bpm + delta).coerceIn(30, maxOf(s.tempo * 2, 160))) }
+    }
+
+    /** Bars are chosen by tapping: first tap = start (and end), second tap = end. */
+    fun onMeasureTap(m: Int) {
+        if (!editable()) return
+        val start = _ui.value.pendingSectionStart
+        if (start == null) {
+            _ui.update { it.copy(section = m..m, pendingSectionStart = m, result = null, phase = Phase.IDLE, results = emptyMap()) }
+        } else {
+            _ui.update { it.copy(section = minOf(start, m)..maxOf(start, m), pendingSectionStart = null) }
+        }
+        applyRampTempo()
+    }
+
+    fun wholePiece() {
+        if (!editable()) return
+        val s = score ?: return
+        _ui.update { it.copy(section = 0 until s.measures, pendingSectionStart = null) }
+        applyRampTempo()
+    }
+
+    fun practiseMeasures(from: Int, to: Int) {
+        if (!editable()) return
+        _ui.update { it.copy(section = from..to, pendingSectionStart = null, phase = Phase.IDLE, result = null, results = emptyMap()) }
+        applyRampTempo()
+    }
+
+    fun applyAction(a: ResultAction) {
+        when (a) {
+            is ResultAction.Loop -> practiseMeasures(a.from, a.to)
+            is ResultAction.Hands -> { setHands(a.choice); _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap()) } }
+            is ResultAction.Tempo -> {
+                updateOptions { it.copy(useRamp = false, mode = PlayMode.TEMPO) }
+                _ui.update { it.copy(bpm = a.bpm, phase = Phase.IDLE, result = null, results = emptyMap()) }
+            }
+        }
+    }
+
+    /** Note names are a counted helper: a run that used them does not count toward passing the piece. */
+    fun toggleNames() {
+        val on = !_ui.value.showNames
+        _ui.update { it.copy(showNames = on) }
+        if (on) {
+            if (_ui.value.phase == Phase.PLAYING || _ui.value.phase == Phase.COUNT_IN) helperUsedThisRun = true
+            viewModelScope.launch {
+                val dao = services.database.settingsDao()
+                val n = (dao.get(SettingKeys.HELPER_NOTE_NAMES_COUNT)?.toIntOrNull() ?: 0) + 1
+                dao.put(SettingEntity(SettingKeys.HELPER_NOTE_NAMES_COUNT, n.toString()))
+            }
+        }
+    }
+
+    private fun editable() = _ui.value.phase == Phase.IDLE || _ui.value.phase == Phase.RESULT
+
+    private fun rampKey(): String {
+        val u = _ui.value
+        return PieceRules.rampKey(u.options.hands.hands, u.section.first, u.section.last)
+    }
+
+    /** In tempo mode with the ramp on, the tempo comes from the ramp of the current hands + section. */
+    private fun applyRampTempo() {
+        val s = score ?: return
+        val u = _ui.value
+        if (u.options.mode != PlayMode.TEMPO || !u.options.useRamp) return
+        val ramp = PieceRules.ramp(pieces.progressOf(s.id), rampKey(), s.tempo, learning.config.tempoRamp)
+        _ui.update { it.copy(bpm = ramp.currentBpm) }
+    }
+
+    private fun refreshProgress() {
+        val s = score ?: return
+        val p = pieces.progressOf(s.id)
+        _ui.update { it.copy(hotMeasures = PieceRules.hotMeasures(p), passDays = p.passDays.toSet().size) }
+    }
+
+    // ---------------- cursor ----------------
+
+    fun cursorAt(frameNanos: Long): Double {
+        val u = _ui.value
+        return when {
+            clockRunning -> (clockStartBeat + (frameNanos - clockT0).toDouble() / clockBeatNanos).coerceIn(clockStartBeat, clockEndBeat)
+            u.phase == Phase.PLAYING && u.options.mode == PlayMode.WAIT -> waitBeat
+            else -> score?.measureStart(u.section.first) ?: 0.0
+        }
+    }
+
+    // ---------------- runs ----------------
+
+    fun start() {
+        val s = score ?: return
+        if (!editable()) return
+        val u = _ui.value
+        val setup = PlaySetup(
+            mode = u.options.mode,
+            hands = u.options.hands.hands,
+            fromMeasure = u.section.first,
+            toMeasure = u.section.last,
+            bpm = u.bpm.toDouble(),
+            toleranceMs = TimingRules(learning.config.timing).toleranceMs(stageOf(s), u.bpm.toDouble()),
+            latencyMs = 0, // compensated per event and source in onInput
+        )
+        val j = PlayAlongJudge(s, setup)
+        if (j.expected.isEmpty()) {
+            _ui.update { it.copy(message = "ท่อนนี้ไม่มีโน้ตของมือที่เลือก ลองเลือกมืออื่นหรือท่อนอื่น") }
+            return
+        }
+        judge = j
+        hitPitch = mutableMapOf()
+        helperUsedThisRun = u.showNames
+        runStartedAt = System.currentTimeMillis()
+        _ui.update { it.copy(results = emptyMap(), wrongMarks = emptyList(), result = null, pendingSectionStart = null, message = null) }
+        runJob?.cancel()
+        runJob = viewModelScope.launch {
+            val cfg = services.inputConfig.load()
+            val route = OutputRoute.current(getApplication())
+            latencies = InputSource.entries.associateWith { cfg.latencyMs[InputConfig.latencyKey(it, route)] ?: 0.0 }
+            if (setup.mode == PlayMode.TEMPO) runTempo(j) else runWait(j)
+        }
+    }
+
+    /** Stops a run or the demo. A stopped run with some notes played still shows its result. */
+    fun stop() {
+        val phase = _ui.value.phase
+        runJob?.cancel()
+        runJob = null
+        scheduler.clear()
+        piano.setMetronome(false, 60.0, 1, intArrayOf(0), 0f)
+        clockRunning = false
+        val j = judge
+        judge = null
+        if (j != null && (phase == Phase.PLAYING) && j.outcomes().values.any { it.result != NoteResult.PENDING }) {
+            finish(j)
+        } else if (phase != Phase.RESULT) {
+            _ui.update { it.copy(phase = Phase.IDLE, countIn = null) }
+        }
+    }
+
+    private suspend fun runTempo(j: PlayAlongJudge) {
+        val s = j.score
+        val beatNanos = (j.beatMs * 1e6).toLong()
+        val countIn = if (s.beatsPerMeasure >= 3) s.beatsPerMeasure else s.beatsPerMeasure * 2
+        val pattern = IntArray(s.beatsPerMeasure) { if (it == 0) 0 else 2 }
+        _ui.update { it.copy(phase = Phase.COUNT_IN, countIn = countIn) }
+        piano.drainMetronomeTicks()
+        piano.setMetronome(true, j.setup.bpm, 1, pattern, 0.9f)
+        val stamps = mutableListOf<FrameTimestamp>()
+        val ticks = mutableListOf<Long>()
+        val began = System.nanoTime()
+        var t0: Long? = null
+        // The downbeat follows the count-in clicks exactly; their frames give its presentation time.
+        while (t0 == null) {
+            delay(5)
+            piano.timestamp()?.let { stamps += FrameTimestamp(it[0], it[1]) }
+            ticks += piano.drainMetronomeTicks().toList()
+            val rate = piano.outputSampleRate()
+            if (ticks.size >= 2 && stamps.isNotEmpty() && rate > 0) {
+                val times = JitterAnalysis.presentationTimesNanos(ticks.take(2), stamps, rate)
+                t0 = (times.mapIndexed { i, t -> t - i * beatNanos }.average() + countIn * beatNanos).toLong()
+            } else if (System.nanoTime() - began > 3 * beatNanos + 600_000_000L) {
+                // No audio clock (output closed): count in visually from now.
+                t0 = System.nanoTime() + countIn * beatNanos
+            }
+        }
+        val downbeat = t0
+        j.start(downbeat / 1_000_000)
+        startClock(downbeat, beatNanos, j.startBeat, j.endBeat)
+        if (_ui.value.options.playOtherHand) scheduleAccompaniment(j, j.startBeat, j.endBeat, downbeat)
+        var metronomeOff = false
+        while (true) {
+            val now = System.nanoTime()
+            piano.drainMetronomeTicks()
+            if (now < downbeat) {
+                val left = ((downbeat - now + beatNanos - 1) / beatNanos).toInt().coerceIn(1, countIn)
+                if (_ui.value.countIn != left) _ui.update { it.copy(countIn = left) }
+            } else if (_ui.value.phase == Phase.COUNT_IN) {
+                _ui.update { it.copy(phase = Phase.PLAYING, countIn = null) }
+            }
+            if (!metronomeOff && !_ui.value.options.metronome && now > downbeat - beatNanos / 2) {
+                piano.setMetronome(false, j.setup.bpm, 1, pattern, 0f)
+                metronomeOff = true
+            }
+            val missed = j.advance(now / 1_000_000)
+            if (missed.isNotEmpty()) _ui.update { u -> u.copy(results = u.results + missed.associateWith { NoteResult.MISSED }) }
+            if (j.isFinished(now / 1_000_000)) break
+            delay(16)
+        }
+        piano.setMetronome(false, j.setup.bpm, 1, pattern, 0f)
+        clockRunning = false
+        judge = null
+        finish(j)
+    }
+
+    private suspend fun runWait(j: PlayAlongJudge) {
+        j.start(System.nanoTime() / 1_000_000)
+        waitBeat = j.cursorBeat(0)
+        _ui.update { it.copy(phase = Phase.PLAYING, countIn = null) }
+        val first = j.currentGroup()?.first()?.beat ?: j.endBeat
+        if (_ui.value.options.playOtherHand) scheduleAccompaniment(j, j.startBeat, first, System.nanoTime())
+        // Input drives the run (onInput); this only waits for the end.
+        while (!j.isFinished(0)) delay(50)
+        delay(600)
+        judge = null
+        finish(j)
+    }
+
+    /** Plays the other hand's notes with onset in [from, to), placing beat [from] at [anchorNanos]. */
+    private fun scheduleAccompaniment(j: PlayAlongJudge, from: Double, to: Double, anchorNanos: Long) {
+        val durations = j.score.events.associate { it.id to it.duration }
+        val beatNanos = j.beatMs * 1e6
+        for (n in j.accompaniment) {
+            if (n.beat < from - 1e-9 || n.beat >= to - 1e-9) continue
+            val on = anchorNanos + ((n.beat - from) * beatNanos).toLong()
+            val len = ((durations[n.key.eventId] ?: 1.0) * beatNanos * 0.92).toLong().coerceAtMost(4_000_000_000L)
+            scheduler.noteOn(on, n.midi, 62)
+            scheduler.noteOff(on + len, n.midi)
+        }
+    }
+
+    private fun startClock(t0: Long, beatNanos: Long, startBeat: Double, endBeat: Double) {
+        clockT0 = t0
+        clockBeatNanos = beatNanos
+        clockStartBeat = startBeat
+        clockEndBeat = endBeat
+        clockRunning = true
+    }
+
+    /** Demo: the app plays the section (both hands) at the current tempo with the cursor. */
+    fun listen() {
+        val s = score ?: return
+        if (!editable()) return
+        val u = _ui.value
+        val from = s.measureStart(u.section.first)
+        val to = s.measureStart(u.section.last + 1)
+        val beatNanos = (TimingRules.beatMs(u.bpm.toDouble()) * 1e6).toLong()
+        val t0 = System.nanoTime() + 400_000_000L
+        for (e in s.events) {
+            if (e.isRest || e.onset < from - 1e-9 || e.onset >= to - 1e-9) continue
+            val on = t0 + ((e.onset - from) * beatNanos).toLong()
+            for (p in e.pitches) {
+                scheduler.noteOn(on, p.midi, if (e.hand == Hand.RIGHT) 74 else 60)
+                scheduler.noteOff(on + (e.duration * beatNanos * 0.92).toLong(), p.midi)
+            }
+        }
+        startClock(t0, beatNanos, from, to)
+        _ui.update { it.copy(phase = Phase.LISTENING, results = emptyMap(), result = null, pendingSectionStart = null) }
+        runJob?.cancel()
+        runJob = viewModelScope.launch {
+            delay(((to - from) * beatNanos / 1_000_000).toLong() + 900)
+            clockRunning = false
+            _ui.update { it.copy(phase = Phase.IDLE) }
+        }
+    }
+
+    private fun onInput(e: InputEvent) {
+        val j = judge ?: return
+        val phase = _ui.value.phase
+        if (phase != Phase.PLAYING && phase != Phase.COUNT_IN) return
+        when (e) {
+            is InputEvent.NoteOn -> {
+                val latency = latencies[e.source] ?: 0.0
+                val beforeGroup = j.currentGroup()
+                val atMs = ((e.timeNanos - latency * 1e6) / 1e6).toLong()
+                when (val f = j.onNoteOn(e.note, atMs)) {
+                    is Feedback.Hit -> {
+                        hitPitch[f.key] = e.note
+                        val done = if (j.setup.mode == PlayMode.WAIT && beforeGroup != null && j.currentGroup() !== beforeGroup) beforeGroup else null
+                        _ui.update { u -> u.copy(results = u.results + (done?.associate { it.key to j.outcome(it.key).result } ?: mapOf(f.key to f.result))) }
+                        if (done != null) onGroupDone(j, done.first().beat)
+                    }
+                    is Feedback.Wrong -> {
+                        val mark = WrongMark(e.note, if (j.setup.mode == PlayMode.WAIT) waitBeat else f.press.beat, System.nanoTime())
+                        _ui.update { u -> u.copy(wrongMarks = (u.wrongMarks + mark).takeLast(6)) }
+                    }
+                    Feedback.Ignored -> Unit
+                }
+            }
+            is InputEvent.NoteOff -> j.onNoteOff(e.note)
+            else -> Unit
+        }
+    }
+
+    private fun onGroupDone(j: PlayAlongJudge, doneBeat: Double) {
+        val next = j.currentGroup()?.first()?.beat ?: j.endBeat
+        waitBeat = next
+        if (_ui.value.options.playOtherHand) scheduleAccompaniment(j, doneBeat, next, System.nanoTime())
+    }
+
+    private fun finish(j: PlayAlongJudge) {
+        val s = score ?: return
+        val result = j.result()
+        val u = _ui.value
+        val helper = helperUsedThisRun
+        viewModelScope.launch {
+            val before = pieces.progressOf(s.id)
+            val slower = before.ramps[rampKey()]?.history?.lastOrNull() ?: (u.bpm * 0.9).roundToInt().coerceAtLeast(30)
+            val update = PieceRules.afterRun(before, s, result, helper, u.options.useRamp && u.options.mode == PlayMode.TEMPO,
+                learning.config.tempoRamp, learning.config.cleanRun)
+            pieces.save(update.progress)
+            saveAttempt(s, j, result, helper)
+            val coach = coachLines(s, result, slower, update.newBpm, helper)
+            val troubleIds = result.troubleNotes.map { p ->
+                val clef = if (j.expected.firstOrNull { it.pitch == p }?.hand == Hand.LEFT) "bass" else "treble"
+                "note:$p:$clef"
+            }
+            if (troubleIds.isNotEmpty()) {
+                learning.enrol(troubleIds)
+                troubleIds.forEach { learning.review(it, correct = false, responseMs = 0) }
+            }
+            val progressLine = when {
+                update.piecePassed && update.passedToday -> "ผ่านเพลงนี้แล้ว (เล่นสะอาด 3 รอบติดที่ความเร็วเป้าหมาย ใน 2 วันที่ต่างกัน)"
+                update.passedToday -> "วันนี้เล่นสะอาดครบ 3 รอบติดที่ความเร็วเป้าหมายแล้ว ต้องทำอีกครั้งในวันอื่นเพื่อผ่านเพลงนี้"
+                else -> null
+            }
+            _ui.update {
+                it.copy(
+                    phase = Phase.RESULT,
+                    result = resultUi(result, coach, progressLine),
+                    bpm = update.newBpm ?: it.bpm,
+                    countIn = null,
+                )
+            }
+            refreshProgress()
+        }
+    }
+
+    private fun resultUi(r: PlayResult, coach: List<CoachLine>, progressLine: String?): ResultUi {
+        val sum = r.summary
+        val headline: String
+        val details: String
+        val clean: Boolean?
+        if (sum == null) {
+            headline = "ไม่มีโน้ตให้ตัดสิน"; details = ""; clean = null
+        } else if (r.timingJudged) {
+            clean = sum.isClean(learning.config.cleanRun)
+            headline = (if (clean) "เล่นสะอาด · " else "") + "โน้ตถูก ${(sum.noteAccuracy * 100).roundToInt()}% · ตรงจังหวะ ${(sum.fractionWithinTiming * 100).roundToInt()}%"
+            details = "ถูก ${r.count(NoteResult.CORRECT)} · เร็วไป ${r.count(NoteResult.EARLY)} · ช้าไป ${r.count(NoteResult.LATE)} · " +
+                "ไม่ได้เล่น ${r.count(NoteResult.MISSED)} · กดผิด ${r.wrongPresses.size} · สะดุด ${r.stumbles} ครั้ง · ${r.setup.bpm.roundToInt()} bpm"
+        } else {
+            clean = null
+            headline = "ถูกตั้งแต่ครั้งแรก ${sum.correctNotes}/${sum.expectedNotes} (${(sum.noteAccuracy * 100).roundToInt()}%)"
+            details = "แก้หลังกดผิด ${r.count(NoteResult.CORRECTED)} · กดผิด ${r.wrongPresses.size} · หยุดนานเกิน 1 จังหวะ ${r.stumbles} ครั้ง" +
+                " (โหมดรอไม่ตัดสินจังหวะ)"
+        }
+        return ResultUi(headline, details, clean, coach, progressLine)
+    }
+
+    private fun coachLines(s: Score, r: PlayResult, slowerBpm: Int, newBpm: Int?, helper: Boolean): List<CoachLine> {
+        val out = mutableListOf<CoachLine>()
+        val unknownLatency = latencies.values.all { it == 0.0 }
+        for (a in Coach.advise(r, slowerBpm)) {
+            out += when (a) {
+                Advice.Clean -> CoachLine(if (r.setup.toMeasure - r.setup.fromMeasure < s.measures - 1) "ท่อนนี้เล่นสะอาดแล้ว ลองท่อนถัดไป หรือเล่นคร่อมรอยต่อกับท่อนข้างๆ" else "เล่นสะอาดทั้งเพลง")
+                is Advice.TroubleNote -> CoachLine("โน้ต ${a.pitch.name(NoteNameStyle.BOTH, withOctave = true)} พลาดบ่อย เพิ่มเข้ารายการทบทวนแล้ว (ฝึกได้ที่หน้า \"วันนี้\")")
+                is Advice.ConsistentlyOff -> {
+                    val dir = if (a.early) "เร็วกว่า" else "ช้ากว่า"
+                    CoachLine(
+                        if (unknownLatency) "ส่วนใหญ่กด${dir}จังหวะเท่าๆ กัน (ราว ${kotlin.math.abs(a.meanOffsetMs)} ms) อาจเป็นความหน่วงของเครื่อง ลองวัดความหน่วงที่หน้า \"ต่อเปียโน (MIDI)\" ก่อน"
+                        else "ส่วนใหญ่กด${dir}จังหวะ ลองนับออกเสียงหรือเคาะเท้าไปด้วย",
+                    )
+                }
+                is Advice.Chain -> CoachLine("พลาดตรงรอยต่อบาร์ ${a.fromMeasure + 1}–${a.toMeasure + 1} ลองวนเล่นคร่อมสองบาร์นี้", ResultAction.Loop(a.fromMeasure, a.toMeasure))
+                is Advice.HandAlone -> {
+                    val name = if (a.hand == Hand.LEFT) "ซ้าย" else "ขวา"
+                    CoachLine("ผิดเฉพาะมือ$name ลองฝึกมือ${name}คนเดียวก่อน", ResultAction.Hands(if (a.hand == Hand.LEFT) HandChoice.LEFT else HandChoice.RIGHT))
+                }
+                is Advice.SlowDown -> CoachLine("ยังเร็วไปสำหรับตอนนี้ ลดเหลือ ${a.bpm} bpm ก่อน", ResultAction.Tempo(a.bpm))
+            }
+        }
+        r.problemMeasures.firstOrNull()?.let { m ->
+            if (out.none { it.action is ResultAction.Loop } && r.setup.fromMeasure != r.setup.toMeasure) {
+                out += CoachLine("บาร์ ${m + 1} พลาดมากที่สุด ฝึกบาร์นี้ช้าๆ แยกก่อน แล้วค่อยกลับมาเล่นทั้งท่อน", ResultAction.Loop(m, m))
+            }
+        }
+        if (newBpm != null) {
+            out += CoachLine(if (newBpm > r.setup.bpm) "เล่นสะอาด 3 รอบติด เพิ่มความเร็วเป็น $newBpm bpm" else "พลาด 2 รอบติด ลดความเร็วกลับเป็น $newBpm bpm")
+        }
+        if (helper) out += CoachLine("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่านเพลง")
+        if (!r.timingJudged && (r.summary?.noteAccuracy ?: 0.0) >= 0.95) {
+            out += CoachLine("อ่านโน้ตได้แม่นแล้ว ลองโหมด \"ตามจังหวะ\" ดู")
+        }
+        return out
+    }
+
+    private suspend fun saveAttempt(s: Score, j: PlayAlongJudge, r: PlayResult, helper: Boolean) {
+        val sum = r.summary ?: return
+        val events = j.expected.map { n ->
+            val o = r.outcomes[n.key]
+            AttemptEvent(
+                expectedPitch = n.midi,
+                actualPitch = hitPitch[n.key],
+                expectedOnsetMs = ((n.beat - j.startBeat) * j.beatMs).toLong(),
+                offsetMs = o?.offsetMs,
+            )
+        } + r.wrongPresses.map { AttemptEvent(expectedPitch = null, actualPitch = it.midi, expectedOnsetMs = ((it.beat - j.startBeat) * j.beatMs).toLong()) }
+        learning.saveAttempt(
+            exerciseId = "piece:${s.id}:${r.setup.mode}",
+            paramsJson = """{"from":${r.setup.fromMeasure},"to":${r.setup.toMeasure},"bpm":${r.setup.bpm},"toleranceMs":${r.setup.toleranceMs}}""",
+            startedAt = runStartedAt,
+            tempoBpm = if (r.timingJudged) r.setup.bpm else null,
+            noteAccuracy = sum.noteAccuracy,
+            timingWithinTol = if (r.timingJudged) sum.fractionWithinTiming else null,
+            clean = if (r.timingJudged) sum.isClean(learning.config.cleanRun) else null,
+            helperUses = if (helper) 1 else 0,
+            events = events,
+            sessionId = services.session.currentId(),
+            hand = r.setup.hands.joinToString("+") { it.name },
+            stumbles = r.stumbles,
+        )
+    }
+
+    fun dismissMessage() = _ui.update { it.copy(message = null) }
+
+    fun backToSetup() {
+        if (_ui.value.phase == Phase.RESULT) _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap()) }
+    }
+
+    override fun onCleared() {
+        onStop()
+        scheduler.shutdown()
+    }
+
+    companion object {
+        /** Timing tolerance follows the piece level: L1-L3 stage 1, L4-L5 stage 2, L6+ stage 3 (learning-system.md 4 and 6.2). */
+        fun stageOf(s: Score): Int = when (s.level.removePrefix("L").toIntOrNull() ?: 1) {
+            in 1..3 -> 1
+            in 4..5 -> 2
+            6 -> 3
+            else -> 4
+        }
+    }
+}

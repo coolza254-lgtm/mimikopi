@@ -237,3 +237,18 @@ class BundledSongsAndKnowledgeTest {
         listOf("Morning Musume", "モーニング娘", "AKB48", "I WISH", "心のプラカード", "恋愛レボリューション").forEach { assertFalse(it in text, it) }
     }
 }
+
+class ChordScoringTest {
+    private val rule = com.id.mimikopi.core.lesson.PassRule(drill = 0, minAccuracy = 0.9, maxSecondsPerItem = 6.0, minCount = 14)
+    private fun a(ok: Boolean, ms: Long = 2000) = com.id.mimikopi.core.exercise.Answer(ok, ms, firstTry = true)
+
+    @Test
+    fun chordBuildCountsOnlyFastFirstTryAnswers() {
+        val s = com.id.mimikopi.core.exercise.Scoring
+        assertTrue(s.chordBuildPassed(List(9) { a(true) } + a(false), rule, 10))
+        assertFalse(s.chordBuildPassed(List(8) { a(true) } + a(true, 7000) + a(false), rule, 10))
+        assertFalse(s.chordBuildPassed(List(9) { a(true) }, rule, 10)) // too few items
+        assertTrue(s.chordChangePassed(14, rule))
+        assertFalse(s.chordChangePassed(13, rule))
+    }
+}

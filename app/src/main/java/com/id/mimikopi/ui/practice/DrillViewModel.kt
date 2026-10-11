@@ -84,6 +84,19 @@ sealed interface DrillUi {
         val numbers: List<Int>,
         val withRepeat: Boolean,
     ) : DrillUi
+    /** Chord drills: build the asked chord, or keep changing through a progression against the clock. */
+    data class ChordAsk(
+        val label: String,
+        val index: Int,
+        val total: Int,
+        val feedback: Feedback?,
+        /** Keys of one right voicing, shown after a wrong answer. */
+        val answer: Set<Int>,
+        /** E_CHORD_CHANGE: seconds left, correct changes so far, and the chord after this one. */
+        val secondsLeft: Int? = null,
+        val count: Int? = null,
+        val next: String? = null,
+    ) : DrillUi
     data class Result(
         val summary: String,
         val passCriterionMet: Boolean?,
@@ -249,6 +262,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 ExerciseType.E_NOTEID -> queue += Generators.noteId(d, seed, repo.dueItems("note:")).map { Prompt.Note(it) }
                 ExerciseType.E_PULSE -> { runPulse(l, d); return@launch }
                 ExerciseType.E_INTERVAL_READ -> { startIntervals(d); return@launch }
+                ExerciseType.E_CHORD_BUILD -> { startChordBuild(d); return@launch }
+                ExerciseType.E_CHORD_CHANGE -> { runChordChange(l, d); return@launch }
                 else -> return@launch
             }
             total = queue.size
@@ -269,6 +284,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     }
 
     private fun onInput(e: InputEvent) {
+        if (_ui.value is DrillUi.ChordAsk) { onChordInput(e); return }
         if (e !is InputEvent.NoteOn) return
         (_ui.value as? DrillUi.Interval)?.let { onIntervalPlay(it, e.note); return }
         val q = _ui.value as? DrillUi.Question ?: return
@@ -304,12 +320,13 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         if (bench == "noteid") { finishNoteBenchmark(); return }
         val l = lesson
         val acc = Scoring.accuracy(answers)
-        val slow = if (d.type == ExerciseType.E_INTERVAL_READ) 0 else answers.count { it.correct && it.responseMs > 3000 }
+        val slow = if (d.type == ExerciseType.E_INTERVAL_READ || d.type == ExerciseType.E_CHORD_BUILD) 0 else answers.count { it.correct && it.responseMs > 3000 }
         val isPassDrill = l != null && drillIndex in l.pass.requiredDrills
         val met: Boolean? = if (!isPassDrill || l == null) null else when (d.type) {
             ExerciseType.E_KEYFIND -> Scoring.keyFindPassed(answers, l.pass, d.items)
             ExerciseType.E_NOTEID -> Scoring.noteIdPassed(answers, l.pass, d.items)
             ExerciseType.E_INTERVAL_READ -> Scoring.noteIdPassed(answers, l.pass, d.items * (d.notesPerSet - 1))
+            ExerciseType.E_CHORD_BUILD -> Scoring.chordBuildPassed(answers, l.pass, d.items)
             else -> null
         }
         viewModelScope.launch {
@@ -335,6 +352,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     }
 
     private fun describe(srsId: String): String = when {
+        srsId.startsWith("chord:") -> "คอร์ด ${srsId.removePrefix("chord:")}"
         srsId.startsWith("key:") -> "คีย์ ${Letter.valueOf(srsId.removePrefix("key:")).let { "${it.name} (${it.thaiSolfege})" }}"
         else -> NoteIdItem.parse(srsId).let { "โน้ต ${it.pitch.name(NoteNameStyle.BOTH, withOctave = true)}" }
     }
@@ -507,6 +525,139 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         if (m.kind == com.id.mimikopi.core.music.MotionKind.REPEAT) return "ซ้ำ"
         return if (mode == "INTERVAL") "ระยะ ${m.intervalNumber} $dir"
         else (if (m.kind == com.id.mimikopi.core.music.MotionKind.STEP) "ขั้น" else "ข้าม") + dir
+    }
+
+    // ---------------- Chords (stages 5-6) ----------------
+
+    private val chordQueue = ArrayDeque<com.id.mimikopi.core.exercise.ChordItem>()
+    private val chordRequeued = mutableSetOf<com.id.mimikopi.core.exercise.ChordItem>()
+    private var chordItem: com.id.mimikopi.core.exercise.ChordItem? = null
+    private var chordJudge: Job? = null
+    /** Notes struck since the current chord was shown (keys still held from the last chord don't count). */
+    private val fresh = mutableSetOf<Int>()
+    private var changeItems: List<com.id.mimikopi.core.exercise.ChordItem> = emptyList()
+    private var changeIndex = 0
+    private var changeCount = 0
+    private var struckSinceAdvance = false
+
+    private fun startChordBuild(d: Drill) {
+        chordQueue.clear(); chordRequeued.clear()
+        chordQueue += com.id.mimikopi.core.exercise.ChordDrills.build(d, seed)
+        total = chordQueue.size
+        nextChord()
+    }
+
+    private fun nextChord() {
+        val item = chordQueue.removeFirstOrNull()
+        if (item == null) { finishReading(); return }
+        chordItem = item
+        currentFirstTry = item !in chordRequeued
+        fresh.clear()
+        shownAt = System.nanoTime()
+        _ui.value = DrillUi.ChordAsk(item.label, (answers.size + 1).coerceAtMost(total), total, null, emptySet())
+    }
+
+    /** One right voicing near Middle C (slash bass below it) to show after a mistake. */
+    private fun voicingKeys(c: com.id.mimikopi.core.theory.Chord): Set<Int> {
+        val upper = c.inversions(60).first()
+        val bass = c.bass?.let { 48 + Math.floorMod(it.pc, 12) }
+        return (upper + listOfNotNull(bass)).toSet()
+    }
+
+    private fun onChordInput(e: InputEvent) {
+        val q = _ui.value as? DrillUi.ChordAsk ?: return
+        when (e) {
+            is InputEvent.NoteOn -> { fresh += e.note; struckSinceAdvance = true }
+            is InputEvent.NoteOff -> Unit
+            else -> return
+        }
+        if (q.secondsLeft != null) {
+            // Changes: judge what is held now, shortly after it settles (notes of a chord rarely land together).
+            chordJudge?.cancel()
+            chordJudge = viewModelScope.launch { delay(90); judgeChange() }
+            return
+        }
+        if (e !is InputEvent.NoteOn || busy || q.feedback != null) return
+        chordJudge?.cancel()
+        chordJudge = viewModelScope.launch { delay(220); judgeBuild() }
+    }
+
+    private fun judgeBuild() {
+        val q = _ui.value as? DrillUi.ChordAsk ?: return
+        val item = chordItem ?: return
+        val held = hub.pressed.value intersect fresh
+        if (held.isEmpty()) return
+        val ok = com.id.mimikopi.core.theory.Chord.matches(item.chord, held)
+        // Fewer keys than the chord needs: still being played, wait for more.
+        if (!ok && held.size < item.chord.essential.size) return
+        val responseMs = (System.nanoTime() - shownAt) / 1_000_000
+        val id = "chord:${item.label}"
+        events += AttemptEvent(expectedPitch = item.chord.root.pc, actualPitch = held.min(), actualOnsetMs = responseMs)
+        if (currentFirstTry) answers += Answer(ok, responseMs, firstTry = true)
+        if (!ok) {
+            misses[id] = (misses[id] ?: 0) + 1
+            if (item !in chordRequeued) { chordRequeued += item; chordQueue.addLast(item) }
+        }
+        busy = true
+        _ui.value = q.copy(feedback = if (ok) Feedback.CORRECT else Feedback.WRONG, answer = if (ok) emptySet() else voicingKeys(item.chord))
+        viewModelScope.launch {
+            delay(if (ok) 450 else 1800)
+            busy = false
+            nextChord()
+        }
+    }
+
+    private suspend fun runChordChange(l: Lesson, d: Drill) {
+        changeItems = com.id.mimikopi.core.exercise.ChordDrills.changes(d)
+        if (changeItems.isEmpty()) return
+        changeIndex = 0; changeCount = 0; struckSinceAdvance = false
+        val seconds = d.seconds.coerceAtLeast(10)
+        val end = System.nanoTime() + seconds * 1_000_000_000L
+        showChange(seconds)
+        while (System.nanoTime() < end) {
+            delay(200)
+            val left = ((end - System.nanoTime()) / 1_000_000_000L).toInt() + 1
+            (_ui.value as? DrillUi.ChordAsk)?.let { if (it.secondsLeft != left) _ui.value = it.copy(secondsLeft = left.coerceAtLeast(0)) }
+        }
+        chordJudge?.cancel()
+        finishChordChange(l, d, seconds)
+    }
+
+    private fun showChange(secondsLeft: Int) {
+        val item = changeItems[changeIndex]
+        val next = changeItems[(changeIndex + 1) % changeItems.size]
+        _ui.value = DrillUi.ChordAsk(item.label, changeCount + 1, 0, null, emptySet(), secondsLeft, changeCount, next.label)
+    }
+
+    private fun judgeChange() {
+        val q = _ui.value as? DrillUi.ChordAsk ?: return
+        if (!struckSinceAdvance) return
+        val held = hub.pressed.value
+        if (held.isEmpty() || !com.id.mimikopi.core.theory.Chord.matches(changeItems[changeIndex].chord, held)) return
+        changeCount++
+        changeIndex = (changeIndex + 1) % changeItems.size
+        struckSinceAdvance = false
+        showChange(q.secondsLeft ?: 0)
+    }
+
+    private suspend fun finishChordChange(l: Lesson, d: Drill, seconds: Int) {
+        val isPassDrill = drillIndex in l.pass.requiredDrills
+        val met = if (isPassDrill) Scoring.chordChangePassed(changeCount, l.pass) else null
+        repo.saveAttempt(
+            exerciseId = "${l.id}:${d.type}:$drillIndex",
+            paramsJson = """{"seed":$seed,"drill":$drillIndex,"lesson":"${l.id}","count":$changeCount,"seconds":$seconds}""",
+            startedAt = startedAt, tempoBpm = null, noteAccuracy = null, timingWithinTol = null,
+            clean = met, helperUses = helperUses, events = events.toList(), sessionId = services.session.currentId(),
+        )
+        val passedNow = repo.recordDrill(l, drillIndex, met == true, helperUses > 0)
+        val coach = mutableListOf<String>()
+        val need = l.pass.minCount
+        if (need != null && changeCount < need) coach += "ต้องการอย่างน้อย $need ครั้ง ลองค้างโน้ตที่เหมือนกันระหว่างคอร์ดไว้ แล้วเลื่อนเฉพาะตัวที่ต่าง"
+        if (helperUses > 0 && met == true) coach += "ผ่านเกณฑ์ แต่ใช้ปุ่มแสดงชื่อโน้ต จึงยังไม่นับเป็นการผ่านเต็ม"
+        if (met == true && !passedNow && helperUses == 0) coach += if (l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่น"
+        if (passedNow) coach += "ผ่านบทนี้แล้ว บทถัดไปปลดล็อก"
+        if (coach.isEmpty()) l.tips.firstOrNull()?.let { coach += it }
+        _ui.value = DrillUi.Result("เปลี่ยนคอร์ดถูก $changeCount ครั้งใน $seconds วินาที", met, passedNow, coach)
     }
 
     fun again() {

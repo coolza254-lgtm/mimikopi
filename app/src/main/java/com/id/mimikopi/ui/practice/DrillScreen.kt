@@ -88,6 +88,8 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                                 ExerciseType.E_NOTEID -> R.string.drill_ready_noteid
                                 ExerciseType.E_PULSE -> R.string.drill_ready_pulse
                                 ExerciseType.E_INTERVAL_READ -> R.string.drill_ready_interval
+                                ExerciseType.E_CHORD_BUILD -> R.string.drill_ready_chord_build
+                                ExerciseType.E_CHORD_CHANGE -> R.string.drill_ready_chord_change
                                 else -> R.string.drill_ready_noteid
                             }, s.items),
                             style = MaterialTheme.typography.bodyLarge,
@@ -155,6 +157,39 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         onNoteOn = { n, _ -> dispatchTouch(vm, n, true) },
                         onNoteOff = { n -> dispatchTouch(vm, n, false) },
                         modifier = Modifier.fillMaxWidth().height(150.dp).padding(Tokens.Space.s),
+                    )
+                }
+                is DrillUi.ChordAsk -> {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (s.secondsLeft != null) stringResource(R.string.drill_chord_clock, s.secondsLeft, s.count ?: 0) else "${s.index}/${s.total}",
+                            style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f),
+                        )
+                        FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
+                    }
+                    Column(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Text(s.label, style = MaterialTheme.typography.headlineMedium.copy(fontSize = 40.sp, fontWeight = FontWeight.Bold), textAlign = TextAlign.Center)
+                        s.next?.let { Text(stringResource(R.string.drill_chord_next, it), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        if (s.secondsLeft == null) Text(stringResource(R.string.drill_chord_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.padding(top = Tokens.Space.s))
+                        s.feedback?.let { f ->
+                            Text(
+                                stringResource(if (f == Feedback.CORRECT) R.string.drill_correct else R.string.drill_chord_wrong),
+                                color = if (f == Feedback.CORRECT) Tokens.Palette.Ink else MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = Tokens.Space.m),
+                            )
+                        }
+                    }
+                    PianoKeyboard(
+                        lowNote = vm.keyRange.first,
+                        highNote = vm.keyRange.last,
+                        pressed = pressed,
+                        showNames = showNames,
+                        nameStyle = vm.nameStyle,
+                        onNoteOn = { n, _ -> dispatchTouch(vm, n, true) },
+                        onNoteOff = { n -> dispatchTouch(vm, n, false) },
+                        marked = s.answer,
+                        modifier = Modifier.fillMaxWidth().height(190.dp).padding(Tokens.Space.s),
                     )
                 }
                 is DrillUi.Pulse -> Column(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {

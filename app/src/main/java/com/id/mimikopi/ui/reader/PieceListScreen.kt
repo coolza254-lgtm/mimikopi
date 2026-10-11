@@ -28,7 +28,7 @@ class PieceListViewModel(app: Application, args: SavedStateHandle) : AndroidView
     val lesson: Lesson? = args.get<String>("lesson")?.let { (app as MimikopiApp).learning.lesson(it) }
     val drill: Drill? = args.get<String>("drill")?.toIntOrNull()?.let { lesson?.drills?.getOrNull(it) }
     val hand: String? = drill?.hand
-    val pieces = drill?.pieces?.mapNotNull { repo.piece(it) } ?: repo.pieces
+    val pieces = drill?.pieces?.mapNotNull { repo.pieceOrExercise(it) } ?: repo.pieces
     val progress = repo.progress
 
     init {

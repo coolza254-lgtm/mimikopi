@@ -32,6 +32,12 @@ import com.id.mimikopi.ui.diag.DiagnosticsScreen
 import com.id.mimikopi.ui.home.HomeScreen
 import com.id.mimikopi.ui.settings.SettingsScreen
 import com.id.mimikopi.ui.theme.MimikopiTheme
+import com.id.mimikopi.pieces.PieceRepository
+import com.id.mimikopi.ui.knowledge.ArticleScreen
+import com.id.mimikopi.ui.knowledge.KnowledgeScreen
+import com.id.mimikopi.ui.songs.SongListScreen
+import com.id.mimikopi.ui.songs.SongScreen
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +76,11 @@ private object Routes {
     const val LIBRARY = "library"
     const val EDITOR = "editor/{scoreId}"
     const val EAR_DRILL = "eardrill/{level}?bench={bench}"
+    const val LESSON_EAR = "lessonear/{lessonId}/{drill}"
+    const val SONGS = "songs"
+    const val SONG = "song/{songId}"
+    const val KNOWLEDGE = "knowledge"
+    const val ARTICLE = "article/{articleId}"
     fun lesson(id: String) = "lesson/$id"
     fun drill(id: String, index: Int) = "drill/$id/$index"
     const val REVIEW_NOW = "review/true"
@@ -77,11 +88,36 @@ private object Routes {
 
 /** Opens a lesson drill in the runner that fits its type. */
 private fun openLessonDrill(nav: NavController, app: MimikopiApp, lessonId: String, index: Int) {
-    val d = app.learning.lesson(lessonId)?.drills?.getOrNull(index) ?: return
+    val lesson = app.learning.lesson(lessonId) ?: return
+    val d = lesson.drills.getOrNull(index) ?: return
+    val byPiecePass = lesson.pass.piecesPassed != null || lesson.pass.songsCompleted != null
     when {
+        d.type == ExerciseType.E_PIECE && d.pieces == listOf(PieceRepository.SONG) -> nav.navigate(Routes.SONGS)
+        d.type == ExerciseType.E_PIECE && d.pieces == listOf(PieceRepository.CAPSTONE) -> openCapstone(nav, app)
         d.type == ExerciseType.E_PIECE && d.pieces.size > 1 -> nav.navigate(Routes.piecesFor(lessonId, index))
+        // A piece the lesson counts by the piece rule: practise it in the reader with its own progress.
+        d.type == ExerciseType.E_PIECE && byPiecePass -> nav.navigate(Routes.reader(d.pieces.first(), d.hand))
+        d.type == ExerciseType.E_EAR -> nav.navigate("lessonear/$lessonId/$index")
         d.type.isScore -> nav.navigate("scoredrill/$lessonId/$index")
         else -> nav.navigate(Routes.drill(lessonId, index))
+    }
+}
+
+/** Capstone A: the editor while the melody is still being written, then the reader. */
+private fun openCapstone(nav: NavController, app: MimikopiApp) {
+    app.appScope.launch {
+        val id = app.pieces.createCapstone()
+        val melody = app.pieces.userScore(id)?.events?.count { it.hand == com.id.mimikopi.core.score.Hand.RIGHT && !it.isRest } ?: 0
+        nav.navigate(if (melody >= 16) Routes.reader(id, "BOTH") else "editor/$id")
+    }
+}
+
+/** Lesson "try with the app" steps that open another part of the app. */
+private fun runAppAction(nav: NavController, app: MimikopiApp, action: String) {
+    when (action) {
+        "template:capstone" -> app.appScope.launch { nav.navigate("editor/${app.pieces.createCapstone()}") }
+        "open:songs" -> nav.navigate(Routes.SONGS)
+        "open:knowledge" -> nav.navigate(Routes.KNOWLEDGE)
     }
 }
 
@@ -105,6 +141,8 @@ private fun AppNavigation() {
                 onOpenProgress = { nav.navigate(Routes.PROGRESS) },
                 onOpenEar = { nav.navigate(Routes.EAR) },
                 onOpenLibrary = { nav.navigate(Routes.LIBRARY) },
+                onOpenSongs = { nav.navigate(Routes.SONGS) },
+                onOpenKnowledge = { nav.navigate(Routes.KNOWLEDGE) },
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
@@ -125,7 +163,7 @@ private fun AppNavigation() {
                 onOpenEar = { nav.navigate("eardrill/mix") },
             )
         }
-        composable(Routes.LESSON) { LessonScreen(onBack = { nav.popBackStack() }, onOpenDrill = openDrill) }
+        composable(Routes.LESSON) { LessonScreen(onBack = { nav.popBackStack() }, onOpenDrill = openDrill, onAppAction = { runAppAction(nav, app, it) }) }
         composable(Routes.DRILL) { DrillScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.REVIEW) { DrillScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.PIECES, arguments = listOf(optional("lesson"), optional("drill"))) {
@@ -153,6 +191,20 @@ private fun AppNavigation() {
             EarScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("eardrill/$it") }, onTranscribe = { nav.navigate(Routes.PIECES_ALL) })
         }
         composable(Routes.EAR_DRILL, arguments = listOf(optional("bench"))) { EarDrillScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.LESSON_EAR) { EarDrillScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.SONGS) {
+            SongListScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("song/$it") })
+        }
+        composable(Routes.SONG) {
+            SongScreen(
+                onBack = { nav.popBackStack() },
+                onOpenLesson = { nav.navigate(Routes.lesson(it)) },
+                onEditScore = { nav.navigate("editor/$it") },
+                onPlayScore = { nav.navigate(Routes.reader(it, null)) },
+            )
+        }
+        composable(Routes.KNOWLEDGE) { KnowledgeScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("article/$it") }) }
+        composable(Routes.ARTICLE) { ArticleScreen(onBack = { nav.popBackStack() }, onOpenLesson = { nav.navigate(Routes.lesson(it)) }) }
         composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
     }
 }

@@ -19,7 +19,7 @@ import com.id.mimikopi.ui.components.WavyDivider
 import com.id.mimikopi.ui.theme.Tokens
 
 @Composable
-fun HomeScreen(onOpenDiagnostics: () -> Unit, onOpenAbout: () -> Unit, onOpenSettings: () -> Unit, onOpenPiano: () -> Unit, onOpenMetronome: () -> Unit, onOpenMidi: () -> Unit, onOpenToday: () -> Unit, onOpenReader: () -> Unit, onOpenProgress: () -> Unit, onOpenEar: () -> Unit, onOpenLibrary: () -> Unit) {
+fun HomeScreen(onOpenDiagnostics: () -> Unit, onOpenAbout: () -> Unit, onOpenSettings: () -> Unit, onOpenPiano: () -> Unit, onOpenMetronome: () -> Unit, onOpenMidi: () -> Unit, onOpenToday: () -> Unit, onOpenReader: () -> Unit, onOpenProgress: () -> Unit, onOpenEar: () -> Unit, onOpenLibrary: () -> Unit, onOpenSongs: () -> Unit, onOpenKnowledge: () -> Unit) {
     ScreenScaffold(title = "", onBack = null) {
         Image(
             painter = painterResource(R.drawable.wordmark),
@@ -42,6 +42,12 @@ fun HomeScreen(onOpenDiagnostics: () -> Unit, onOpenAbout: () -> Unit, onOpenSet
         }
         PageCard(title = stringResource(R.string.home_library_title), onClick = onOpenLibrary) {
             Text(stringResource(R.string.home_library_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        PageCard(title = stringResource(R.string.home_songs_title), onClick = onOpenSongs) {
+            Text(stringResource(R.string.home_songs_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        PageCard(title = stringResource(R.string.home_knowledge_title), onClick = onOpenKnowledge) {
+            Text(stringResource(R.string.home_knowledge_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         PageCard(title = stringResource(R.string.home_ear_title), onClick = onOpenEar) {
             Text(stringResource(R.string.home_ear_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

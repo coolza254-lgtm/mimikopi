@@ -116,6 +116,15 @@ class LearningRepository(private val context: Context, private val db: AppDataba
         return passedNow
     }
 
+    /** Capstone B (6.7): lessons asking for completed library songs. Returns the lessons passed now. */
+    suspend fun checkSongLessons(completedSongs: Int): List<Lesson> {
+        load()
+        return lessons.filter { l ->
+            val need = l.pass.songsCompleted ?: return@filter false
+            !ProgressRules.isPassed(_records.value[l.id], l) && completedSongs >= need && recordDrill(l, l.pass.drill, met = true, helperUsed = false)
+        }
+    }
+
     // --- Benchmarks (12.1) ---
 
     private val benchSerializer = kotlinx.serialization.builtins.ListSerializer(com.id.mimikopi.core.progress.BenchmarkResult.serializer())

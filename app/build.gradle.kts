@@ -51,6 +51,13 @@ android {
         }
     }
 
+    // Lesson and config content (content/) ships as assets: editable files, not code.
+    sourceSets {
+        getByName("main") {
+            assets.directories += "../content"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

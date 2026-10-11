@@ -28,5 +28,7 @@
 ## Audio
 - **Oboe** (Google), Apache License 2.0, linked as a prefab package (`com.google.oboe:oboe`).
 
-## Planned (added when used)
-- Bravura music font (Steinberg), SIL OFL 1.1 (M6)
+## Music notation
+- **Bravura** (Steinberg Media Technologies GmbH), SMuFL music font, SIL Open Font License 1.1 with Reserved
+  Font Name "Bravura". Shipped unmodified (`app/src/main/res/font/bravura.otf`) from
+  https://github.com/steinbergmedia/bravura (redist/otf). Licence confirmed from the repository's LICENSE.txt.

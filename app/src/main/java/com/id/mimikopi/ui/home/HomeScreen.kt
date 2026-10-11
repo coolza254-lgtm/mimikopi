@@ -1,9 +1,7 @@
 package com.id.mimikopi.ui.home
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
@@ -21,7 +19,7 @@ import com.id.mimikopi.ui.components.WavyDivider
 import com.id.mimikopi.ui.theme.Tokens
 
 @Composable
-fun HomeScreen(onOpenDiagnostics: () -> Unit, onOpenAbout: () -> Unit, onOpenSettings: () -> Unit, onOpenPiano: () -> Unit, onOpenMetronome: () -> Unit, onOpenMidi: () -> Unit) {
+fun HomeScreen(onOpenDiagnostics: () -> Unit, onOpenAbout: () -> Unit, onOpenSettings: () -> Unit, onOpenPiano: () -> Unit, onOpenMetronome: () -> Unit, onOpenMidi: () -> Unit, onOpenToday: () -> Unit) {
     ScreenScaffold(title = "", onBack = null) {
         Image(
             painter = painterResource(R.drawable.wordmark),
@@ -36,9 +34,8 @@ fun HomeScreen(onOpenDiagnostics: () -> Unit, onOpenAbout: () -> Unit, onOpenSet
             modifier = Modifier.fillMaxWidth(),
         )
         WavyDivider()
-        PageCard(title = stringResource(R.string.home_status_title)) {
-            Spacer(Modifier.height(Tokens.Space.xs))
-            Text(stringResource(R.string.home_status_body), style = MaterialTheme.typography.bodyMedium)
+        PageCard(title = stringResource(R.string.home_today_title), onClick = onOpenToday) {
+            Text(stringResource(R.string.home_today_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         PageCard(title = stringResource(R.string.home_piano_title), onClick = onOpenPiano) {
             Text(stringResource(R.string.home_piano_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

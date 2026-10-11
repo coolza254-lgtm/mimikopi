@@ -40,6 +40,10 @@ fun PianoKeyboard(
     onNoteOn: (Int, Float) -> Unit,
     onNoteOff: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** Keys to point out (e.g. the right answer after a mistake, or keys being demonstrated). */
+    marked: Set<Int> = emptySet(),
+    /** Notes whose names are shown even when [showNames] is off (e.g. confirming a correct key). */
+    namedNotes: Set<Int> = emptySet(),
 ) {
     val noteOn by rememberUpdatedState(onNoteOn)
     val noteOff by rememberUpdatedState(onNoteOff)
@@ -78,7 +82,11 @@ fun PianoKeyboard(
         for (k in layout.whiteKeys) {
             val down = k.note in pressed
             drawRoundRect(
-                color = if (down) Tokens.Palette.RoseSoft else Color.White,
+                color = when {
+                    down -> Tokens.Palette.RoseSoft
+                    k.note in marked -> Tokens.Palette.MustardSoft
+                    else -> Color.White
+                },
                 topLeft = Offset(k.left + 1f, 0f),
                 size = Size(k.width - 2f, k.bottom),
                 cornerRadius = radius,
@@ -90,7 +98,7 @@ fun PianoKeyboard(
                 cornerRadius = radius,
                 style = Stroke(width = 2f),
             )
-            if (showNames) {
+            if (showNames || k.note in namedNotes) {
                 val label = SpelledPitch.fromMidiSharp(k.note).name(nameStyle, withOctave = k.note % 12 == 0)
                 val text = measurer.measure(label, TextStyle(fontSize = 13.sp, color = Tokens.Palette.InkMuted))
                 drawText(text, topLeft = Offset(k.left + (k.width - text.size.width) / 2, k.bottom - text.size.height - 8f))
@@ -102,7 +110,11 @@ fun PianoKeyboard(
         for (k in layout.blackKeys) {
             val down = k.note in pressed
             drawRoundRect(
-                color = if (down) Tokens.Palette.Rose else Tokens.Palette.Ink,
+                color = when {
+                    down -> Tokens.Palette.Rose
+                    k.note in marked -> Tokens.Palette.Mustard
+                    else -> Tokens.Palette.Ink
+                },
                 topLeft = Offset(k.left, 0f),
                 size = Size(k.width, k.bottom),
                 cornerRadius = CornerRadius(k.width * 0.15f),

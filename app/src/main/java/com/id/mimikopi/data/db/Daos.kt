@@ -56,6 +56,33 @@ interface BackupDao {
 }
 
 @Dao
+interface LearningDao {
+    @Query("SELECT * FROM item_stats")
+    suspend fun itemStats(): List<ItemStatEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun putItemStat(item: ItemStatEntity)
+
+    @Insert
+    suspend fun insertAttempt(attempt: AttemptEntity): Long
+
+    @Insert
+    suspend fun insertEvents(events: List<AttemptEventEntity>)
+
+    @Insert
+    suspend fun insertSession(session: PracticeSessionEntity): Long
+
+    @Query("UPDATE practice_sessions SET ended_at = :endedAt, active_seconds = :activeSeconds WHERE id = :id")
+    suspend fun finishSession(id: Long, endedAt: Long, activeSeconds: Long)
+
+    @Query("SELECT * FROM practice_sessions ORDER BY started_at")
+    suspend fun sessions(): List<PracticeSessionEntity>
+
+    @Query("SELECT * FROM attempts WHERE started_at >= :since ORDER BY started_at")
+    suspend fun attemptsSince(since: Long): List<AttemptEntity>
+}
+
+@Dao
 interface SettingsDao {
     @Query("SELECT value FROM settings WHERE `key` = :key")
     suspend fun get(key: String): String?
@@ -80,4 +107,7 @@ object SettingKeys {
     const val METRONOME_SELF_TEST = "metronome.lastSelfTest"
     const val INPUT_CONFIG = "input.config"
     const val MIDI_SOUND_THROUGH = "midi.soundThrough"
+    const val LESSON_RECORDS = "lesson.records"
+    const val SESSION_MINUTES = "session.minutes"
+    const val KEYBOARD_KEYS = "piano.keyCount"
 }

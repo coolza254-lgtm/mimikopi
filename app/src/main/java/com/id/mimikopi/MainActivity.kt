@@ -13,6 +13,9 @@ import com.id.mimikopi.ui.about.CreditsScreen
 import com.id.mimikopi.ui.piano.PianoScreen
 import com.id.mimikopi.ui.metronome.MetronomeScreen
 import com.id.mimikopi.ui.midi.MidiScreen
+import com.id.mimikopi.ui.lesson.LessonScreen
+import com.id.mimikopi.ui.practice.DrillScreen
+import com.id.mimikopi.ui.today.TodayScreen
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
 import com.id.mimikopi.ui.home.HomeScreen
 import com.id.mimikopi.ui.settings.SettingsScreen
@@ -37,6 +40,13 @@ private object Routes {
     const val CREDITS = "credits"
     const val METRONOME = "metronome"
     const val MIDI = "midi"
+    const val TODAY = "today"
+    const val LESSON = "lesson/{lessonId}"
+    const val DRILL = "drill/{lessonId}/{drill}"
+    const val REVIEW = "review/{review}"
+    fun lesson(id: String) = "lesson/$id"
+    fun drill(id: String, index: Int) = "drill/$id/$index"
+    const val REVIEW_NOW = "review/true"
 }
 
 @Composable
@@ -51,6 +61,7 @@ private fun AppNavigation() {
                 onOpenPiano = { nav.navigate(Routes.PIANO) },
                 onOpenMetronome = { nav.navigate(Routes.METRONOME) },
                 onOpenMidi = { nav.navigate(Routes.MIDI) },
+                onOpenToday = { nav.navigate(Routes.TODAY) },
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
@@ -59,6 +70,18 @@ private fun AppNavigation() {
         composable(Routes.PIANO) { PianoScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.METRONOME) { MetronomeScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.MIDI) { MidiScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.TODAY) {
+            TodayScreen(
+                onBack = { nav.popBackStack() },
+                onOpenLesson = { nav.navigate(Routes.lesson(it)) },
+                onOpenDrill = { id, i -> nav.navigate(Routes.drill(id, i)) },
+                onOpenReview = { nav.navigate(Routes.REVIEW_NOW) },
+                onOpenPiano = { nav.navigate(Routes.PIANO) },
+            )
+        }
+        composable(Routes.LESSON) { LessonScreen(onBack = { nav.popBackStack() }, onOpenDrill = { id, i -> nav.navigate(Routes.drill(id, i)) }) }
+        composable(Routes.DRILL) { DrillScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.REVIEW) { DrillScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
     }
 }

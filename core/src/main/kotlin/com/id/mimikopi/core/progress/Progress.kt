@@ -38,8 +38,8 @@ object TrackProgress {
 }
 
 /**
- * One benchmark sitting (learning-system.md 12.1). Parts are filled in as they are done; chord changes and
- * ear training join when those features exist.
+ * One benchmark sitting (learning-system.md 12.1). Parts are filled in as they are done; chord changes join when
+ * that feature exists.
  */
 @Serializable
 data class BenchmarkResult(
@@ -49,6 +49,8 @@ data class BenchmarkResult(
     /** Highest sight-reading level (1-5) played clean in one go; 0 = none. */
     val sightReadingLevel: Int? = null,
     val pulseSdMs: Double? = null,
+    /** Share right on the fixed ear-training set (E1-E4, 20 questions). */
+    val earAccuracy: Double? = null,
 ) {
     val complete: Boolean get() = noteIdPerMinute != null && sightReadingLevel != null && pulseSdMs != null
 }

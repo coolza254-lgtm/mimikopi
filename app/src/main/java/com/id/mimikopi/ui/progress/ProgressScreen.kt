@@ -2,6 +2,8 @@ package com.id.mimikopi.ui.progress
 
 import android.app.Application
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -106,7 +108,7 @@ class ProgressViewModel(app: Application) : AndroidViewModel(app) {
 }
 
 @Composable
-fun ProgressScreen(onBack: () -> Unit, onBenchNotes: () -> Unit, onBenchPulse: () -> Unit, onBenchReading: () -> Unit, vm: ProgressViewModel = viewModel()) {
+fun ProgressScreen(onBack: () -> Unit, onBenchNotes: () -> Unit, onBenchPulse: () -> Unit, onBenchReading: () -> Unit, onBenchEar: () -> Unit, vm: ProgressViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     ScreenScaffold(title = stringResource(R.string.progress_title), onBack = onBack) {
@@ -153,11 +155,12 @@ fun ProgressScreen(onBack: () -> Unit, onBenchNotes: () -> Unit, onBenchPulse: (
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(stringResource(R.string.progress_bench_parts), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
-            Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.xs), modifier = Modifier.padding(top = Tokens.Space.s)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.xs), modifier = Modifier.padding(top = Tokens.Space.s).horizontalScroll(rememberScrollState())) {
                 val today = ui.benchmarks.firstOrNull { it.date == LocalDate.now().toString() }
                 BenchButton(R.string.progress_bench_notes, today?.noteIdPerMinute != null, onBenchNotes)
                 BenchButton(R.string.progress_bench_reading, today?.sightReadingLevel != null, onBenchReading)
                 BenchButton(R.string.progress_bench_pulse, today?.pulseSdMs != null, onBenchPulse)
+                BenchButton(R.string.progress_bench_ear, today?.earAccuracy != null, onBenchEar)
             }
             val first = ui.benchmarks.firstOrNull()
             val last = ui.benchmarks.lastOrNull()
@@ -168,6 +171,7 @@ fun ProgressScreen(onBack: () -> Unit, onBenchNotes: () -> Unit, onBenchPulse: (
                 BenchRow(stringResource(R.string.progress_bench_acc_row), first.noteIdAccuracy?.let { pct(it) }, last.noteIdAccuracy?.let { pct(it) })
                 BenchRow(stringResource(R.string.progress_bench_read_row), first.sightReadingLevel?.let { "L$it" }, last.sightReadingLevel?.let { "L$it" })
                 BenchRow(stringResource(R.string.progress_bench_pulse_row), first.pulseSdMs?.let { "${it.roundToInt()} ms" }, last.pulseSdMs?.let { "${it.roundToInt()} ms" })
+                BenchRow(stringResource(R.string.progress_bench_ear_row), first.earAccuracy?.let { pct(it) }, last.earAccuracy?.let { pct(it) })
                 Text(stringResource(R.string.progress_bench_later), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted,
                     modifier = Modifier.padding(top = Tokens.Space.s))
             }

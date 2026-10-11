@@ -43,6 +43,7 @@ fun TodayScreen(
     onOpenPiano: () -> Unit,
     onOpenPieces: () -> Unit,
     onOpenNewReading: (Int) -> Unit,
+    onOpenEar: () -> Unit,
     vm: TodayViewModel = viewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -95,6 +96,12 @@ fun TodayScreen(
                             Text(stringResource(R.string.block_start))
                         }
                     }
+                    BlockKind.EAR -> {
+                        Text(stringResource(R.string.block_ear_body), style = MaterialTheme.typography.bodyMedium)
+                        Button(onClick = onOpenEar, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
+                            Text(stringResource(R.string.block_start))
+                        }
+                    }
                     BlockKind.NEW_READING -> ui.newReadingLevel?.let { level ->
                         Text(stringResource(R.string.block_new_reading_body, level), style = MaterialTheme.typography.bodyMedium)
                         Button(onClick = { onOpenNewReading(level) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
@@ -114,6 +121,9 @@ fun TodayScreen(
                         Text(stringResource(R.string.block_free_body), style = MaterialTheme.typography.bodyMedium)
                         Button(onClick = onOpenPiano, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
                             Text(stringResource(R.string.block_open_piano))
+                        }
+                        OutlinedButton(onClick = onOpenPieces, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
+                            Text(stringResource(R.string.block_open_transcribe))
                         }
                     }
                     else -> Unit

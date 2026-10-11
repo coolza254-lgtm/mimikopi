@@ -67,6 +67,10 @@ data class ReaderOptions(
     /** Tempo ramp (learning-system.md 6.3) in tempo mode; off = set the tempo by hand. */
     val useRamp: Boolean = true,
     val showKeyboard: Boolean = true,
+    /** Transcribe helper (learning-system.md 11.3): notes hidden until the run ends. */
+    val hideNotes: Boolean = false,
+    /** "Listen" repeats the section until stopped. */
+    val loopListen: Boolean = false,
 )
 
 sealed interface ResultAction {
@@ -282,6 +286,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     fun setMetronome(on: Boolean) = updateOptions { it.copy(metronome = on) }
     fun setUseRamp(on: Boolean) = updateOptions { it.copy(useRamp = on) }
     fun setShowKeyboard(on: Boolean) = updateOptions { it.copy(showKeyboard = on) }
+    fun setHideNotes(on: Boolean) = updateOptions { it.copy(hideNotes = on) }
+    fun setLoopListen(on: Boolean) = updateOptions { it.copy(loopListen = on) }
 
     private fun updateOptions(change: (ReaderOptions) -> ReaderOptions) {
         if (!editable()) return
@@ -543,6 +549,27 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val to = s.measureStart(u.section.last + 1)
         val beatNanos = (TimingRules.beatMs(u.bpm.toDouble()) * 1e6).toLong()
         val t0 = System.nanoTime() + 400_000_000L
+        scheduleSection(s, from, to, t0, beatNanos)
+        startClock(t0, beatNanos, from, to)
+        _ui.update { it.copy(phase = Phase.LISTENING, results = emptyMap(), result = null, pendingSectionStart = null) }
+        runJob?.cancel()
+        runJob = viewModelScope.launch {
+            var start = t0
+            while (true) {
+                delay(((start + ((to - from) * beatNanos).toLong() - System.nanoTime()) / 1_000_000).coerceAtLeast(0) + 400)
+                if (!_ui.value.options.loopListen) break
+                // Loop: schedule the section again right after a short gap.
+                start = System.nanoTime() + 600_000_000L
+                scheduleSection(s, from, to, start, beatNanos)
+                startClock(start, beatNanos, from, to)
+            }
+            delay(500)
+            clockRunning = false
+            _ui.update { it.copy(phase = Phase.IDLE) }
+        }
+    }
+
+    private fun scheduleSection(s: Score, from: Double, to: Double, t0: Long, beatNanos: Long) {
         for (e in s.events) {
             if (e.isRest || e.onset < from - 1e-9 || e.onset >= to - 1e-9) continue
             val on = t0 + ((e.onset - from) * beatNanos).toLong()
@@ -550,14 +577,6 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 scheduler.noteOn(on, p.midi, if (e.hand == Hand.RIGHT) 74 else 60)
                 scheduler.noteOff(on + (e.duration * beatNanos * 0.92).toLong(), p.midi)
             }
-        }
-        startClock(t0, beatNanos, from, to)
-        _ui.update { it.copy(phase = Phase.LISTENING, results = emptyMap(), result = null, pendingSectionStart = null) }
-        runJob?.cancel()
-        runJob = viewModelScope.launch {
-            delay(((to - from) * beatNanos / 1_000_000).toLong() + 900)
-            clockRunning = false
-            _ui.update { it.copy(phase = Phase.IDLE) }
         }
     }
 

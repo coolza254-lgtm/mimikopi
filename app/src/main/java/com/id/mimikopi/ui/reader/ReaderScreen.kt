@@ -103,6 +103,7 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             nameStyle = vm.nameStyle,
             onMeasureTap = vm::onMeasureTap,
             modifier = Modifier.weight(1f).fillMaxWidth(),
+            hideNotes = ui.options.hideNotes && ui.phase != Phase.RESULT,
         )
 
         ui.message?.let { msg ->
@@ -291,6 +292,8 @@ private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -
                 if (!fixed) OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)
                 if (!fixed) OptionRow(R.string.reader_opt_ramp, R.string.reader_opt_ramp_body, o.useRamp, vm::setUseRamp)
                 OptionRow(R.string.reader_opt_keyboard, R.string.reader_opt_keyboard_body, o.showKeyboard, vm::setShowKeyboard)
+                if (!fixed) OptionRow(R.string.reader_opt_hide, R.string.reader_opt_hide_body, o.hideNotes, vm::setHideNotes)
+                if (!fixed) OptionRow(R.string.reader_opt_loop, R.string.reader_opt_loop_body, o.loopListen, vm::setLoopListen)
             }
         },
     )

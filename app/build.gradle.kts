@@ -77,6 +77,7 @@ room {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":audio"))
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)

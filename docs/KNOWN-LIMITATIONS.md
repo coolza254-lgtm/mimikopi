@@ -2,6 +2,17 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## As of M3 (v0.3.x)
+- Release ("damper") noise samples and sympathetic string resonance from Salamander are not used yet;
+  note-off is a smooth exponential fade (0.6 s with dampers, 3-4 s for the top 20 undamped keys).
+- Velocity layers are switched (8 layers) with loudness scaled continuously around each layer's centre; not cross-faded.
+- Effects (from v0.3.2): Freeverb room reverb, speaker "warmth" EQ (high-pass 70 Hz, +mid body, high shelf cut), compressor and soft limiter.
+- On-screen keys use a fixed velocity set by the "ความแรง" slider (touch pressure is unreliable on phones).
+- Latency is shown as Oboe's estimate; per-route latency offsets and calibration come with MIDI (M5).
+- The decoded pack takes about 440 MB of storage (79 MB download). The first 1.5 s of every sample is kept in
+  RAM (~70 MB while the piano screen is open); the rest is read from storage ahead of playback.
+- Audio quality, latency and glitch-free playback under UI load are only verifiable on the phone.
+
 ## As of M2 (v0.2.x)
 - Automatic backups live inside the app's storage: they survive updates but **not uninstalling**.
   Save a backup file elsewhere for that.

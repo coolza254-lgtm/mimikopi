@@ -87,6 +87,12 @@ private fun ReportSections(r: DiagnosticsReport) {
         Line("${stringResource(R.string.diag_frames_hint)}: ${r.audio.framesPerBufferHint ?: unknown}")
         Line("${stringResource(R.string.diag_route)}: ${r.audio.currentRoute.joinToString().ifEmpty { unknown }}")
         Line("${stringResource(R.string.diag_outputs)}: ${r.audio.availableOutputs.joinToString()}")
+        r.engine?.let { e ->
+            Line(stringResource(R.string.diag_engine, e.sampleRate, e.framesPerBurst, e.bufferSizeFrames))
+            Line(stringResource(R.string.diag_latency, e.estimatedLatencyMs?.let { "%.1f".format(it) } ?: unknown))
+            Line(stringResource(R.string.diag_stream_mode, if (e.exclusive) yes else no, if (e.lowLatency) yes else no, e.xRuns ?: -1))
+            Line(stringResource(R.string.diag_pack, if (e.samplePackInstalled) yes else no, e.samplePackBytes / 1_000_000))
+        }
     }
     PageCard(title = stringResource(R.string.diag_section_midi)) {
         if (r.midi.devices.isEmpty()) {

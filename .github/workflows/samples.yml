@@ -1,0 +1,56 @@
+name: Sample pack
+
+# Builds the piano sample pack from Salamander Grand Piano V3 and publishes it as a release
+# (not marked "latest", so app updates keep resolving to the newest app release).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Pack version number, e.g. 1"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  RELEASES_REPO: coolza254-lgtm/mimikopi-releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate input
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$INPUT_VERSION" =~ ^[0-9]+$ ]] || { echo "::error::version must be a number"; exit 1; }
+          echo "PACK_VERSION=$INPUT_VERSION" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Fetch Salamander Grand Piano V3
+        run: git clone --depth 1 https://github.com/sfzinstruments/SalamanderGrandPiano.git "$RUNNER_TEMP/salamander"
+
+      - name: Build pack
+        run: |
+          pip install numpy soundfile
+          python3 tools/samples/build_samples.py --src "$RUNNER_TEMP/salamander" --out out --version "$PACK_VERSION"
+          ls -la out
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          TAG="samples-v$PACK_VERSION"
+          if gh release view "$TAG" --repo "$RELEASES_REPO" > /dev/null 2>&1; then
+            echo "::error::$TAG already exists; bump the pack version"; exit 1
+          fi
+          gh release create "$TAG" "out/samples-v$PACK_VERSION.zip" "out/samples-v$PACK_VERSION.json" \
+            --repo "$RELEASES_REPO" --latest=false \
+            --title "Piano samples v$PACK_VERSION" \
+            --notes "เสียงเปียโนสำหรับ ミミコピ จาก Salamander Grand Piano V3 โดย Alexander Holm (CC BY 3.0) ปรับแต่งตามรายละเอียดใน README.txt ในไฟล์ zip"

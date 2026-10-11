@@ -9,6 +9,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.id.mimikopi.ui.about.AboutScreen
+import com.id.mimikopi.ui.about.CreditsScreen
+import com.id.mimikopi.ui.piano.PianoScreen
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
 import com.id.mimikopi.ui.home.HomeScreen
 import com.id.mimikopi.ui.settings.SettingsScreen
@@ -29,6 +31,8 @@ private object Routes {
     const val DIAGNOSTICS = "diagnostics"
     const val ABOUT = "about"
     const val SETTINGS = "settings"
+    const val PIANO = "piano"
+    const val CREDITS = "credits"
 }
 
 @Composable
@@ -40,10 +44,13 @@ private fun AppNavigation() {
                 onOpenDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },
                 onOpenAbout = { nav.navigate(Routes.ABOUT) },
                 onOpenSettings = { nav.navigate(Routes.SETTINGS) },
+                onOpenPiano = { nav.navigate(Routes.PIANO) },
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
-        composable(Routes.ABOUT) { AboutScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.ABOUT) { AboutScreen(onBack = { nav.popBackStack() }, onOpenCredits = { nav.navigate(Routes.CREDITS) }) }
+        composable(Routes.CREDITS) { CreditsScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.PIANO) { PianoScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
     }
 }

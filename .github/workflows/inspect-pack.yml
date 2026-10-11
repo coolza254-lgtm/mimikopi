@@ -1,0 +1,75 @@
+name: Inspect sample library
+
+# Research helper (the build session cannot reach these hosts): finds candidate piano sample
+# libraries and prints their metadata, archive contents and licence texts into the log.
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Musical Artifacts search terms (metadata mode)"
+        required: false
+        default: "Sofia MZ"
+      url:
+        description: "Archive URL to download and inspect (leave empty for metadata mode)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Metadata
+        if: inputs.url == ''
+        env:
+          QUERY: ${{ inputs.query }}
+        run: |
+          set -u
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36"
+          links() { grep -oE 'https?://[^"<> ]*(sourceforge\.net|mega\.nz|drive\.google|musical-artifacts\.com/artifacts/[0-9]+|wixsite|github\.com/[^"<> ]*|dropbox|archive\.org)[^"<> ]*' | sort -u | head -60; }
+          pages=(
+            "https://musical-artifacts.com/artifacts?q=Sofia+MZ"
+            "https://musical-artifacts.com/artifacts?formats=sfz&order=created_at&tags=grand+piano"
+            "https://linuxmusicians.com/viewtopic.php?t=26432"
+            "https://pianoclack.com/forum/d/1152-my-free-sfz-piano-libraries"
+            "https://pianoclack.com/forum/d/1152-my-free-sfz-piano-libraries?page=2"
+            "https://forum.pianoworld.com/ubbthreads.php/topics/3430735/my-free-piano-libraries-in-sfz-format.html"
+            "https://vi-control.net/community/threads/my-free-sfz-piano-libraries.145758/"
+            "https://sourceforge.net/directory/?q=sofia+mz+piano"
+            "https://sourceforge.net/directory/?q=borgo+del+cervo"
+            "https://sourceforge.net/directory/?q=rivai"
+          )
+          for u in "${pages[@]}"; do
+            echo "=== $u"
+            curl -sSL -A "$UA" --max-time 30 "$u" -o page.html || { echo "fetch failed"; continue; }
+            echo "bytes: $(wc -c < page.html)  title: $(grep -o '<title>[^<]*' page.html | head -1)"
+            links < page.html
+            # Licence mentions near the text, for context.
+            grep -oiE '.{0,120}(creative commons|cc0|cc by|licen[cs]e).{0,160}' page.html | sed 's/<[^>]*>//g' | sort -u | head -15
+          done
+          # Musical Artifacts artifact pages found above: print their licence and download links.
+          for u in $(cat /dev/null); do :; done
+
+      - name: Download and inspect archive
+        if: inputs.url != ''
+        env:
+          URL: ${{ inputs.url }}
+        run: |
+          set -u
+          sudo apt-get install -y -qq p7zip-full > /dev/null
+          curl -sSL --fail -o archive "$URL"
+          ls -la archive; file archive
+          mkdir x && 7z x -y -ox archive > /dev/null || { echo "extract failed"; exit 1; }
+          echo "=== Top-level"; find x -maxdepth 3 | head -60
+          echo "=== Totals"; du -sh x; find x -type f | sed 's/.*\.//' | sort | uniq -c | sort -rn | head
+          echo "=== Sample names (first 40)"; find x -iname '*.wav' -o -iname '*.flac' | head -40
+          echo "=== Licence / readme texts"
+          find x -type f \( -iname '*licen*' -o -iname '*readme*' -o -iname '*copying*' -o -iname '*.txt' -o -iname '*.md' -o -iname '*.pdf' \) | while read -r f; do
+            echo "----- $f"; case "$f" in *.pdf) pdftotext "$f" - 2>/dev/null | head -150 ;; *) head -c 6000 "$f" ;; esac; echo
+          done
+          echo "=== SFZ headers"
+          find x -iname '*.sfz' | head -5 | while read -r f; do echo "----- $f"; head -60 "$f"; done
+          echo "=== One sample's format"; f=$(find x -iname '*.wav' -o -iname '*.flac' | head -1); [ -n "$f" ] && file "$f"

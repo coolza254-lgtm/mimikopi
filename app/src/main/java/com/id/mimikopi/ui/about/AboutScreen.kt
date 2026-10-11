@@ -19,7 +19,7 @@ import com.id.mimikopi.ui.components.WavyDivider
 import com.id.mimikopi.ui.theme.Tokens
 
 @Composable
-fun AboutScreen(onBack: () -> Unit) {
+fun AboutScreen(onBack: () -> Unit, onOpenCredits: () -> Unit) {
     ScreenScaffold(title = stringResource(R.string.about_title), onBack = onBack) {
         Image(
             painter = painterResource(R.drawable.wordmark),
@@ -38,9 +38,11 @@ fun AboutScreen(onBack: () -> Unit) {
                 R.string.about_limit_4, R.string.about_limit_1, R.string.about_limit_6,
             ).forEach { Bullet(stringResource(it)) }
         }
-        PageCard(title = stringResource(R.string.about_credits_title)) {
+        PageCard(title = stringResource(R.string.about_credits_title), onClick = onOpenCredits) {
+            Bullet(stringResource(R.string.credit_piano_title))
             listOf(R.string.about_credit_logo, R.string.about_credit_font, R.string.about_credit_libs)
                 .forEach { Bullet(stringResource(it)) }
+            Text(stringResource(R.string.about_open_credits), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = Tokens.Space.s))
         }
     }
 }

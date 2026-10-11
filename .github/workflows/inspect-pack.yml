@@ -1,0 +1,69 @@
+name: Inspect sample library
+
+# Research helper (the build session cannot reach these hosts): finds candidate piano sample
+# libraries and prints their metadata, archive contents and licence texts into the log.
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Musical Artifacts search terms (metadata mode)"
+        required: false
+        default: "Sofia MZ"
+      url:
+        description: "Archive URL to download and inspect (leave empty for metadata mode)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Metadata
+        if: inputs.url == ''
+        env:
+          QUERY: ${{ inputs.query }}
+        run: |
+          set -u
+          for q in "$QUERY" "Borgo Del Cervo" "Rivai" "Sofia_MZ"; do
+            echo "=== Musical Artifacts: $q"
+            curl -sSL --get --data-urlencode "q=$q" "https://musical-artifacts.com/artifacts.json" -o ma.json || continue
+            python3 - <<'PY'
+          import json
+          try:
+              data = json.load(open("ma.json"))
+          except Exception as e:
+              print("not json:", e); raise SystemExit
+          for a in data if isinstance(data, list) else data.get("artifacts", []):
+              print(json.dumps({k: a.get(k) for k in ("id", "name", "author", "license", "license_name", "file", "mirrors", "download_url", "more_info", "description", "tags", "formats", "created_at")}, ensure_ascii=False, indent=1)[:3000])
+          PY
+          done
+          for slug in borgo-del-cervo borgodelcervo rivai-darsie rivai-d-arsie sofia-mz-pianos; do
+            echo "=== SourceForge $slug"
+            curl -sSL "https://sourceforge.net/projects/$slug/rss?path=/" | grep -oE "<(title|link)>[^<]+" | head -20 || true
+            curl -sSL "https://sourceforge.net/rest/p/$slug" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('name'), d.get('url'), d.get('categories',{}).get('license'))" 2>/dev/null || true
+          done
+
+      - name: Download and inspect archive
+        if: inputs.url != ''
+        env:
+          URL: ${{ inputs.url }}
+        run: |
+          set -u
+          sudo apt-get install -y -qq p7zip-full > /dev/null
+          curl -sSL --fail -o archive "$URL"
+          ls -la archive; file archive
+          mkdir x && 7z x -y -ox archive > /dev/null || { echo "extract failed"; exit 1; }
+          echo "=== Top-level"; find x -maxdepth 3 | head -60
+          echo "=== Totals"; du -sh x; find x -type f | sed 's/.*\.//' | sort | uniq -c | sort -rn | head
+          echo "=== Sample names (first 40)"; find x -iname '*.wav' -o -iname '*.flac' | head -40
+          echo "=== Licence / readme texts"
+          find x -type f \( -iname '*licen*' -o -iname '*readme*' -o -iname '*copying*' -o -iname '*.txt' -o -iname '*.md' -o -iname '*.pdf' \) | while read -r f; do
+            echo "----- $f"; case "$f" in *.pdf) pdftotext "$f" - 2>/dev/null | head -150 ;; *) head -c 6000 "$f" ;; esac; echo
+          done
+          echo "=== SFZ headers"
+          find x -iname '*.sfz' | head -5 | while read -r f; do echo "----- $f"; head -60 "$f"; done
+          echo "=== One sample's format"; f=$(find x -iname '*.wav' -o -iname '*.flac' | head -1); [ -n "$f" ] && file "$f"

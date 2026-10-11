@@ -291,7 +291,7 @@
     <string name="about_credit_font">ตัวอักษรโลโก้ ミミコピ: ฟอนต์ Zen Maru Gothic (SIL Open Font License 1.1) แปลงเป็นเส้นเวกเตอร์</string>
     <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
-    <string name="about_limit_1">บทเรียนตอนนี้มีด่าน 1–3 (บท 1.1–3.8) ด่าน 4–6 ตามมาในรุ่นถัดไป</string>
+    <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงจริง และไม่ดึงข้อมูลเพลงจากอินเทอร์เน็ต เพลงในคลังต้องถอดเอง ความยากของ Song Ladder คำนวณจากข้อมูลที่ใส่เท่านั้น การตรวจแป้นเหยียบใช้ได้เฉพาะเมื่อเปียโนส่งสัญญาณแป้นผ่าน MIDI</string>
     <string name="about_limit_2">เสียงปล่อยคีย์และเสียงสะท้อนสายของเปียโน</string>
     <string name="about_limit_3">เครื่องมือเขียนโน้ตยังไม่รองรับไตรเพลต เสียงที่สองในบรรทัดเดียวกัน เครื่องหมายความดังเบา และการเปลี่ยนคีย์/จังหวะกลางเพลง ตัวอ่านโน้ตยังไม่ตัดบรรทัด (PDF ตัดบรรทัดแล้ว) และยังไม่มีมุมมองโน้ตตก</string>
     <string name="about_limit_4">Bluetooth MIDI (ยังไม่ได้ทดสอบ อุปกรณ์ที่จับคู่ในระบบอาจใช้ได้)</string>

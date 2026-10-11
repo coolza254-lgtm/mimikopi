@@ -194,3 +194,46 @@ class SongLadderTest {
         assertNotNull(Song.parse(song.toJson()))
     }
 }
+
+class BundledSongsAndKnowledgeTest {
+    @Test
+    fun targetSongShellsHoldOnlyUnverifiedFacts() {
+        val songs = Song.parseList(java.io.File("../content/songs/targets.json").readText())
+        assertEquals(listOf("kokoro-no-placard", "i-wish", "renai-revolution-21"), songs.map { it.id })
+        songs.forEach { s ->
+            // Shells: no transcribed content, nothing marked verified (learning-system.md 9.6).
+            assertTrue(s.sections.isEmpty() && s.scoreId == null, s.id)
+            assertFalse(s.keyVerified || s.bpmVerified || s.rangeVerified, s.id)
+            assertTrue(s.notes.contains("ยังไม่ได้ยืนยัน"), s.id)
+            s.reportedChords.forEach { q -> assertNotNull(Chord.parse("C$q"), "${s.id}: $q") }
+            assertTrue(s.pipeline.size == 7 && s.pipeline.none { it.done })
+        }
+        val ladder = SongLadder.ladder(songs.map { it to SongLadder.analyze(it, null, emptySet()) })
+        assertEquals("kokoro-no-placard", ladder.first().first.id)
+        assertTrue("ชนิดคอร์ดที่รายงาน" in SongLadder.analyze(songs[1], null, emptySet()).unverified)
+    }
+
+    @Test
+    fun knowledgeArticlesAreValidAndSearchable() {
+        val articles = java.io.File("../content/knowledge").listFiles()!!.sortedBy { it.name }.map {
+            com.id.mimikopi.core.knowledge.Article.parse(it.readText()).also { a -> assertEquals(it.nameWithoutExtension, a.id) }
+        }
+        assertTrue(articles.size >= 15)
+        articles.forEach { assertEquals(emptyList(), it.problems(), it.id) }
+        val lessonIds = java.io.File("../content/lessons").listFiles()!!.map { it.nameWithoutExtension }.toSet()
+        articles.flatMap { it.lessons }.forEach { assertTrue(it in lessonIds, it) }
+        val k = com.id.mimikopi.core.knowledge.Knowledge
+        assertEquals("jpop-progressions", k.search(articles, "王道進行").first().id)
+        assertEquals("pedal", k.search(articles, "เพดัล").first().id)
+        assertEquals(articles.size, k.search(articles, "  ").size)
+        val c = k.sequence("chord:C")!!.single()
+        assertEquals(setOf(0, 4, 7), c.map { it % 12 }.toSet())
+        assertTrue(c.first() in 40..51)
+        assertEquals(listOf(listOf(60), listOf(64)), k.sequence("notes:C4 E4"))
+        assertEquals(4, k.sequence("prog:-3:IVmaj7 V7 iii7 vi")!!.size)
+        assertNull(k.sequence("chord:Xq"))
+        // Nothing from real songs in the library either.
+        val text = java.io.File("../content/knowledge").listFiles()!!.joinToString("\n") { it.readText() }
+        listOf("Morning Musume", "モーニング娘", "AKB48", "I WISH", "心のプラカード", "恋愛レボリューション").forEach { assertFalse(it in text, it) }
+    }
+}

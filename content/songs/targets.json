@@ -1,0 +1,73 @@
+[
+  {
+    "id": "kokoro-no-placard",
+    "title": "心のプラカード",
+    "artist": "AKB48 (ทำนอง: 板垣祐介)",
+    "year": "2014",
+    "notes": "ข้อมูลจากเว็บ ยังไม่ได้ยืนยันทั้งหมด: BPM 98 (เว็บบันทึกว่า \"98 หรือ 196\" อาจสับสนครึ่ง/สองเท่า) ช่วงเสียงทำนอง C4–C5 จากเว็บวิเคราะห์เสียงร้องอัตโนมัติ ยังไม่พบคีย์และคอร์ด ต้องถอดจากหูเอง ผู้ใช้เคยเรียกว่าเพลงของ Tsubaki Factory แต่ไม่พบเวอร์ชันนั้น จึงใช้ต้นฉบับ",
+    "key": null,
+    "bpm": 98,
+    "rangeLow": "C4",
+    "rangeHigh": "C5",
+    "reportedChords": [],
+    "order": 0,
+    "minor": false,
+    "keyVerified": false,
+    "bpmVerified": false,
+    "rangeVerified": false,
+    "sections": [],
+    "scoreId": null
+  },
+  {
+    "id": "i-wish",
+    "title": "I WISH",
+    "artist": "モーニング娘。 (Morning Musume, ซึนกุแต่ง)",
+    "year": "2000",
+    "notes": "ข้อมูลจากเว็บ ยังไม่ได้ยืนยัน: BPM 102 (เว็บคอร์ดบันทึก 90 แล้วเปลี่ยนเป็น 102 ไม่ตรงกัน) ช่วงเสียง A#3–F#4 จากเว็บวิเคราะห์อัตโนมัติ คีย์ A♭ และเปลี่ยนไป E♭ ตามเว็บคอร์ดเว็บเดียว ชนิดคอร์ดที่เว็บคอร์ดรายงาน: add9, maj9, sus4, สแลชคอร์ด, m7♭5, aug, 13 (ผู้ใช้เว็บส่งขึ้นเอง)",
+    "key": -4,
+    "bpm": 102,
+    "rangeLow": "A#3",
+    "rangeHigh": "F#4",
+    "reportedChords": [
+      "add9",
+      "maj9",
+      "sus4",
+      "m7b5",
+      "aug",
+      "13"
+    ],
+    "order": 1,
+    "minor": false,
+    "keyVerified": false,
+    "bpmVerified": false,
+    "rangeVerified": false,
+    "sections": [],
+    "scoreId": null
+  },
+  {
+    "id": "renai-revolution-21",
+    "title": "恋愛レボリューション21",
+    "artist": "モーニング娘。 (Morning Musume)",
+    "year": "2000",
+    "notes": "เพลงถัดไปทีหลัง ข้อมูลจากเว็บ ยังไม่ได้ยืนยัน: BPM 133 ช่วงเสียง F#3–D#5 จากเว็บวิเคราะห์อัตโนมัติ เว็บคอร์ดไม่ระบุคีย์ ชุดคอร์ดชี้ว่าน่าจะเป็น C เมเจอร์ (เป็นการอนุมาน) ชนิดคอร์ดที่รายงาน: maj9, m7, โดมิแนนท์ข้างเคียง E7/D7, A7♭9, aug และ A♭M7 นอกคีย์ ไม่พบการเปลี่ยนคีย์",
+    "key": 0,
+    "bpm": 133,
+    "rangeLow": "F#3",
+    "rangeHigh": "D#5",
+    "reportedChords": [
+      "maj9",
+      "m7",
+      "7",
+      "7b9",
+      "aug",
+      "maj7"
+    ],
+    "order": 2,
+    "minor": false,
+    "keyVerified": false,
+    "bpmVerified": false,
+    "rangeVerified": false,
+    "sections": [],
+    "scoreId": null
+  }
+]

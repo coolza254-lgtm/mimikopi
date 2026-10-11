@@ -1,0 +1,25 @@
+{
+  "id": "ex-scale-g-both",
+  "title": "สเกล G เมเจอร์ สองมือ",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise (scale with standard fingering).",
+  "level": "L6",
+  "key": 1,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 72,
+  "rh": [
+    "G4/q@1 A4/q@2 B4/q@3 C5/q@1",
+    "D5/q@2 E5/q@3 F#5/q@4 G5/q@5",
+    "F#5/q@4 E5/q@3 D5/q@2 C5/q@1",
+    "B4/q@3 A4/q@2 G4/h@1"
+  ],
+  "lh": [
+    "G2/q@5 A2/q@4 B2/q@3 C3/q@2",
+    "D3/q@1 E3/q@3 F#3/q@2 G3/q@1",
+    "F#3/q@2 E3/q@3 D3/q@1 C3/q@2",
+    "B2/q@3 A2/q@4 G2/h@5"
+  ]
+}

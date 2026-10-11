@@ -34,6 +34,8 @@ data class PieceFile(
     val repeats: List<String> = emptyList(),
     val rhClef: String = "treble",
     val lhClef: String = "bass",
+    /** Per measure: section mark shown above the staff ("Intro", "Chorus" ...), "" for none. */
+    val marks: List<String> = emptyList(),
 ) {
     fun toJson(): String = json.encodeToString(serializer(), this)
 
@@ -81,6 +83,8 @@ data class Score(
     val repeatEnd: Set<Int> = emptySet(),
     val rhClef: Clef = Clef.TREBLE,
     val lhClef: Clef = Clef.BASS,
+    /** Section marks by measure. */
+    val marks: Map<Int, String> = emptyMap(),
 ) {
     /** Measure length in quarter-note beats. */
     val measureBeats: Double get() = beatsPerMeasure * 4.0 / beatUnit
@@ -135,6 +139,7 @@ data class Score(
             chordSymbols = chordSymbols.filter { it.beat >= shift - 1e-9 && it.beat < measureStart(to + 1) - 1e-9 }.map { it.copy(beat = it.beat - shift) },
             repeatStart = repeatStart.filter { it in from..to }.map { it - from }.toSet(),
             repeatEnd = repeatEnd.filter { it in from..to }.map { it - from }.toSet(),
+            marks = marks.filterKeys { it in from..to }.mapKeys { it.key - from },
         )
     }
 
@@ -208,7 +213,8 @@ data class Score(
             require(file.repeats.all { it in setOf("", "start", "end", "both") }) { "${file.id}: bad repeat mark" }
             fun clef(name: String) = when (name) { "treble" -> Clef.TREBLE; "bass" -> Clef.BASS; else -> error("${file.id}: bad clef $name") }
             return Score(file.id, file.title, file.composer, file.source, file.level, file.key, file.time[0], file.time[1], file.tempo,
-                file.rh.size, events.sortedWith(compareBy({ it.onset }, { it.hand })), chords, starts, ends, clef(file.rhClef), clef(file.lhClef))
+                file.rh.size, events.sortedWith(compareBy({ it.onset }, { it.hand })), chords, starts, ends, clef(file.rhClef), clef(file.lhClef),
+                file.marks.withIndex().filter { it.value.isNotBlank() && it.index < file.rh.size }.associate { it.index to it.value.trim() })
         }
     }
 }

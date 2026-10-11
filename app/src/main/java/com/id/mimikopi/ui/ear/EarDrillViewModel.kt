@@ -84,7 +84,12 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
     private val piano = services.piano
     private val scheduler = NoteScheduler(piano)
 
-    private val levelArg: String = args.get<String>("level") ?: "mix"
+    /** A lesson's E_EAR drill ("lessonId" + "drill"): its level and item count, and the result counts for the lesson. */
+    private val lesson: com.id.mimikopi.core.lesson.Lesson? = args.get<String>("lessonId")?.let { learning.lesson(it) }
+    private val drillIndex: Int = args.get<String>("drill")?.toIntOrNull() ?: 0
+    private val lessonDrill = lesson?.drills?.getOrNull(drillIndex)?.takeIf { it.type == com.id.mimikopi.core.lesson.ExerciseType.E_EAR }
+    private val levelArg: String = lessonDrill?.level ?: args.get<String>("level") ?: "mix"
+    private val count: Int get() = if (bench) 20 else lessonDrill?.items ?: 12
     private val bench: Boolean = args.get<String>("bench") == "true"
 
     private val _ui = MutableStateFlow<EarUi>(EarUi.Loading)
@@ -109,13 +114,14 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
             services.database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.NOTE_NAME_STYLE)?.let { runCatching { nameStyle = NoteNameStyle.valueOf(it) } }
             val missing = withContext(Dispatchers.IO) { services.samplePacks.installed() == null }
             val levels = levels()
-            _ui.value = EarUi.Ready(title(), if (bench) 20 else 12, levels, missing)
+            _ui.value = EarUi.Ready(title(), count, levels, missing)
         }
         viewModelScope.launch { hub.events.collect(::onInput) }
     }
 
     private fun title(): String = when {
         bench -> "วัดผล: หู (ชุดมาตรฐาน)"
+        lessonDrill != null -> "${lesson!!.id} · ${lessonDrill.title}"
         levelArg == "mix" -> "ฝึกหูแบบผสม"
         else -> "ฝึกหู ${levelArg}"
     }
@@ -155,7 +161,7 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
             val seed = System.currentTimeMillis()
             questions = when {
                 bench -> EarStats.benchmarkSet()
-                else -> EarGenerator(seed, weights).mixed(levels(), 12,
+                else -> EarGenerator(seed, weights).mixed(levels(), count,
                     EarStats.levelWeights(stats) { id -> EarStats.levelsOf(id).firstOrNull { it in levels() } })
             }
             index = 0
@@ -422,7 +428,7 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
         val byType = itemResults.groupBy { it.first }.map { (id, rs) -> "${itemLabel(id)}: ${rs.count { it.second }}/${rs.size}" }
         viewModelScope.launch {
             learning.saveAttempt(
-                exerciseId = if (bench) "EAR:BENCH" else "EAR:${levelArg.uppercase()}", paramsJson = """{"questions":$total}""",
+                exerciseId = if (bench) "EAR:BENCH" else if (lessonDrill != null) "${lesson!!.id}:E_EAR:$drillIndex" else "EAR:${levelArg.uppercase()}", paramsJson = """{"questions":$total}""",
                 startedAt = startedAt, tempoBpm = null, noteAccuracy = acc, timingWithinTol = null, clean = null,
                 helperUses = 0, events = emptyList(), sessionId = services.session.currentId(),
             )
@@ -432,6 +438,20 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
             val weak = itemResults.groupBy { it.first }.filter { (_, rs) -> rs.count { !it.second } >= 2 }.keys.map { itemLabel(it) }
             if (weak.isNotEmpty()) lines += "ที่พลาดบ่อยรอบนี้: ${weak.joinToString()} รอบหน้าแอพจะถามบ่อยขึ้น"
             if (bench) lines += "บันทึกผลวัดแล้ว"
+            val l = lesson
+            if (l != null && lessonDrill != null && drillIndex in l.pass.requiredDrills) {
+                val need = l.pass.minAccuracy ?: 0.8
+                val met = acc >= need
+                val passedNow = learning.recordDrill(l, drillIndex, met, helperUsed = false)
+                lines.add(0, when {
+                    passedNow -> "ผ่านบท ${l.id} แล้ว"
+                    met && l.pass.requiredDrills.size > 1 -> "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว (≥ ${(need * 100).toInt()}%) ต้องผ่านส่วนอื่นของบทในวันเดียวกันด้วย"
+                    met -> "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่น"
+                    else -> "ยังไม่ถึงเกณฑ์ ${(need * 100).toInt()}%"
+                })
+            } else if (l != null && lessonDrill != null) {
+                learning.recordDrill(l, drillIndex, met = false, helperUsed = false)
+            }
             lines += "ลองเล่นเสียงที่ยังสับสนบนเปียโนช้าๆ เทียบกัน การเชื่อมหูกับมือช่วยให้จำเสียงได้"
             _ui.value = EarUi.Done("ถูก $right จาก $total ข้อ (${(acc * 100).toInt()}%)", lines)
         }

@@ -1,0 +1,33 @@
+{
+  "id": "ex-triads-read",
+  "title": "อ่านไทรแอดแนวตั้ง",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise.",
+  "level": "L7",
+  "key": 0,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 66,
+  "rh": [
+    "C4+E4+G4/h F4+A4+C5/h",
+    "G4+B4+D5/h C4+E4+G4/h",
+    "D4+F4+A4/h G4+B4+D5/h",
+    "E4+G4+C5/w",
+    "A3+C4+E4/h D4+F4+A4/h",
+    "G3+B3+D4/h C4+E4+G4/h",
+    "F4+A4+C5/h G4+B4+D5/h",
+    "C4+E4+G4/w"
+  ],
+  "lh": [
+    "C3/h F2/h",
+    "G2/h C3/h",
+    "D3/h G2/h",
+    "C3/w",
+    "A2/h D3/h",
+    "G2/h C3/h",
+    "F2/h G2/h",
+    "C3/w"
+  ]
+}

@@ -50,6 +50,8 @@ data class Timeline(
     val chords: List<Pair<Int, String>> = emptyList(),
     val repeatStart: Set<Int> = emptySet(),
     val repeatEnd: Set<Int> = emptySet(),
+    /** Section marks by measure. */
+    val marks: Map<Int, String> = emptyMap(),
 ) {
     init {
         require(measures >= 1) { "a score needs at least one measure" }
@@ -117,6 +119,8 @@ data class Timeline(
         return copy(chords = if (text.isNullOrBlank()) rest else (rest + (start to text.trim().replace(" ", ""))).sortedBy { it.first })
     }
 
+    fun setMark(measure: Int, text: String?) = copy(marks = if (text.isNullOrBlank()) marks - measure else marks + (measure to text.trim()))
+
     fun toggleRepeatStart(measure: Int) = copy(repeatStart = if (measure in repeatStart) repeatStart - measure else repeatStart + measure)
     fun toggleRepeatEnd(measure: Int) = copy(repeatEnd = if (measure in repeatEnd) repeatEnd - measure else repeatEnd + measure)
 
@@ -130,6 +134,7 @@ data class Timeline(
             chords = chords.map { if (it.first >= at) it.first + measureLength to it.second else it },
             repeatStart = repeatStart.map { if (it >= measure) it + 1 else it }.toSet(),
             repeatEnd = repeatEnd.map { if (it >= measure) it + 1 else it }.toSet(),
+            marks = marks.mapKeys { if (it.key >= measure) it.key + 1 else it.key },
         )
     }
 
@@ -151,6 +156,7 @@ data class Timeline(
             chords = chords.filter { it.first < from || it.first >= to }.map { if (it.first >= to) it.first - measureLength to it.second else it },
             repeatStart = repeatStart.filter { it != measure }.map { if (it > measure) it - 1 else it }.toSet(),
             repeatEnd = repeatEnd.filter { it != measure }.map { if (it > measure) it - 1 else it }.toSet(),
+            marks = marks.filterKeys { it != measure }.mapKeys { if (it.key > measure) it.key - 1 else it.key },
         )
     }
 
@@ -244,6 +250,7 @@ data class Timeline(
             chords = if (chordBars.all { it.isEmpty() }) emptyList() else chordBars.dropLastWhile { it.isEmpty() },
             repeats = if (repeatBars.all { it.isEmpty() }) emptyList() else repeatBars.dropLastWhile { it.isEmpty() },
             rhClef = meta.rhClef, lhClef = meta.lhClef,
+            marks = (0 until measures).map { marks[it] ?: "" }.let { m -> if (m.all { it.isEmpty() }) emptyList() else m.dropLastWhile { it.isEmpty() } },
         )
     }
 
@@ -278,7 +285,7 @@ data class Timeline(
             }
             val meta = ScoreMeta(file.id, file.title, file.composer, file.source, file.level, file.key, file.time, file.tempo, file.rhClef, file.lhClef)
             return Timeline(meta, score.measures, notes(Hand.RIGHT), notes(Hand.LEFT),
-                score.chordSymbols.map { (it.beat * 4).toInt() to it.text }, score.repeatStart, score.repeatEnd)
+                score.chordSymbols.map { (it.beat * 4).toInt() to it.text }, score.repeatStart, score.repeatEnd, score.marks)
         }
     }
 }

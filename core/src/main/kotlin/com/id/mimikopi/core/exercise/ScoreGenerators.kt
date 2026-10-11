@@ -34,6 +34,8 @@ object RhythmCells {
         "ee" to listOf(0.5, 0.5), "q.e" to listOf(1.5, 0.5),
         "ssss" to listOf(0.25, 0.25, 0.25, 0.25), "ess" to listOf(0.5, 0.25, 0.25), "sse" to listOf(0.25, 0.25, 0.5),
         "e.s" to listOf(0.75, 0.25), "ses" to listOf(0.25, 0.5, 0.25), "re" to listOf(-0.5, 0.5),
+        // Syncopation across the beat (learning-system.md 4.4): eighth - quarter - eighth, two beats.
+        "eqe" to listOf(0.5, 1.0, 0.5),
     )
 
     fun beats(cell: String): Int = CELLS.getValue(cell).sumOf { kotlin.math.abs(it) }.toInt()
@@ -288,6 +290,21 @@ object ScoreGenerators {
             if (set.size == drill.notesPerSet && set.zipWithNext().any { (a, b) -> a != b }) out += set.map(::natural)
         }
         return out
+    }
+
+    /** Any sight-reading level: L1-L5 here, L6-L8 in [com.id.mimikopi.core.theory.StageGenerators]. */
+    fun read(drill: Drill, seed: Long): PieceFile {
+        val n = drill.level.removePrefix("L").toInt()
+        return if (n <= 5) sightReading(drill, seed)
+        else com.id.mimikopi.core.theory.StageGenerators.sightReading(n, drill.keys, drill.bpm, seed, drill.time, backing = drill.backing)
+    }
+
+    /** E_COMP_PATTERN for a drill. */
+    fun comp(drill: Drill, seed: Long): PieceFile {
+        val degrees = ChordDrills.progressionDegrees(drill.progression)
+        val prog = com.id.mimikopi.core.theory.StageGenerators.Prog(drill.progression, degrees)
+        val keys = drill.keys.ifEmpty { listOf(0) }
+        return com.id.mimikopi.core.theory.StageGenerators.compPattern(keys[Random(seed).nextInt(keys.size)], prog, drill.pattern, maxOf(4, drill.bars), drill.bpm, seed)
     }
 
     fun clefOf(drill: Drill): Clef = if (drill.clef == "bass") Clef.BASS else Clef.TREBLE

@@ -1,0 +1,43 @@
+{
+  "id": "ex-fills",
+  "title": "อินโทร ฟิลล์ และเอาท์โทร",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise.",
+  "level": "L7",
+  "key": 0,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 80,
+  "rh": [
+    "E5/q D5/q C5/q G4/q",
+    "A4/q G4/q E4/q G4/q",
+    "C5/w",
+    "r/h G4/e A4/e B4/e D5/e",
+    "C5/q G4/q E4/q G4/q",
+    "F4/q A4/q C5/q A4/q",
+    "G4/q F4/q E4/q D4/q",
+    "C4/w"
+  ],
+  "lh": [
+    "C3/h G3/h",
+    "F2/h C3/h",
+    "C3/q G3/q C4/q G3/q",
+    "G2/q D3/q G3/q B3/q",
+    "C3/h G3/h",
+    "F2/h C3/h",
+    "G2/h G3/h",
+    "C3/w"
+  ],
+  "chords": [
+    "C@0",
+    "F@0 C@2",
+    "C@0",
+    "G7@0",
+    "C@0",
+    "F@0",
+    "G@0",
+    "C@0"
+  ]
+}

@@ -92,6 +92,16 @@ object Scoring {
     fun noteIdPassed(answers: List<Answer>, rule: PassRule, required: Int): Boolean =
         answers.size >= required && accuracy(answers) >= (rule.minAccuracy ?: 0.9)
 
+    /** E_CHORD_BUILD: share of chords right on the first try (and within [PassRule.maxSecondsPerItem] when set). */
+    fun chordBuildPassed(answers: List<Answer>, rule: PassRule, required: Int): Boolean {
+        if (answers.size < required) return false
+        val limit = rule.maxSecondsPerItem?.let { (it * 1000).toLong() } ?: Long.MAX_VALUE
+        return answers.count { it.correct && it.firstTry && it.responseMs <= limit }.toDouble() / answers.size >= (rule.minAccuracy ?: 0.9)
+    }
+
+    /** E_CHORD_CHANGE: correct changes in the time. */
+    fun chordChangePassed(count: Int, rule: PassRule): Boolean = count >= (rule.minCount ?: Int.MAX_VALUE)
+
     data class PulseStats(val taps: Int, val meanMs: Double, val sdMs: Double, val within: Double)
 
     /**

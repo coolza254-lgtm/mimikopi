@@ -2,6 +2,27 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## As of M11 (v0.11.x)
+- Song library: only what the user types (or the three bundled shells with web facts marked unverified). No song
+  data is fetched; no real scores or lyrics are bundled. Song Ladder difficulty is a heuristic over key, tempo,
+  range, chord vocabulary and, when a score is linked, rhythm density, hand moves and left-hand texture; parts with
+  no data count as missing and are listed, so a song with little data looks easier than it is.
+- Key finder: Krumhansl-Kessler profile correlation on the linked score's notes (counts, not durations); it needs at
+  least 8 notes and can confuse relative major/minor or neighbouring keys on short melodies.
+- Chord drills accept any inversion and octave (slash chords need the bass lowest); extra notes fail the chord. The
+  build drill judges 0.22 s after the last key so rolled chords count; the change drill counts a change once the
+  held keys match the next chord (keys shared with the previous chord may stay down).
+- Accompaniment patterns are generated (levels 1-7 of 8.2) with a simple chord-tone melody; voicings are chosen for
+  smooth movement, not taken from real arrangements. Level 7 (16-beat syncopation) uses one fixed rhythm.
+- Transposition drill: a 4-bar phrase shown in the first key is played in a target key; the reader shows the
+  original notes only (the keyboard range covers both).
+- Pedal check is informative only and needs the piano to send CC64 over MIDI; touch keys have no pedal. It checks
+  that the pedal comes up within -0.15..+0.5 s of each new chord and goes down again within 0.7 s.
+- Capstone A uses the 8.4 sections stretched to 32 bars (the chorus runs 12 bars: two "Chorus" marks); it counts
+  once its right hand has at least 16 notes and the score is passed with both hands. Capstone B counts library songs
+  with all 7 pipeline days ticked and the linked score passed with both hands.
+- Knowledge library: 18 bundled Thai articles; examples play with the app piano (close voicings around Middle C).
+
 ## As of M10 (v0.10.x)
 - Editor scope: one voice per staff (chords allowed), notes and rests down to 16ths with dots, ties, accidentals,
   key and time signature (one for the whole piece), clefs per staff, tempo, chord symbols, repeat bar lines.

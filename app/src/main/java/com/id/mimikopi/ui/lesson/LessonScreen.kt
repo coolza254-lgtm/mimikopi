@@ -36,7 +36,7 @@ import com.id.mimikopi.ui.theme.Tokens
 
 /** A lesson laid out like learning-system.md section 10: explain → try with the app → drills → pass rule → tips. */
 @Composable
-fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: LessonViewModel = viewModel()) {
+fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAction: (String) -> Unit = {}, vm: LessonViewModel = viewModel()) {
     val lesson = vm.lesson
     val record by vm.record.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
@@ -87,6 +87,9 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: Les
                             Text(stringResource(if (ok) R.string.lesson_count_ok else R.string.lesson_count_no, actual, keyboard.keys, letter.name),
                                 style = MaterialTheme.typography.bodyMedium)
                         }
+                    }
+                    "template", "open" -> Button(onClick = { onAppAction(step.action!!) }, modifier = Modifier.heightIn(min = Tokens.minTouch)) {
+                        Text(stringResource(if (kind == "template") R.string.lesson_action_template else R.string.lesson_action_open))
                     }
                     "show" -> {
                         val parts = arg?.split(":")

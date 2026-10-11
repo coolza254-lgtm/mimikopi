@@ -1,0 +1,25 @@
+{
+  "id": "ex-scale-c-both",
+  "title": "สเกล C เมเจอร์ สองมือ",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise (scale with standard fingering).",
+  "level": "L6",
+  "key": 0,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 72,
+  "rh": [
+    "C4/q@1 D4/q@2 E4/q@3 F4/q@1",
+    "G4/q@2 A4/q@3 B4/q@4 C5/q@5",
+    "B4/q@4 A4/q@3 G4/q@2 F4/q@1",
+    "E4/q@3 D4/q@2 C4/h@1"
+  ],
+  "lh": [
+    "C3/q@5 D3/q@4 E3/q@3 F3/q@2",
+    "G3/q@1 A3/q@3 B3/q@2 C4/q@1",
+    "B3/q@2 A3/q@3 G3/q@1 F3/q@2",
+    "E3/q@3 D3/q@4 C3/h@5"
+  ]
+}

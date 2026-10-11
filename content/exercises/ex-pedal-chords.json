@@ -1,0 +1,33 @@
+{
+  "id": "ex-pedal-chords",
+  "title": "เปลี่ยนแป้นซัสเทนตามคอร์ด",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise.",
+  "level": "L6",
+  "key": 0,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 60,
+  "rh": [
+    "C4+E4+G4/w",
+    "C4+F4+A4/w",
+    "B3+D4+G4/w",
+    "C4+E4+G4/w",
+    "A3+C4+E4/w",
+    "A3+C4+F4/w",
+    "B3+D4+G4/w",
+    "C4+E4+G4/w"
+  ],
+  "lh": [
+    "C3/w",
+    "F3/w",
+    "G2/w",
+    "C3/w",
+    "A2/w",
+    "F2/w",
+    "G2/w",
+    "C3/w"
+  ]
+}

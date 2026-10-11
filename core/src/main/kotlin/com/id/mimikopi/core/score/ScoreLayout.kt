@@ -32,7 +32,7 @@ data class ScoreLayout(
 ) {
     data class Label(val x: Double, val y: Double, val text: String, val eventId: Int, val kind: LabelKind = LabelKind.FINGER)
 
-    enum class LabelKind { FINGER, CHORD }
+    enum class LabelKind { FINGER, CHORD, MARK }
 
     /** A tie: an arc from (x1, y) to (x2, y), bulging up when [above]. */
     data class Tie(val x1: Double, val x2: Double, val y: Double, val above: Boolean, val eventId: Int)
@@ -238,6 +238,7 @@ private class Engraver(private val score: Score) {
         val finalAnchors = anchors.distinctBy { it.first }
         val partial = ScoreLayout(width, glyphs, lines, measures, finalAnchors, labels)
         for (c in score.chordSymbols) labels += ScoreLayout.Label(partial.xAt(c.beat) + 0.6, ScoreLayout.TOP_Y - 4.8, c.text, -1, ScoreLayout.LabelKind.CHORD)
+        for ((m, text) in score.marks) measures.getOrNull(m)?.let { box -> labels += ScoreLayout.Label(box.x0 + 0.4, ScoreLayout.TOP_Y - 7.0, text, -1, ScoreLayout.LabelKind.MARK) }
         return ScoreLayout(width, glyphs, lines, measures, finalAnchors, labels, ties())
     }
 
@@ -436,9 +437,11 @@ private class Engraver(private val score: Score) {
                 if (current.size >= 2) out += current.toList()
                 current.clear()
             }
+            // Compound metres (6/8, 9/8, 12/8) beam by the dotted quarter.
+            val group = if (score.beatUnit == 8 && score.beatsPerMeasure % 3 == 0) 1.5 else 1.0
             for (e in events.filter { it.hand == hand }.sortedBy { it.onset }) {
-                val b = kotlin.math.floor(e.onset + 1e-9).toInt()
-                val beamable = !e.isRest && e.duration < 1.0 && e.onset + e.duration <= b + 1 + 1e-9
+                val b = kotlin.math.floor((e.onset + 1e-9) / group).toInt()
+                val beamable = !e.isRest && e.duration < 1.0 && e.onset + e.duration <= (b + 1) * group + 1e-9
                 if (!beamable || b != beat) flush()
                 beat = b
                 if (beamable) current += e

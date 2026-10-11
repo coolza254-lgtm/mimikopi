@@ -1,0 +1,60 @@
+{
+  "id": "borrowed-secondary",
+  "title": "โดมิแนนท์ข้างเคียง คอร์ดยืม และการเปลี่ยนคีย์",
+  "summary": "คอร์ดนอกคีย์ที่พบบ่อย: V7/x, ♭VII, ♭VI, iv และการยกคีย์ก่อนคอรัสสุดท้าย",
+  "tags": [
+    "secondary dominant",
+    "โดมิแนนท์ข้างเคียง",
+    "borrowed chord",
+    "คอร์ดยืม",
+    "modulation",
+    "เปลี่ยนคีย์"
+  ],
+  "lessons": [
+    "6.3"
+  ],
+  "sections": [
+    {
+      "heading": "โดมิแนนท์ข้างเคียง",
+      "text": "V7 ของคอร์ดอื่นในคีย์ เช่นคีย์ C: V7/vi = E7 (→ Am), V7/ii = A7 (→ Dm), V7/V = D7 (→ G) มีโน้ตนอกคีย์หนึ่งตัวที่ดึงเข้าหาคอร์ดเป้าหมาย",
+      "examples": [
+        {
+          "label": "C – E7 – Am",
+          "play": "prog:0:I V7/vi vi"
+        },
+        {
+          "label": "C – A7 – Dm – G7",
+          "play": "prog:0:I V7/ii ii V7"
+        }
+      ]
+    },
+    {
+      "heading": "คอร์ดยืม",
+      "text": "ยืมจากคีย์ไมเนอร์ร่วมราก: ♭VII (B♭ ในคีย์ C), ♭VI (A♭), iv (Fm) ให้สีหม่นหรือยิ่งใหญ่ เช่น F – Fm – C ให้ความรู้สึกคิดถึง",
+      "examples": [
+        {
+          "label": "IV – iv – I",
+          "play": "prog:0:IV iv I"
+        },
+        {
+          "label": "I – ♭VII – IV – I",
+          "play": "prog:0:I bVII IV I"
+        },
+        {
+          "label": "♭VImaj7 – ♭VII – I",
+          "play": "prog:0:bVImaj7 bVII I"
+        }
+      ]
+    },
+    {
+      "heading": "การเปลี่ยนคีย์",
+      "text": "แบบที่พบบ่อยในป็อป: ยกทั้งเพลงขึ้นครึ่งเสียงหรือเต็มเสียงก่อนคอรัสสุดท้าย บางทีมีคอร์ด V7 ของคีย์ใหม่นำเข้า เช่น จาก C ไป D: … G – A7 – D",
+      "examples": [
+        {
+          "label": "ยกจาก C ไป D",
+          "play": "chords:C G A7 D"
+        }
+      ]
+    }
+  ]
+}

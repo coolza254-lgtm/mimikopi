@@ -121,4 +121,10 @@ object SettingKeys {
     const val USER_SCORE_PREFIX = "score:"
     const val SESSION_MINUTES = "session.minutes"
     const val KEYBOARD_KEYS = "piano.keyCount"
+    /** Id of the user score made from the Capstone A template (lesson 6.6). */
+    const val CAPSTONE_SCORE = "capstone.scoreId"
+    /** Songs in the user's library: one row per song, key "song:<id>" (backups include them). */
+    const val SONG_PREFIX = "song:"
+    /** Set once the bundled target-song shells were copied into the library (so deleting one keeps it deleted). */
+    const val SONGS_SEEDED = "songs.seeded"
 }

@@ -1,0 +1,67 @@
+{
+  "id": "jpop-progressions",
+  "title": "โปรเกรสชันยอดนิยมในป็อปญี่ปุ่น",
+  "summary": "ทางหลวง (王道進行) โกมุโร (小室進行) Axis Canon และวงจร 50s พร้อมเสียงตัวอย่าง",
+  "tags": [
+    "progression",
+    "โปรเกรสชัน",
+    "王道進行",
+    "ทางหลวง",
+    "小室進行",
+    "โกมุโร",
+    "Canon",
+    "J-Pop"
+  ],
+  "lessons": [
+    "6.1"
+  ],
+  "sections": [
+    {
+      "heading": "ทางหลวง (王道進行 โอโดชินโก)",
+      "text": "IVmaj7 – V7 – iii7 – vi ขึ้นต้นด้วย IV ทำให้รู้สึกลอยและหวานปนเศร้า มักต่อด้วย ii7 – V7 – I หรือวนกลับ",
+      "examples": [
+        {
+          "label": "คีย์ C",
+          "play": "prog:0:IVmaj7 V7 iii7 vi"
+        },
+        {
+          "label": "คีย์ E♭",
+          "play": "prog:-3:IVmaj7 V7 iii7 vi"
+        }
+      ]
+    },
+    {
+      "heading": "โกมุโร (小室進行)",
+      "text": "vi – IV – V – I ขึ้นต้นหม่นแล้วไต่ขึ้นสว่าง ได้ชื่อจากโปรดิวเซอร์ยุค 90 ที่ใช้บ่อย",
+      "examples": [
+        {
+          "label": "คีย์ C",
+          "play": "prog:0:vi IV V I"
+        }
+      ]
+    },
+    {
+      "heading": "Axis, Canon, 50s",
+      "text": "Axis = I–V–vi–IV, Canon = I–V–vi–iii–IV–I–IV–V (จาก Canon ของ Pachelbel), วงจร 50s = I–vi–IV–V",
+      "examples": [
+        {
+          "label": "Axis",
+          "play": "prog:0:I V vi IV"
+        },
+        {
+          "label": "Canon",
+          "play": "prog:0:I V vi iii IV I IV V"
+        },
+        {
+          "label": "50s",
+          "play": "prog:0:I vi IV V"
+        }
+      ]
+    },
+    {
+      "heading": "ความน่าเชื่อถือ",
+      "text": "แหล่งสอนแต่งเพลงญี่ปุ่นหลายแห่งเรียกโปรเกรสชันเหล่านี้ว่ายอดนิยม แต่ยังไม่มีข้อมูลยืนยันว่าแต่ละวงใช้บ่อยแค่ไหน ให้ฟังเพลงจริงตรวจเอง",
+      "examples": []
+    }
+  ]
+}

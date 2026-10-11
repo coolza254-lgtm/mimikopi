@@ -171,16 +171,33 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         (lo - lo % 12)..(if (hi % 12 == 0) hi else hi - hi % 12 + 12)
     }
 
+    /** E_TRANSPOSE: the score to play (the shown score moved to [transposeKey]); null for everything else. */
+    private var playScore: Score? = null
+    var transposeKey: Int? = null
+        private set
+
     /** Builds the score for the current source (a new one for generated material). */
     private fun generate(): Score? = runCatching {
+        playScore = null
+        transposeKey = null
         when (val src = source) {
-            is Source.Piece -> pieces.piece(src.id)
+            is Source.Piece -> pieces.pieceOrExercise(src.id)
             is Source.LessonDrill -> {
                 val d = src.drill
                 when (d.type) {
                     ExerciseType.E_FINGER_PATTERN -> Score.from(ScoreGenerators.fingerPatterns(d, seed))
                     ExerciseType.E_RHYTHM_TAP -> Score.from(ScoreGenerators.rhythm(d, seed))
-                    ExerciseType.E_READ_PIECE -> Score.from(ScoreGenerators.sightReading(d, seed))
+                    ExerciseType.E_READ_PIECE -> Score.from(ScoreGenerators.read(d, seed))
+                    ExerciseType.E_COMP_PATTERN -> Score.from(ScoreGenerators.comp(d, seed))
+                    ExerciseType.E_TRANSPOSE -> {
+                        val from = d.keys.firstOrNull() ?: 0
+                        val targets = d.targetKeys.ifEmpty { listOf(1) }
+                        val to = targets[kotlin.random.Random(seed).nextInt(targets.size)]
+                        val (original, moved) = com.id.mimikopi.core.theory.StageGenerators.transposePair(from, to, seed)
+                        playScore = Score.from(moved)
+                        transposeKey = to
+                        Score.from(original)
+                    }
                     ExerciseType.E_PIECE -> pieces.pieceOrExercise(d.pieces.first())
                     else -> null
                 }
@@ -195,7 +212,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     private fun loadPiece() {
         val s = generate() ?: run { _piece.value = null; return }
-        _piece.value = LoadedPiece(s, ScoreLayout.of(s), keyRangeOf(s))
+        val range = playScore?.let { p -> keyRangeOf(p).let { r -> minOf(r.first, keyRangeOf(s).first)..maxOf(r.last, keyRangeOf(s).last) } } ?: keyRangeOf(s)
+        _piece.value = LoadedPiece(s, ScoreLayout.of(s), range)
         runsOnPiece = 0
         newPieceNext = false
         val bpm = when (val src = source) {
@@ -213,7 +231,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             ReaderOptions(
                 mode = if (d.mode == "WAIT") PlayMode.WAIT else PlayMode.TEMPO,
                 hands = runCatching { HandChoice.valueOf(d.hand) }.getOrDefault(HandChoice.RIGHT),
-                playOtherHand = d.type == ExerciseType.E_PIECE,
+                playOtherHand = d.type == ExerciseType.E_PIECE || d.type == ExerciseType.E_COMP_PATTERN || d.backing,
                 metronome = true, useRamp = false, showKeyboard = saved.showKeyboard,
             )
         }
@@ -227,7 +245,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     /** Title line for the top bar. */
     fun title(): String = when (val src = source) {
         is Source.Piece -> score?.title ?: ""
-        is Source.LessonDrill -> "${src.lesson.id} · ${src.drill.title}"
+        is Source.LessonDrill -> "${src.lesson.id} · ${src.drill.title}" +
+            (transposeKey?.let { " · เล่นในคีย์ ${com.id.mimikopi.core.theory.Keys.name(it)}" } ?: "")
         is Source.NewReading -> "อ่านโน้ตใหม่ (ระดับ L${src.level})"
         is Source.Benchmark -> "วัดผล: อ่านโน้ตระดับ L$benchLevel"
     }
@@ -404,7 +423,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             seed = System.currentTimeMillis()
             loadPiece()
         }
-        val s = score ?: return
+        val s = playScore ?: score ?: return
         val u = _ui.value
         val setup = PlaySetup(
             mode = u.options.mode,
@@ -423,6 +442,9 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         }
         judge = j
         hitPitch = mutableMapOf()
+        pedalEvents.clear()
+        chordHits.clear()
+        chordBeats = j.expected.groupBy { it.beat }.filterValues { it.size >= 3 }.keys
         helperUsedThisRun = u.showNames
         runStartedAt = System.currentTimeMillis()
         _ui.update { it.copy(results = emptyMap(), wrongMarks = emptyList(), result = null, pendingSectionStart = null, message = null) }
@@ -544,7 +566,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     /** Demo: the app plays the section (both hands) at the current tempo with the cursor. */
     fun listen() {
-        val s = score ?: return
+        val s = playScore ?: score ?: return
         if (!editable()) return
         val u = _ui.value
         val from = s.measureStart(u.section.first)
@@ -593,6 +615,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 when (val f = j.onNoteOn(e.note, atMs)) {
                     is Feedback.Hit -> {
                         hitPitch[f.key] = e.note
+                        j.expected.firstOrNull { it.key == f.key }?.beat?.takeIf { it in chordBeats }?.let { b -> chordHits.putIfAbsent(b, atMs) }
                         val done = if (j.setup.mode == PlayMode.WAIT && beforeGroup != null && j.currentGroup() !== beforeGroup) beforeGroup else null
                         _ui.update { u -> u.copy(results = u.results + (done?.associate { it.key to j.outcome(it.key).result } ?: mapOf(f.key to f.result))) }
                         if (done != null) onGroupDone(j, done.first().beat)
@@ -605,8 +628,27 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 }
             }
             is InputEvent.NoteOff -> j.onNoteOff(e.note)
+            is InputEvent.Sustain -> pedalEvents += ((e.timeNanos - (latencies[e.source] ?: 0.0) * 1e6) / 1e6).toLong() to e.down
             else -> Unit
         }
+    }
+
+    // Sustain pedal (learning-system.md 4.5): pedal events and when each chord of the run was first struck.
+    private val pedalEvents = mutableListOf<Pair<Long, Boolean>>()
+    private val chordHits = mutableMapOf<Double, Long>()
+    private var chordBeats: Set<Double> = emptySet()
+
+    /** Coach line on pedal changes for drills that ask for it; informative only, never part of the pass. */
+    private fun pedalLine(): CoachLine? {
+        val d = (source as? Source.LessonDrill)?.drill ?: return null
+        if (!d.pedal) return null
+        val r = com.id.mimikopi.core.practice.PedalCheck.analyze(chordHits.toSortedMap().values.toList(), pedalEvents.toList())
+        return CoachLine(when {
+            !r.sawPedal -> "ไม่ได้รับสัญญาณแป้นเหยียบ จึงตรวจการเปลี่ยนแป้นไม่ได้ (แป้นของเปียโนบางรุ่นไม่ส่งผ่าน MIDI หรือยังไม่ได้เหยียบ)"
+            r.changes == 0 -> "ยังไม่มีการเปลี่ยนคอร์ดให้ตรวจการเปลี่ยนแป้น"
+            r.good == r.changes -> "เปลี่ยนแป้นตามคอร์ดได้ครบ ${r.changes} ครั้ง"
+            else -> "เปลี่ยนแป้นทันคอร์ด ${r.good}/${r.changes} ครั้ง ยกแป้นขึ้นทันทีหลังกดคอร์ดใหม่ แล้วเหยียบลงอีกครั้ง"
+        })
     }
 
     private fun onGroupDone(j: PlayAlongJudge, doneBeat: Double) {
@@ -644,7 +686,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 )
             }
             if (update.passedToday) {
-                learning.checkPieceLessons { id, hand -> PieceRules.isPassed(pieces.progressOf(id), hand) }.forEach { l ->
+                val songs = services.songs.also { it.load() }
+                (learning.checkPieceLessons(pieces::lessonPiecePassed) + learning.checkSongLessons(songs.completedCount(pieces))).forEach { l ->
                     _ui.update { u2 -> u2.copy(result = u2.result?.let { r -> r.copy(progressLine = listOfNotNull(r.progressLine, "ผ่านบท ${l.id} ${l.title} แล้ว").joinToString("\n")) }) }
                 }
             }
@@ -719,6 +762,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 is Source.Piece -> Unit
             }
             enrolTrouble(j, result)
+            pedalLine()?.let { lines += it }
             lines += coachLines(s, result, (result.setup.bpm * 0.9).roundToInt(), null, false, drill = true)
             _ui.update { it.copy(phase = Phase.RESULT, result = resultUi(result, lines.distinct(), progressLine), countIn = null) }
         }

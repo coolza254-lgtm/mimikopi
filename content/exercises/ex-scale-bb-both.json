@@ -1,0 +1,25 @@
+{
+  "id": "ex-scale-bb-both",
+  "title": "สเกล B♭ เมเจอร์ สองมือ",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise (scale with standard fingering).",
+  "level": "L6",
+  "key": -2,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 72,
+  "rh": [
+    "Bb3/q@2 C4/q@1 D4/q@2 Eb4/q@3",
+    "F4/q@1 G4/q@2 A4/q@3 Bb4/q@4",
+    "A4/q@3 G4/q@2 F4/q@1 Eb4/q@3",
+    "D4/q@2 C4/q@1 Bb3/h@2"
+  ],
+  "lh": [
+    "Bb2/q@3 C3/q@2 D3/q@1 Eb3/q@4",
+    "F3/q@3 G3/q@2 A3/q@1 Bb3/q@3",
+    "A3/q@1 G3/q@2 F3/q@3 Eb3/q@4",
+    "D3/q@1 C3/q@2 Bb2/h@3"
+  ]
+}

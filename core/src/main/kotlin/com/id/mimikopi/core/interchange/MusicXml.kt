@@ -52,6 +52,7 @@ object MusicXml {
                 sb.append("</attributes>\n")
                 sb.append("      <direction placement=\"above\"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${score.tempo}</per-minute></metronome></direction-type><sound tempo=\"${score.tempo}\"/></direction>\n")
             }
+            score.marks[m]?.let { sb.append("      <direction placement=\"above\"><direction-type><rehearsal>${esc(it)}</rehearsal></direction-type></direction>\n") }
             val start = score.measureStart(m)
             for (c in score.chordSymbols.filter { it.beat >= start - 1e-9 && it.beat < start + score.measureBeats - 1e-9 }) {
                 harmony(c.text)?.let { h ->
@@ -171,6 +172,7 @@ object MusicXml {
         val chords = mutableListOf<Pair<Int, String>>()
         val repeatStart = mutableSetOf<Int>()
         val repeatEnd = mutableSetOf<Int>()
+        val marks = mutableMapOf<Int, String>()
         var measureStart16 = 0
         val measures = part.children("measure")
         var warnings = 0
@@ -204,7 +206,10 @@ object MusicXml {
                             if (n !in clefs) clefs[n] = if (c.child("sign")?.text() == "F") "bass" else "treble"
                         }
                     }
-                    "direction" -> el.child("sound")?.getAttribute("tempo")?.toDoubleOrNull()?.let { if (tempo == null) tempo = it.toInt() }
+                    "direction" -> {
+                        el.child("sound")?.getAttribute("tempo")?.toDoubleOrNull()?.let { if (tempo == null) tempo = it.toInt() }
+                        el.child("direction-type")?.child("rehearsal")?.text()?.takeIf { it.isNotBlank() }?.let { marks[mi] = it }
+                    }
                     "sound" -> el.getAttribute("tempo").toDoubleOrNull()?.let { if (tempo == null) tempo = it.toInt() }
                     "harmony" -> {
                         val step = el.child("root")?.child("root-step")?.text()
@@ -282,7 +287,7 @@ object MusicXml {
         val meta = ScoreMeta(id, title.trim(), composer.trim(), "Imported MusicXML", "", (key ?: 0).coerceIn(-7, 7), ts, tempo ?: 80,
             if (staves >= 2) clefs[1] ?: "treble" else "treble", if (staves >= 2) clefs[2] ?: "bass" else "bass")
         val count = maxOf(1, measures.size)
-        return Timeline(meta, count, notes(Hand.RIGHT), notes(Hand.LEFT), chords.distinctBy { it.first }, repeatStart, repeatEnd)
+        return Timeline(meta, count, notes(Hand.RIGHT), notes(Hand.LEFT), chords.distinctBy { it.first }, repeatStart, repeatEnd, marks)
             .also { lastWarnings = warnings }
     }
 

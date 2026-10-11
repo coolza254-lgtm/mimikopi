@@ -37,6 +37,14 @@ core/   com.id.mimikopi.core
              quantisation), ImportException (Thai messages)
   ear/       EarLevel E1-E9, EarQuestion (sounds + answers), EarGenerator (weighted by weak items), EarStats,
              EarAnswers, chord voicing by degree in major keys
+  theory/    Chords.kt: PitchName, Keys (scales, spelling), Chord (parse/matches/voicings/transpose), Roman
+             (analysis incl. secondary dominants and borrowed chords), KeyFinder; Arrange.kt: Accompaniment ladder
+             (8.2 levels 1-7), StageGenerators (8.1 progressions, comp patterns, sight reading L6-L8, lead sheets,
+             transposition pairs), Transpose, Templates.capstoneA
+  songs/     Song, SongSection, PipelineDay (9.5), SongLadder (difficulty parts, requirements -> lessons)
+  knowledge/ Article + Knowledge (search, tap-to-hear example sequences) for content/knowledge/*.json
+  practice/Pedal  PedalCheck (legato pedal changes against chord onsets)
+  exercise/ChordDrills  E_CHORD_BUILD items and E_CHORD_CHANGE progressions
   progress/  TrackProgress (per track / per stage), BenchmarkResult + Benchmarks (fixed sets, 14-day schedule)
   score/     PieceFile (content/pieces/*.json, hand-writable tokens), Score (+ measure checks), KeySignature,
              ScoreLayout: own engraver -> one long grand-staff strip in staff spaces (SMuFL glyphs, stems,
@@ -61,6 +69,10 @@ app/    com.id.mimikopi
   ui/editor  LibraryScreen (my scores: new, import, export, duplicate, delete), EditorScreen/EditorViewModel
              (toolbar entry, step entry from keys/MIDI, touch entry on the staff, undo/redo, autosave)
   pieces/ScoreFiles, ScorePdf  document-picker import/export; PdfDocument renderer with wrapped systems
+  songs/     SongRepository (settings rows "song:<id>", bundled shells copied once, Capstone B completion)
+  ui/songs   SongListScreen (Song Ladder), SongScreen (facts + verified flags, sections with roman numerals,
+             7-day pipeline, linked score, key finder, transposed copy)
+  ui/knowledge KnowledgeScreen (search), ArticleScreen (examples on the app piano)
   ui/ear     EarScreen (levels, stats, transcribe entry), EarDrillViewModel (questions, keys or buttons, rhythm echo)
   piano/BeatClock  countInDownbeat: metronome count-in mapped to presentation time
   ui/progress ProgressScreen (stages, tracks, weekly minutes, daily trends, benchmarks)

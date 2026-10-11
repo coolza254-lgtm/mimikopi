@@ -1,0 +1,30 @@
+{
+  "id": "3.8",
+  "stage": 3,
+  "title": "สอบจบด่าน 3",
+  "goal": "ยืนยันว่าอ่านกุญแจฟาได้ เล่นมือซ้ายได้ และอ่านบทสองมือง่ายๆ ได้ พร้อมไปด่านบรรทัดคู่",
+  "minutes": 25,
+  "tracks": ["READ_PITCH", "READ_RHYTHM", "HANDS"],
+  "prerequisites": ["3.7"],
+  "explain": [
+    "ต้องผ่าน 4 ส่วนในวันเดียวกัน: อ่านโน้ตกุญแจฟา, สเกล C มือซ้าย, จังหวะสองมือ และบทอ่านใหม่สองมือ",
+    "ในหลักสูตรต้นฉบับ การสอบนี้อยู่ในบท 3.7 แอพแยกเป็นบทของตัวเองเพื่อให้เพลงเรียนกับการสอบนับผลแยกกัน"
+  ],
+  "tryIt": [
+    { "text": "อุ่นเครื่องด้วยสเกล C มือซ้ายช้าๆ 2 รอบ" }
+  ],
+  "drills": [
+    { "type": "E_NOTEID", "title": "ส่วนที่ 1: อ่านโน้ตกุญแจฟา C2–C4", "items": 20,
+      "pool": ["C2:bass", "D2:bass", "E2:bass", "F2:bass", "G2:bass", "A2:bass", "B2:bass", "C3:bass", "D3:bass", "E3:bass", "F3:bass", "G3:bass", "A3:bass", "B3:bass", "C4:bass"] },
+    { "type": "E_PIECE", "title": "ส่วนที่ 2: สเกล C มือซ้าย", "items": 1, "pieces": ["ex-c-major-scale-lh"], "hand": "LEFT", "mode": "TEMPO", "bpm": 72 },
+    { "type": "E_RHYTHM_TAP", "title": "ส่วนที่ 3: จังหวะสองมือ", "items": 1, "hand": "BOTH", "rhythms": ["q", "ee", "h", "qr"], "rhythmsLeft": ["h", "q", "w"], "bars": 4, "mode": "TEMPO", "bpm": 66 },
+    { "type": "E_READ_PIECE", "title": "ส่วนที่ 4: บทอ่านใหม่สองมือ L5", "items": 1, "level": "L5", "mode": "TEMPO", "bpm": 60 }
+  ],
+  "pass": { "drill": 0, "alsoDrills": [1, 2, 3], "minAccuracy": 0.9, "cleanRuns": 1, "inRow": false, "days": 2 },
+  "passText": "ผ่านครบ 4 ส่วนในวันเดียวกัน (อ่านโน้ต ≥ 90%, สเกล จังหวะ และบทอ่านเล่นสะอาดอย่างละครั้ง) ใน 2 วันคนละวัน",
+  "srsItems": ["note:E2:bass", "note:F2:bass"],
+  "tips": [
+    "ผ่านด่าน 3 แล้ว ด่าน 4 (บรรทัดคู่และสองมือเต็มรูปแบบ) จะมาในรุ่นถัดไปของแอพ"
+  ],
+  "caveats": []
+}

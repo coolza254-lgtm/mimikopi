@@ -242,17 +242,14 @@ object ScoreGenerators {
                 val prev = notes.lastOrNull()
                 val candidates = (0..4).filter { idx ->
                     val p = keys[idx]
-                    when {
-                        prev == null -> p.letter == tonic || idx in setOf(0, 2, 4)
-                        positionOfBar(prev.first) != pos -> true // the hand just moved: free
-                        else -> {
-                            val prevPitch = positionOfBar(prev.first).keys(right)[prev.second]
-                            val step = kotlin.math.abs(p.diatonicIndex - prevPitch.diatonicIndex)
-                            val threeRepeats = step == 0 && n >= 2 &&
-                                positionOfBar(notes[n - 2].first).keys(right)[notes[n - 2].second] == prevPitch
-                            step in steps && !threeRepeats
-                        }
-                    }
+                    if (prev == null) return@filter p.letter == tonic || idx in setOf(0, 2, 4)
+                    val prevPitch = positionOfBar(prev.first).keys(right)[prev.second]
+                    val step = kotlin.math.abs(p.diatonicIndex - prevPitch.diatonicIndex)
+                    val threeRepeats = step == 0 && n >= 2 &&
+                        positionOfBar(notes[n - 2].first).keys(right)[notes[n - 2].second] == prevPitch
+                    // Right after the hand moves to a new position any step is fine.
+                    val moved = positionOfBar(prev.first) != pos
+                    (moved || step in steps) && !threeRepeats
                 }.filter { idx -> !isLast || keys[idx].letter == tonic }
                 if (candidates.isEmpty()) { ok = false; break }
                 // Prefer small steps: weight 3 for repeat/step, 1 otherwise.

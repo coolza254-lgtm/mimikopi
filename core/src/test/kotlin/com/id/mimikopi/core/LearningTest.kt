@@ -52,18 +52,53 @@ class LessonContentTest {
     @Test
     fun allLessonFilesAreCompleteAndValid() {
         val lessons = all()
-        assertEquals(listOf("1.1", "1.3", "1.5"), lessons.map { it.id })
+        val ids = lessons.map { it.id }.toSet()
+        val expected = (listOf("1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.10") +
+            (1..9).map { "2.$it" } + (1..8).map { "3.$it" }).toSet()
+        assertEquals(expected, ids)
+        // Prerequisites exist and come earlier in the order (no cycles).
+        val order = lessons.sortedWith(compareBy({ it.stage }, { it.id.substringAfter('.').toInt() })).map { it.id }
+        lessons.forEach { l -> l.prerequisites.forEach { p -> assertTrue(p in ids && order.indexOf(p) < order.indexOf(l.id), "${l.id} -> $p") } }
         lessons.forEach { assertEquals(emptyList(), it.problems(), it.id) }
         // SRS items must be ones the drills can produce.
         val l15 = lessons.first { it.id == "1.5" }
         val poolIds = l15.drills.flatMap { it.pool }.map { "note:$it" }.toSet()
         assertTrue(l15.srsItems.all { it in poolIds })
+        // Every SRS item is a valid note item.
+        lessons.flatMap { it.srsItems }.filter { it.startsWith("note:") }.forEach { com.id.mimikopi.core.exercise.NoteIdItem.parse(it) }
+    }
+
+    @Test
+    fun everyDrillCanBeGeneratedAndPiecesExist() {
+        val pieceIds = File("../content/pieces").listFiles()!!.map { it.nameWithoutExtension }.toSet()
+        val exerciseIds = File("../content/exercises").listFiles()!!.map { it.nameWithoutExtension }.toSet()
+        File("../content/exercises").listFiles()!!.forEach { f ->
+            val p = com.id.mimikopi.core.score.PieceFile.parse(f.readText())
+            assertEquals(f.nameWithoutExtension, p.id)
+            assertTrue(p.id.startsWith("ex-"))
+            com.id.mimikopi.core.score.ScoreLayout.of(com.id.mimikopi.core.score.Score.from(p))
+        }
+        for (l in all()) for (d in l.drills) for (seed in 0L until 20L) {
+            when (d.type) {
+                com.id.mimikopi.core.lesson.ExerciseType.E_FINGER_PATTERN ->
+                    com.id.mimikopi.core.score.Score.from(com.id.mimikopi.core.exercise.ScoreGenerators.fingerPatterns(d, seed))
+                com.id.mimikopi.core.lesson.ExerciseType.E_RHYTHM_TAP ->
+                    com.id.mimikopi.core.score.Score.from(com.id.mimikopi.core.exercise.ScoreGenerators.rhythm(d, seed))
+                com.id.mimikopi.core.lesson.ExerciseType.E_READ_PIECE ->
+                    com.id.mimikopi.core.score.Score.from(com.id.mimikopi.core.exercise.ScoreGenerators.sightReading(d, seed))
+                com.id.mimikopi.core.lesson.ExerciseType.E_INTERVAL_READ ->
+                    assertEquals(d.items, com.id.mimikopi.core.exercise.ScoreGenerators.intervalSets(d, seed).size)
+                com.id.mimikopi.core.lesson.ExerciseType.E_PIECE ->
+                    d.pieces.forEach { assertTrue(it in pieceIds || it in exerciseIds, "${l.id}: missing piece $it") }
+                else -> Unit
+            }
+        }
     }
 
     @Test
     fun noCopyrightedSongContent() {
         // learning-system.md 12.2: lesson content must not contain lyrics or notes of real songs.
-        val text = dir.listFiles()!!.joinToString("\n") { it.readText() }
+        val text = listOf("lessons", "pieces", "exercises").flatMap { File("../content/$it").listFiles()!!.toList() }.joinToString("\n") { it.readText() }
         listOf("Morning Musume", "モーニング娘", "AKB48", "I WISH", "心のプラカード", "恋愛レボリューション").forEach {
             assertFalse(it in text, "found \"$it\" in lesson content")
         }
@@ -109,10 +144,11 @@ class GeneratorTest {
 
 class ScoringAndProgressTest {
     private val lessons = File("../content/lessons").listFiles()!!.map { Lesson.parse(it.readText()) }.sortedBy { it.id }
+    private fun byId(id: String) = lessons.first { it.id == id }
 
     @Test
     fun keyFindPassNeedsAllFirstTryWithinTime() {
-        val rule = lessons[0].pass
+        val rule = byId("1.1").pass
         val good = List(10) { Answer(true, 2500, true) }
         assertTrue(Scoring.keyFindPassed(good, rule, 10))
         assertFalse(Scoring.keyFindPassed(good.take(9) + Answer(true, 3500, true), rule, 10))
@@ -124,8 +160,8 @@ class ScoringAndProgressTest {
         val offsets = List(32) { if (it % 2 == 0) 50.0 else -50.0 }
         val s = Scoring.pulse(offsets, 150)
         assertEquals(50.0, s.sdMs, 1e-9)
-        assertTrue(Scoring.pulsePassed(s, lessons[1].pass, 32))
-        assertFalse(Scoring.pulsePassed(Scoring.pulse(List(32) { if (it % 2 == 0) 100.0 else -100.0 }, 150), lessons[1].pass, 32))
+        assertTrue(Scoring.pulsePassed(s, byId("1.3").pass, 32))
+        assertFalse(Scoring.pulsePassed(Scoring.pulse(List(32) { if (it % 2 == 0) 100.0 else -100.0 }, 150), byId("1.3").pass, 32))
         // Latency is removed before judging; taps match their nearest beat.
         val beats = List(4) { it * 1e9 }
         assertEquals(listOf(0.0, 0.0, 0.0), Scoring.tapOffsetsMs(beats, listOf(120_000_000L, 1_120_000_000L, 2_120_000_000L), 120.0, 400.0).map { Math.round(it * 1000) / 1000.0 })
@@ -133,7 +169,7 @@ class ScoringAndProgressTest {
 
     @Test
     fun passingNeedsTwoDaysAndHelpersDoNotCount() {
-        val l11 = lessons[0]
+        val l11 = byId("1.1")
         var r = LessonRecord("1.1", attempts = 1)
         r = ProgressRules.recordPass(r, LocalDate.of(2026, 10, 12), helperUsed = false)
         assertFalse(ProgressRules.isPassed(r, l11))
@@ -147,7 +183,7 @@ class ScoringAndProgressTest {
 
     @Test
     fun unlockingFollowsPrerequisites() {
-        val l15 = lessons[2]
+        val l15 = byId("1.5")
         assertEquals(LessonStatus.LOCKED, ProgressRules.status(l15, emptyMap()))
         val after = mapOf("1.1" to LessonRecord("1.1", passDays = setOf("2026-10-12"), attempts = 1))
         assertEquals(LessonStatus.AVAILABLE, ProgressRules.status(l15, after))

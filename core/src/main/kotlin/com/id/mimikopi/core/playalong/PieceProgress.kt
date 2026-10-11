@@ -28,6 +28,9 @@ data class PieceProgress(
     val cleanAtTargetStreak: Int = 0,
     /** Days (ISO dates) on which the streak reached three (learning-system.md 6.4). */
     val passDays: List<String> = emptyList(),
+    /** The same for one hand alone ("RIGHT" / "LEFT"): stage 2-3 lessons pass pieces hand by hand. */
+    val handStreaks: Map<String, Int> = emptyMap(),
+    val handPassDays: Map<String, List<String>> = emptyMap(),
     /** Recent error weight per measure (decays every run), for the problem-spot list. */
     val measureHeat: Map<Int, Double> = emptyMap(),
     /** Tempo ramp per practice target: "<hands>|<from>-<to>". */
@@ -50,6 +53,10 @@ object PieceRules {
 
     fun isPassed(p: PieceProgress): Boolean = p.passDays.toSet().size >= DAYS_TO_PASS
 
+    /** Passed for a lesson that asks for [hand] ("RIGHT", "LEFT" or "BOTH"); both hands also count for one. */
+    fun isPassed(p: PieceProgress, hand: String): Boolean =
+        isPassed(p) || (hand != "BOTH" && (p.passDays + p.handPassDays[hand].orEmpty()).toSet().size >= DAYS_TO_PASS)
+
     /** Measures that keep going wrong, worst first. */
     fun hotMeasures(p: PieceProgress, limit: Int = 3): List<Int> =
         p.measureHeat.filter { it.value >= 1.0 }.entries.sortedByDescending { it.value }.take(limit).map { it.key }
@@ -69,11 +76,12 @@ object PieceRules {
         day: LocalDate = LocalDate.now(),
     ): RunUpdate {
         val setup = result.setup
+        val handKey = if (setup.hands.size == Hand.entries.size) "BOTH" else setup.hands.single().name
         val heat = progress.measureHeat.mapValues { it.value * HEAT_DECAY }.toMutableMap()
         for (m in result.perMeasure) if (m.errors > 0) heat[m.measure] = (heat[m.measure] ?: 0.0) + m.errors
         var p = progress.copy(runs = progress.runs + 1, measureHeat = heat.filterValues { it >= 0.05 })
         val summary = result.summary
-        if (!result.timingJudged || summary == null) return RunUpdate(p, null, false, isPassed(p))
+        if (!result.timingJudged || summary == null) return RunUpdate(p, null, false, isPassed(p, handKey))
 
         val clean = summary.isClean(cleanConfig)
         var newBpm: Int? = null
@@ -86,9 +94,20 @@ object PieceRules {
         }
         val bpm = setup.bpm.toInt()
         if (clean) p = p.copy(bestCleanBpm = maxOf(p.bestCleanBpm ?: 0, bpm))
-        val wholePiece = setup.fromMeasure == 0 && setup.toMeasure == score.measures - 1 && setup.hands.size == Hand.entries.size
+        val wholeLength = setup.fromMeasure == 0 && setup.toMeasure == score.measures - 1
+        val wholePiece = wholeLength && setup.hands.size == Hand.entries.size
         val countsForPass = wholePiece && bpm >= score.tempo && !helperUsed
         var passedToday = false
+        if (wholeLength && setup.hands.size == 1 && bpm >= score.tempo && !helperUsed) {
+            val h = setup.hands.single().name
+            val streak = if (clean) (p.handStreaks[h] ?: 0) + 1 else 0
+            if (streak >= CLEAN_RUNS_FOR_DAY) {
+                passedToday = true
+                p = p.copy(handStreaks = p.handStreaks + (h to 0), handPassDays = p.handPassDays + (h to (p.handPassDays[h].orEmpty() + day.toString()).distinct()))
+            } else {
+                p = p.copy(handStreaks = p.handStreaks + (h to streak))
+            }
+        }
         if (countsForPass) {
             val streak = if (clean) p.cleanAtTargetStreak + 1 else 0
             p = p.copy(cleanAtTargetStreak = streak)
@@ -97,6 +116,6 @@ object PieceRules {
                 p = p.copy(cleanAtTargetStreak = 0, passDays = (p.passDays + day.toString()).distinct())
             }
         }
-        return RunUpdate(p, newBpm, passedToday, isPassed(p))
+        return RunUpdate(p, newBpm, passedToday, isPassed(p, handKey))
     }
 }

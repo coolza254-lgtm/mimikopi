@@ -37,6 +37,11 @@ data class PlaySetup(
     val toleranceMs: Int,
     /** Calibrated input latency for the current route, subtracted before judging. */
     val latencyMs: Long = 0,
+    /**
+     * Rhythm reading: any key counts as the written note. With both hands played, keys from Middle C up
+     * count for the right hand and keys below it for the left.
+     */
+    val anyKey: Boolean = false,
 ) {
     init {
         require(hands.isNotEmpty()) { "at least one hand must be played" }
@@ -85,6 +90,12 @@ class PlayAlongJudge(val score: Score, val setup: PlaySetup) {
         .filter { !it.isRest && it.hand !in setup.hands && it.onset >= startBeat - 1e-9 && it.onset < endBeat - 1e-9 }
         .flatMap { e -> e.pitches.mapIndexed { i, p -> ExpectedNote(NoteKey(e.id, i), p, e.onset, e.hand, e.measure) } }
         .sortedBy { it.beat }
+
+    private fun matches(n: ExpectedNote, midi: Int): Boolean = when {
+        !setup.anyKey -> n.midi == midi
+        setup.hands.size == 1 -> true
+        else -> (midi >= 60) == (n.hand == Hand.RIGHT)
+    }
 
     /** Tempo-mode matching window: a press further than this from every unplayed note is a wrong note. */
     val matchWindowMs: Double = maxOf(setup.toleranceMs * 2.0, beatMs * 0.5)
@@ -157,7 +168,7 @@ class PlayAlongJudge(val score: Score, val setup: PlaySetup) {
     private fun tempoPress(midi: Int, atMs: Long): Feedback {
         val t = atMs - setup.latencyMs
         val candidate = expected
-            .filter { it.midi == midi && outcomes[it.key]?.result == NoteResult.PENDING }
+            .filter { matches(it, midi) && outcomes[it.key]?.result == NoteResult.PENDING }
             .minByOrNull { abs(t - expectedTimeMs(it.beat)) }
             ?.takeIf { abs(t - expectedTimeMs(it.beat)) <= matchWindowMs }
         if (candidate == null) {
@@ -180,9 +191,9 @@ class PlayAlongJudge(val score: Score, val setup: PlaySetup) {
 
     private fun waitPress(midi: Int, atMs: Long): Feedback {
         val group = currentGroup() ?: return Feedback.Ignored
-        val match = group.firstOrNull { it.midi == midi && it.key !in downInGroup }
+        val match = group.firstOrNull { matches(it, midi) && it.key !in downInGroup }
         if (match == null) {
-            if (group.any { it.midi == midi }) return Feedback.Ignored
+            if (group.any { matches(it, midi) }) return Feedback.Ignored
             val press = WrongPress(midi, group.first().measure, group.first().beat)
             wrongs += press
             groupHadWrong = true
@@ -205,6 +216,7 @@ class PlayAlongJudge(val score: Score, val setup: PlaySetup) {
     fun onNoteOff(midi: Int) {
         if (setup.mode != PlayMode.WAIT) return
         val group = currentGroup() ?: return
+        if (setup.anyKey) return
         group.firstOrNull { it.midi == midi && it.key in downInGroup }?.let { downInGroup -= it.key }
     }
 
@@ -294,7 +306,7 @@ private class PlayResultBuilder(
             .take(3).map { it.measure }
         val offsets = outcomes.values.filter { it.result in HIT }.mapNotNull { it.offsetMs }
         val byHand = Hand.entries.associateWith { h -> bad.count { it.hand == h } }
-        val trouble = bad.filter { outcomes[it.key]?.result != NoteResult.EARLY && outcomes[it.key]?.result != NoteResult.LATE }
+        val trouble = if (setup.anyKey) emptyList() else bad.filter { outcomes[it.key]?.result != NoteResult.EARLY && outcomes[it.key]?.result != NoteResult.LATE }
             .groupBy { it.pitch }.filter { it.value.size >= 2 }
             .entries.sortedByDescending { it.value.size }.map { it.key }
         return PlayResult(setup, outcomes, wrongs, stumbles, summary, tempo, perMeasure, problems,

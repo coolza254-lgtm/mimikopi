@@ -43,6 +43,8 @@ data class ScoreEvent(
     val onset: Double,
     val duration: Double,
     val pitches: List<SpelledPitch>,
+    /** Written finger numbers (1-5), parallel to [pitches]; empty when none are written. */
+    val fingers: List<Int> = emptyList(),
 ) {
     val isRest: Boolean get() = pitches.isEmpty()
     val end: Double get() = onset + duration
@@ -70,7 +72,7 @@ data class Score(
     fun measureStart(measure: Int): Double = measure * measureBeats
 
     companion object {
-        val DURATIONS = mapOf("w" to 4.0, "h." to 3.0, "h" to 2.0, "q." to 1.5, "q" to 1.0, "e" to 0.5)
+        val DURATIONS = mapOf("w" to 4.0, "h." to 3.0, "h" to 2.0, "q." to 1.5, "q" to 1.0, "e." to 0.75, "e" to 0.5, "s" to 0.25)
 
         /** Parses and checks a piece: every measure must add up exactly to the time signature. */
         fun from(file: PieceFile): Score {
@@ -84,12 +86,20 @@ data class Score(
                 measures.forEachIndexed { m, text ->
                     var t = m * measureBeats
                     for (token in text.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }) {
-                        val slash = token.lastIndexOf('/')
+                        val at = token.indexOf('@')
+                        val body = if (at >= 0) token.substring(0, at) else token
+                        val slash = body.lastIndexOf('/')
                         require(slash > 0) { "${file.id} m${m + 1}: bad token '$token'" }
-                        val dur = DURATIONS[token.substring(slash + 1)] ?: error("${file.id} m${m + 1}: bad duration in '$token'")
-                        val head = token.substring(0, slash)
+                        val dur = DURATIONS[body.substring(slash + 1)] ?: error("${file.id} m${m + 1}: bad duration in '$token'")
+                        val head = body.substring(0, slash)
                         val pitches = if (head == "r") emptyList() else head.split("+").map { SpelledPitch.parse(it) }
-                        events += ScoreEvent(nextId++, hand, m, t, dur, pitches.sortedBy { it.midi })
+                        val fingers = if (at >= 0) token.substring(at + 1).split("+").map { it.toInt() } else emptyList()
+                        require(fingers.isEmpty() || (fingers.size == pitches.size && fingers.all { it in 1..5 })) {
+                            "${file.id} m${m + 1}: fingers in '$token' must match the notes (1-5)"
+                        }
+                        // Fingers follow the pitches as written; keep them paired when sorting a chord.
+                        val paired = pitches.indices.sortedBy { pitches[it].midi }
+                        events += ScoreEvent(nextId++, hand, m, t, dur, paired.map { pitches[it] }, if (fingers.isEmpty()) emptyList() else paired.map { fingers[it] })
                         t += dur
                     }
                     val used = t - m * measureBeats

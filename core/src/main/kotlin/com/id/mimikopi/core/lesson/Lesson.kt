@@ -38,7 +38,18 @@ data class Lesson(
         if (tips.isEmpty()) add("$id: no tips")
         if (passText.isBlank()) add("$id: no pass text")
         if (tracks.any { it !in TRACKS }) add("$id: unknown track")
-        if (pass.drill !in drills.indices) add("$id: pass rule points to a missing drill")
+        if (pass.requiredDrills.any { it !in drills.indices }) add("$id: pass rule points to a missing drill")
+        for (i in pass.requiredDrills) {
+            val t = drills.getOrNull(i)?.type ?: continue
+            val ok = when (t) {
+                ExerciseType.E_KEYFIND -> true
+                ExerciseType.E_NOTEID, ExerciseType.E_INTERVAL_READ -> pass.minAccuracy != null
+                ExerciseType.E_PULSE -> pass.maxSdMs != null
+                ExerciseType.E_FINGER_PATTERN, ExerciseType.E_RHYTHM_TAP, ExerciseType.E_READ_PIECE -> pass.cleanRuns != null
+                ExerciseType.E_PIECE -> pass.cleanRuns != null || pass.piecesPassed != null
+            }
+            if (!ok) add("$id: pass rule lacks the criterion for drill $i ($t)")
+        }
         drills.forEach { d -> d.problems().forEach { add("$id/${d.title}: $it") } }
     }
 
@@ -57,7 +68,22 @@ data class TryStep(
 )
 
 @Serializable
-enum class ExerciseType { E_KEYFIND, E_NOTEID, E_PULSE }
+enum class ExerciseType {
+    E_KEYFIND, E_NOTEID, E_PULSE,
+    /** Play generated finger-number sequences in a five-finger position (learning-system.md 5.1). */
+    E_FINGER_PATTERN,
+    /** Read a generated rhythm and tap it on any key. */
+    E_RHYTHM_TAP,
+    /** Name the motion (repeat/step/skip or the interval) between written notes, then play them. */
+    E_INTERVAL_READ,
+    /** Sight-read a newly generated short piece at a level of section 5.2 (at most 3 runs each). */
+    E_READ_PIECE,
+    /** Play fixed pieces or exercises from content (scales, repertoire). */
+    E_PIECE;
+
+    /** Exercises that run in the score reader with play-along judging. */
+    val isScore: Boolean get() = this in setOf(E_FINGER_PATTERN, E_RHYTHM_TAP, E_READ_PIECE, E_PIECE)
+}
 
 @Serializable
 data class Drill(
@@ -74,12 +100,59 @@ data class Drill(
     val bpmMin: Int = 60,
     val bpmMax: Int = 80,
     val beats: Int = 32,
+    /** Score drills: hand(s) played — RIGHT, LEFT or BOTH. */
+    val hand: String = "RIGHT",
+    /** Five-finger position(s): C, G, D, F. Empty = C for finger patterns, the level's own for sight reading. */
+    val positions: List<String> = emptyList(),
+    /** Score drills: tempo, and WAIT or TEMPO mode. */
+    val bpm: Int = 60,
+    val mode: String = "TEMPO",
+    val bars: Int = 4,
+    val time: List<Int> = listOf(4, 4),
+    /** E_RHYTHM_TAP: rhythm vocabulary (see RhythmCells) for the right hand / the left hand (BOTH). */
+    val rhythms: List<String> = emptyList(),
+    val rhythmsLeft: List<String> = emptyList(),
+    /** E_READ_PIECE: sight-reading level L1..L5. */
+    val level: String = "L1",
+    /** E_READ_PIECE L5: hands take turns bar by bar instead of playing together. */
+    val alternate: Boolean = false,
+    /** Key signature for generated pieces (fifths); null = from the position. */
+    val key: Int? = null,
+    /** E_INTERVAL_READ: allowed staff steps between neighbours, notes per set, clef, range, answer kind. */
+    val intervals: List<Int> = emptyList(),
+    val notesPerSet: Int = 4,
+    val clef: String = "treble",
+    val low: String = "C4",
+    val high: String = "G5",
+    val answer: String = "MOTION",
+    /** E_PIECE: ids of pieces (content/pieces) or exercises (content/exercises). */
+    val pieces: List<String> = emptyList(),
 ) {
     fun problems(): List<String> = buildList {
+        if (type.isScore || type == ExerciseType.E_INTERVAL_READ) {
+            if (hand !in listOf("RIGHT", "LEFT", "BOTH")) add("bad hand")
+            if (mode !in listOf("WAIT", "TEMPO")) add("bad mode")
+            if (positions.any { it !in listOf("C", "G", "D", "F") }) add("bad positions")
+            if (bpm !in 30..200) add("bad bpm")
+        }
         when (type) {
             ExerciseType.E_KEYFIND -> if (letters.isEmpty() || letters.any { it !in listOf("C", "D", "E", "F", "G", "A", "B") }) add("bad letters")
             ExerciseType.E_NOTEID -> if (pool.isEmpty() || pool.any { !Regex("""^[A-G](#|b)?\d:(treble|bass)$""").matches(it) }) add("bad pool")
             ExerciseType.E_PULSE -> if (bpmMin !in 40..200 || bpmMax < bpmMin || beats < 8) add("bad pulse params")
+            ExerciseType.E_FINGER_PATTERN -> if (hand == "BOTH") add("finger patterns are one hand at a time")
+            ExerciseType.E_RHYTHM_TAP -> {
+                if (rhythms.isEmpty()) add("no rhythms")
+                if (hand == "BOTH" && rhythmsLeft.isEmpty()) add("no left-hand rhythms")
+                if (time.size != 2 || time[1] != 4 || time[0] !in 2..4) add("rhythm drills use 2/4, 3/4 or 4/4")
+            }
+            ExerciseType.E_INTERVAL_READ -> {
+                if (intervals.isEmpty() || intervals.any { it !in 0..7 }) add("bad intervals")
+                if (notesPerSet !in 2..6) add("bad notesPerSet")
+                if (clef !in listOf("treble", "bass")) add("bad clef")
+                if (answer !in listOf("MOTION", "INTERVAL")) add("bad answer kind")
+            }
+            ExerciseType.E_READ_PIECE -> if (level !in listOf("L1", "L2", "L3", "L4", "L5")) add("bad level")
+            ExerciseType.E_PIECE -> if (pieces.isEmpty()) add("no pieces")
         }
         if (items <= 0) add("no items")
     }
@@ -98,4 +171,14 @@ data class PassRule(
     val maxSdMs: Double? = null,
     /** Number of different days the criterion must be met on. */
     val days: Int = 2,
-)
+    /** Score drills: clean runs (learning-system.md 6.1) needed in one sitting. */
+    val cleanRuns: Int? = null,
+    /** True = the clean runs must come in a row; false = any clean runs in the sitting (sight reading). */
+    val inRow: Boolean = true,
+    /** Other drills that must also meet their criterion on the same day (stage tests, both hands). */
+    val alsoDrills: List<Int> = emptyList(),
+    /** E_PIECE: how many of the drill's pieces must be passed (piece rule: 3 clean runs at target on 2 days). */
+    val piecesPassed: Int? = null,
+) {
+    val requiredDrills: List<Int> get() = (listOf(drill) + alsoDrills).distinct()
+}

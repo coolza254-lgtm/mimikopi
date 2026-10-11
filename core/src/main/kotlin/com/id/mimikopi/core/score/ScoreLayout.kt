@@ -16,7 +16,8 @@ data class NoteKey(val eventId: Int, val pitchIndex: Int)
  * under a fixed cursor, which suits landscape play-along better than wrapped systems.
  *
  * Glyphs are SMuFL code points (Bravura). Scope: what stages 1-4 need — one voice per staff, chords,
- * dots, flags (no beams yet), accidentals with measure carry, key and time signatures, ledger lines.
+ * dots, flags, beams inside a beat, accidentals with measure carry, key and time signatures, ledger
+ * lines, finger numbers.
  */
 data class ScoreLayout(
     val width: Double,
@@ -25,7 +26,11 @@ data class ScoreLayout(
     val measures: List<MeasureBox>,
     /** (beat, x) pairs in increasing order; the cursor interpolates between them. */
     val anchors: List<Pair<Double, Double>>,
+    /** Text marks (finger numbers), drawn with the UI font; (x, y) is the centre of the text. */
+    val labels: List<Label> = emptyList(),
 ) {
+    data class Label(val x: Double, val y: Double, val text: String, val eventId: Int)
+
     sealed interface Mark { val eventId: Int? }
 
     data class Glyph(
@@ -91,6 +96,10 @@ data class ScoreLayout(
         const val DOT = ''
         const val FLAG_8_UP = ''
         const val FLAG_8_DOWN = ''
+        const val FLAG_16_UP = '\uE242'
+        const val FLAG_16_DOWN = '\uE243'
+        const val BEAM_THICKNESS = 0.5
+        const val BEAM_SPACING = 0.75
         const val FLAT = ''
         const val NATURAL = ''
         const val SHARP = ''
@@ -100,6 +109,7 @@ data class ScoreLayout(
         const val REST_HALF = ''
         const val REST_QUARTER = ''
         const val REST_EIGHTH = ''
+        const val REST_16TH = '\uE4E7'
 
         fun staffY(hand: Hand): Double = if (hand == Hand.RIGHT) TREBLE_Y else BASS_Y
 
@@ -120,6 +130,12 @@ private class Engraver(private val score: Score) {
     private val lines = mutableListOf<ScoreLayout.Line>()
     private val measures = mutableListOf<ScoreLayout.MeasureBox>()
     private val anchors = mutableListOf<Pair<Double, Double>>()
+    private val labels = mutableListOf<ScoreLayout.Label>()
+
+    /** A beamed group's shared stem direction and (flat) beam line. */
+    private data class BeamInfo(val stemUp: Boolean, val beamY: Double)
+    private val beamInfo = mutableMapOf<Int, BeamInfo>()
+    private val stemXs = mutableMapOf<Int, Double>()
 
     fun run(): ScoreLayout {
         var x = prefix()
@@ -133,6 +149,8 @@ private class Engraver(private val score: Score) {
             // Accidental state per hand: (letter, octave) -> alteration, starting from the key signature.
             val carry = mutableMapOf<Hand, MutableMap<Pair<Letter, Int>, Int>>()
             val onsets = events.map { it.onset }.distinct().sorted()
+            val groups = beamGroups(events)
+            for (g in groups) beamInfo.putAll(g.associate { it.id to beamFor(g) })
             for ((i, onset) in onsets.withIndex()) {
                 val group = events.filter { it.onset == onset }
                 val needsAccidental = group.any { e -> e.pitches.any { p -> shownAccidental(carry, e.hand, p, dryRun = true) != null } }
@@ -144,6 +162,7 @@ private class Engraver(private val score: Score) {
                 if (group.any { it.duration % 1.0 != 0.0 && it.duration > 1.0 }) x += 0.4 // room for dots
             }
             if (onsets.isEmpty()) x += 4.0
+            for (g in groups) drawBeams(g)
             measures += ScoreLayout.MeasureBox(m, x0, x, start, end)
             anchors += end to x
             val last = m == score.measures - 1
@@ -162,7 +181,7 @@ private class Engraver(private val score: Score) {
             }
         }
         lines += ScoreLayout.Line(0.0, ScoreLayout.TOP_Y, 0.0, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
-        return ScoreLayout(width, glyphs, lines, measures, anchors.distinctBy { it.first })
+        return ScoreLayout(width, glyphs, lines, measures, anchors.distinctBy { it.first }, labels)
     }
 
     /** Clefs, key signature and time signature; returns the x where the first measure starts. */
@@ -222,7 +241,8 @@ private class Engraver(private val score: Score) {
         }
         val clef = score.clefFor(hand)
         val positions = e.pitches.map { Staff.position(it, clef) }
-        val stemUp = (positions.max() + positions.min()) < 0
+        val beam = beamInfo[e.id]
+        val stemUp = beam?.stemUp ?: ((positions.max() + positions.min()) < 0)
         val head = when {
             e.duration >= 4.0 -> ScoreLayout.HEAD_WHOLE
             e.duration >= 2.0 -> ScoreLayout.HEAD_HALF
@@ -274,10 +294,25 @@ private class Engraver(private val score: Score) {
             val mid = ScoreLayout.staffY(hand)
             if (stemUp && y2 > mid) y2 = mid
             if (!stemUp && y2 < mid) y2 = mid
+            if (beam != null) y2 = beam.beamY
             lines += ScoreLayout.Line(stemX, y1, stemX, y2, ScoreLayout.STEM_THICKNESS, e.id)
-            if (e.duration < 1.0) {
-                glyphs += ScoreLayout.Glyph(stemX - ScoreLayout.STEM_THICKNESS / 2, y2,
-                    if (stemUp) ScoreLayout.FLAG_8_UP else ScoreLayout.FLAG_8_DOWN, e.id)
+            stemXs[e.id] = stemX
+            if (e.duration < 1.0 && beam == null) {
+                val glyph = when {
+                    e.duration <= 0.25 -> if (stemUp) ScoreLayout.FLAG_16_UP else ScoreLayout.FLAG_16_DOWN
+                    else -> if (stemUp) ScoreLayout.FLAG_8_UP else ScoreLayout.FLAG_8_DOWN
+                }
+                glyphs += ScoreLayout.Glyph(stemX - ScoreLayout.STEM_THICKNESS / 2, y2, glyph, e.id)
+            }
+        }
+        if (e.fingers.isNotEmpty()) {
+            val cx = x + ScoreLayout.NOTEHEAD_WIDTH / 2
+            if (hand == Hand.RIGHT) {
+                val top = minOf(ScoreLayout.TOP_Y, ScoreLayout.yOf(hand, positions.max()), if (stemUp) ScoreLayout.yOf(hand, positions.max()) - ScoreLayout.STEM_LENGTH else ScoreLayout.TOP_Y)
+                e.fingers.indices.sortedBy { positions[it] }.forEachIndexed { i, k -> labels += ScoreLayout.Label(cx, top - 1.3 - i * 1.3, e.fingers[k].toString(), e.id) }
+            } else {
+                val bottom = maxOf(ScoreLayout.BOTTOM_Y, ScoreLayout.yOf(hand, positions.min()), if (!stemUp) ScoreLayout.yOf(hand, positions.min()) + ScoreLayout.STEM_LENGTH else ScoreLayout.BOTTOM_Y)
+                e.fingers.indices.sortedByDescending { positions[it] }.forEachIndexed { i, k -> labels += ScoreLayout.Label(cx, bottom + 1.3 + i * 1.3, e.fingers[k].toString(), e.id) }
             }
         }
     }
@@ -288,7 +323,8 @@ private class Engraver(private val score: Score) {
             wholeMeasureRest || e.duration >= 4.0 -> ScoreLayout.REST_WHOLE to 2
             e.duration >= 2.0 -> ScoreLayout.REST_HALF to 0
             e.duration >= 1.0 -> ScoreLayout.REST_QUARTER to 0
-            else -> ScoreLayout.REST_EIGHTH to 0
+            e.duration >= 0.5 -> ScoreLayout.REST_EIGHTH to 0
+            else -> ScoreLayout.REST_16TH to 0
         }
         glyphs += ScoreLayout.Glyph(x, ScoreLayout.yOf(hand, pos), glyph, e.id)
         if (!wholeMeasureRest && isDotted(e.duration)) {
@@ -296,5 +332,66 @@ private class Engraver(private val score: Score) {
         }
     }
 
-    private fun isDotted(duration: Double): Boolean = duration == 3.0 || duration == 1.5
+    private fun isDotted(duration: Double): Boolean = duration == 3.0 || duration == 1.5 || duration == 0.75
+
+    /**
+     * Notes shorter than a quarter are beamed with their neighbours inside the same beat (same hand);
+     * a rest or a longer note breaks the group. Groups of one keep their flag.
+     */
+    private fun beamGroups(events: List<ScoreEvent>): List<List<ScoreEvent>> {
+        val out = mutableListOf<List<ScoreEvent>>()
+        for (hand in Hand.entries) {
+            val current = mutableListOf<ScoreEvent>()
+            var beat = -1
+            fun flush() {
+                if (current.size >= 2) out += current.toList()
+                current.clear()
+            }
+            for (e in events.filter { it.hand == hand }.sortedBy { it.onset }) {
+                val b = kotlin.math.floor(e.onset + 1e-9).toInt()
+                val beamable = !e.isRest && e.duration < 1.0 && e.onset + e.duration <= b + 1 + 1e-9
+                if (!beamable || b != beat) flush()
+                beat = b
+                if (beamable) current += e
+            }
+            flush()
+        }
+        return out
+    }
+
+    private fun beamFor(group: List<ScoreEvent>): BeamInfo {
+        val clef = score.clefFor(group.first().hand)
+        val hand = group.first().hand
+        val all = group.flatMap { e -> e.pitches.map { Staff.position(it, clef) } }
+        val up = (all.max() + all.min()) < 0
+        val y = if (up) {
+            group.minOf { e -> ScoreLayout.yOf(hand, e.pitches.maxOf { Staff.position(it, clef) }) } - ScoreLayout.STEM_LENGTH
+        } else {
+            group.maxOf { e -> ScoreLayout.yOf(hand, e.pitches.minOf { Staff.position(it, clef) }) } + ScoreLayout.STEM_LENGTH
+        }
+        return BeamInfo(up, y)
+    }
+
+    private fun drawBeams(group: List<ScoreEvent>) {
+        val info = beamInfo[group.first().id] ?: return
+        val xs = group.map { stemXs[it.id] ?: return }
+        val toward = if (info.stemUp) 1.0 else -1.0 // from the beam line toward the noteheads
+        fun beam(x1: Double, x2: Double, level: Int) {
+            val y = info.beamY + toward * (ScoreLayout.BEAM_THICKNESS / 2 + level * ScoreLayout.BEAM_SPACING)
+            lines += ScoreLayout.Line(x1 - ScoreLayout.STEM_THICKNESS / 2, y, x2 + ScoreLayout.STEM_THICKNESS / 2, y, ScoreLayout.BEAM_THICKNESS, group.first().id)
+        }
+        beam(xs.first(), xs.last(), 0)
+        val sixteenth = group.map { it.duration <= 0.25 + 1e-9 }
+        for (i in group.indices) {
+            if (!sixteenth[i]) continue
+            val prev = i > 0 && sixteenth[i - 1]
+            val next = i < group.size - 1 && sixteenth[i + 1]
+            when {
+                next -> beam(xs[i], xs[i + 1], 1)
+                prev -> Unit // drawn by the previous note
+                i == group.size - 1 -> beam(xs[i] - 1.0, xs[i], 1)
+                else -> beam(xs[i], xs[i] + 1.0, 1)
+            }
+        }
+    }
 }

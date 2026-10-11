@@ -84,13 +84,14 @@ fun PageCard(
 fun Modifier.paper(): Modifier = this.background(Tokens.Palette.Paper).drawWithCache {
     // One drawPoints call per frame; the grid is rebuilt only when the size changes.
     val step = 18.dp.toPx()
-    val points = buildList {
-        var y = step / 2
-        while (y < size.height) {
-            var x = step / 2
-            while (x < size.width) { add(Offset(x, y)); x += step }
-            y += step
-        }
+    val w = size.width
+    val h = size.height
+    val points = ArrayList<Offset>()
+    var y = step / 2
+    while (y < h) {
+        var x = step / 2
+        while (x < w) { points += Offset(x, y); x += step }
+        y += step
     }
     val dot = 2.dp.toPx()
     onDrawBehind { drawPoints(points, PointMode.Points, Tokens.Palette.Dot, strokeWidth = dot, cap = StrokeCap.Round) }

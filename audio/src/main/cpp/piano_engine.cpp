@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <android/log.h>
 #include <chrono>
+#include <ctime>
 #include <cmath>
 
 #define LOG_TAG "MimikopiAudio"
@@ -65,7 +66,10 @@ std::string PianoEngine::openStreamLocked() {
     // Effects are sized for the device rate before the callback can run (no allocation in the callback).
     reverbFx_.prepare(outRate_);
     compressor_.prepare(outRate_);
+    prepareClicks(outRate_);
     appliedToneVersion_ = 0;
+    framesWritten_ = 0;
+    metroWasOn_ = false;
     // Two bursts of buffering: lowest latency that usually survives UI load.
     stream->setBufferSizeInFrames(stream->getFramesPerBurst() * 2);
     r = stream->requestStart();
@@ -264,12 +268,11 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream* stream, vo
     auto* out = static_cast<float*>(audioData);
     const int channels = stream->getChannelCount();
     std::fill(out, out + numFrames * channels, 0.0f);
-    if (!loaded_.load(std::memory_order_acquire)) return oboe::DataCallbackResult::Continue;
-
-    applyCommands();
+    const bool loaded = loaded_.load(std::memory_order_acquire);
+    if (loaded) applyCommands();
     constexpr float kScale = 1.0f / 32768.0f;
     int active = 0;
-    for (size_t vi = 0; vi < voices_.size(); ++vi) {
+    for (size_t vi = 0; loaded && vi < voices_.size(); ++vi) {
         Voice& v = voices_[vi];
         if (!v.active) {
             pubSample_[vi].store(-1, std::memory_order_relaxed);
@@ -328,6 +331,18 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream* stream, vo
     }
     const float master = masterGain_.load(std::memory_order_relaxed);
     const float wet = reverb_.load(std::memory_order_relaxed) * 0.35f;
+    // Metronome parameters for this block.
+    const bool metroOn = metroOn_.load(std::memory_order_relaxed);
+    if (metroOn && !metroWasOn_) {
+        metroCountdown_ = 0;  // start on a downbeat, right now
+        metroTick_ = 0;
+        metroTickCount_.store(0, std::memory_order_relaxed);
+    }
+    metroWasOn_ = metroOn;
+    const double framesPerTick = static_cast<double>(outRate_) * 60.0 /
+        std::max(1.0, metroBpm_.load(std::memory_order_relaxed)) / std::max(1, metroTicksPerBeat_.load(std::memory_order_relaxed));
+    const int patternLen = std::max(1, std::min(kMaxPattern, metroLen_.load(std::memory_order_relaxed)));
+    const float metroVol = metroVolume_.load(std::memory_order_relaxed);
     for (int32_t f = 0; f < numFrames; ++f) {
         float l = out[f * channels];
         float r = channels >= 2 ? out[f * channels + 1] : l;
@@ -339,6 +354,29 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream* stream, vo
         const float g = compressor_.gainFor(l, r);
         l *= g;
         r *= g;
+        if (metroOn) {
+            if (metroCountdown_ <= 0.0) {
+                int level = metroPattern_[static_cast<size_t>(metroTick_ % patternLen)].load(std::memory_order_relaxed);
+                Click& slot = clicks_[clicks_[0].active ? 1 : 0];
+                slot = Click{std::min(level, 3), 0, true};
+                uint64_t w = tickWrite_.load(std::memory_order_relaxed);
+                tickRing_[w % kTickRing].store(framesWritten_ + f, std::memory_order_relaxed);
+                tickWrite_.store(w + 1, std::memory_order_release);
+                ++metroTick_;
+                metroTickCount_.store(metroTick_, std::memory_order_relaxed);
+                metroCountdown_ += framesPerTick;
+            }
+            metroCountdown_ -= 1.0;
+        }
+        // The click bypasses tone/reverb/compression so it stays crisp and exactly on time.
+        for (auto& ck : clicks_) {
+            if (!ck.active) continue;
+            const auto& table = clickTables_[static_cast<size_t>(ck.level)];
+            float sample = table[ck.pos] * metroVol;
+            l += sample;
+            r += sample;
+            if (++ck.pos >= table.size()) ck.active = false;
+        }
         // Soft limiter above -1 dBFS so dense chords never hard-clip.
         auto limit = [](float x) {
             float ax = std::fabs(x);
@@ -352,12 +390,60 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream* stream, vo
         }
     }
 
+    framesWritten_ += numFrames;
     activeVoices_.store(active, std::memory_order_relaxed);
     if (active > maxActive_.load(std::memory_order_relaxed)) maxActive_.store(active, std::memory_order_relaxed);
     callbacks_.fetch_add(1, std::memory_order_relaxed);
     double us = std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - t0).count();
     if (us > maxCallbackMicros_.load(std::memory_order_relaxed)) maxCallbackMicros_.store(us, std::memory_order_relaxed);
     return oboe::DataCallbackResult::Continue;
+}
+
+void PianoEngine::prepareClicks(int rate) {
+    // Short woodblock-like clicks: a pitched sine pair with a fast decay; higher and louder for accents.
+    static constexpr float kFreq[4] = {1568.0f, 1175.0f, 880.0f, 660.0f};
+    static constexpr float kAmp[4] = {0.9f, 0.7f, 0.55f, 0.3f};
+    const size_t n = static_cast<size_t>(rate * 0.035);
+    for (int lvl = 0; lvl < 4; ++lvl) {
+        auto& t = clickTables_[static_cast<size_t>(lvl)];
+        t.assign(n, 0.0f);
+        for (size_t i = 0; i < n; ++i) {
+            float time = static_cast<float>(i) / static_cast<float>(rate);
+            float env = std::exp(-time / 0.008f) * std::min(1.0f, time / 0.0005f);
+            float w = 2.0f * float(M_PI) * kFreq[lvl] * time;
+            t[i] = kAmp[lvl] * env * (0.77f * std::sin(w) + 0.23f * std::sin(2.01f * w));
+        }
+    }
+    for (auto& ck : clicks_) ck.active = false;
+}
+
+void PianoEngine::setMetronome(bool on, double bpm, int ticksPerBeat, const std::vector<int>& levels, float volume) {
+    int len = std::min(static_cast<int>(levels.size()), kMaxPattern);
+    for (int i = 0; i < len; ++i) metroPattern_[static_cast<size_t>(i)].store(static_cast<uint8_t>(std::clamp(levels[static_cast<size_t>(i)], 0, 3)));
+    metroLen_.store(std::max(1, len));
+    metroBpm_.store(std::clamp(bpm, 20.0, 300.0));
+    metroTicksPerBeat_.store(std::clamp(ticksPerBeat, 1, 8));
+    metroVolume_.store(std::clamp(volume, 0.0f, 1.0f));
+    metroOn_.store(on);
+}
+
+std::vector<int64_t> PianoEngine::drainTicks() {
+    std::lock_guard<std::mutex> lock(tickMutex_);
+    std::vector<int64_t> out;
+    uint64_t w = tickWrite_.load(std::memory_order_acquire);
+    if (w - tickRead_ > kTickRing) tickRead_ = w - kTickRing;  // overwritten: keep the newest
+    for (; tickRead_ < w; ++tickRead_) out.push_back(tickRing_[tickRead_ % kTickRing].load(std::memory_order_relaxed));
+    return out;
+}
+
+bool PianoEngine::timestamp(int64_t& framePosition, int64_t& timeNanos) {
+    std::lock_guard<std::mutex> lock(streamMutex_);
+    if (!stream_) return false;
+    auto r = stream_->getTimestamp(CLOCK_MONOTONIC);
+    if (!r) return false;
+    framePosition = r.value().position;
+    timeNanos = r.value().timestamp;
+    return true;
 }
 
 void PianoEngine::prefetchLoop() {

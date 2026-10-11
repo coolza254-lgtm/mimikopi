@@ -58,6 +58,12 @@ class NativePiano : PianoEngine {
     override fun setMasterGain(gain: Float) = nativeSetGain(handle, gain.coerceIn(0f, 4f))
     override fun setTone(reverb: Float, warmth: Float) = nativeSetTone(handle, reverb.coerceIn(0f, 1f), warmth.coerceIn(0f, 1f))
 
+    override fun setMetronome(on: Boolean, bpm: Double, ticksPerBeat: Int, levels: IntArray, volume: Float) =
+        nativeSetMetronome(handle, on, bpm, ticksPerBeat, levels, volume)
+    override fun metronomeTickCount(): Long = nativeMetronomeTickCount(handle)
+    override fun drainMetronomeTicks(): LongArray = nativeDrainTicks(handle)
+    override fun timestamp(): LongArray? = nativeTimestamp(handle)
+
     override fun metrics(): EngineMetrics {
         val m = nativeMetrics(handle)
         return EngineMetrics(
@@ -92,6 +98,10 @@ class NativePiano : PianoEngine {
     private external fun nativeAllNotesOff(handle: Long)
     private external fun nativeSetGain(handle: Long, gain: Float)
     private external fun nativeSetTone(handle: Long, reverb: Float, warmth: Float)
+    private external fun nativeSetMetronome(handle: Long, on: Boolean, bpm: Double, ticksPerBeat: Int, levels: IntArray, volume: Float)
+    private external fun nativeMetronomeTickCount(handle: Long): Long
+    private external fun nativeDrainTicks(handle: Long): LongArray
+    private external fun nativeTimestamp(handle: Long): LongArray?
     private external fun nativeMetrics(handle: Long): DoubleArray
 
     companion object {

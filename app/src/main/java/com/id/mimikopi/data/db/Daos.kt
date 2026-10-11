@@ -76,4 +76,6 @@ object SettingKeys {
     const val PIANO_TOUCH_VELOCITY = "piano.touchVelocity"
     const val NOTE_NAME_STYLE = "notes.nameStyle"
     const val HELPER_NOTE_NAMES_COUNT = "helper.noteNames.count"
+    const val METRONOME_SETTINGS = "metronome.settings"
+    const val METRONOME_SELF_TEST = "metronome.lastSelfTest"
 }

@@ -13,19 +13,25 @@ import kotlinx.coroutines.flow.asStateFlow
 class PianoController(private val engineFactory: () -> PianoEngine, private val packs: SamplePackManager) {
     private var engine: PianoEngine? = null
     private var users = 0
+    /** Called when the last user releases the engine (the metronome stops with it). */
+    var onStopped: (() -> Unit)? = null
 
     private val _lastError = MutableStateFlow<String?>(null)
     val lastError: StateFlow<String?> = _lastError.asStateFlow()
 
     private fun engine(): PianoEngine = engine ?: engineFactory().also { engine = it }
 
-    /** Opens the stream; loads the installed pack first if needed. Returns true when sound can play. */
+    /**
+     * Opens the stream; loads the installed pack first if needed. Returns true when sound can play.
+     * With [needPack] = false (metronome) the stream opens even without piano samples.
+     */
     @Synchronized
-    fun acquire(): Boolean {
+    fun acquire(needPack: Boolean = true): Boolean {
         users++
         val e = engine()
-        if (!e.isLoaded) {
-            val pack = packs.installed() ?: return false.also { users-- }
+        val pack = if (!e.isLoaded) packs.installed() else null
+        if (!e.isLoaded && pack == null && needPack) return false.also { users-- }
+        if (!e.isLoaded && pack != null) {
             if (e.isRunning) e.stop()
             e.load(pack.dir, pack.manifest)?.let { _lastError.value = it; users--; return false }
         }
@@ -47,7 +53,12 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
     @Synchronized
     fun release() {
         if (users > 0) users--
-        if (users == 0) engine?.let { it.allNotesOff(); it.stop() }
+        if (users == 0) engine?.let {
+            it.allNotesOff()
+            it.setMetronome(false, 80.0, 1, intArrayOf(0), 0f)
+            it.stop()
+            onStopped?.invoke()
+        }
     }
 
     /** Forget the loaded pack (after reinstall/uninstall). */
@@ -62,6 +73,14 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
     fun noteOff(note: Int) = engine?.noteOff(note) ?: Unit
     fun sustain(down: Boolean) = engine?.sustain(down) ?: Unit
     fun allNotesOff() = engine?.allNotesOff() ?: Unit
+
+    fun setMetronome(on: Boolean, bpm: Double, ticksPerBeat: Int, levels: IntArray, volume: Float) =
+        engine?.setMetronome(on, bpm, ticksPerBeat, levels, volume) ?: Unit
+    fun metronomeTickCount(): Long = engine?.metronomeTickCount() ?: 0
+    fun drainMetronomeTicks(): LongArray = engine?.drainMetronomeTicks() ?: LongArray(0)
+    fun timestamp(): LongArray? = engine?.timestamp()
+    fun outputSampleRate(): Int = engine?.metrics()?.sampleRate ?: 0
+    fun xRuns(): Int? = engine?.metrics()?.xRuns
 
     /** True while the native output stream is open (it can close by itself on a route change). */
     fun streamAlive(): Boolean = engine?.let { it.isRunning && it.metrics().sampleRate > 0 } ?: false

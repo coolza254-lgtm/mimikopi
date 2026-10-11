@@ -20,6 +20,8 @@ import com.id.mimikopi.data.db.AppDatabase
 import com.id.mimikopi.data.db.SettingKeys
 import com.id.mimikopi.core.diag.EngineInfo
 import com.id.mimikopi.piano.PianoController
+import com.id.mimikopi.metronome.MetronomeController
+import com.id.mimikopi.core.diag.JitterResult
 import com.id.mimikopi.piano.SamplePackManager
 import java.time.Instant
 
@@ -29,13 +31,14 @@ class DiagnosticsCollector(
     private val database: AppDatabase,
     private val piano: PianoController,
     private val packs: SamplePackManager,
+    private val metronome: MetronomeController,
 ) {
 
     suspend fun collect(): DiagnosticsReport {
         val metrics = runCatching { piano.probeMetrics() }.getOrNull()
         val notes = mutableListOf(
             "engine.estimatedLatencyMs is Oboe's estimate for the current route; true touch-to-sound latency needs the external test in docs/DEVICE-TESTING.md.",
-            "metronomeJitter: self-test arrives with the metronome (M4).",
+            "metronomeJitter: from the last self-test on the metronome screen (null if never run).",
             "midi.probe: velocity capability probe arrives in M5.",
         )
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
@@ -75,6 +78,10 @@ class DiagnosticsCollector(
                 )
             },
             midi = MidiInfo(midiDevices()),
+            metronomeJitter = metronome.lastSelfTest()?.let {
+                JitterResult(it.report.meanAbsMs, it.report.maxAbsMs, it.report.clicks,
+                    "${it.report.method} At ${it.bpm} bpm x${it.ticksPerBeat}, ${it.sampleRate} Hz, xruns during test: ${it.xRunsDuring ?: "?"}, ${it.atUtc}.")
+            },
             lastUpdateCheck = database.settingsDao().get(SettingKeys.LAST_UPDATE_CHECK),
             database = databaseInfo(),
             notes = notes,

@@ -49,6 +49,7 @@ import com.id.mimikopi.core.music.isBlackKey
 import com.id.mimikopi.piano.PackException
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.PianoKeyboard
+import com.id.mimikopi.ui.metronome.MetronomeBar
 import com.id.mimikopi.ui.theme.Tokens
 
 /** Free play on the on-screen keyboard (no scoring). Landscape-friendly: the keyboard takes the rest of the screen. */
@@ -134,6 +135,7 @@ private fun Controls(keys: KeyboardUi, vm: PianoViewModel) {
             FilterChip(selected = keys.showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
             FilterChip(selected = keys.showTone, onClick = vm::toggleTonePanel, label = { Text(stringResource(R.string.piano_tone)) })
             SustainButton(down = keys.sustain, onChange = vm::setSustain)
+            MetronomeBar()
         }
         if (keys.showNames) {
             Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {

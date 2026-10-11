@@ -175,6 +175,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         val k = _keys.value
         piano.setGain(volumeToGain(k.gain))
         piano.setTone(k.reverb, k.warmth)
+        services.metronome.apply() // the metronome bar shares this output
     }
 
     /** [depth] is where on the key the finger landed: 0 = back (top), 1 = front edge. */

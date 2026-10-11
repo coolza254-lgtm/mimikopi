@@ -4,6 +4,7 @@ import android.app.Application
 import com.id.mimikopi.audio.NativePiano
 import com.id.mimikopi.backup.BackupService
 import com.id.mimikopi.data.db.AppDatabase
+import com.id.mimikopi.metronome.MetronomeController
 import com.id.mimikopi.piano.PianoController
 import com.id.mimikopi.piano.SamplePackManager
 import com.id.mimikopi.update.UpdateService
@@ -15,4 +16,5 @@ class MimikopiApp : Application() {
     val updateService: UpdateService by lazy { UpdateService(this, database) }
     val samplePacks: SamplePackManager by lazy { SamplePackManager(this) }
     val piano: PianoController by lazy { PianoController({ NativePiano() }, samplePacks) }
+    val metronome: MetronomeController by lazy { MetronomeController(piano, database.settingsDao()) }
 }

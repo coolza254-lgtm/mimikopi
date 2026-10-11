@@ -28,6 +28,15 @@ interface PianoEngine {
     fun setTone(reverb: Float, warmth: Float)
 
     fun metrics(): EngineMetrics
+
+    /** Metronome counted in audio frames inside the callback. [levels]: one ClickLevel code per tick of a bar. */
+    fun setMetronome(on: Boolean, bpm: Double, ticksPerBeat: Int, levels: IntArray, volume: Float)
+    /** Ticks played since the metronome last started (drives the visual beat). */
+    fun metronomeTickCount(): Long
+    /** Stream frame positions of ticks played since the previous call (self-test). */
+    fun drainMetronomeTicks(): LongArray
+    /** (framePosition, CLOCK_MONOTONIC nanos) presentation timestamp of the output, or null. */
+    fun timestamp(): LongArray?
 }
 
 /** Snapshot of the output stream and engine state for Diagnostics. */

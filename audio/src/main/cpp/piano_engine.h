@@ -73,6 +73,16 @@ public:
 
     EngineMetrics metrics();
 
+    // --- Metronome: sample-accurate, counted in frames inside the audio callback. ---
+    /** levels: one ClickLevel code (0 strong .. 3 sub) per tick of a bar. */
+    void setMetronome(bool on, double bpm, int ticksPerBeat, const std::vector<int>& levels, float volume);
+    /** Total ticks played since the metronome was last started (for the visual beat). */
+    int64_t metronomeTickCount() const { return metroTickCount_.load(); }
+    /** Frame positions (in the current stream's frame count) of ticks played since the last call. */
+    std::vector<int64_t> drainTicks();
+    /** Presentation timestamp of the current stream; false if unavailable. */
+    bool timestamp(int64_t& framePosition, int64_t& timeNanos);
+
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream* stream, void* audioData, int32_t numFrames) override;
     void onErrorAfterClose(oboe::AudioStream* stream, oboe::Result error) override;
 
@@ -140,6 +150,30 @@ private:
     std::atomic<int> activeVoices_{0}, maxActive_{0};
     std::atomic<int64_t> callbacks_{0};
     std::atomic<double> maxCallbackMicros_{0};
+
+    // Metronome control (any thread) and state (audio thread).
+    static constexpr int kMaxPattern = 32;
+    std::atomic<bool> metroOn_{false};
+    std::atomic<double> metroBpm_{80};
+    std::atomic<int> metroTicksPerBeat_{1};
+    std::array<std::atomic<uint8_t>, kMaxPattern> metroPattern_{};
+    std::atomic<int> metroLen_{4};
+    std::atomic<float> metroVolume_{0.7f};
+    std::atomic<int64_t> metroTickCount_{0};
+    bool metroWasOn_ = false;
+    double metroCountdown_ = 0;
+    int64_t metroTick_ = 0;
+    int64_t framesWritten_ = 0;
+    struct Click { int level = 0; size_t pos = 0; bool active = false; };
+    std::array<Click, 2> clicks_{};
+    std::array<std::vector<float>, 4> clickTables_;
+    // Tick frames for the self-test: single producer (audio) ring, drained under tickMutex_.
+    static constexpr size_t kTickRing = 1024;
+    std::array<std::atomic<int64_t>, kTickRing> tickRing_{};
+    std::atomic<uint64_t> tickWrite_{0};
+    uint64_t tickRead_ = 0;
+    std::mutex tickMutex_;
+    void prepareClicks(int rate);
 
     std::thread prefetcher_;
     std::atomic<bool> prefetchRunning_{false};

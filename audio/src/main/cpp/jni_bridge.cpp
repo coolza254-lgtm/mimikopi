@@ -90,6 +90,32 @@ JNIEXPORT void JNICALL Java_com_id_mimikopi_audio_NativePiano_nativeSetTone(JNIE
     engine(h)->setTone(reverb, warmth);
 }
 
+JNIEXPORT void JNICALL Java_com_id_mimikopi_audio_NativePiano_nativeSetMetronome(
+    JNIEnv* env, jobject, jlong h, jboolean on, jdouble bpm, jint ticksPerBeat, jintArray levels, jfloat volume) {
+    engine(h)->setMetronome(on == JNI_TRUE, bpm, ticksPerBeat, ints(env, levels), volume);
+}
+
+JNIEXPORT jlong JNICALL Java_com_id_mimikopi_audio_NativePiano_nativeMetronomeTickCount(JNIEnv*, jobject, jlong h) {
+    return engine(h)->metronomeTickCount();
+}
+
+JNIEXPORT jlongArray JNICALL Java_com_id_mimikopi_audio_NativePiano_nativeDrainTicks(JNIEnv* env, jobject, jlong h) {
+    std::vector<int64_t> ticks = engine(h)->drainTicks();
+    jlongArray arr = env->NewLongArray(static_cast<jsize>(ticks.size()));
+    std::vector<jlong> tmp(ticks.begin(), ticks.end());
+    env->SetLongArrayRegion(arr, 0, static_cast<jsize>(tmp.size()), tmp.data());
+    return arr;
+}
+
+JNIEXPORT jlongArray JNICALL Java_com_id_mimikopi_audio_NativePiano_nativeTimestamp(JNIEnv* env, jobject, jlong h) {
+    int64_t frame = 0, nanos = 0;
+    if (!engine(h)->timestamp(frame, nanos)) return nullptr;
+    jlong values[] = {static_cast<jlong>(frame), static_cast<jlong>(nanos)};
+    jlongArray arr = env->NewLongArray(2);
+    env->SetLongArrayRegion(arr, 0, 2, values);
+    return arr;
+}
+
 JNIEXPORT jdoubleArray JNICALL Java_com_id_mimikopi_audio_NativePiano_nativeMetrics(JNIEnv* env, jobject, jlong h) {
     EngineMetrics m = engine(h)->metrics();
     // Order must match NativePiano.metrics() in Kotlin.

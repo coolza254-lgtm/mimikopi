@@ -7,7 +7,7 @@
 
     <!-- Home -->
     <string name="home_status_title">สถานะของแอพตอนนี้</string>
-    <string name="home_status_body">รุ่นนี้มีเปียโนเล่นอิสระพร้อมเสียงแกรนด์เปียโนจริง อัปเดตในแอพ และสำรองข้อมูล เมโทรนอม MIDI และบทเรียนจะตามมาในรุ่นถัดๆ ไป</string>
+    <string name="home_status_body">รุ่นนี้มีเปียโนเล่นอิสระ เมโทรนอม อัปเดตในแอพ และสำรองข้อมูล ต่อเปียโนผ่าน MIDI และบทเรียนจะตามมาในรุ่นถัดๆ ไป</string>
     <string name="home_diagnostics_title">ข้อมูลเครื่อง (Diagnostics)</string>
     <string name="home_diagnostics_body">ดูและคัดลอกข้อมูลเครื่องเป็น JSON เพื่อส่งกลับมาให้ตรวจ</string>
     <string name="home_about_title">เกี่ยวกับแอพและเครดิต</string>
@@ -50,6 +50,30 @@
     <string name="pack_err_space">พื้นที่ในเครื่องไม่พอ</string>
     <string name="pack_err_checksum">ไฟล์ที่ดาวน์โหลดไม่ตรงกับที่ประกาศ ลบทิ้งแล้ว ลองใหม่อีกครั้ง</string>
     <string name="pack_err_other">ติดตั้งเสียงไม่สำเร็จ</string>
+
+    <string name="home_metronome_title">เมโทรนอม</string>
+    <string name="home_metronome_body">จังหวะแม่นยำจากนาฬิกาเสียง 30–240 BPM เคาะหาความเร็วได้</string>
+
+    <!-- Metronome -->
+    <string name="metronome_title">เมโทรนอม</string>
+    <string name="metronome_start">เริ่ม</string>
+    <string name="metronome_stop">หยุด</string>
+    <string name="metronome_tap">แตะจับจังหวะ</string>
+    <string name="metronome_meter">จังหวะ</string>
+    <string name="metronome_subdivision">แบ่งย่อย</string>
+    <string name="sub_none">ไม่แบ่ง</string>
+    <string name="sub_eighth">♪ 2</string>
+    <string name="sub_triplet">3 พยางค์</string>
+    <string name="sub_sixteenth">♬ 4</string>
+    <string name="metronome_accent">เน้นจังหวะแรก</string>
+    <string name="metronome_volume">ความดังเมโทรนอม</string>
+    <string name="metronome_short">เมโทรนอม %1$d</string>
+    <string name="selftest_title">ทดสอบความแม่นยำ</string>
+    <string name="selftest_body">เล่นเมโทรนอม 20 วินาทีที่ความเร็วปัจจุบัน แล้ววัดว่าแต่ละคลิกห่างกันเท่ากันแค่ไหน (เทียบกับนาฬิกาของระบบเสียง) ระหว่างทดสอบลองเลื่อนหน้าจอหรือสลับแอพได้ ผลจะอยู่ในหน้าข้อมูลเครื่องด้วย</string>
+    <string name="selftest_run">เริ่มทดสอบ 20 วินาที</string>
+    <string name="selftest_running">กำลังทดสอบ…</string>
+    <string name="selftest_result">ที่ %1$d BPM: คลาดเฉลี่ย %2$s ms · มากสุด %3$s ms · %4$d คลิก · เสียงสะดุด %5$d ครั้ง</string>
+    <string name="selftest_failed">วัดไม่ได้ (ระบบเสียงไม่ส่งค่าเวลา) ลองใหม่อีกครั้ง</string>
 
     <!-- Credits -->
     <string name="credits_title">เครดิตและสัญญาอนุญาต</string>
@@ -146,7 +170,6 @@
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
     <string name="about_limit_1">บทเรียนและหน้าจอวันนี้ (M6)</string>
     <string name="about_limit_2">ปรับค่าความหน่วงเสียงแยกตามอุปกรณ์ (M5) และเสียงปล่อยคีย์/เสียงสะท้อนสาย</string>
-    <string name="about_limit_3">เมโทรนอม (M4)</string>
     <string name="about_limit_4">ต่อเปียโนผ่าน MIDI (M5)</string>
     <string name="about_limit_6">ธีมมืด และภาษาอังกฤษ</string>
     <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (ไปที่หน้า release สาธารณะบน GitHub) และไม่ส่งข้อมูลของคุณออกไป</string>

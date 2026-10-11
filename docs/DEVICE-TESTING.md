@@ -33,3 +33,11 @@ The system's latency number is only an estimate. To measure it for real:
 5. Repeat for each route: speaker, wired/USB-C headphones, Bluetooth.
 
 For MIDI-to-sound latency (M5), do the same with a key on the Badger C-918, filming the key.
+
+## Metronome timing (M4)
+- In-app: Metronome → ทดสอบความแม่นยำ (20 s). It maps each click's frame to its presentation time via the
+  stream timestamps and reports the mean and max deviation of click intervals plus xruns during the test.
+  Run it once while idle and once while scrolling/switching apps; both should stay well under 1 ms
+  with 0 xruns.
+- External (true acoustic jitter): record the phone speaker with another device for 60 s at 120 BPM,
+  open the recording in an audio editor (e.g. Audacity), mark click onsets, and compare intervals to 500 ms.

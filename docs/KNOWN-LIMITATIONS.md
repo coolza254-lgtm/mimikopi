@@ -2,6 +2,15 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## As of M4 (v0.4.x)
+- The metronome self-test measures timing as presented by the audio stream (frame clock mapped through
+  getTimestamp). The speaker's fixed latency is not jitter and is not measured; true acoustic timing needs
+  the external recording method in docs/DEVICE-TESTING.md.
+- The visual beat follows the audio tick counter polled each screen frame, so the light can trail the click
+  by up to one frame plus the output latency (the sound is the reference).
+- In 6/8 the tempo counts dotted quarters (two beats per bar, three clicks each).
+- The metronome stops when its screen (or the practice screen hosting it) closes.
+
 ## As of M3 (v0.3.x)
 - Release ("damper") noise samples and sympathetic string resonance from Salamander are not used yet;
   note-off is a smooth exponential fade (0.6 s with dampers, 3-4 s for the top 20 undamped keys).

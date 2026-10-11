@@ -9,9 +9,10 @@ import kotlinx.serialization.json.Json
 enum class Hand { RIGHT, LEFT }
 
 /**
- * A piano piece as stored in content/pieces/<id>.json: one string per measure per hand, tokens like
- * "E4/q", "C4+E4+G4/h" (chord), "r/q" (rest), durations w h. h q e (whole, dotted half, half, quarter,
- * eighth). Hand-writable on purpose; MusicXML import/export comes with the editor (M10).
+ * A piano piece as stored in content/pieces/<id>.json (and user scores): one string per measure per hand, tokens
+ * like "E4/q", "C4+E4+G4/h" (chord), "r/q" (rest), durations w h. h q. q e. e s; "~" after the duration ties to
+ * the next note ("C4/h~"); "@1" or "@1+3+5" gives finger numbers. Optional per-measure chord symbols
+ * ("C@0 Am@2": symbol@beat in quarters) and repeat barlines ("start", "end", "both").
  */
 @Serializable
 data class PieceFile(
@@ -27,12 +28,23 @@ data class PieceFile(
     val tempo: Int = 80,
     val rh: List<String>,
     val lh: List<String>,
+    /** Per measure (may be shorter than the piece): "C@0 G7@2". */
+    val chords: List<String> = emptyList(),
+    /** Per measure: "", "start", "end" or "both". */
+    val repeats: List<String> = emptyList(),
+    val rhClef: String = "treble",
+    val lhClef: String = "bass",
 ) {
+    fun toJson(): String = json.encodeToString(serializer(), this)
+
     companion object {
-        private val json = Json { ignoreUnknownKeys = false }
+        private val json = Json { ignoreUnknownKeys = false; encodeDefaults = false }
         fun parse(text: String): PieceFile = json.decodeFromString(serializer(), text)
     }
 }
+
+/** A chord symbol above the staff at [beat] (quarter beats from the start of the piece). */
+data class ChordSymbol(val beat: Double, val text: String)
 
 /** One written event: a note/chord (pitches non-empty) or a rest (pitches empty). */
 data class ScoreEvent(
@@ -45,6 +57,8 @@ data class ScoreEvent(
     val pitches: List<SpelledPitch>,
     /** Written finger numbers (1-5), parallel to [pitches]; empty when none are written. */
     val fingers: List<Int> = emptyList(),
+    /** Tied to the next note of the same hand (held, not played again). */
+    val tieToNext: Boolean = false,
 ) {
     val isRest: Boolean get() = pitches.isEmpty()
     val end: Double get() = onset + duration
@@ -62,12 +76,82 @@ data class Score(
     val tempo: Int,
     val measures: Int,
     val events: List<ScoreEvent>,
+    val chordSymbols: List<ChordSymbol> = emptyList(),
+    val repeatStart: Set<Int> = emptySet(),
+    val repeatEnd: Set<Int> = emptySet(),
+    val rhClef: Clef = Clef.TREBLE,
+    val lhClef: Clef = Clef.BASS,
 ) {
     /** Measure length in quarter-note beats. */
     val measureBeats: Double get() = beatsPerMeasure * 4.0 / beatUnit
     val totalBeats: Double get() = measures * measureBeats
 
-    fun clefFor(hand: Hand) = if (hand == Hand.RIGHT) Clef.TREBLE else Clef.BASS
+    fun clefFor(hand: Hand) = if (hand == Hand.RIGHT) rhClef else lhClef
+
+    /**
+     * Notes as heard: tied notes merged into one long note. (onset, duration, MIDI, hand, first event id), sorted by onset.
+     */
+    data class Sounding(val onset: Double, val duration: Double, val midi: Int, val hand: Hand, val eventId: Int)
+
+    fun sounding(): List<Sounding> {
+        val out = mutableListOf<Sounding>()
+        for (hand in Hand.entries) {
+            val evs = events.filter { it.hand == hand }.sortedBy { it.onset }
+            val open = mutableMapOf<Int, Sounding>() // midi -> note being held through a tie
+            for (e in evs) {
+                val continuing = open.keys.toSet()
+                val next = mutableMapOf<Int, Sounding>()
+                for (p in e.pitches) {
+                    val held = open[p.midi]
+                    val note = if (held != null) held.copy(duration = held.duration + e.duration) else Sounding(e.onset, e.duration, p.midi, hand, e.id)
+                    if (e.tieToNext) next[p.midi] = note else out += note
+                }
+                // Held notes the event did not continue end where they were.
+                for (m in continuing) if (e.pitches.none { it.midi == m }) out += open.getValue(m)
+                open.clear()
+                open.putAll(next)
+            }
+            out += open.values
+        }
+        return out.sortedWith(compareBy({ it.onset }, { it.midi }))
+    }
+
+    /** Events whose notes continue a tie from the previous event (not played again). */
+    fun tiedContinuations(): Set<Int> {
+        val out = mutableSetOf<Int>()
+        for (hand in Hand.entries) {
+            val evs = events.filter { it.hand == hand }.sortedBy { it.onset }
+            evs.zipWithNext().forEach { (a, b) -> if (a.tieToNext && !b.isRest && b.pitches.map { it.midi } == a.pitches.map { it.midi }) out += b.id }
+        }
+        return out
+    }
+
+    /** Measures [from]..[to] as a piece of their own (for printing systems); events keep their ids. */
+    fun slice(from: Int, to: Int): Score {
+        val shift = measureStart(from)
+        return copy(
+            measures = to - from + 1,
+            events = events.filter { it.measure in from..to }.map { it.copy(measure = it.measure - from, onset = it.onset - shift) },
+            chordSymbols = chordSymbols.filter { it.beat >= shift - 1e-9 && it.beat < measureStart(to + 1) - 1e-9 }.map { it.copy(beat = it.beat - shift) },
+            repeatStart = repeatStart.filter { it in from..to }.map { it - from }.toSet(),
+            repeatEnd = repeatEnd.filter { it in from..to }.map { it - from }.toSet(),
+        )
+    }
+
+    /** Measure order when playing with repeats (a forward repeat sign at the start if none is written). */
+    fun playOrder(): List<Int> {
+        val out = mutableListOf<Int>()
+        var sectionStart = 0
+        for (m in 0 until measures) {
+            if (m in repeatStart) sectionStart = m
+            out += m
+            if (m in repeatEnd) {
+                out += (sectionStart..m)
+                sectionStart = m + 1
+            }
+        }
+        return out
+    }
 
     fun measureStart(measure: Int): Double = measure * measureBeats
 
@@ -87,7 +171,9 @@ data class Score(
                     var t = m * measureBeats
                     for (token in text.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }) {
                         val at = token.indexOf('@')
-                        val body = if (at >= 0) token.substring(0, at) else token
+                        var body = if (at >= 0) token.substring(0, at) else token
+                        val tie = body.endsWith("~")
+                        if (tie) body = body.dropLast(1)
                         val slash = body.lastIndexOf('/')
                         require(slash > 0) { "${file.id} m${m + 1}: bad token '$token'" }
                         val dur = DURATIONS[body.substring(slash + 1)] ?: error("${file.id} m${m + 1}: bad duration in '$token'")
@@ -99,15 +185,30 @@ data class Score(
                         }
                         // Fingers follow the pitches as written; keep them paired when sorting a chord.
                         val paired = pitches.indices.sortedBy { pitches[it].midi }
-                        events += ScoreEvent(nextId++, hand, m, t, dur, paired.map { pitches[it] }, if (fingers.isEmpty()) emptyList() else paired.map { fingers[it] })
+                        require(!tie || pitches.isNotEmpty()) { "${file.id} m${m + 1}: a rest cannot be tied" }
+                        events += ScoreEvent(nextId++, hand, m, t, dur, paired.map { pitches[it] }, if (fingers.isEmpty()) emptyList() else paired.map { fingers[it] }, tie)
                         t += dur
                     }
                     val used = t - m * measureBeats
                     require(kotlin.math.abs(used - measureBeats) < 1e-9) { "${file.id} ${hand.name} m${m + 1}: $used beats, expected $measureBeats" }
                 }
             }
+            val chords = file.chords.flatMapIndexed { m, text ->
+                text.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.map { tok ->
+                    val i = tok.lastIndexOf('@')
+                    require(i > 0) { "${file.id} m${m + 1}: bad chord symbol '$tok'" }
+                    val beat = tok.substring(i + 1).toDouble()
+                    require(beat >= 0 && beat < measureBeats) { "${file.id} m${m + 1}: chord beat out of the measure" }
+                    ChordSymbol(m * measureBeats + beat, tok.substring(0, i))
+                }
+            }
+            require(file.chords.size <= file.rh.size && file.repeats.size <= file.rh.size) { "${file.id}: more chord/repeat entries than measures" }
+            val starts = file.repeats.withIndex().filter { it.value == "start" || it.value == "both" }.map { it.index }.toSet()
+            val ends = file.repeats.withIndex().filter { it.value == "end" || it.value == "both" }.map { it.index }.toSet()
+            require(file.repeats.all { it in setOf("", "start", "end", "both") }) { "${file.id}: bad repeat mark" }
+            fun clef(name: String) = when (name) { "treble" -> Clef.TREBLE; "bass" -> Clef.BASS; else -> error("${file.id}: bad clef $name") }
             return Score(file.id, file.title, file.composer, file.source, file.level, file.key, file.time[0], file.time[1], file.tempo,
-                file.rh.size, events.sortedWith(compareBy({ it.onset }, { it.hand })))
+                file.rh.size, events.sortedWith(compareBy({ it.onset }, { it.hand })), chords, starts, ends, clef(file.rhClef), clef(file.lhClef))
         }
     }
 }

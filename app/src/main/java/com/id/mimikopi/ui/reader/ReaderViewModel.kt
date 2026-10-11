@@ -252,6 +252,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         loadPiece()
         viewModelScope.launch {
             pieces.load()
+            if (_piece.value == null) loadPiece() // user scores are read from storage first
             learning.load()
             services.database.settingsDao().get(SettingKeys.NOTE_NAME_STYLE)?.let { runCatching { nameStyle = NoteNameStyle.valueOf(it) } }
             val options = services.database.settingsDao().get(SettingKeys.READER_OPTIONS)
@@ -521,12 +522,13 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     /** Plays the other hand's notes with onset in [from, to), placing beat [from] at [anchorNanos]. */
     private fun scheduleAccompaniment(j: PlayAlongJudge, from: Double, to: Double, anchorNanos: Long) {
+        val held = j.score.sounding().associate { (it.eventId to it.midi) to it.duration }
         val durations = j.score.events.associate { it.id to it.duration }
         val beatNanos = j.beatMs * 1e6
         for (n in j.accompaniment) {
             if (n.beat < from - 1e-9 || n.beat >= to - 1e-9) continue
             val on = anchorNanos + ((n.beat - from) * beatNanos).toLong()
-            val len = ((durations[n.key.eventId] ?: 1.0) * beatNanos * 0.92).toLong().coerceAtMost(4_000_000_000L)
+            val len = ((held[n.key.eventId to n.midi] ?: durations[n.key.eventId] ?: 1.0) * beatNanos * 0.92).toLong().coerceAtMost(8_000_000_000L)
             scheduler.noteOn(on, n.midi, 62)
             scheduler.noteOff(on + len, n.midi)
         }
@@ -570,13 +572,12 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     }
 
     private fun scheduleSection(s: Score, from: Double, to: Double, t0: Long, beatNanos: Long) {
-        for (e in s.events) {
-            if (e.isRest || e.onset < from - 1e-9 || e.onset >= to - 1e-9) continue
-            val on = t0 + ((e.onset - from) * beatNanos).toLong()
-            for (p in e.pitches) {
-                scheduler.noteOn(on, p.midi, if (e.hand == Hand.RIGHT) 74 else 60)
-                scheduler.noteOff(on + (e.duration * beatNanos * 0.92).toLong(), p.midi)
-            }
+        // Tied notes are held, not struck again.
+        for (n in s.sounding()) {
+            if (n.onset < from - 1e-9 || n.onset >= to - 1e-9) continue
+            val on = t0 + ((n.onset - from) * beatNanos).toLong()
+            scheduler.noteOn(on, n.midi, if (n.hand == Hand.RIGHT) 74 else 60)
+            scheduler.noteOff(on + (minOf(n.duration, to - n.onset) * beatNanos * 0.92).toLong(), n.midi)
         }
     }
 

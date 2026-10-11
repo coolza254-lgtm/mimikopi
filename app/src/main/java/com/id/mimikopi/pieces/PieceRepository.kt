@@ -32,7 +32,41 @@ class PieceRepository(private val context: Context, private val db: AppDatabase)
             .sortedWith(compareBy({ it.level }, { it.title }))
     }
 
-    fun piece(id: String): Score? = pieces.firstOrNull { it.id == id }
+    fun piece(id: String): Score? = pieces.firstOrNull { it.id == id } ?: userScore(id)
+
+    // ---------------- user scores (written in the editor or imported) ----------------
+
+    private val _user = MutableStateFlow<Map<String, PieceFile>>(emptyMap())
+    /** The user's own scores by id. */
+    val userScores: StateFlow<Map<String, PieceFile>> = _user.asStateFlow()
+    private val userCache = mutableMapOf<String, Pair<PieceFile, Score?>>()
+
+    fun userScore(id: String): Score? {
+        val f = _user.value[id] ?: return null
+        val cached = userCache[id]
+        if (cached != null && cached.first === f) return cached.second
+        val s = runCatching { Score.from(f) }.getOrNull()
+        userCache[id] = f to s
+        return s
+    }
+
+    suspend fun loadUserScores() {
+        val rows = db.settingsDao().withPrefix(SettingKeys.USER_SCORE_PREFIX)
+        _user.value = rows.mapNotNull { r -> runCatching { PieceFile.parse(r.value) }.getOrNull() }.associateBy { it.id }
+    }
+
+    suspend fun saveUserScore(f: PieceFile) {
+        db.settingsDao().put(SettingEntity(SettingKeys.USER_SCORE_PREFIX + f.id, f.toJson()))
+        _user.value = _user.value + (f.id to f)
+    }
+
+    suspend fun deleteUserScore(id: String) {
+        db.settingsDao().delete(SettingKeys.USER_SCORE_PREFIX + id)
+        _user.value = _user.value - id
+        userCache.remove(id)
+    }
+
+    fun newUserId(): String = "user-" + System.currentTimeMillis().toString(36)
 
     /** Practice material that is not a song (scales, accompaniment patterns): content/exercises. */
     val exercises: List<Score> by lazy {
@@ -49,6 +83,7 @@ class PieceRepository(private val context: Context, private val db: AppDatabase)
     suspend fun load() = mutex.withLock {
         if (loaded) return@withLock
         loaded = true
+        loadUserScores()
         db.settingsDao().get(SettingKeys.PIECE_PROGRESS)
             ?.let { runCatching { json.decodeFromString(serializer, it) }.getOrNull() }
             ?.let { _progress.value = it }

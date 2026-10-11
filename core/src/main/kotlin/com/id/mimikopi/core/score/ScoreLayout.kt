@@ -28,8 +28,14 @@ data class ScoreLayout(
     val anchors: List<Pair<Double, Double>>,
     /** Text marks (finger numbers), drawn with the UI font; (x, y) is the centre of the text. */
     val labels: List<Label> = emptyList(),
+    val ties: List<Tie> = emptyList(),
 ) {
-    data class Label(val x: Double, val y: Double, val text: String, val eventId: Int)
+    data class Label(val x: Double, val y: Double, val text: String, val eventId: Int, val kind: LabelKind = LabelKind.FINGER)
+
+    enum class LabelKind { FINGER, CHORD }
+
+    /** A tie: an arc from (x1, y) to (x2, y), bulging up when [above]. */
+    data class Tie(val x1: Double, val x2: Double, val y: Double, val above: Boolean, val eventId: Int)
 
     sealed interface Mark { val eventId: Int? }
 
@@ -64,6 +70,17 @@ data class ScoreLayout(
         val (b0, x0) = anchors[lo]
         val (b1, x1) = anchors[hi]
         return if (b1 == b0) x0 else x0 + (x1 - x0) * (beat - b0) / (b1 - b0)
+    }
+
+    /** Beat position under an x position (inverse of [xAt]). */
+    fun beatAtX(x: Double): Double {
+        if (anchors.isEmpty()) return 0.0
+        if (x <= anchors.first().second) return anchors.first().first
+        if (x >= anchors.last().second) return anchors.last().first
+        val i = anchors.indexOfFirst { it.second > x }
+        val (b0, x0) = anchors[i - 1]
+        val (b1, x1) = anchors[i]
+        return if (x1 == x0) b0 else b0 + (b1 - b0) * (x - x0) / (x1 - x0)
     }
 
     /** Measure under an x position, or null outside the music. */
@@ -122,6 +139,29 @@ data class ScoreLayout(
         }
 
         fun of(score: Score): ScoreLayout = Engraver(score).run()
+
+        /**
+         * Measure ranges that fit systems (lines) of [width] staff spaces, for printing. Each system repeats the clef,
+         * key and time signature prefix; a measure wider than a whole line gets a line of its own.
+         */
+        fun systems(score: Score, width: Double): List<IntRange> {
+            val full = of(score)
+            val prefix = full.measures.firstOrNull()?.x0 ?: 0.0
+            val out = mutableListOf<IntRange>()
+            var start = 0
+            var used = prefix
+            for (m in full.measures) {
+                val w = m.x1 - m.x0
+                if (m.index > start && used + w > width) {
+                    out += start until m.index
+                    start = m.index
+                    used = prefix
+                }
+                used += w
+            }
+            out += start until score.measures
+            return out
+        }
     }
 }
 
@@ -146,6 +186,13 @@ private class Engraver(private val score: Score) {
             val events = byMeasure[m].orEmpty()
             val x0 = x
             x += 1.2
+            if (m in score.repeatStart) {
+                // Forward repeat: thick, thin, dots.
+                lines += ScoreLayout.Line(x0 + 0.25, ScoreLayout.TOP_Y, x0 + 0.25, ScoreLayout.BOTTOM_Y, ScoreLayout.THICK_BARLINE)
+                lines += ScoreLayout.Line(x0 + 0.85, ScoreLayout.TOP_Y, x0 + 0.85, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
+                repeatDots(x0 + 1.15)
+                x += 1.6
+            }
             // Accidental state per hand: (letter, octave) -> alteration, starting from the key signature.
             val carry = mutableMapOf<Hand, MutableMap<Pair<Letter, Int>, Int>>()
             val onsets = events.map { it.onset }.distinct().sorted()
@@ -163,10 +210,17 @@ private class Engraver(private val score: Score) {
             }
             if (onsets.isEmpty()) x += 4.0
             for (g in groups) drawBeams(g)
+            val repeatEnd = m in score.repeatEnd
+            if (repeatEnd) x += 1.6
             measures += ScoreLayout.MeasureBox(m, x0, x, start, end)
             anchors += end to x
             val last = m == score.measures - 1
-            if (last) {
+            if (repeatEnd) {
+                // Backward repeat: dots, thin, thick.
+                repeatDots(x - 1.6)
+                lines += ScoreLayout.Line(x - 0.85, ScoreLayout.TOP_Y, x - 0.85, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
+                lines += ScoreLayout.Line(x - 0.25, ScoreLayout.TOP_Y, x - 0.25, ScoreLayout.BOTTOM_Y, ScoreLayout.THICK_BARLINE)
+            } else if (last) {
                 lines += ScoreLayout.Line(x - 0.75, ScoreLayout.TOP_Y, x - 0.75, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
                 lines += ScoreLayout.Line(x - 0.25, ScoreLayout.TOP_Y, x - 0.25, ScoreLayout.BOTTOM_Y, ScoreLayout.THICK_BARLINE)
             } else {
@@ -181,13 +235,46 @@ private class Engraver(private val score: Score) {
             }
         }
         lines += ScoreLayout.Line(0.0, ScoreLayout.TOP_Y, 0.0, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
-        return ScoreLayout(width, glyphs, lines, measures, anchors.distinctBy { it.first }, labels)
+        val finalAnchors = anchors.distinctBy { it.first }
+        val partial = ScoreLayout(width, glyphs, lines, measures, finalAnchors, labels)
+        for (c in score.chordSymbols) labels += ScoreLayout.Label(partial.xAt(c.beat) + 0.6, ScoreLayout.TOP_Y - 4.8, c.text, -1, ScoreLayout.LabelKind.CHORD)
+        return ScoreLayout(width, glyphs, lines, measures, finalAnchors, labels, ties())
     }
+
+    private fun repeatDots(x: Double) {
+        for (hand in Hand.entries) for (pos in listOf(1, -1)) glyphs += ScoreLayout.Glyph(x, ScoreLayout.yOf(hand, pos), ScoreLayout.DOT)
+    }
+
+    /** Ties from each tied note to the same pitch in the next event of its hand, curving away from the stem. */
+    private fun ties(): List<ScoreLayout.Tie> {
+        val out = mutableListOf<ScoreLayout.Tie>()
+        for (hand in Hand.entries) {
+            val evs = score.events.filter { it.hand == hand }.sortedBy { it.onset }
+            for ((a, b) in evs.zipWithNext()) {
+                if (!a.tieToNext) continue
+                val headsA = heads[a.id] ?: continue
+                val headsB = heads[b.id] ?: continue
+                val up = stemUps[a.id] ?: true
+                for ((midi, xa, y) in headsA) {
+                    val xb = headsB.firstOrNull { it.first == midi }?.second ?: continue
+                    val off = if (up) 0.55 else -0.55
+                    out += ScoreLayout.Tie(xa + ScoreLayout.NOTEHEAD_WIDTH * 0.8, xb + ScoreLayout.NOTEHEAD_WIDTH * 0.2, y + off, !up, a.id)
+                }
+            }
+        }
+        return out
+    }
+
+    private val heads = mutableMapOf<Int, MutableList<Triple<Int, Double, Double>>>()
+    private val stemUps = mutableMapOf<Int, Boolean>()
 
     /** Clefs, key signature and time signature; returns the x where the first measure starts. */
     private fun prefix(): Double {
-        glyphs += ScoreLayout.Glyph(0.8, ScoreLayout.yOf(Hand.RIGHT, -2), ScoreLayout.G_CLEF)
-        glyphs += ScoreLayout.Glyph(0.8, ScoreLayout.yOf(Hand.LEFT, 2), ScoreLayout.F_CLEF)
+        for (hand in Hand.entries) {
+            // SMuFL: the G clef's origin sits on the G line (position -2), the F clef's on the F line (+2).
+            if (score.clefFor(hand) == com.id.mimikopi.core.notation.Clef.TREBLE) glyphs += ScoreLayout.Glyph(0.8, ScoreLayout.yOf(hand, -2), ScoreLayout.G_CLEF)
+            else glyphs += ScoreLayout.Glyph(0.8, ScoreLayout.yOf(hand, 2), ScoreLayout.F_CLEF)
+        }
         var x = 4.2
         val keyGlyph = if (score.keyFifths > 0) ScoreLayout.SHARP else ScoreLayout.FLAT
         val count = abs(score.keyFifths)
@@ -275,6 +362,8 @@ private class Engraver(private val score: Score) {
             val pos = positions[k]
             val hx = x + offsets[k]
             glyphs += ScoreLayout.Glyph(hx, ScoreLayout.yOf(hand, pos), head, e.id, NoteKey(e.id, k))
+            heads.getOrPut(e.id) { mutableListOf() } += Triple(e.pitches[k].midi, hx, ScoreLayout.yOf(hand, pos))
+            stemUps[e.id] = stemUp
             for (ledger in Staff.ledgerLines(pos)) {
                 val y = ScoreLayout.yOf(hand, ledger)
                 lines += ScoreLayout.Line(hx - 0.4, y, hx + headWidth + 0.4, y, ScoreLayout.LEDGER_THICKNESS, e.id)

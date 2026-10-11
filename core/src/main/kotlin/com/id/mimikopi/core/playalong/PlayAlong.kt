@@ -76,9 +76,12 @@ class PlayAlongJudge(val score: Score, val setup: PlaySetup) {
     val endBeat: Double = score.measureStart(setup.toMeasure + 1)
     val beatMs: Double = TimingRules.beatMs(setup.bpm)
 
+    /** Events that only continue a tie (held, not pressed again). */
+    private val continuations = score.tiedContinuations()
+
     /** Notes the player must play, sorted by beat. */
     val expected: List<ExpectedNote> = score.events
-        .filter { !it.isRest && it.hand in setup.hands && it.onset >= startBeat - 1e-9 && it.onset < endBeat - 1e-9 }
+        .filter { !it.isRest && it.id !in continuations && it.hand in setup.hands && it.onset >= startBeat - 1e-9 && it.onset < endBeat - 1e-9 }
         .flatMap { e -> e.pitches.mapIndexed { i, p -> ExpectedNote(NoteKey(e.id, i), p, e.onset, e.hand, e.measure) } }
         .sortedWith(compareBy({ it.beat }, { it.midi }))
 
@@ -87,7 +90,7 @@ class PlayAlongJudge(val score: Score, val setup: PlaySetup) {
 
     /** Notes the app plays for the hands the player does not play. */
     val accompaniment: List<ExpectedNote> = score.events
-        .filter { !it.isRest && it.hand !in setup.hands && it.onset >= startBeat - 1e-9 && it.onset < endBeat - 1e-9 }
+        .filter { !it.isRest && it.id !in continuations && it.hand !in setup.hands && it.onset >= startBeat - 1e-9 && it.onset < endBeat - 1e-9 }
         .flatMap { e -> e.pitches.mapIndexed { i, p -> ExpectedNote(NoteKey(e.id, i), p, e.onset, e.hand, e.measure) } }
         .sortedBy { it.beat }
 

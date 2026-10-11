@@ -89,6 +89,12 @@ interface SettingsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun put(setting: SettingEntity)
+
+    @Query("SELECT * FROM settings WHERE `key` LIKE :prefix || '%'")
+    suspend fun withPrefix(prefix: String): List<SettingEntity>
+
+    @Query("DELETE FROM settings WHERE `key` = :key")
+    suspend fun delete(key: String)
 }
 
 /** Setting keys, in one place. */
@@ -111,6 +117,8 @@ object SettingKeys {
     const val PIECE_PROGRESS = "piece.progress"
     const val READER_OPTIONS = "reader.options"
     const val BENCHMARKS = "benchmarks"
+    /** User scores: one row per score, key "score:<id>", value = piece JSON (backups include them). */
+    const val USER_SCORE_PREFIX = "score:"
     const val SESSION_MINUTES = "session.minutes"
     const val KEYBOARD_KEYS = "piano.keyCount"
 }

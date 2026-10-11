@@ -31,6 +31,10 @@ core/   com.id.mimikopi.core
   exercise/  Generators (seeded), Scoring and pass checks; ScoreGenerators: five-finger positions, finger
              patterns, rhythm cells (5.3), sight reading L1-L5 with LevelSpec (5.2), interval sets; IntervalQuiz
   session/   SessionPlanner (section 3 template, free play always); BlockContent (warm-up, new-reading level)
+  editor/    Timeline (notes on a 16th grid per hand, overwrite edits, re-barring with ties and beat-aligned rests),
+             ScoreMeta
+  interchange/ MusicXml (write; read partwise/.mxl subset), MidiFile (SMF format 1 write with repeats; read 0/1 with
+             quantisation), ImportException (Thai messages)
   ear/       EarLevel E1-E9, EarQuestion (sounds + answers), EarGenerator (weighted by weak items), EarStats,
              EarAnswers, chord voicing by degree in major keys
   progress/  TrackProgress (per track / per stage), BenchmarkResult + Benchmarks (fixed sets, 14-day schedule)
@@ -54,6 +58,9 @@ app/    com.id.mimikopi
              sessions, neutral stats), SessionTracker
   ui/today, ui/lesson, ui/practice   Today plan, lesson page, drill runner (key / note / pulse)
   pieces/    PieceRepository (bundled pieces + per-piece progress JSON in settings)
+  ui/editor  LibraryScreen (my scores: new, import, export, duplicate, delete), EditorScreen/EditorViewModel
+             (toolbar entry, step entry from keys/MIDI, touch entry on the staff, undo/redo, autosave)
+  pieces/ScoreFiles, ScorePdf  document-picker import/export; PdfDocument renderer with wrapped systems
   ui/ear     EarScreen (levels, stats, transcribe entry), EarDrillViewModel (questions, keys or buttons, rhythm echo)
   piano/BeatClock  countInDownbeat: metronome count-in mapped to presentation time
   ui/progress ProgressScreen (stages, tracks, weekly minutes, daily trends, benchmarks)

@@ -65,11 +65,16 @@ fun ScoreView(
     modifier: Modifier = Modifier,
     /** Transcribe helper: draw only the staves, clefs and bar lines. */
     hideNotes: Boolean = false,
+    /** Editor: the selected position (beat) and hand, drawn as a box instead of the play cursor. */
+    editorCursor: Pair<Double, Hand>? = null,
+    /** Editor: taps report the beat, the staff (hand) and the staff position (0 = middle line). */
+    onScoreTap: ((beat: Double, hand: Hand, position: Int) -> Unit)? = null,
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 64)
     var frame by remember { mutableLongStateOf(System.nanoTime()) }
     var manualOffset by remember { mutableFloatStateOf(0f) }
     val tap by rememberUpdatedState(onMeasureTap)
+    val scoreTap by rememberUpdatedState(onScoreTap)
     val pitches = remember(score) {
         score.events.flatMap { e -> e.pitches.mapIndexed { i, p -> NoteKey(e.id, i) to (e.hand to p) } }.toMap()
     }
@@ -86,8 +91,17 @@ fun ScoreView(
         modifier
             .pointerInput(layout) {
                 detectTapGestures { pos ->
-                    val x = (pos.x + scroll[0]) / spacePx[0]
-                    layout.measureAtX(x.toDouble())?.let { tap(it) }
+                    val sp = spacePx[0]
+                    val x = (pos.x + scroll[0]) / sp - 1f
+                    val st = scoreTap
+                    if (st != null) {
+                        val yScore = pos.y / sp + (ScoreLayout.TOP_Y.toFloat() - TOP_PAD)
+                        val hand = if (yScore < (ScoreLayout.TREBLE_Y + ScoreLayout.BASS_Y) / 2) Hand.RIGHT else Hand.LEFT
+                        val position = Math.round((ScoreLayout.staffY(hand) - yScore) * 2).toInt()
+                        st(layout.beatAtX(x.toDouble()), hand, position)
+                    } else {
+                        layout.measureAtX(x.toDouble())?.let { tap(it) }
+                    }
                 }
             }
             .pointerInput(layout, following) {
@@ -100,7 +114,13 @@ fun ScoreView(
         val maxOffset = (layout.width.toFloat() * space + space * 2 - size.width).coerceAtLeast(0f)
         val beat = cursorBeat(frame)
         val cursorX = layout.xAt(beat).toFloat() * space
-        val offset = if (following) (cursorX - size.width * CURSOR_AT).coerceIn(0f, maxOffset) else manualOffset.coerceIn(0f, maxOffset)
+        val editX = editorCursor?.let { layout.xAt(it.first).toFloat() * space }
+        val offset = when {
+            following -> (cursorX - size.width * CURSOR_AT).coerceIn(0f, maxOffset)
+            // The editor keeps the selection on screen.
+            editX != null -> (editX - size.width * 0.4f).coerceIn(0f, maxOffset)
+            else -> manualOffset.coerceIn(0f, maxOffset)
+        }
         scroll[0] = offset
         fun px(x: Double) = x.toFloat() * space - offset + space
         fun py(y: Double) = (y.toFloat() - (ScoreLayout.TOP_Y.toFloat() - TOP_PAD)) * space
@@ -154,8 +174,22 @@ fun ScoreView(
         if (!hideNotes) for (lb in layout.labels) {
             val x = px(lb.x)
             if (x !in visible) continue
-            val t = measurer.measure(lb.text, TextStyle(fontSize = (space * 1.3f).toSp(), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold))
-            drawText(t, color = Tokens.Palette.Ink, topLeft = Offset(x - t.size.width / 2f, py(lb.y) - t.size.height / 2f))
+            val chord = lb.kind == ScoreLayout.LabelKind.CHORD
+            val t = measurer.measure(lb.text, TextStyle(fontSize = (space * if (chord) 1.9f else 1.3f).toSp(), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold))
+            val left = if (chord) x else x - t.size.width / 2f
+            drawText(t, color = Tokens.Palette.Ink, topLeft = Offset(left, py(lb.y) - t.size.height / 2f))
+        }
+        if (!hideNotes) for (tie in layout.ties) {
+            val x1 = px(tie.x1)
+            val x2 = px(tie.x2)
+            if (x2 < visible.start || x1 > visible.endInclusive) continue
+            val y = py(tie.y)
+            val bulge = (if (tie.above) -1f else 1f) * space * 0.9f
+            val path = androidx.compose.ui.graphics.Path().apply {
+                moveTo(x1, y)
+                quadraticTo((x1 + x2) / 2, y + bulge * 2, x2, y)
+            }
+            drawPath(path, Tokens.Palette.Ink, style = Stroke(space * 0.16f))
         }
 
         // Wrong keys: hollow red heads where that pitch would sit, at the beat it was played.
@@ -168,8 +202,16 @@ fun ScoreView(
             drawCircle(Tokens.Palette.Error, radius = space * 0.6f, center = Offset(cx, py(ScoreLayout.yOf(hand, pos))), style = Stroke(space * 0.22f))
         }
 
-        drawLine(Tokens.Palette.Rose, Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.TOP_Y - 2.5)),
-            Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.BOTTOM_Y + 2.5)), strokeWidth = space * 0.3f)
+        if (editorCursor != null) {
+            val (b, hand) = editorCursor
+            val cx = px(layout.xAt(b))
+            val cy = py(ScoreLayout.staffY(hand))
+            drawRect(Tokens.Palette.Rose.copy(alpha = 0.25f), Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f))
+            drawRect(Tokens.Palette.Rose, Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f), style = Stroke(space * 0.15f))
+        } else {
+            drawLine(Tokens.Palette.Rose, Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.TOP_Y - 2.5)),
+                Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.BOTTOM_Y + 2.5)), strokeWidth = space * 0.3f)
+        }
     }
 }
 

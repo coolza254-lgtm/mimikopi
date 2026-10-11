@@ -16,6 +16,8 @@ import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.ui.progress.ProgressScreen
 import com.id.mimikopi.ui.ear.EarDrillScreen
 import com.id.mimikopi.ui.ear.EarScreen
+import com.id.mimikopi.ui.editor.EditorScreen
+import com.id.mimikopi.ui.editor.LibraryScreen
 import com.id.mimikopi.ui.about.AboutScreen
 import com.id.mimikopi.ui.about.CreditsScreen
 import com.id.mimikopi.ui.piano.PianoScreen
@@ -65,6 +67,8 @@ private object Routes {
     const val BENCH_DRILL = "benchdrill/{benchmark}"
     const val PROGRESS = "progress"
     const val EAR = "ear"
+    const val LIBRARY = "library"
+    const val EDITOR = "editor/{scoreId}"
     const val EAR_DRILL = "eardrill/{level}?bench={bench}"
     fun lesson(id: String) = "lesson/$id"
     fun drill(id: String, index: Int) = "drill/$id/$index"
@@ -100,6 +104,7 @@ private fun AppNavigation() {
                 onOpenReader = { nav.navigate(Routes.PIECES_ALL) },
                 onOpenProgress = { nav.navigate(Routes.PROGRESS) },
                 onOpenEar = { nav.navigate(Routes.EAR) },
+                onOpenLibrary = { nav.navigate(Routes.LIBRARY) },
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
@@ -140,6 +145,10 @@ private fun AppNavigation() {
                 onBenchEar = { nav.navigate("eardrill/bench?bench=true") },
             )
         }
+        composable(Routes.LIBRARY) {
+            LibraryScreen(onBack = { nav.popBackStack() }, onEdit = { nav.navigate("editor/$it") }, onPlay = { nav.navigate(Routes.reader(it, null)) })
+        }
+        composable(Routes.EDITOR) { EditorScreen(onBack = { nav.popBackStack() }, onPlayAlong = { nav.navigate(Routes.reader(it, null)) }) }
         composable(Routes.EAR) {
             EarScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("eardrill/$it") }, onTranscribe = { nav.navigate(Routes.PIECES_ALL) })
         }

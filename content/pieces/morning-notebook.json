@@ -1,0 +1,30 @@
+{
+  "id": "morning-notebook",
+  "title": "เพลงเช้าในสมุด",
+  "composer": "แต่งใหม่สำหรับแอพ ミミコピ",
+  "source": "Original piece written for the app (no outside material).",
+  "level": "L4",
+  "key": 0,
+  "time": [3, 4],
+  "tempo": 90,
+  "rh": [
+    "C4/q E4/q G4/q",
+    "A4/h G4/q",
+    "F4/q E4/q D4/q",
+    "E4/h.",
+    "C4/q E4/q G4/q",
+    "C5/h B4/q",
+    "A4/q F4/q D4/q",
+    "C4/h."
+  ],
+  "lh": [
+    "C3/h.",
+    "F3/h.",
+    "G3/h.",
+    "C3/h.",
+    "C3/h.",
+    "E3/h.",
+    "F3/h G3/q",
+    "C3/h."
+  ]
+}

@@ -579,7 +579,6 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             }
         }
     }
-    }
 
     private fun onInput(e: InputEvent) {
         val j = judge ?: return

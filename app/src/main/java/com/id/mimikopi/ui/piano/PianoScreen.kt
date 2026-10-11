@@ -59,6 +59,7 @@ fun PianoScreen(onBack: () -> Unit, vm: PianoViewModel = viewModel()) {
     val pack by vm.pack.collectAsStateWithLifecycle()
     val keys by vm.keys.collectAsStateWithLifecycle()
     val engineError by vm.engineError.collectAsStateWithLifecycle()
+    val pressed by vm.pressed.collectAsStateWithLifecycle()
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
@@ -109,7 +110,7 @@ fun PianoScreen(onBack: () -> Unit, vm: PianoViewModel = viewModel()) {
                 PianoKeyboard(
                     lowNote = keys.lowNote,
                     highNote = high,
-                    pressed = keys.pressed,
+                    pressed = pressed,
                     showNames = keys.showNames,
                     nameStyle = keys.nameStyle,
                     onNoteOn = vm::noteOn,

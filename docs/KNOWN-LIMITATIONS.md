@@ -2,6 +2,14 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## As of M5 (v0.5.x)
+- USB MIDI is the tested path; Bluetooth MIDI devices already paired in Android may appear but there is
+  no in-app Bluetooth pairing/scan yet.
+- Latency calibration measures the whole chain (input + audio output + the player's habit) for the current
+  output route; it is stored per "input source | route" and applied by the practice scoring (from M6/M7).
+- The octave offset applies to all MIDI devices (one piano expected).
+- The Badger C-918's real behaviour is unknown until the checklist in docs/BADGER-C918-CHECKLIST.md is run.
+
 ## As of M4 (v0.4.x)
 - The metronome self-test measures timing as presented by the audio stream (frame clock mapped through
   getTimestamp). The speaker's fixed latency is not jitter and is not measured; true acoustic timing needs

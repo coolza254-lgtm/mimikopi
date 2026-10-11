@@ -12,6 +12,7 @@ import com.id.mimikopi.ui.about.AboutScreen
 import com.id.mimikopi.ui.about.CreditsScreen
 import com.id.mimikopi.ui.piano.PianoScreen
 import com.id.mimikopi.ui.metronome.MetronomeScreen
+import com.id.mimikopi.ui.midi.MidiScreen
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
 import com.id.mimikopi.ui.home.HomeScreen
 import com.id.mimikopi.ui.settings.SettingsScreen
@@ -35,6 +36,7 @@ private object Routes {
     const val PIANO = "piano"
     const val CREDITS = "credits"
     const val METRONOME = "metronome"
+    const val MIDI = "midi"
 }
 
 @Composable
@@ -48,6 +50,7 @@ private fun AppNavigation() {
                 onOpenSettings = { nav.navigate(Routes.SETTINGS) },
                 onOpenPiano = { nav.navigate(Routes.PIANO) },
                 onOpenMetronome = { nav.navigate(Routes.METRONOME) },
+                onOpenMidi = { nav.navigate(Routes.MIDI) },
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
@@ -55,6 +58,7 @@ private fun AppNavigation() {
         composable(Routes.CREDITS) { CreditsScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.PIANO) { PianoScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.METRONOME) { MetronomeScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.MIDI) { MidiScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
     }
 }

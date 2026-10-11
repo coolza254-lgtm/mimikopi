@@ -1,0 +1,107 @@
+package com.id.mimikopi.core
+
+import com.id.mimikopi.core.input.InputConfig
+import com.id.mimikopi.core.input.InputEvent
+import com.id.mimikopi.core.input.InputSource
+import com.id.mimikopi.core.input.LatencyCalibration
+import com.id.mimikopi.core.input.MidiParser
+import com.id.mimikopi.core.input.OctaveCalibration
+import com.id.mimikopi.core.input.VelocityProbe
+import com.id.mimikopi.core.input.shifted
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+class MidiParserTest {
+    private fun parse(vararg bytes: Int): List<InputEvent> {
+        val out = mutableListOf<InputEvent>()
+        val p = MidiParser(InputSource.USB_MIDI)
+        p.parse(ByteArray(bytes.size) { bytes[it].toByte() }, 0, bytes.size, 7L) { out += it }
+        return out
+    }
+
+    @Test
+    fun noteOnOffAndVelocityZero() {
+        assertEquals(
+            listOf(
+                InputEvent.NoteOn(60, 100, 7, InputSource.USB_MIDI),
+                InputEvent.NoteOff(60, 7, InputSource.USB_MIDI),
+                InputEvent.NoteOff(62, 7, InputSource.USB_MIDI),
+            ),
+            parse(0x90, 60, 100, 0x90, 60, 0, 0x80, 62, 40),
+        )
+    }
+
+    @Test
+    fun runningStatusAndAnyChannel() {
+        val events = parse(0x93, 60, 90, 64, 80, 60, 0)
+        assertEquals(3, events.size)
+        assertEquals(InputEvent.NoteOn(64, 80, 7, InputSource.USB_MIDI), events[1])
+        assertEquals(InputEvent.NoteOff(60, 7, InputSource.USB_MIDI), events[2])
+    }
+
+    @Test
+    fun realtimeBytesInsideAMessageAreIgnored() {
+        assertEquals(listOf(InputEvent.NoteOn(60, 99, 7, InputSource.USB_MIDI)), parse(0x90, 0xF8, 60, 0xFE, 99))
+    }
+
+    @Test
+    fun sysexIsSkippedAndSustainIsMapped() {
+        val events = parse(0xF0, 0x7E, 0x01, 0x90, 0xF7, 0xB0, 64, 127, 0xB0, 64, 0, 0xB0, 1, 50)
+        assertEquals(
+            listOf(
+                InputEvent.Sustain(true, 7, InputSource.USB_MIDI),
+                InputEvent.Sustain(false, 7, InputSource.USB_MIDI),
+                InputEvent.Control(1, 50, 7, InputSource.USB_MIDI),
+            ),
+            events,
+        )
+    }
+
+    @Test
+    fun messagesSplitAcrossCallsStillParse() {
+        val out = mutableListOf<InputEvent>()
+        val p = MidiParser(InputSource.USB_MIDI)
+        p.parse(byteArrayOf(0x90.toByte(), 60), 0, 2, 1) { out += it }
+        p.parse(byteArrayOf(70), 0, 1, 2) { out += it }
+        assertEquals(listOf<InputEvent>(InputEvent.NoteOn(60, 70, 2, InputSource.USB_MIDI)), out)
+    }
+
+    @Test
+    fun octaveShiftDropsOutOfRange() {
+        assertEquals(72, (InputEvent.NoteOn(60, 1, 0, InputSource.USB_MIDI).shifted(12) as InputEvent.NoteOn).note)
+        assertNull(InputEvent.NoteOn(120, 1, 0, InputSource.USB_MIDI).shifted(12))
+    }
+}
+
+class CalibrationTest {
+    @Test
+    fun velocityProbe() {
+        assertFalse(VelocityProbe.analyze(listOf(100, 100, 100), listOf(100, 100)).velocitySensitive)
+        assertTrue(VelocityProbe.analyze(listOf(30, 35, 41), listOf(98, 110, 120)).velocitySensitive)
+        assertFalse(VelocityProbe.analyze(listOf(60, 64), listOf(62, 66)).velocitySensitive) // varies but no real difference
+        assertTrue(InputConfig().dynamicsAvailable) // unknown until probed
+    }
+
+    @Test
+    fun octaveOffset() {
+        assertEquals(0, OctaveCalibration.offsetFor(60))
+        assertEquals(12, OctaveCalibration.offsetFor(48))
+        assertEquals(-12, OctaveCalibration.offsetFor(72))
+        assertEquals(12, OctaveCalibration.offsetFor(49)) // aimed at C, slipped onto C#
+        assertNull(OctaveCalibration.offsetFor(54)) // F#: not an attempt at C
+    }
+
+    @Test
+    fun latencyMedianIgnoresOutliersAndNeedsEnoughTaps() {
+        val clicks = List(16) { it * 750_000_000.0 }
+        val taps = clicks.mapIndexed { i, c -> (c + 1e6 * (95 + (i % 3) * 5)).toLong() } + listOf(5_000_000_000L + 330_000_000L)
+        val r = assertNotNull(LatencyCalibration.analyze(clicks, taps))
+        assertEquals(100.0, r.offsetMs, 0.01)
+        assertEquals(17, r.taps) // the stray tap is kept but cannot move the median
+        assertNull(LatencyCalibration.analyze(clicks, taps.take(5)))
+    }
+}

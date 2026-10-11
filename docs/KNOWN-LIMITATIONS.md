@@ -2,6 +2,21 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## As of M9 (v0.9.x)
+- Ear training E1-E9 (learning-system.md 11). Levels unlock by stage (E1-E2 stage 1, E3/E4/E6 stage 2, E5 stage 3,
+  E7-E8 stage 5, E9 stage 6); locked levels can still be tried early. E3/E4/E6 unlock stages are my own choice
+  (the spec fixes only E1-E2 and E7).
+- Progressions use major keys C, G, F, D and degrees I ii iii IV V vi (no vii°, no minor keys, no 7th chords in
+  progressions yet). Chords are played in close root position near Middle C with the root in the bass.
+- E8 bass lines use the progressions of 8.1 with some chords in first or second inversion.
+- E9 is a generated two-bar phrase (key note, chords, melody), not a real song.
+- Answers by keys are judged on the first press (melodies: the whole line, any wrong note = wrong; can be retried
+  without counting). Statistics use the last 10 answers per kind; weak kinds are asked more often.
+- Ear items join spaced repetition (as the spec lists); reading reviews and ear items are kept apart.
+- Transcribe helper: works on the app's pieces (hide notes, loop the section, slow down, play the guess in wait
+  mode). Your own phrases come with the editor (M10); importing audio files is a later optional feature.
+- Fixed: finger numbers from M8 were laid out but not drawn in the reader; they are drawn now.
+
 ## As of M8 (v0.8.x)
 - Lessons: stages 1-3 (1.1-3.8). Stage 3's "pieces + stage test" (3.7 in learning-system.md) is split into 3.7 (pieces) and
   3.8 (test) so piece passes and the test count separately. Position D moved from 2.3 to 2.4 (it needs F♯, taught in 2.4).
@@ -13,8 +28,8 @@ Updated each milestone. Mirrors the "ยังไม่มีในรุ่น�
   after a clean run or three runs.
 - The app checks notes and timing but cannot see which finger plays (fingering is shown, not judged).
 - Benchmarks (12.1): note-reading speed (30 fixed notes, time counted only while answering), highest sight-reading
-  level played clean once (fixed pieces L1-L5), pulse SD at 70 bpm. Chord changes and ear training join when those
-  features exist. Benchmark runs do not update spaced repetition.
+  level played clean once (fixed pieces L1-L5), pulse SD at 70 bpm, and (from M9) a fixed 20-question ear set. Chord
+  changes join when that feature exists. Benchmark runs do not update spaced repetition.
 - Progress: lessons per stage and per track, minutes per week (8 weeks), daily reading accuracy and timing (30 days).
   Charts are drawn natively without touch tooltips; the numbers are shown as text under each chart.
 - Warm-up uses the latest five-finger or scale drill reached; new reading is one level below the highest level reached.

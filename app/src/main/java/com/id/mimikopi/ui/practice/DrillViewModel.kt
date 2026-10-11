@@ -144,7 +144,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 val d = drill!!
                 _ui.value = DrillUi.Ready(d.title, d.type, d.items, if (d.type == ExerciseType.E_PULSE) d.bpmMin else null)
             } else if (review) {
-                val due = repo.dueItems()
+                val due = repo.readingDueItems()
                 drill = Drill(ExerciseType.E_NOTEID, "ทบทวน", items = due.size.coerceAtLeast(1))
                 _ui.value = if (due.isEmpty()) DrillUi.Result("ไม่มีรายการที่ต้องทวนตอนนี้ 👍", null, false, listOf("รายการจะกลับมาตามกำหนดของระบบทบทวน")) else DrillUi.Ready("ทบทวน", ExerciseType.E_NOTEID, due.size, null)
                 keyRange = 45..76
@@ -232,7 +232,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             }
             if (bench == "pulse") { runPulse(null, d); return@launch }
             if (review) {
-                val due = repo.dueItems()
+                val due = repo.readingDueItems()
                 queue += due.map { id ->
                     if (id.startsWith("key:")) Prompt.Key(KeyFindItem(Letter.valueOf(id.removePrefix("key:")), null))
                     else Prompt.Note(NoteIdItem.parse(id))

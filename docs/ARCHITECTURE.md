@@ -31,6 +31,8 @@ core/   com.id.mimikopi.core
   exercise/  Generators (seeded), Scoring and pass checks; ScoreGenerators: five-finger positions, finger
              patterns, rhythm cells (5.3), sight reading L1-L5 with LevelSpec (5.2), interval sets; IntervalQuiz
   session/   SessionPlanner (section 3 template, free play always); BlockContent (warm-up, new-reading level)
+  ear/       EarLevel E1-E9, EarQuestion (sounds + answers), EarGenerator (weighted by weak items), EarStats,
+             EarAnswers, chord voicing by degree in major keys
   progress/  TrackProgress (per track / per stage), BenchmarkResult + Benchmarks (fixed sets, 14-day schedule)
   score/     PieceFile (content/pieces/*.json, hand-writable tokens), Score (+ measure checks), KeySignature,
              ScoreLayout: own engraver -> one long grand-staff strip in staff spaces (SMuFL glyphs, stems,
@@ -52,6 +54,8 @@ app/    com.id.mimikopi
              sessions, neutral stats), SessionTracker
   ui/today, ui/lesson, ui/practice   Today plan, lesson page, drill runner (key / note / pulse)
   pieces/    PieceRepository (bundled pieces + per-piece progress JSON in settings)
+  ui/ear     EarScreen (levels, stats, transcribe entry), EarDrillViewModel (questions, keys or buttons, rhythm echo)
+  piano/BeatClock  countInDownbeat: metronome count-in mapped to presentation time
   ui/progress ProgressScreen (stages, tracks, weekly minutes, daily trends, benchmarks)
   ui/reader  ReaderViewModel.Source: library piece, lesson score drill, new reading, benchmark level;
              PieceListScreen (optionally filtered by a repertoire drill), ReaderScreen/ReaderViewModel (count-in from native metronome tick frames

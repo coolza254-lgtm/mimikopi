@@ -63,6 +63,8 @@ fun ScoreView(
     nameStyle: NoteNameStyle,
     onMeasureTap: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** Transcribe helper: draw only the staves, clefs and bar lines. */
+    hideNotes: Boolean = false,
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 64)
     var frame by remember { mutableLongStateOf(System.nanoTime()) }
@@ -119,6 +121,7 @@ fun ScoreView(
         }
 
         for (l in layout.lines) {
+            if (hideNotes && l.eventId != null) continue
             val x1 = px(l.x1)
             val x2 = px(l.x2)
             if (maxOf(x1, x2) < visible.start || minOf(x1, x2) > visible.endInclusive) continue
@@ -127,6 +130,7 @@ fun ScoreView(
 
         val glyphStyle = TextStyle(fontFamily = Bravura, fontSize = (space * 4f).toSp())
         for (g in layout.glyphs) {
+            if (hideNotes && g.eventId != null) continue
             val x = px(g.x)
             if (x !in visible) continue
             val result = g.note?.let { results[it] }
@@ -144,6 +148,14 @@ fun ScoreView(
             if (showNames) {
                 pitches[key]?.let { (_, p) -> text(measurer, p.name(nameStyle), x - space * 0.2f, py(g.y) + space * 0.7f, space * 1.1f, Tokens.Palette.InkMuted) }
             }
+        }
+
+        // Finger numbers, centred on their (x, y).
+        if (!hideNotes) for (lb in layout.labels) {
+            val x = px(lb.x)
+            if (x !in visible) continue
+            val t = measurer.measure(lb.text, TextStyle(fontSize = (space * 1.3f).toSp(), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold))
+            drawText(t, color = Tokens.Palette.Ink, topLeft = Offset(x - t.size.width / 2f, py(lb.y) - t.size.height / 2f))
         }
 
         // Wrong keys: hollow red heads where that pitch would sit, at the beat it was played.

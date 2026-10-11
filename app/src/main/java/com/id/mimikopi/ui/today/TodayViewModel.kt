@@ -79,6 +79,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
                 if (warmup != null) add(BlockKind.WARMUP)
                 if (newReading != null) add(BlockKind.NEW_READING)
                 add(BlockKind.REVIEW)
+                add(BlockKind.EAR) // E1-E2 are open from stage 1
                 if (rhythm != null) add(BlockKind.RHYTHM)
                 if (current != null && !light) add(BlockKind.LESSON)
             }

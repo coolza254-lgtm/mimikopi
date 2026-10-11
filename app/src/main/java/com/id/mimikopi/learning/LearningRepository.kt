@@ -138,7 +138,24 @@ class LearningRepository(private val context: Context, private val db: AppDataba
     suspend fun dueItems(prefix: String? = null, now: Long = System.currentTimeMillis()): List<String> =
         leitner.selectDue(itemStates().values.filter { prefix == null || it.itemId.startsWith(prefix) }, now).map { it.itemId }
 
-    suspend fun dueCount(now: Long = System.currentTimeMillis()): Int = leitner.selectDue(itemStates().values, now).size
+    /** Due reading items (key positions and notes); ear items are practised in ear training. */
+    suspend fun dueCount(now: Long = System.currentTimeMillis()): Int =
+        leitner.selectDue(itemStates().values.filter { isReading(it.itemId) }, now).size
+
+    suspend fun readingDueItems(now: Long = System.currentTimeMillis()): List<String> =
+        leitner.selectDue(itemStates().values.filter { isReading(it.itemId) }, now).map { it.itemId }
+
+    /** Due ear items, most urgent first. */
+    suspend fun earDueItems(now: Long = System.currentTimeMillis()): List<String> =
+        leitner.selectDue(itemStates().values.filter { it.itemId.startsWith("ear:") }, now).map { it.itemId }
+
+    fun isReading(itemId: String) = itemId.startsWith("key:") || itemId.startsWith("note:")
+
+    /** Recent results per ear item (the last 10 answers each) for the statistics of learning-system.md 11.4. */
+    suspend fun earStats(): List<com.id.mimikopi.core.ear.EarStats.ItemStat> =
+        db.learningDao().itemStats().filter { it.itemId.startsWith("ear:") }.map {
+            com.id.mimikopi.core.ear.EarStats.ItemStat(it.itemId, it.lastResults.count { c -> c == '1' }, it.lastResults.length, it.medianResponseMs)
+        }
 
     suspend fun dueTomorrowCount(): Int {
         val tomorrow = LocalDate.now().plusDays(1).atTime(23, 59).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()

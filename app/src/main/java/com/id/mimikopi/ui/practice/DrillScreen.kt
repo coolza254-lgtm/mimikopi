@@ -1,6 +1,7 @@
 package com.id.mimikopi.ui.practice
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -54,6 +55,7 @@ import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.PianoKeyboard
 import com.id.mimikopi.ui.components.StaffView
 import com.id.mimikopi.ui.components.StaffSequenceView
+import com.id.mimikopi.ui.components.paper
 import com.id.mimikopi.ui.theme.Tokens
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,12 +70,13 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        modifier = Modifier.paper(),
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.drill_title), style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.action_back)) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
             )
         },
     ) { padding ->
@@ -113,7 +116,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         s.feedback?.let { f ->
                             Text(
                                 stringResource(if (f == Feedback.CORRECT) R.string.drill_correct else R.string.drill_wrong),
-                                color = if (f == Feedback.CORRECT) Tokens.Palette.Ink else MaterialTheme.colorScheme.error,
+                                color = if (f == Feedback.CORRECT) Tokens.Palette.GoodInk else MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.align(Alignment.BottomCenter),
                             )
@@ -168,13 +171,26 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
                     }
                     Column(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                        Text(s.label, style = MaterialTheme.typography.headlineMedium.copy(fontSize = 40.sp, fontWeight = FontWeight.Bold), textAlign = TextAlign.Center)
+                        // The asked chord in a notebook card: the symbol or numeral big, the key underneath.
+                        val parts = s.label.split(" ในคีย์ ", limit = 2)
+                        Column(
+                            Modifier
+                                .background(Tokens.Palette.MustardSoft, RoundedCornerShape(28.dp))
+                                .padding(bottom = 6.dp)
+                                .background(Tokens.Palette.Card, RoundedCornerShape(28.dp))
+                                .border(Tokens.border, Tokens.Palette.Line, RoundedCornerShape(28.dp))
+                                .padding(horizontal = 36.dp, vertical = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(parts[0], fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = 56.sp, color = Tokens.Palette.Ink, textAlign = TextAlign.Center)
+                            if (parts.size > 1) Text(stringResource(R.string.drill_chord_in_key, parts[1]), style = MaterialTheme.typography.titleMedium)
+                        }
                         s.next?.let { Text(stringResource(R.string.drill_chord_next, it), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         if (s.secondsLeft == null) Text(stringResource(R.string.drill_chord_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.padding(top = Tokens.Space.s))
                         s.feedback?.let { f ->
                             Text(
                                 stringResource(if (f == Feedback.CORRECT) R.string.drill_correct else R.string.drill_chord_wrong),
-                                color = if (f == Feedback.CORRECT) Tokens.Palette.Ink else MaterialTheme.colorScheme.error,
+                                color = if (f == Feedback.CORRECT) Tokens.Palette.GoodInk else MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(top = Tokens.Space.m),
                             )

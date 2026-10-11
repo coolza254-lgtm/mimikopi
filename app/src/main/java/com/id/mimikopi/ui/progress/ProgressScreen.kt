@@ -1,5 +1,15 @@
 package com.id.mimikopi.ui.progress
 
+import androidx.compose.ui.text.font.FontWeight
+
+import androidx.compose.foundation.shape.RoundedCornerShape
+
+import androidx.compose.foundation.layout.Box
+
+import androidx.compose.foundation.border
+
+import androidx.compose.foundation.background
+
 import android.app.Application
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
@@ -108,15 +118,32 @@ class ProgressViewModel(app: Application) : AndroidViewModel(app) {
 }
 
 @Composable
-fun ProgressScreen(onBack: () -> Unit, onBenchNotes: () -> Unit, onBenchPulse: () -> Unit, onBenchReading: () -> Unit, onBenchEar: () -> Unit, vm: ProgressViewModel = viewModel()) {
+fun ProgressScreen(onBack: (() -> Unit)?, onBenchNotes: () -> Unit, onBenchPulse: () -> Unit, onBenchReading: () -> Unit, onBenchEar: () -> Unit, vm: ProgressViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     ScreenScaffold(title = stringResource(R.string.progress_title), onBack = onBack) {
         Text(stringResource(R.string.progress_intro, ui.totalMinutes, ui.daysPracticed), style = MaterialTheme.typography.bodyMedium)
 
         PageCard(title = stringResource(R.string.progress_lessons)) {
-            ui.stages.forEach { st ->
-                LabeledBar(stringResource(R.string.progress_stage, st.stage), st.passed, st.total)
+            // Stage tiles: done (green), current (rose with a ring), later (plain).
+            val current = ui.stages.firstOrNull { it.passed < it.total }?.stage
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = Tokens.Space.s)) {
+                ui.stages.forEach { st ->
+                    val done = st.passed >= st.total && st.total > 0
+                    val now = st.stage == current
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(
+                            Modifier.fillMaxWidth().height(44.dp)
+                                .background(if (done) Tokens.Palette.Good else if (now) Tokens.Palette.Rose else Tokens.Palette.Track, RoundedCornerShape(10.dp))
+                                .border(if (now) 2.dp else 0.dp, if (now) Tokens.Palette.RoseDeep else Tokens.Palette.Track, RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("${st.stage}", fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = 17.sp,
+                                color = if (done) androidx.compose.ui.graphics.Color.White else if (now) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
+                        }
+                        Text("${st.passed}/${st.total}", style = MaterialTheme.typography.labelSmall, color = if (now) Tokens.Palette.RoseDeep else Tokens.Palette.InkMuted)
+                    }
+                }
             }
             Text(stringResource(R.string.progress_pieces, ui.piecesPassed, ui.piecesTotal), style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = Tokens.Space.s))
@@ -196,12 +223,7 @@ private fun trackName(track: String): String = stringResource(when (track) {
 private fun LabeledBar(label: String, passed: Int, total: Int) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Tokens.Space.xs)) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.width(150.dp))
-        LinearProgressIndicator(
-            progress = { if (total == 0) 0f else passed.toFloat() / total },
-            color = Tokens.Palette.ChartMark,
-            trackColor = Tokens.Palette.Line,
-            modifier = Modifier.weight(1f).height(8.dp),
-        )
+        com.id.mimikopi.ui.components.MeterBar(if (total == 0) 0f else passed.toFloat() / total, Modifier.weight(1f), height = 10.dp)
         Text("  $passed/$total", style = MaterialTheme.typography.bodySmall)
     }
 }

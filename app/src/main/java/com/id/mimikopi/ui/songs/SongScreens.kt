@@ -1,6 +1,23 @@
 package com.id.mimikopi.ui.songs
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.id.mimikopi.ui.components.MeterBar
+import com.id.mimikopi.ui.components.Pill
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,25 +57,13 @@ import com.id.mimikopi.ui.theme.Tokens
 private val KEY_CHOICES = (-6..6).toList()
 
 @Composable
-fun SongListScreen(onBack: () -> Unit, onOpen: (String) -> Unit, vm: SongListViewModel = viewModel()) {
+fun SongListScreen(onBack: (() -> Unit)?, onOpen: (String) -> Unit, vm: SongListViewModel = viewModel()) {
     val ladder by vm.ladder.collectAsStateWithLifecycle()
     var adding by remember { mutableStateOf(false) }
     ScreenScaffold(title = stringResource(R.string.songs_title), onBack = onBack) {
         Text(stringResource(R.string.songs_intro), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.songs_add)) }
-        ladder.forEachIndexed { i, (song, a) ->
-            PageCard(title = "${i + 1}. ${song.title}", onClick = { onOpen(song.id) }) {
-                if (song.artist.isNotBlank()) Text(song.artist, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(stringResource(R.string.songs_difficulty, a.score), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = Tokens.Space.xs))
-                Text(
-                    if (a.missing.isEmpty()) stringResource(R.string.songs_ready)
-                    else stringResource(R.string.songs_missing, a.missing.size, a.missing.map { it.lessonId }.distinct().joinToString()),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(stringResource(R.string.songs_pipeline, song.pipeline.count { it.done }), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (a.unverified.isNotEmpty()) Text(stringResource(R.string.songs_unverified, a.unverified.joinToString()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+        Column { ladder.forEachIndexed { i, (song, a) -> LadderRung(i, song, a, last = i == ladder.lastIndex, onOpen = { onOpen(song.id) }) } }
     }
     if (adding) {
         var title by remember { mutableStateOf("") }
@@ -75,6 +80,44 @@ fun SongListScreen(onBack: () -> Unit, onOpen: (String) -> Unit, vm: SongListVie
             confirmButton = { TextButton(onClick = { adding = false; vm.add(title, artist, onOpen) }) { Text(stringResource(R.string.songs_create)) } },
             dismissButton = { TextButton(onClick = { adding = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+/** One rung of the Song Ladder: the step number on a rail and the song card (the first rung is highlighted). */
+@Composable
+private fun LadderRung(i: Int, song: Song, a: SongAnalysis, last: Boolean, onOpen: () -> Unit) {
+    val first = i == 0
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.width(34.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                Modifier.padding(top = 14.dp).size(34.dp)
+                    .background(if (first) Tokens.Palette.Mustard else Tokens.Palette.Card, CircleShape)
+                    .border(if (first) 0.dp else 2.dp, Tokens.Palette.Line, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) { Text("${i + 1}", fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = 16.sp, color = if (first) Tokens.Palette.Ink else Tokens.Palette.InkMuted) }
+            if (!last) Box(Modifier.weight(1f).width(2.dp).background(Tokens.Palette.Line))
+        }
+        PageCard(onClick = onOpen, accent = if (first) Tokens.Palette.Mustard else null, modifier = Modifier.weight(1f).padding(bottom = 12.dp)) {
+            Text(song.title, style = MaterialTheme.typography.titleMedium)
+            val meta = listOfNotNull(song.artist.ifBlank { null }, song.year.ifBlank { null }, song.bpm?.let { "$it bpm" },
+                song.key?.let { "คีย์ ${Keys.name(it)}" }).joinToString(" · ")
+            if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+            Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.songs_difficulty_short), style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(64.dp))
+                MeterBar(a.score / 100f, Modifier.weight(1f))
+                Text("${a.score}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(24.dp))
+            }
+            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.songs_days_short), style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(64.dp))
+                song.pipeline.forEach { d -> Box(Modifier.size(22.dp, 8.dp).background(if (d.done) Tokens.Palette.Good else Tokens.Palette.Line, RoundedCornerShape(4.dp))) }
+            }
+            FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (a.missing.isEmpty()) Pill(stringResource(R.string.songs_ready), Tokens.Palette.GoodSoft, Tokens.Palette.GoodInk)
+                else Pill(stringResource(R.string.songs_missing, a.missing.size, a.missing.map { it.lessonId }.distinct().joinToString()), Tokens.Palette.RoseSoft, Tokens.Palette.RoseInk)
+                if (a.unverified.isNotEmpty()) Pill(stringResource(R.string.songs_unverified, a.unverified.joinToString()), Tokens.Palette.Card, Tokens.Palette.InkMuted, dashed = true)
+            }
+        }
     }
 }
 

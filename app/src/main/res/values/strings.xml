@@ -204,8 +204,9 @@
 สิ่งที่ ミミコピ ปรับ: ใช้ 8 จาก 16 ระดับความแรง ตัดช่วงเงียบก่อนเสียงและหางเสียงที่ต่ำกว่า -60 dB พร้อมเฟดออก ปรับระดับเสียงรวม และแปลงเป็น 16 บิต</string>
     <string name="credit_oboe_title">เครื่องเสียง: Oboe</string>
     <string name="credit_oboe_body">ไลบรารีเสียงหน่วงต่ำของ Google · Apache License 2.0</string>
-    <string name="credit_font_title">ตัวอักษรโลโก้: Zen Maru Gothic</string>
-    <string name="credit_font_body">The Zen Maru Gothic Project Authors · SIL Open Font License 1.1 (แปลงเป็นเส้นเวกเตอร์ ไม่ได้ใส่ไฟล์ฟอนต์ในแอพ)</string>
+    <string name="credit_font_title">ฟอนต์: Zen Maru Gothic และ IBM Plex Sans Thai Looped</string>
+    <string name="credit_font_body">Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.1 (โลโก้แปลงเป็นเส้นเวกเตอร์ และใส่ฟอนต์บางส่วนสำหรับตัวเลขและเลขบท)
+IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื่อฟอนต์สงวน "Plex" (ใช้ตามต้นฉบับ ไม่ได้ดัดแปลง)</string>
     <string name="credit_logo_title">โลโก้และไอคอน</string>
     <string name="credit_logo_body">สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
     <string name="credit_bravura_title">ฟอนต์ตัวโน้ต: Bravura</string>
@@ -288,7 +289,7 @@
     <string name="about_version">เวอร์ชัน %1$s (%2$d)</string>
     <string name="about_credits_title">เครดิต</string>
     <string name="about_credit_logo">โลโก้และไอคอน: สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
-    <string name="about_credit_font">ตัวอักษรโลโก้ ミミコピ: ฟอนต์ Zen Maru Gothic (SIL Open Font License 1.1) แปลงเป็นเส้นเวกเตอร์</string>
+    <string name="about_credit_font">ฟอนต์ Zen Maru Gothic และ IBM Plex Sans Thai Looped (SIL Open Font License 1.1)</string>
     <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
     <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงจริง และไม่ดึงข้อมูลเพลงจากอินเทอร์เน็ต เพลงในคลังต้องถอดเอง ความยากของ Song Ladder คำนวณจากข้อมูลที่ใส่เท่านั้น การตรวจแป้นเหยียบใช้ได้เฉพาะเมื่อเปียโนส่งสัญญาณแป้นผ่าน MIDI</string>
@@ -560,4 +561,30 @@
     <string name="diag_section_crash">ข้อผิดพลาดล่าสุด</string>
     <string name="diag_crash_none">ยังไม่เคยมีการปิดตัวเพราะข้อผิดพลาด</string>
     <string name="diag_crash_help">แอพเคยปิดตัวเพราะข้อผิดพลาด รายละเอียดอยู่ในไฟล์ Diagnostics (ปุ่มคัดลอก/แชร์ด้านบน) เก็บในเครื่องนี้เท่านั้น</string>
+    <string name="tab_home">หน้าแรก</string>
+    <string name="tab_today">วันนี้</string>
+    <string name="tab_piano">เปียโน</string>
+    <string name="tab_songs">เพลง</string>
+    <string name="tab_me">ฉัน</string>
+    <string name="home_due">ทวน %1$d</string>
+    <string name="home_today_minutes">วันนี้ · %1$d นาที</string>
+    <string name="home_week_minutes">สัปดาห์นี้ %1$d นาที</string>
+    <string name="home_next_lesson">บทถัดไป · ด่าน %1$d</string>
+    <string name="home_all_passed">ผ่านครบทุกบทแล้ว ฝึกเพลงในคลังต่อได้เลย</string>
+    <string name="home_start_today">เริ่มฝึกวันนี้</string>
+    <string name="home_tile_reader">อ่านโน้ต · เล่นตาม</string>
+    <string name="home_tile_reader_sub">เพลงเรียนและแบบฝึก</string>
+    <string name="home_tile_ear">ฝึกหู</string>
+    <string name="home_tile_ear_sub">E1–E9 · เน้นจุดที่ยังพลาด</string>
+    <string name="home_tile_library">โน้ตของฉัน</string>
+    <string name="home_tile_library_sub">เขียน · นำเข้า · PDF</string>
+    <string name="home_tile_knowledge">คลังความรู้ป็อป</string>
+    <string name="home_tile_knowledge_sub">คอร์ด โปรเกรสชัน ถอดเพลง</string>
+    <string name="block_free_short">เล่นเอง</string>
+    <string name="today_of_minutes">จาก %1$d นาที · กำลังฝึก</string>
+    <string name="today_finish_short">จบ</string>
+    <string name="lesson_counts">นับผ่าน</string>
+    <string name="drill_chord_in_key">ในคีย์ %1$s</string>
+    <string name="songs_difficulty_short">ความยาก</string>
+    <string name="songs_days_short">7 วัน</string>
 </resources>

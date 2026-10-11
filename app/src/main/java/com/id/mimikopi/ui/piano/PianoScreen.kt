@@ -84,9 +84,22 @@ fun PianoScreen(onBack: () -> Unit, vm: PianoViewModel = viewModel()) {
                 }
                 return@Column
             }
-            engineError?.let {
-                Text(stringResource(R.string.piano_engine_error, it), color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = Tokens.Space.m))
+            if (keys.soundTried && !keys.soundOn) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m, vertical = Tokens.Space.xs),
+                    horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        engineError?.let { stringResource(R.string.piano_engine_error, it) } ?: stringResource(R.string.piano_no_sound),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Button(onClick = vm::startSound, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text(stringResource(R.string.piano_sound_retry))
+                    }
+                }
             }
             Controls(keys, vm)
             BoxWithConstraints(Modifier.fillMaxWidth().weight(1f).heightIn(min = 140.dp).padding(Tokens.Space.s)) {

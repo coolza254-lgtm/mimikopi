@@ -38,7 +38,7 @@ class NativePiano : PianoEngine {
 
     @Synchronized
     override fun start(): String? {
-        if (isRunning) return null
+        // Always ask native: it knows whether the stream is really open (it may have died on a route change).
         val error = nativeStart(handle)
         isRunning = error == null
         return error

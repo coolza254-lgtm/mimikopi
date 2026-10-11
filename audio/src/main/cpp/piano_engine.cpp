@@ -89,14 +89,16 @@ std::string PianoEngine::start() {
 }
 
 void PianoEngine::stop() {
+    std::shared_ptr<oboe::AudioStream> stream;
     {
         std::lock_guard<std::mutex> lock(streamMutex_);
         wantRunning_.store(false);
-        if (stream_) {
-            stream_->stop();
-            stream_->close();
-            stream_.reset();
-        }
+        stream = std::move(stream_);
+    }
+    // Close outside the lock: Oboe's close() can wait for a pending error callback, which takes the lock.
+    if (stream) {
+        stream->stop();
+        stream->close();
     }
     if (prefetchRunning_.exchange(false) && prefetcher_.joinable()) prefetcher_.join();
     for (auto& v : voices_) v = Voice{};
@@ -106,14 +108,23 @@ void PianoEngine::stop() {
 }
 
 void PianoEngine::onErrorAfterClose(oboe::AudioStream*, oboe::Result error) {
-    // Typically the output route changed (Bluetooth connected/disconnected): reopen on the new device.
+    // Typically the output route changed (Bluetooth connected/disconnected) or another app took the
+    // exclusive stream: reopen on the current device, retrying briefly if the device is still switching.
     LOGE("stream closed: %s", oboe::convertToText(error));
-    std::lock_guard<std::mutex> lock(streamMutex_);
-    stream_.reset();
-    if (!wantRunning_.load()) return;
-    restarts_.fetch_add(1);
-    std::string err = openStreamLocked();
-    if (!err.empty()) LOGE("reopen failed: %s", err.c_str());
+    for (int attempt = 0; attempt < 10; ++attempt) {
+        {
+            std::lock_guard<std::mutex> lock(streamMutex_);
+            stream_.reset();
+            if (!wantRunning_.load()) return;
+            std::string err = openStreamLocked();
+            if (err.empty()) {
+                restarts_.fetch_add(1);
+                return;
+            }
+            LOGE("reopen attempt %d failed: %s", attempt + 1, err.c_str());
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    }
 }
 
 void PianoEngine::push(const Cmd& cmd) {

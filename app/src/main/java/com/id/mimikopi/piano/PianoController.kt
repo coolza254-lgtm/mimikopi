@@ -34,6 +34,16 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
         return true
     }
 
+    /** Reopen the output (e.g. after the route changed and the stream could not recover). */
+    @Synchronized
+    fun restart(): Boolean {
+        val e = engine ?: return false
+        e.stop()
+        val err = e.start()
+        _lastError.value = err
+        return err == null
+    }
+
     @Synchronized
     fun release() {
         if (users > 0) users--
@@ -51,6 +61,10 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
     fun noteOn(note: Int, velocity: Int) = engine?.noteOn(note, velocity) ?: Unit
     fun noteOff(note: Int) = engine?.noteOff(note) ?: Unit
     fun sustain(down: Boolean) = engine?.sustain(down) ?: Unit
+    fun allNotesOff() = engine?.allNotesOff() ?: Unit
+
+    /** True while the native output stream is open (it can close by itself on a route change). */
+    fun streamAlive(): Boolean = engine?.let { it.isRunning && it.metrics().sampleRate > 0 } ?: false
     fun setGain(gain: Float) = engine?.setMasterGain(gain) ?: Unit
 
     /**

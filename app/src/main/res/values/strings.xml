@@ -29,6 +29,8 @@
     <string name="piano_sustain">ซัสเทน (กดค้าง)</string>
     <string name="piano_velocity">ความแรง %1$d</string>
     <string name="piano_volume">ความดัง</string>
+    <string name="piano_no_sound">ตอนนี้ไม่มีเสียง (อุปกรณ์เสียงอาจเปลี่ยน เช่น หูฟังบลูทูธต่อ/หลุด)</string>
+    <string name="piano_sound_retry">เปิดเสียงอีกครั้ง</string>
     <string name="piano_engine_error">เปิดเสียงไม่ได้: %1$s</string>
     <string name="names_letter">C D E</string>
     <string name="names_solfege">โด เร มี</string>

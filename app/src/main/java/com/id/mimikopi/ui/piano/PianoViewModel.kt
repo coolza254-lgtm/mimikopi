@@ -12,6 +12,8 @@ import com.id.mimikopi.piano.PackException
 import com.id.mimikopi.piano.PackProgress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +40,8 @@ data class KeyboardUi(
     val sustain: Boolean = false,
     val pressed: Set<Int> = emptySet(),
     val soundOn: Boolean = false,
+    /** At least one start attempt finished (avoids flashing "no sound" while starting). */
+    val soundTried: Boolean = false,
 )
 
 class PianoViewModel(app: Application) : AndroidViewModel(app) {
@@ -55,12 +59,25 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     val engineError: StateFlow<String?> = piano.lastError
 
     private var installJob: Job? = null
+    /** The screen is visible and wants sound. */
     private var acquired = false
+    /** This ViewModel currently holds one reference on the shared engine (balanced acquire/release). */
+    private var holding = false
 
     init {
         viewModelScope.launch {
             loadSettings()
             refreshPack()
+        }
+        // Watch the output: if the stream died (and could not reopen), say so instead of staying silent.
+        viewModelScope.launch {
+            while (isActive) {
+                delay(2000)
+                if (acquired && holding) {
+                    val alive = withContext(Dispatchers.IO) { piano.streamAlive() }
+                    if (alive != _keys.value.soundOn) _keys.update { it.copy(soundOn = alive) }
+                }
+            }
         }
     }
 
@@ -79,6 +96,8 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun refreshPack() {
         if (withContext(Dispatchers.IO) { packs.installed() } != null) {
             _pack.value = PackUi.Ready
+            // The screen may have started before the pack check finished: start the sound now.
+            if (acquired) startSound()
             return
         }
         _pack.value = PackUi.Missing(null, null)
@@ -123,15 +142,23 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         if (!acquired) return
         acquired = false
         _keys.update { it.copy(pressed = emptySet(), sustain = false, soundOn = false) }
-        viewModelScope.launch(Dispatchers.IO) { piano.release() }
+        viewModelScope.launch {
+            if (holding) {
+                holding = false
+                withContext(Dispatchers.IO) { piano.release() }
+            }
+        }
     }
 
-    private fun startSound() {
-        if (_pack.value != PackUi.Ready) return
+    /** Also used by the "turn sound on again" button when the output was lost. */
+    fun startSound() {
+        if (_pack.value != PackUi.Ready || !acquired) return
         viewModelScope.launch {
-            val ok = withContext(Dispatchers.IO) { piano.acquire() }
+            val ok = withContext(Dispatchers.IO) {
+                if (holding) piano.restart() else piano.acquire().also { holding = it }
+            }
             if (ok) piano.setGain(_keys.value.gain)
-            _keys.update { it.copy(soundOn = ok) }
+            _keys.update { it.copy(soundOn = ok, soundTried = true) }
         }
     }
 
@@ -152,6 +179,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Move the visible range by one octave, staying on the 88 keys (A0..C8). */
     fun shiftOctave(delta: Int) {
+        releaseAllKeys()
         var low = (_keys.value.lowNote + 12 * delta).coerceIn(21, 96)
         if (isBlackKey(low)) low -= 1
         _keys.update { it.copy(lowNote = low) }
@@ -159,6 +187,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun zoom(deltaDp: Int) {
+        releaseAllKeys()
         val w = (_keys.value.whiteKeyDp + deltaDp).coerceIn(28, 80)
         _keys.update { it.copy(whiteKeyDp = w) }
         save(SettingKeys.PIANO_KEY_WIDTH, w.toString())
@@ -190,6 +219,12 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     fun setNameStyle(style: NoteNameStyle) {
         _keys.update { it.copy(nameStyle = style) }
         save(SettingKeys.NOTE_NAME_STYLE, style.name)
+    }
+
+    /** The keyboard's touch tracking restarts when its range changes; never leave notes hanging. */
+    private fun releaseAllKeys() {
+        piano.allNotesOff()
+        _keys.update { it.copy(pressed = emptySet(), sustain = false) }
     }
 
     private fun save(key: String, value: String) {

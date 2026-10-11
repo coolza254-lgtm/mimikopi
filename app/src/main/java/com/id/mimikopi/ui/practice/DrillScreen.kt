@@ -1,6 +1,7 @@
 package com.id.mimikopi.ui.practice
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +53,7 @@ import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.PianoKeyboard
 import com.id.mimikopi.ui.components.StaffView
+import com.id.mimikopi.ui.components.StaffSequenceView
 import com.id.mimikopi.ui.theme.Tokens
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,6 +87,8 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                                 ExerciseType.E_KEYFIND -> R.string.drill_ready_keyfind
                                 ExerciseType.E_NOTEID -> R.string.drill_ready_noteid
                                 ExerciseType.E_PULSE -> R.string.drill_ready_pulse
+                                ExerciseType.E_INTERVAL_READ -> R.string.drill_ready_interval
+                                else -> R.string.drill_ready_noteid
                             }, s.items),
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(top = Tokens.Space.xs),
@@ -125,6 +129,34 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         modifier = Modifier.fillMaxWidth().height(190.dp).padding(Tokens.Space.s),
                     )
                 }
+                is DrillUi.Interval -> {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
+                        Text("${s.index}/${s.total}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
+                    }
+                    Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {
+                        StaffSequenceView(s.clef, s.notes, s.pair?.let { setOf(it, it + 1) } ?: emptySet(), if (s.pair == null) s.played else 0,
+                            Modifier.widthIn(max = 520.dp).fillMaxWidth().height(150.dp))
+                        Text(
+                            if (s.pair != null) stringResource(R.string.drill_interval_ask, s.pair + 1, s.pair + 2) else stringResource(R.string.drill_interval_play),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        s.correction?.let { Text(stringResource(R.string.drill_interval_correction, it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge) }
+                        if (s.feedback == Feedback.CORRECT) Text(stringResource(R.string.drill_correct), style = MaterialTheme.typography.bodyLarge)
+                        if (s.feedback == Feedback.WRONG && s.pair == null) Text(stringResource(R.string.drill_wrong), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
+                        if (s.pair != null) IntervalAnswers(s, vm)
+                    }
+                    PianoKeyboard(
+                        lowNote = vm.keyRange.first,
+                        highNote = vm.keyRange.last,
+                        pressed = pressed,
+                        showNames = showNames,
+                        nameStyle = vm.nameStyle,
+                        onNoteOn = { n, _ -> dispatchTouch(vm, n, true) },
+                        onNoteOff = { n -> dispatchTouch(vm, n, false) },
+                        modifier = Modifier.fillMaxWidth().height(150.dp).padding(Tokens.Space.s),
+                    )
+                }
                 is DrillUi.Pulse -> Column(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("${s.bpm} BPM", style = MaterialTheme.typography.titleLarge)
                     Text(
@@ -152,6 +184,35 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                             Button(onClick = onBack, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.drill_done)) }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/** Answer buttons: repeat / step / skip with direction, or interval numbers with direction. */
+@Composable
+private fun IntervalAnswers(s: DrillUi.Interval, vm: DrillViewModel) {
+    val up = com.id.mimikopi.core.music.Direction.UP
+    val down = com.id.mimikopi.core.music.Direction.DOWN
+    val step = com.id.mimikopi.core.music.MotionKind.STEP
+    val skip = com.id.mimikopi.core.music.MotionKind.SKIP
+    fun m(kind: com.id.mimikopi.core.music.MotionKind, d: com.id.mimikopi.core.music.Direction, steps: Int) = com.id.mimikopi.core.music.Motion(kind, d, steps)
+    val rows: List<List<Pair<String, com.id.mimikopi.core.music.Motion>>> = if (s.answerMode == "INTERVAL") {
+        listOf(up, down).map { d -> s.numbers.map { n -> "${n} ${if (d == up) "ขึ้น" else "ลง"}" to m(if (n == 2) step else skip, d, n - 1) } }
+    } else {
+        listOf(
+            listOf("ขั้นขึ้น" to m(step, up, 1), "ข้ามขึ้น" to m(skip, up, 2)),
+            listOf("ขั้นลง" to m(step, down, 1), "ข้ามลง" to m(skip, down, 2)),
+        )
+    }
+    val repeat = "ซ้ำ" to com.id.mimikopi.core.music.Motion(com.id.mimikopi.core.music.MotionKind.REPEAT, com.id.mimikopi.core.music.Direction.SAME, 0)
+    Column(verticalArrangement = Arrangement.spacedBy(Tokens.Space.xs), modifier = Modifier.padding(top = Tokens.Space.s)) {
+        for ((i, row) in rows.withIndex()) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Tokens.Space.xs)) {
+                if (i == 0 && s.withRepeat) OutlinedButton(onClick = { vm.answerInterval(repeat.second) }, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(repeat.first) }
+                row.forEach { (label, motion) ->
+                    OutlinedButton(onClick = { vm.answerInterval(motion) }, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(label) }
                 }
             }
         }

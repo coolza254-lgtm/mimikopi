@@ -2,6 +2,23 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## As of M8 (v0.8.x)
+- Lessons: stages 1-3 (1.1-3.8). Stage 3's "pieces + stage test" (3.7 in learning-system.md) is split into 3.7 (pieces) and
+  3.8 (test) so piece passes and the test count separately. Position D moved from 2.3 to 2.4 (it needs F♯, taught in 2.4).
+- Repertoire lessons (2.8, 3.7) pass when 4 of 6 / 2 of 3 pieces are passed; those counts are my own choice.
+- Generated material: finger patterns (C/G/D/F five-finger positions), rhythm reading (cells of 5.3, any key counts),
+  interval reading, sight reading L1-L5 (5.2). L6-L8 come with stages 4-5. Ties are not generated or drawn (2.2 explains
+  them only). Legato/staccato and dynamics (2.7) are explained but not measured.
+- Score drills count clean runs within one sitting (leaving the screen resets the count); sight-reading pieces change
+  after a clean run or three runs.
+- The app checks notes and timing but cannot see which finger plays (fingering is shown, not judged).
+- Benchmarks (12.1): note-reading speed (30 fixed notes, time counted only while answering), highest sight-reading
+  level played clean once (fixed pieces L1-L5), pulse SD at 70 bpm. Chord changes and ear training join when those
+  features exist. Benchmark runs do not update spaced repetition.
+- Progress: lessons per stage and per track, minutes per week (8 weeks), daily reading accuracy and timing (30 days).
+  Charts are drawn natively without touch tooltips; the numbers are shown as text under each chart.
+- Warm-up uses the latest five-finger or scale drill reached; new reading is one level below the highest level reached.
+
 ## As of M7 (v0.7.x)
 - Pieces bundled: Mary Had a Little Lamb, Ode to Joy, Twinkle Twinkle (public-domain melodies in the app's own
   simple arrangements) and two original pieces. Own pieces arrive with the editor / MusicXML import (M10).

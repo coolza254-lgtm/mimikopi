@@ -12,6 +12,8 @@ data class LessonRecord(
     /** Days on which it was met but a helper (e.g. note names) was used: not a full pass (2.4). */
     val helperDays: Set<String> = emptySet(),
     val attempts: Int = 0,
+    /** Days on which each drill (by index) met its criterion without helpers; a pass day needs every required drill. */
+    val drillDays: Map<Int, Set<String>> = emptyMap(),
 )
 
 enum class LessonStatus { LOCKED, AVAILABLE, IN_PROGRESS, PASSED }
@@ -21,6 +23,19 @@ object ProgressRules {
     fun recordPass(record: LessonRecord, day: LocalDate, helperUsed: Boolean): LessonRecord =
         if (helperUsed) record.copy(helperDays = record.helperDays + day.toString())
         else record.copy(passDays = record.passDays + day.toString())
+
+    /**
+     * Records that drill [drillIndex] met its criterion on [day]. The day becomes a pass day once every
+     * required drill of the lesson met its criterion that day. A helper makes it a helper day instead.
+     */
+    fun recordDrillMet(record: LessonRecord, lesson: Lesson, drillIndex: Int, day: LocalDate, helperUsed: Boolean): LessonRecord {
+        if (helperUsed) return record.copy(helperDays = record.helperDays + day.toString())
+        val d = day.toString()
+        val days = record.drillDays + (drillIndex to (record.drillDays[drillIndex].orEmpty() + d))
+        var r = record.copy(drillDays = days)
+        if (lesson.pass.requiredDrills.all { d in days[it].orEmpty() }) r = r.copy(passDays = r.passDays + d)
+        return r
+    }
 
     fun isPassed(record: LessonRecord?, lesson: Lesson): Boolean = (record?.passDays?.size ?: 0) >= lesson.pass.days
 

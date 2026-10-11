@@ -1,0 +1,17 @@
+{
+  "id": "ex-c-major-scale-rh",
+  "title": "สเกล C เมเจอร์ มือขวา",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise (scale with standard fingering).",
+  "level": "L3",
+  "key": 0,
+  "time": [4, 4],
+  "tempo": 72,
+  "rh": [
+    "C4/q@1 D4/q@2 E4/q@3 F4/q@1",
+    "G4/q@2 A4/q@3 B4/q@4 C5/q@5",
+    "B4/q@4 A4/q@3 G4/q@2 F4/q@1",
+    "E4/q@3 D4/q@2 C4/h@1"
+  ],
+  "lh": ["r/w", "r/w", "r/w", "r/w"]
+}

@@ -78,3 +78,41 @@ private fun DrawScope.glyph(measurer: TextMeasurer, text: String, x: Float, base
     val layout = measurer.measure(text, style)
     drawText(layout, topLeft = Offset(x, baselineY - layout.firstBaseline))
 }
+
+/**
+ * One staff with a row of whole notes (interval reading). Notes in [highlight] are drawn in rose (the pair being
+ * asked); the first [played] notes turn green as they are played.
+ */
+@Composable
+fun StaffSequenceView(clef: Clef, notes: List<SpelledPitch>, highlight: Set<Int>, played: Int, modifier: Modifier = Modifier) {
+    val measurer = rememberTextMeasurer()
+    val ink = Tokens.Palette.Ink
+    Canvas(modifier) {
+        val space = minOf(size.height / 11f, size.width / (5f + notes.size * 3.2f))
+        val middleY = size.height / 2f
+        fun y(position: Int) = middleY - position * space / 2f
+        val left = space * 0.5f
+        val right = size.width - space * 0.5f
+        for (line in listOf(-4, -2, 0, 2, 4)) {
+            drawLine(ink, Offset(left, y(line)), Offset(right, y(line)), strokeWidth = Smufl.STAFF_LINE * space)
+        }
+        glyph(measurer, if (clef == Clef.TREBLE) Smufl.G_CLEF else Smufl.F_CLEF, left + space * 0.4f, y(if (clef == Clef.TREBLE) -2 else 2), space, ink)
+        val start = left + space * 4.5f
+        val step = (right - start - space * 2f) / maxOf(1, notes.size - 1).toFloat()
+        notes.forEachIndexed { i, p ->
+            val pos = Staff.position(p, clef)
+            val x = start + i * step
+            val color = when {
+                i < played -> Tokens.Palette.Good
+                i in highlight -> Tokens.Palette.Rose
+                else -> ink
+            }
+            val width = Smufl.WHOLE_NOTE_WIDTH * space
+            for (ledger in Staff.ledgerLines(pos)) {
+                drawLine(ink, Offset(x - Smufl.LEDGER_EXTENSION * space, y(ledger)), Offset(x + width + Smufl.LEDGER_EXTENSION * space, y(ledger)),
+                    strokeWidth = Smufl.LEDGER_LINE * space)
+            }
+            glyph(measurer, Smufl.NOTEHEAD_WHOLE, x, y(pos), space, color)
+        }
+    }
+}

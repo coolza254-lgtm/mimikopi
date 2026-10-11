@@ -1,0 +1,30 @@
+{
+  "id": "au-clair-de-la-lune",
+  "title": "Au clair de la lune",
+  "composer": "เพลงพื้นบ้านฝรั่งเศส (ศตวรรษที่ 18) เรียบเรียงง่ายโดยแอพ",
+  "source": "Public domain melody (French folk song); this simple arrangement was written for the app.",
+  "level": "L3",
+  "key": 0,
+  "time": [4, 4],
+  "tempo": 84,
+  "rh": [
+    "C4/q C4/q C4/q D4/q",
+    "E4/h D4/h",
+    "C4/q E4/q D4/q D4/q",
+    "C4/w",
+    "C4/q C4/q C4/q D4/q",
+    "E4/h D4/h",
+    "C4/q E4/q D4/q D4/q",
+    "C4/w"
+  ],
+  "lh": [
+    "C3/w",
+    "C3/h G3/h",
+    "C3/h G3/h",
+    "C3/w",
+    "C3/w",
+    "C3/h G3/h",
+    "C3/h G3/h",
+    "C3/w"
+  ]
+}

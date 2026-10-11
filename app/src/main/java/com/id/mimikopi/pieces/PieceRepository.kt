@@ -34,6 +34,14 @@ class PieceRepository(private val context: Context, private val db: AppDatabase)
 
     fun piece(id: String): Score? = pieces.firstOrNull { it.id == id }
 
+    /** Practice material that is not a song (scales, accompaniment patterns): content/exercises. */
+    val exercises: List<Score> by lazy {
+        context.assets.list("exercises").orEmpty().filter { it.endsWith(".json") }
+            .map { name -> context.assets.open("exercises/$name").use { Score.from(PieceFile.parse(it.readBytes().toString(Charsets.UTF_8))) } }
+    }
+
+    fun pieceOrExercise(id: String): Score? = piece(id) ?: exercises.firstOrNull { it.id == id }
+
     private val _progress = MutableStateFlow<Map<String, PieceProgress>>(emptyMap())
     val progress: StateFlow<Map<String, PieceProgress>> = _progress.asStateFlow()
     private var loaded = false

@@ -58,14 +58,15 @@ import com.id.mimikopi.ui.theme.Tokens
 fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val pressed by vm.pressed.collectAsStateWithLifecycle()
+    val piece by vm.piece.collectAsStateWithLifecycle()
     var showOptions by remember { mutableStateOf(false) }
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
 
-    val score = vm.score
-    val layout = vm.layout
+    val score = piece?.score
+    val layout = piece?.layout
     Column(
         Modifier
             .fillMaxSize()
@@ -77,7 +78,7 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
                 Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back))
             }
             Text(
-                score?.title ?: stringResource(R.string.reader_not_found),
+                if (score == null) stringResource(R.string.reader_not_found) else vm.title(),
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -112,15 +113,15 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
         }
 
         when (ui.phase) {
-            Phase.IDLE -> SetupControls(ui, vm, onOptions = { showOptions = true })
+            Phase.IDLE -> if (vm.fixed) FixedControls(ui, vm, onOptions = { showOptions = true }) else SetupControls(ui, vm, onOptions = { showOptions = true })
             Phase.COUNT_IN, Phase.PLAYING, Phase.LISTENING -> RunControls(ui, vm)
-            Phase.RESULT -> ui.result?.let { ResultPanel(it, vm) }
+            Phase.RESULT -> ui.result?.let { ResultPanel(it, vm, onBack) }
         }
 
         if (ui.options.showKeyboard && ui.phase != Phase.RESULT) {
             PianoKeyboard(
-                lowNote = vm.keyRange.first,
-                highNote = vm.keyRange.last,
+                lowNote = piece?.keyRange?.first ?: 48,
+                highNote = piece?.keyRange?.last ?: 72,
                 pressed = pressed,
                 showNames = ui.showNames,
                 nameStyle = vm.nameStyle,
@@ -188,6 +189,34 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
     }
 }
 
+/** Drills, new reading and benchmarks: settings come from the exercise; only start / listen / options. */
+@Composable
+private fun FixedControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.s)) {
+        if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.Error)
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(onClick = vm::start) { Text(stringResource(if (vm.nextLabelIsNew()) R.string.reader_new_piece else R.string.reader_start)) }
+            if (vm.source !is ReaderViewModel.Source.Benchmark) OutlinedButton(onClick = vm::listen) { Text(stringResource(R.string.reader_listen)) }
+            val handLabel = when (ui.options.hands) {
+                HandChoice.RIGHT -> R.string.reader_hand_right
+                HandChoice.LEFT -> R.string.reader_hand_left
+                HandChoice.BOTH -> R.string.reader_hand_both
+            }
+            Text(
+                stringResource(R.string.reader_fixed_summary,
+                    stringResource(if (ui.options.mode == PlayMode.WAIT) R.string.reader_mode_wait else R.string.reader_mode_tempo),
+                    stringResource(handLabel), ui.bpm),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            TextButton(onClick = onOptions) { Text(stringResource(R.string.reader_more)) }
+        }
+    }
+}
+
 @Composable
 private fun RunControls(ui: ReaderUi, vm: ReaderViewModel) {
     Row(
@@ -212,7 +241,7 @@ private fun RunControls(ui: ReaderUi, vm: ReaderViewModel) {
 }
 
 @Composable
-private fun ResultPanel(r: ResultUi, vm: ReaderViewModel) {
+private fun ResultPanel(r: ResultUi, vm: ReaderViewModel, onBack: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -232,8 +261,12 @@ private fun ResultPanel(r: ResultUi, vm: ReaderViewModel) {
         }
         Text(stringResource(R.string.reader_legend), style = MaterialTheme.typography.labelSmall, color = Tokens.Palette.InkMuted)
         Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
-            Button(onClick = vm::start) { Text(stringResource(R.string.reader_again)) }
-            OutlinedButton(onClick = vm::backToSetup) { Text(stringResource(R.string.reader_back_to_setup)) }
+            if (vm.benchDone) {
+                Button(onClick = onBack) { Text(stringResource(R.string.reader_done)) }
+            } else {
+                Button(onClick = vm::start) { Text(stringResource(if (vm.nextLabelIsNew()) R.string.reader_new_piece else R.string.reader_again)) }
+                OutlinedButton(onClick = vm::backToSetup) { Text(stringResource(R.string.reader_back_to_setup)) }
+            }
         }
     }
 }
@@ -247,6 +280,7 @@ private fun actionLabel(a: ResultAction): String = when (a) {
 
 @Composable
 private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -> Unit) {
+    val fixed = vm.fixed
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.reader_done)) } },
@@ -254,8 +288,8 @@ private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
                 OptionRow(R.string.reader_opt_other_hand, R.string.reader_opt_other_hand_body, o.playOtherHand, vm::setPlayOtherHand)
-                OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)
-                OptionRow(R.string.reader_opt_ramp, R.string.reader_opt_ramp_body, o.useRamp, vm::setUseRamp)
+                if (!fixed) OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)
+                if (!fixed) OptionRow(R.string.reader_opt_ramp, R.string.reader_opt_ramp_body, o.useRamp, vm::setUseRamp)
                 OptionRow(R.string.reader_opt_keyboard, R.string.reader_opt_keyboard_body, o.showKeyboard, vm::setShowKeyboard)
             }
         },

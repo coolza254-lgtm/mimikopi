@@ -42,6 +42,7 @@ fun TodayScreen(
     onOpenReview: () -> Unit,
     onOpenPiano: () -> Unit,
     onOpenPieces: () -> Unit,
+    onOpenNewReading: (Int) -> Unit,
     vm: TodayViewModel = viewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -82,10 +83,21 @@ fun TodayScreen(
                             Text(stringResource(R.string.block_start))
                         }
                     }
-                    BlockKind.RHYTHM -> ui.rhythmLesson?.let { l ->
-                        val idx = l.drills.indexOfFirst { it.type == ExerciseType.E_PULSE }
+                    BlockKind.RHYTHM -> ui.rhythmDrill?.let { (l, idx) ->
                         Text(stringResource(R.string.block_rhythm_body, l.id, l.title), style = MaterialTheme.typography.bodyMedium)
                         Button(onClick = { onOpenDrill(l.id, idx) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
+                            Text(stringResource(R.string.block_start))
+                        }
+                    }
+                    BlockKind.WARMUP -> ui.warmup?.let { (l, idx) ->
+                        Text(stringResource(R.string.block_warmup_body, l.drills[idx].title), style = MaterialTheme.typography.bodyMedium)
+                        Button(onClick = { onOpenDrill(l.id, idx) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
+                            Text(stringResource(R.string.block_start))
+                        }
+                    }
+                    BlockKind.NEW_READING -> ui.newReadingLevel?.let { level ->
+                        Text(stringResource(R.string.block_new_reading_body, level), style = MaterialTheme.typography.bodyMedium)
+                        Button(onClick = { onOpenNewReading(level) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
                             Text(stringResource(R.string.block_start))
                         }
                     }

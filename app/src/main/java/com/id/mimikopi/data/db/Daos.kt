@@ -110,6 +110,7 @@ object SettingKeys {
     const val LESSON_RECORDS = "lesson.records"
     const val PIECE_PROGRESS = "piece.progress"
     const val READER_OPTIONS = "reader.options"
+    const val BENCHMARKS = "benchmarks"
     const val SESSION_MINUTES = "session.minutes"
     const val KEYBOARD_KEYS = "piano.keyCount"
 }

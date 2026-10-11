@@ -116,3 +116,15 @@ object Scoring {
             ((tap - beat) / 1e6 - latencyMs).takeIf { abs(it) <= maxAbsMs }
         }
 }
+
+/** E_INTERVAL_READ answers: MOTION = repeat/step/skip + direction (1.6); INTERVAL = 2nd..octave + direction (2.1). */
+object IntervalQuiz {
+    fun isCorrect(expected: com.id.mimikopi.core.music.Motion, answer: com.id.mimikopi.core.music.Motion, mode: String): Boolean =
+        expected.direction == answer.direction && when (mode) {
+            "INTERVAL" -> expected.staffSteps == answer.staffSteps
+            else -> expected.kind == answer.kind
+        }
+
+    /** Interval numbers offered as answers for the allowed staff steps (a 3rd = 2 steps). */
+    fun numbersFor(steps: List<Int>): List<Int> = steps.filter { it > 0 }.map { it + 1 }.distinct().sorted()
+}

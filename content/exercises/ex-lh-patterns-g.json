@@ -1,0 +1,19 @@
+{
+  "id": "ex-lh-patterns-g",
+  "title": "รูปแบบมือซ้ายในตำแหน่ง G",
+  "composer": "แบบฝึกของแอพ",
+  "source": "Original exercise (left-hand accompaniment patterns).",
+  "level": "L4",
+  "key": 1,
+  "time": [4, 4],
+  "tempo": 72,
+  "rh": ["B4/w", "B4/w", "C5/w", "B4/w", "B4/w", "A4/w"],
+  "lh": [
+    "G2/w@5",
+    "G2/h@5 D3/h@1",
+    "C3/h@2 G2/h@5",
+    "G2/q@5 D3/q@2 G3/q@1 D3/q@2",
+    "G2/q@5 D3/q@2 G3/q@1 D3/q@2",
+    "D3/h@1 G2/h@5"
+  ]
+}

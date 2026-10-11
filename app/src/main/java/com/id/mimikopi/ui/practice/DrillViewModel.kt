@@ -67,6 +67,23 @@ sealed interface DrillUi {
         val feedback: Feedback?,
     ) : DrillUi
     data class Pulse(val bpm: Int, val countIn: Int?, val beat: Int, val beats: Int, val taps: Int) : DrillUi
+    /** Interval reading: answer the motion of each neighbouring pair, then play the set. */
+    data class Interval(
+        val notes: List<SpelledPitch>,
+        val clef: com.id.mimikopi.core.notation.Clef,
+        /** Pair being asked (notes[pair] -> notes[pair + 1]); null while playing the set. */
+        val pair: Int?,
+        /** Notes played correctly so far in the play phase. */
+        val played: Int,
+        val index: Int,
+        val total: Int,
+        val feedback: Feedback?,
+        /** The right answer, shown after a wrong one. */
+        val correction: String?,
+        val answerMode: String,
+        val numbers: List<Int>,
+        val withRepeat: Boolean,
+    ) : DrillUi
     data class Result(
         val summary: String,
         val passCriterionMet: Boolean?,
@@ -92,6 +109,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     private val lessonId: String? = args.get<String>("lessonId")
     private val drillIndex: Int = args.get<String>("drill")?.toIntOrNull() ?: 0
     private val review: Boolean = args.get<String>("review") == "true"
+    /** Benchmark part (learning-system.md 12.1): "noteid" or "pulse"; fixed sets, results go to the benchmark record. */
+    private val bench: String? = args.get<String>("benchmark")
 
     private val _ui = MutableStateFlow<DrillUi>(DrillUi.Loading)
     val ui: StateFlow<DrillUi> = _ui.asStateFlow()
@@ -116,7 +135,15 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         viewModelScope.launch {
             repo.load()
             settingsName()
-            if (review) {
+            if (bench != null) {
+                drill = if (bench == "pulse") Drill(ExerciseType.E_PULSE, "วัดผล: จังหวะคงที่", items = 1,
+                    bpmMin = com.id.mimikopi.core.progress.Benchmarks.PULSE_BPM, bpmMax = com.id.mimikopi.core.progress.Benchmarks.PULSE_BPM,
+                    beats = com.id.mimikopi.core.progress.Benchmarks.PULSE_BEATS)
+                else Drill(ExerciseType.E_NOTEID, "วัดผล: ความเร็วอ่านโน้ต", items = com.id.mimikopi.core.progress.Benchmarks.NOTE_ITEMS, pool = listOf("C4:treble"))
+                keyRange = if (bench == "pulse") 57..64 else 48..84
+                val d = drill!!
+                _ui.value = DrillUi.Ready(d.title, d.type, d.items, if (d.type == ExerciseType.E_PULSE) d.bpmMin else null)
+            } else if (review) {
                 val due = repo.dueItems()
                 drill = Drill(ExerciseType.E_NOTEID, "ทบทวน", items = due.size.coerceAtLeast(1))
                 _ui.value = if (due.isEmpty()) DrillUi.Result("ไม่มีรายการที่ต้องทวนตอนนี้ 👍", null, false, listOf("รายการจะกลับมาตามกำหนดของระบบทบทวน")) else DrillUi.Ready("ทบทวน", ExerciseType.E_NOTEID, due.size, null)
@@ -133,6 +160,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                         ExerciseType.E_KEYFIND -> if (d.exactOctave) 48..83 else 48..71
                         ExerciseType.E_NOTEID -> 48..72
                         ExerciseType.E_PULSE -> 57..64
+                        ExerciseType.E_INTERVAL_READ -> if (d.clef == "bass") 36..64 else 55..86
+                        else -> 48..72
                     }
                     _ui.value = DrillUi.Ready(d.title, d.type, d.items, if (d.type == ExerciseType.E_PULSE) d.bpmMin else null)
                 }
@@ -195,6 +224,13 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         helperUses = if (_showNames.value) 1 else 0
         job?.cancel()
         job = viewModelScope.launch {
+            if (bench == "noteid") {
+                queue += com.id.mimikopi.core.progress.Benchmarks.noteIdItems().map { Prompt.Note(it) }
+                total = queue.size
+                next()
+                return@launch
+            }
+            if (bench == "pulse") { runPulse(null, d); return@launch }
             if (review) {
                 val due = repo.dueItems()
                 queue += due.map { id ->
@@ -212,6 +248,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 ExerciseType.E_KEYFIND -> queue += Generators.keyFind(d, seed).map { Prompt.Key(it) }
                 ExerciseType.E_NOTEID -> queue += Generators.noteId(d, seed, repo.dueItems("note:")).map { Prompt.Note(it) }
                 ExerciseType.E_PULSE -> { runPulse(l, d); return@launch }
+                ExerciseType.E_INTERVAL_READ -> { startIntervals(d); return@launch }
+                else -> return@launch
             }
             total = queue.size
             next()
@@ -232,6 +270,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
 
     private fun onInput(e: InputEvent) {
         if (e !is InputEvent.NoteOn) return
+        (_ui.value as? DrillUi.Interval)?.let { onIntervalPlay(it, e.note); return }
         val q = _ui.value as? DrillUi.Question ?: return
         if (busy || q.feedback != null) return
         val p = current ?: return
@@ -241,7 +280,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         events += AttemptEvent(expectedPitch = expected, actualPitch = e.note, actualOnsetMs = responseMs, velocity = e.velocity)
         if (currentFirstTry) {
             answers += Answer(ok, responseMs, firstTry = true)
-            viewModelScope.launch { repo.review(p.srsId, ok, responseMs) }
+            if (bench == null) viewModelScope.launch { repo.review(p.srsId, ok, responseMs) }
         }
         if (!ok) {
             misses[p.srsId] = (misses[p.srsId] ?: 0) + 1
@@ -262,14 +301,16 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
 
     private fun finishReading() {
         val d = drill ?: return
+        if (bench == "noteid") { finishNoteBenchmark(); return }
         val l = lesson
         val acc = Scoring.accuracy(answers)
-        val slow = answers.count { it.correct && it.responseMs > 3000 }
-        val isPassDrill = l != null && l.pass.drill == drillIndex
+        val slow = if (d.type == ExerciseType.E_INTERVAL_READ) 0 else answers.count { it.correct && it.responseMs > 3000 }
+        val isPassDrill = l != null && drillIndex in l.pass.requiredDrills
         val met: Boolean? = if (!isPassDrill || l == null) null else when (d.type) {
             ExerciseType.E_KEYFIND -> Scoring.keyFindPassed(answers, l.pass, d.items)
             ExerciseType.E_NOTEID -> Scoring.noteIdPassed(answers, l.pass, d.items)
-            ExerciseType.E_PULSE -> null
+            ExerciseType.E_INTERVAL_READ -> Scoring.noteIdPassed(answers, l.pass, d.items * (d.notesPerSet - 1))
+            else -> null
         }
         viewModelScope.launch {
             repo.saveAttempt(
@@ -278,14 +319,14 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 startedAt = startedAt, tempoBpm = null, noteAccuracy = acc, timingWithinTol = null,
                 clean = met, helperUses = helperUses, events = events.toList(), sessionId = services.session.currentId(),
             )
-            val passedNow = if (l != null) repo.recordDrill(l, met == true, helperUses > 0) else false
+            val passedNow = if (l != null) repo.recordDrill(l, drillIndex, met == true, helperUses > 0) else false
             val coach = mutableListOf<String>()
             misses.entries.filter { it.value >= 2 }.maxByOrNull { it.value }?.let { (id, _) ->
                 coach += "${describe(id)} พลาดบ่อย รอบหน้าระบบทบทวนจะถามรายการนี้บ่อยขึ้น"
             }
             if (slow > 0) coach += "ถูก แต่มี $slow ข้อที่ใช้เวลาเกิน 3 วินาที ลองมองหากลุ่มคีย์ดำ (หรือจุดอ้างอิง) ก่อน แล้วค่อยหา"
             if (helperUses > 0 && met == true) coach += "ผ่านเกณฑ์ แต่ใช้ปุ่มแสดงชื่อโน้ต จึงยังไม่นับเป็นการผ่านเต็ม ลองอีกครั้งโดยไม่ใช้ตัวช่วย"
-            if (met == true && !passedNow && helperUses == 0) coach += "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อให้ผ่านบทนี้ (ช่วยให้จำได้นาน)"
+            if (met == true && !passedNow && helperUses == 0) coach += if (l != null && l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อให้ผ่านบทนี้ (ช่วยให้จำได้นาน)"
             if (passedNow) coach += "ผ่านบทนี้แล้ว บทถัดไปปลดล็อก"
             if (coach.isEmpty()) l?.tips?.firstOrNull()?.let { coach += it }
             val pct = (acc * 100).toInt()
@@ -302,7 +343,21 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
 
     private val taps = mutableListOf<InputEvent.NoteOn>()
 
-    private suspend fun runPulse(l: Lesson, d: Drill) {
+    private fun finishNoteBenchmark() {
+        val correct = answers.count { it.correct && it.firstTry }
+        val ms = answers.sumOf { it.responseMs }
+        val perMinute = com.id.mimikopi.core.progress.Benchmarks.notesPerMinute(correct, ms)
+        val acc = Scoring.accuracy(answers)
+        viewModelScope.launch {
+            repo.updateBenchmark { it.copy(noteIdPerMinute = perMinute, noteIdAccuracy = acc) }
+            _ui.value = DrillUi.Result(
+                "ถูก $correct/${answers.size} (${(acc * 100).toInt()}%) · อ่านได้ ${"%.1f".format(perMinute)} โน้ตต่อนาที (นับเฉพาะเวลาที่ใช้ตอบ)",
+                null, false, listOf("บันทึกผลวัดแล้ว ดูกราฟเทียบได้ที่หน้า \"ความก้าวหน้า\""),
+            )
+        }
+    }
+
+    private suspend fun runPulse(l: Lesson?, d: Drill) {
         val bpm = Generators.pulseBpm(d, seed)
         val countIn = 4
         synchronized(taps) { taps.clear() }
@@ -333,9 +388,21 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         val cfg = inputConfig.load()
         val latency = cfg.latencyMs[InputConfig.latencyKey(source, OutputRoute.current(getApplication()))]
         val offsets = Scoring.tapOffsetsMs(beats, tapList.map { it.timeNanos }, latency ?: 0.0, beatMs * 0.45)
-        val tolerance = TimingRules(repo.config.timing).toleranceMs(l.stage, bpm.toDouble())
+        val tolerance = TimingRules(repo.config.timing).toleranceMs(l?.stage ?: 1, bpm.toDouble())
         val stats = Scoring.pulse(offsets, tolerance)
-        val isPassDrill = l.pass.drill == drillIndex
+        if (l == null) {
+            // Benchmark: keep the SD only if enough beats were tapped to mean something.
+            val enough = stats.taps >= d.beats * 3 / 4
+            if (enough) repo.updateBenchmark { it.copy(pulseSdMs = stats.sdMs) }
+            _ui.value = DrillUi.Result(
+                "$bpm BPM · กด ${stats.taps}/${d.beats} · ความคลาดเคลื่อน (SD) ${"%.0f".format(stats.sdMs)} ms",
+                null, false,
+                listOf(if (enough) "บันทึกผลวัดแล้ว" else "กดไม่ครบพอจะวัดผล ลองใหม่อีกครั้ง") +
+                    if (latency == null) listOf("ยังไม่ได้วัดความหน่วงของเครื่อง ค่าเฉลี่ยอาจเลื่อน แต่ค่า SD ไม่ขึ้นกับความหน่วงคงที่") else emptyList(),
+            )
+            return
+        }
+        val isPassDrill = drillIndex in l.pass.requiredDrills
         val met = if (isPassDrill) Scoring.pulsePassed(stats, l.pass, d.beats) else null
 
         repo.saveAttempt(
@@ -346,7 +413,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             events = offsets.map { AttemptEvent(expectedPitch = null, actualPitch = null, offsetMs = it.toLong()) },
             sessionId = services.session.currentId(),
         )
-        val passedNow = repo.recordDrill(l, met == true, helperUsed = false)
+        val passedNow = repo.recordDrill(l, drillIndex, met == true, helperUsed = false)
         val coach = mutableListOf<String>()
         val missed = d.beats - stats.taps
         if (missed > d.beats / 4) coach += "กดไม่ครบ ($missed จังหวะหายไป) ลองนับออกเสียงตลอด แล้วกดทุกครั้งที่นับ"
@@ -363,6 +430,83 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 (if (latency == null) " (ยังไม่ได้หักความหน่วง)" else " (หักความหน่วง ${"%.0f".format(latency)} ms แล้ว)"),
             met, passedNow, coach,
         )
+    }
+
+    // ---------------- Interval reading (1.6, 2.1, 3.1) ----------------
+
+    private var sets: List<List<SpelledPitch>> = emptyList()
+    private var setIndex = 0
+    private var pairTried = false
+
+    private fun startIntervals(d: Drill) {
+        sets = com.id.mimikopi.core.exercise.ScoreGenerators.intervalSets(d, seed)
+        setIndex = 0
+        total = sets.size
+        showPair(d, 0)
+    }
+
+    private fun showPair(d: Drill, pair: Int?) {
+        val notes = sets[setIndex]
+        pairTried = false
+        shownAt = System.nanoTime()
+        _ui.value = DrillUi.Interval(notes, com.id.mimikopi.core.exercise.ScoreGenerators.clefOf(d), pair, 0, setIndex + 1, sets.size, null, null,
+            d.answer, com.id.mimikopi.core.exercise.IntervalQuiz.numbersFor(d.intervals), 0 in d.intervals)
+    }
+
+    /** The user's answer for the current pair. */
+    fun answerInterval(answer: com.id.mimikopi.core.music.Motion) {
+        val d = drill ?: return
+        val q = _ui.value as? DrillUi.Interval ?: return
+        val pair = q.pair ?: return
+        if (busy || q.feedback != null) return
+        val expected = com.id.mimikopi.core.music.Motion.between(q.notes[pair], q.notes[pair + 1])
+        val ok = com.id.mimikopi.core.exercise.IntervalQuiz.isCorrect(expected, answer, d.answer)
+        val responseMs = (System.nanoTime() - shownAt) / 1_000_000
+        if (!pairTried) answers += Answer(ok, responseMs, firstTry = true)
+        pairTried = true
+        events += AttemptEvent(expectedPitch = q.notes[pair + 1].midi, actualPitch = null, actualOnsetMs = responseMs)
+        busy = true
+        _ui.value = q.copy(feedback = if (ok) Feedback.CORRECT else Feedback.WRONG, correction = if (ok) null else describeMotion(expected, d.answer))
+        viewModelScope.launch {
+            delay(if (ok) 400 else 1600)
+            busy = false
+            val next = pair + 1
+            if (next < q.notes.size - 1) showPair(d, next)
+            else _ui.value = q.copy(pair = null, played = 0, feedback = null, correction = null)
+        }
+    }
+
+    private fun onIntervalPlay(q: DrillUi.Interval, midi: Int) {
+        val d = drill ?: return
+        if (q.pair != null || busy) return
+        if (midi != q.notes[q.played].midi) {
+            _ui.value = q.copy(feedback = Feedback.WRONG)
+            return
+        }
+        val played = q.played + 1
+        if (played < q.notes.size) {
+            _ui.value = q.copy(played = played, feedback = null)
+            return
+        }
+        _ui.value = q.copy(played = played, feedback = Feedback.CORRECT)
+        busy = true
+        viewModelScope.launch {
+            delay(500)
+            busy = false
+            setIndex++
+            if (setIndex < sets.size) showPair(d, 0) else finishReading()
+        }
+    }
+
+    fun describeMotion(m: com.id.mimikopi.core.music.Motion, mode: String): String {
+        val dir = when (m.direction) {
+            com.id.mimikopi.core.music.Direction.UP -> "ขึ้น"
+            com.id.mimikopi.core.music.Direction.DOWN -> "ลง"
+            com.id.mimikopi.core.music.Direction.SAME -> ""
+        }
+        if (m.kind == com.id.mimikopi.core.music.MotionKind.REPEAT) return "ซ้ำ"
+        return if (mode == "INTERVAL") "ระยะ ${m.intervalNumber} $dir"
+        else (if (m.kind == com.id.mimikopi.core.music.MotionKind.STEP) "ขั้น" else "ข้าม") + dir
     }
 
     fun again() {

@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 class PieceListViewModel(app: Application, args: SavedStateHandle) : AndroidViewModel(app) {
     private val repo = (app as MimikopiApp).pieces
     /** Opened from a lesson's repertoire drill: only its pieces, played with its hand. */
-    val lesson: Lesson? = args.get<String>("lesson")?.let { app.learning.lesson(it) }
+    val lesson: Lesson? = args.get<String>("lesson")?.let { (app as MimikopiApp).learning.lesson(it) }
     val drill: Drill? = args.get<String>("drill")?.toIntOrNull()?.let { lesson?.drills?.getOrNull(it) }
     val hand: String? = drill?.hand
     val pieces = drill?.pieces?.mapNotNull { repo.piece(it) } ?: repo.pieces

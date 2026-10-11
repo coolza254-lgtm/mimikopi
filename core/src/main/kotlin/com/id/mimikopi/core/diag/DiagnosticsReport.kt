@@ -22,6 +22,8 @@ data class DiagnosticsReport(
     val lastUpdateCheck: String? = null,
     val database: DatabaseInfo? = null,
     val notes: List<String> = emptyList(),
+    /** The last crash kept on the device (time, thread, stack trace), if any. */
+    val lastCrash: String? = null,
 ) {
     fun toJson(): String = json.encodeToString(serializer(), this)
 

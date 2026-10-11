@@ -27,7 +27,6 @@ import com.id.mimikopi.core.playalong.NoteResult
 import com.id.mimikopi.core.playalong.PlayAlongJudge
 import com.id.mimikopi.core.playalong.PlayMode
 import com.id.mimikopi.core.playalong.PlaySetup
-import com.id.mimikopi.core.practice.TimingRules
 import com.id.mimikopi.core.practice.isClean
 import com.id.mimikopi.core.score.Hand
 import com.id.mimikopi.core.score.Score
@@ -386,7 +385,7 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
             val route = OutputRoute.current(getApplication())
             val latency = com.id.mimikopi.core.input.InputSource.entries.associateWith { cfg.latencyMs[InputConfig.latencyKey(it, route)] ?: 0.0 }
             val judge = PlayAlongJudge(score, PlaySetup(PlayMode.TEMPO, setOf(Hand.RIGHT), 0, q.bars - 1, bpm,
-                TimingRules(learning.config.timing).toleranceMs(2, bpm), 0, anyKey = true))
+                learning.toleranceMs(2, bpm, benchmark = bench), 0, anyKey = true))
             val userStart = t0 + q.bars * barNanos
             judge.start(userStart / 1_000_000)
             val collector = launch {

@@ -548,4 +548,16 @@
     <string name="knowledge_play">▶ ฟัง: %1$s</string>
     <string name="knowledge_lessons">บทเรียนที่เกี่ยวข้อง</string>
     <string name="knowledge_lesson">เปิดบท %1$s</string>
+    <string name="timing_title">ความเข้มงวดของจังหวะ</string>
+    <string name="timing_body">ใช้ตัดสินว่าเล่นตรงจังหวะหรือไม่ (หลังหักความหน่วงของเครื่องแล้ว) ค่าในวงเล็บคือช่วงที่ยอมให้ในด่าน 1 ที่ 60 bpm ด่านหลังๆ และเพลงเร็วจะแคบลง การวัดผล (benchmark) ใช้แบบปกติเสมอเพื่อให้เทียบกันได้</string>
+    <string name="timing_strict">เข้ม (±%1$d ms)</string>
+    <string name="timing_normal">ปกติ (±%1$d ms)</string>
+    <string name="timing_forgiving">ผ่อน (±%1$d ms)</string>
+    <string name="reader_opt_page">แสดงแบบหน้า (ตัดบรรทัด)</string>
+    <string name="reader_opt_page_body">โน้ตเรียงเป็นบรรทัดลงมาเหมือนหนังสือ ระหว่างเล่นจะเลื่อนลงตามเคอร์เซอร์ ปิด = แถบยาวแถบเดียวที่เลื่อนไปทางขวา</string>
+    <string name="block_song_project">โปรเจกต์ถอดเพลง: %1$s · วันที่ %2$d: %3$s</string>
+    <string name="block_open_song">เปิดเพลงนี้</string>
+    <string name="diag_section_crash">ข้อผิดพลาดล่าสุด</string>
+    <string name="diag_crash_none">ยังไม่เคยมีการปิดตัวเพราะข้อผิดพลาด</string>
+    <string name="diag_crash_help">แอพเคยปิดตัวเพราะข้อผิดพลาด รายละเอียดอยู่ในไฟล์ Diagnostics (ปุ่มคัดลอก/แชร์ด้านบน) เก็บในเครื่องนี้เท่านั้น</string>
 </resources>

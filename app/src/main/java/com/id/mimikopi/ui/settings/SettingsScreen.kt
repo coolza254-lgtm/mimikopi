@@ -46,6 +46,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
     val backup by vm.backup.collectAsStateWithLifecycle()
     val lastCheck by vm.lastCheck.collectAsStateWithLifecycle()
     val autoCount by vm.autoBackupCount.collectAsStateWithLifecycle()
+    val timingMode by vm.timingMode.collectAsStateWithLifecycle()
     val installEvent by InstallEvents.events.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -88,6 +89,20 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
                 },
                 onDismiss = vm::dismissUpdateMessage,
             )
+        }
+
+        PageCard(title = stringResource(R.string.timing_title)) {
+            Body(stringResource(R.string.timing_body))
+            Column(verticalArrangement = Arrangement.spacedBy(Tokens.Space.xs), modifier = Modifier.padding(top = Tokens.Space.s)) {
+                listOf(
+                    com.id.mimikopi.core.practice.TimingMode.STRICT to R.string.timing_strict,
+                    com.id.mimikopi.core.practice.TimingMode.NORMAL to R.string.timing_normal,
+                    com.id.mimikopi.core.practice.TimingMode.FORGIVING to R.string.timing_forgiving,
+                ).forEach { (mode, label) ->
+                    androidx.compose.material3.FilterChip(selected = timingMode == mode, onClick = { vm.setTimingMode(mode) },
+                        label = { Text(stringResource(label, vm.exampleMs(mode))) })
+                }
+            }
         }
 
         PageCard(title = stringResource(R.string.backup_title)) {

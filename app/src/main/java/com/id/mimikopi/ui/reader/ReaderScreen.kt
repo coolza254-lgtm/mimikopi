@@ -90,7 +90,20 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
         if (score == null || layout == null) return@Column
 
         val playing = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING
-        ScoreView(
+        if (ui.options.pageView) PagedScoreView(
+            score = score,
+            cursorBeat = vm::cursorAt,
+            playing = playing,
+            results = ui.results,
+            wrongMarks = ui.wrongMarks,
+            loop = if (ui.section.first == 0 && ui.section.last == score.measures - 1) null else ui.section,
+            hotMeasures = ui.hotMeasures,
+            showNames = ui.showNames,
+            nameStyle = vm.nameStyle,
+            onMeasureTap = vm::onMeasureTap,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            hideNotes = ui.options.hideNotes && ui.phase != Phase.RESULT,
+        ) else ScoreView(
             score = score,
             layout = layout,
             cursorBeat = vm::cursorAt,
@@ -292,6 +305,7 @@ private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -
                 if (!fixed) OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)
                 if (!fixed) OptionRow(R.string.reader_opt_ramp, R.string.reader_opt_ramp_body, o.useRamp, vm::setUseRamp)
                 OptionRow(R.string.reader_opt_keyboard, R.string.reader_opt_keyboard_body, o.showKeyboard, vm::setShowKeyboard)
+                OptionRow(R.string.reader_opt_page, R.string.reader_opt_page_body, o.pageView, vm::setPageView)
                 if (!fixed) OptionRow(R.string.reader_opt_hide, R.string.reader_opt_hide_body, o.hideNotes, vm::setHideNotes)
                 if (!fixed) OptionRow(R.string.reader_opt_loop, R.string.reader_opt_loop_body, o.loopListen, vm::setLoopListen)
             }

@@ -91,6 +91,7 @@ class DiagnosticsCollector(
             lastUpdateCheck = database.settingsDao().get(SettingKeys.LAST_UPDATE_CHECK),
             database = databaseInfo(),
             notes = notes,
+            lastCrash = CrashLog.read(context),
         )
     }
 

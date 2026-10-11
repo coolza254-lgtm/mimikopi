@@ -44,6 +44,7 @@ fun TodayScreen(
     onOpenPieces: () -> Unit,
     onOpenNewReading: (Int) -> Unit,
     onOpenEar: () -> Unit,
+    onOpenSong: (String) -> Unit = {},
     vm: TodayViewModel = viewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -119,6 +120,14 @@ fun TodayScreen(
                     }
                     BlockKind.FREE_PLAY -> {
                         Text(stringResource(R.string.block_free_body), style = MaterialTheme.typography.bodyMedium)
+                        val project = ui.songProject
+                        if (block.minutes >= 15 && project != null) {
+                            Text(stringResource(R.string.block_song_project, project.title, project.nextDay, project.nextStep), style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(top = Tokens.Space.xs))
+                            Button(onClick = { onOpenSong(project.songId) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
+                                Text(stringResource(R.string.block_open_song))
+                            }
+                        }
                         Button(onClick = onOpenPiano, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
                             Text(stringResource(R.string.block_open_piano))
                         }

@@ -127,4 +127,6 @@ object SettingKeys {
     const val SONG_PREFIX = "song:"
     /** Set once the bundled target-song shells were copied into the library (so deleting one keeps it deleted). */
     const val SONGS_SEEDED = "songs.seeded"
+    /** Timing strictness for judging (learning-system.md 6.2): STRICT, NORMAL or FORGIVING. */
+    const val TIMING_MODE = "timing.mode"
 }

@@ -69,6 +69,12 @@ fun ScoreView(
     editorCursor: Pair<Double, Hand>? = null,
     /** Editor: taps report the beat, the staff (hand) and the staff position (0 = middle line). */
     onScoreTap: ((beat: Double, hand: Hand, position: Int) -> Unit)? = null,
+    /** Redraw every frame (the cursor moves) even when not scrolling to follow it (page view systems). */
+    animate: Boolean = following,
+    /** Page view: this strip starts at that bar of the whole piece (bar numbers continue). */
+    firstBarNumber: Int = 1,
+    /** Page view: draw the cursor only while it is inside this strip (every system but the last). */
+    cursorOnlyInside: Boolean = false,
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 64)
     var frame by remember { mutableLongStateOf(System.nanoTime()) }
@@ -83,8 +89,8 @@ fun ScoreView(
     val spacePx = remember { floatArrayOf(1f) }
 
     // Redraw every frame only while playing (the cursor moves); otherwise state changes redraw it.
-    LaunchedEffect(following) {
-        if (following) while (true) withFrameNanos { frame = it } else frame = System.nanoTime()
+    LaunchedEffect(animate) {
+        if (animate) while (true) withFrameNanos { frame = it } else frame = System.nanoTime()
     }
 
     Canvas(
@@ -137,7 +143,7 @@ fun ScoreView(
                 else -> null
             }
             if (tint != null) drawRect(tint, Offset(x0, py(ScoreLayout.TOP_Y - 3)), Size(x1 - x0, py(ScoreLayout.BOTTOM_Y + 3) - py(ScoreLayout.TOP_Y - 3)))
-            text(measurer, (m.index + 1).toString(), x0 + space * 0.2f, py(ScoreLayout.TOP_Y - 2.6), space * 1.2f, Tokens.Palette.InkMuted)
+            text(measurer, (m.index + firstBarNumber).toString(), x0 + space * 0.2f, py(ScoreLayout.TOP_Y - 2.6), space * 1.2f, Tokens.Palette.InkMuted)
         }
 
         for (l in layout.lines) {
@@ -208,7 +214,7 @@ fun ScoreView(
             val cy = py(ScoreLayout.staffY(hand))
             drawRect(Tokens.Palette.Rose.copy(alpha = 0.25f), Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f))
             drawRect(Tokens.Palette.Rose, Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f), style = Stroke(space * 0.15f))
-        } else {
+        } else if (!cursorOnlyInside || (beat > -1e-6 && beat < score.totalBeats - 1e-6)) {
             drawLine(Tokens.Palette.Rose, Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.TOP_Y - 2.5)),
                 Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.BOTTOM_Y + 2.5)), strokeWidth = space * 0.3f)
         }

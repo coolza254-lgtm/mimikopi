@@ -28,8 +28,10 @@ core/   com.id.mimikopi.core
   metronome/ MetronomeSettings, TapTempo, JitterAnalysis
   notation/  Clef, Staff (positions, ledger lines, stems)
   lesson/    Lesson/Drill/PassRule (content/lessons/*.json), LessonRecord + ProgressRules
-  exercise/  Generators (seeded), Scoring and pass checks
-  session/   SessionPlanner (section 3 template, free play always)
+  exercise/  Generators (seeded), Scoring and pass checks; ScoreGenerators: five-finger positions, finger
+             patterns, rhythm cells (5.3), sight reading L1-L5 with LevelSpec (5.2), interval sets; IntervalQuiz
+  session/   SessionPlanner (section 3 template, free play always); BlockContent (warm-up, new-reading level)
+  progress/  TrackProgress (per track / per stage), BenchmarkResult + Benchmarks (fixed sets, 14-day schedule)
   score/     PieceFile (content/pieces/*.json, hand-writable tokens), Score (+ measure checks), KeySignature,
              ScoreLayout: own engraver -> one long grand-staff strip in staff spaces (SMuFL glyphs, stems,
              flags, dots, rests, ledger lines, accidentals with bar carry, key/time signatures, beat->x anchors)
@@ -50,7 +52,9 @@ app/    com.id.mimikopi
              sessions, neutral stats), SessionTracker
   ui/today, ui/lesson, ui/practice   Today plan, lesson page, drill runner (key / note / pulse)
   pieces/    PieceRepository (bundled pieces + per-piece progress JSON in settings)
-  ui/reader  PieceListScreen, ReaderScreen/ReaderViewModel (count-in from native metronome tick frames
+  ui/progress ProgressScreen (stages, tracks, weekly minutes, daily trends, benchmarks)
+  ui/reader  ReaderViewModel.Source: library piece, lesson score drill, new reading, benchmark level;
+             PieceListScreen (optionally filtered by a repertoire drill), ReaderScreen/ReaderViewModel (count-in from native metronome tick frames
              -> downbeat t0 on the System.nanoTime clock; judging on the main thread; per-source latency),
              ScoreView (Compose Canvas, cached glyph layouts, cursor read per frame)
   piano/NoteScheduler  accompaniment/demo notes at nanoTime instants from one thread (parkNanos)

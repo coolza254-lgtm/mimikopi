@@ -72,6 +72,17 @@ data class ScoreLayout(
         return if (b1 == b0) x0 else x0 + (x1 - x0) * (beat - b0) / (b1 - b0)
     }
 
+    /** Beat position under an x position (inverse of [xAt]). */
+    fun beatAtX(x: Double): Double {
+        if (anchors.isEmpty()) return 0.0
+        if (x <= anchors.first().second) return anchors.first().first
+        if (x >= anchors.last().second) return anchors.last().first
+        val i = anchors.indexOfFirst { it.second > x }
+        val (b0, x0) = anchors[i - 1]
+        val (b1, x1) = anchors[i]
+        return if (x1 == x0) b0 else b0 + (b1 - b0) * (x - x0) / (x1 - x0)
+    }
+
     /** Measure under an x position, or null outside the music. */
     fun measureAtX(x: Double): Int? = measures.firstOrNull { x >= it.x0 && x < it.x1 }?.index
 

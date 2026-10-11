@@ -2,6 +2,25 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## As of M10 (v0.10.x)
+- Editor scope: one voice per staff (chords allowed), notes and rests down to 16ths with dots, ties, accidentals,
+  key and time signature (one for the whole piece), clefs per staff, tempo, chord symbols, repeat bar lines.
+  Not yet: tuplets, second voices, slurs, dynamics, articulations, lyrics, 1st/2nd endings, D.C./D.S., key or time
+  changes inside a piece, pickup measures (an imported pickup is placed at the end of a full first measure).
+- Writing overwrites (score-editor style); a note longer than what is left in the bar is split and tied over the bar
+  line automatically. Accidentals are spelled from the key (sharps in sharp keys and C, flats in flat keys) when
+  entered from keys/MIDI; touch entry can choose ♯ ♭ ♮.
+- MusicXML import: partwise files (.musicxml/.xml/.mxl), first part, staves 1-2, first voice of each staff; other
+  voices and unpitched notes are skipped (the app says how many). Durations must sit on the 16th grid (no triplets).
+- MIDI import: notes quantised to 16ths; hands from tracks (higher track = right hand) or split at Middle C;
+  overlapping notes in one hand are cut where the next starts; no chord symbols or spelling hints from MIDI.
+- MIDI export plays repeats out; MusicXML export writes them as repeat bar lines. Play-along in the reader follows
+  the written order (repeats are not played out there).
+- PDF: A4 portrait, systems wrapped to the page width, the same engraving as the screen (no justification of
+  systems to the full width).
+- User scores live in the settings table (one row per score), so JSON backups include them.
+- The transcribe helper now works with your own scores too (write or import the phrase, then hide notes in the reader).
+
 ## As of M9 (v0.9.x)
 - Ear training E1-E9 (learning-system.md 11). Levels unlock by stage (E1-E2 stage 1, E3/E4/E6 stage 2, E5 stage 3,
   E7-E8 stage 5, E9 stage 6); locked levels can still be tried early. E3/E4/E6 unlock stages are my own choice

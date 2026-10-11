@@ -30,6 +30,12 @@ core/   com.id.mimikopi.core
   lesson/    Lesson/Drill/PassRule (content/lessons/*.json), LessonRecord + ProgressRules
   exercise/  Generators (seeded), Scoring and pass checks
   session/   SessionPlanner (section 3 template, free play always)
+  score/     PieceFile (content/pieces/*.json, hand-writable tokens), Score (+ measure checks), KeySignature,
+             ScoreLayout: own engraver -> one long grand-staff strip in staff spaces (SMuFL glyphs, stems,
+             flags, dots, rests, ledger lines, accidentals with bar carry, key/time signatures, beat->x anchors)
+  playalong/ PlayAlongJudge (wait / tempo modes, per-note correct/early/late/missed/corrected, wrong keys,
+             stumbles), PlayResult (RunSummary, per-bar errors, problem bars), Coach (learning-system.md 7),
+             PieceRules (tempo ramp per hands+section, pass = 3 clean runs at target on 2 days, problem-spot heat)
   input/     InputEvent stream model, MidiParser (running status, vel-0 off, CC64, sysex/realtime),
              VelocityProbe, OctaveCalibration, LatencyCalibration, InputConfig
   time/      Clock
@@ -43,6 +49,11 @@ app/    com.id.mimikopi
   learning/  LearningRepository (lessons from assets, records, SRS via Leitner + item_stats, attempts,
              sessions, neutral stats), SessionTracker
   ui/today, ui/lesson, ui/practice   Today plan, lesson page, drill runner (key / note / pulse)
+  pieces/    PieceRepository (bundled pieces + per-piece progress JSON in settings)
+  ui/reader  PieceListScreen, ReaderScreen/ReaderViewModel (count-in from native metronome tick frames
+             -> downbeat t0 on the System.nanoTime clock; judging on the main thread; per-source latency),
+             ScoreView (Compose Canvas, cached glyph layouts, cursor read per frame)
+  piano/NoteScheduler  accompaniment/demo notes at nanoTime instants from one thread (parkNanos)
   piano/     SamplePackManager (download, SHA-256, safe unzip, decode, atomic install),
              PianoController (shares one engine; stream open only while a screen plays)
   backup/    BackupService: export/import via the document picker, automatic backups in app storage,
@@ -91,3 +102,10 @@ timestamp. Judging subtracts the calibrated latency of the active route, then ap
   `coolza254-lgtm/mimikopi-releases`.
 - Toolchain: AGP 9.3 (built-in Kotlin), Gradle 9.6, Kotlin 2.4, KSP 2.3, Room 2.8, Compose BOM 2026.08,
   compileSdk 37, targetSdk 36, minSdk 26.
+
+## Notation decision (M7)
+The M0 plan listed Verovio (C++, LGPL-3) as a spike. I kept the own engine in `:core` instead: the reader
+needs per-note colouring, a moving cursor, tap-to-select bars and later editing, which are simple with our own
+layout model and awkward through Verovio's SVG output; it also avoids an LGPL native dependency. The cost is
+engraving scope: M7 covers single-voice-per-staff music (stages 1-4). Beams, ties, slurs, multiple voices and
+system wrapping are not drawn yet (see KNOWN-LIMITATIONS.md).

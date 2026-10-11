@@ -17,6 +17,7 @@ fun CreditsScreen(onBack: () -> Unit) {
     ScreenScaffold(title = stringResource(R.string.credits_title), onBack = onBack) {
         Credit(R.string.credit_piano_title, R.string.credit_piano_body)
         Credit(R.string.credit_oboe_title, R.string.credit_oboe_body)
+        Credit(R.string.credit_bravura_title, R.string.credit_bravura_body)
         Credit(R.string.credit_font_title, R.string.credit_font_body)
         Credit(R.string.credit_logo_title, R.string.credit_logo_body)
         Credit(R.string.credit_libs_title, R.string.credit_libs_body)

@@ -2,6 +2,20 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## As of M6 (v0.6.x)
+- Lessons available: 1.1, 1.3, 1.5. Warm-up, new-reading and ear blocks are left out of the Today plan until
+  their content exists (their time goes to the other blocks). The rest of stages 1-3 comes in M8.
+- Lesson progress is stored as JSON in the settings table (covered by backups); attempts, events, item stats and
+  sessions use the Room tables.
+- Coach messages are rule-based and short; the "practise this note separately for 2 minutes" drill from
+  learning-system.md 7 is approximated by SRS (missed items come back sooner).
+- Test-out (6.4) and benchmarks every 2 weeks (12.1) are not implemented yet; problem-spot detection waits for
+  pieces (M7).
+- The staff renderer draws one note at a time (reading prompts); full scores come with the reader (M7).
+- Session time is wall-clock from "start" to "finish" (capped), not measured activity.
+- The pulse drill uses the calibrated latency for the input source and current output route when available;
+  without calibration it says so in the result.
+
 ## As of M5 (v0.5.x)
 - USB MIDI is the tested path; Bluetooth MIDI devices already paired in Android may appear but there is
   no in-app Bluetooth pairing/scan yet.

@@ -6,8 +6,6 @@
     <string name="action_cancel">ยกเลิก</string>
 
     <!-- Home -->
-    <string name="home_status_title">สถานะของแอพตอนนี้</string>
-    <string name="home_status_body">รุ่นนี้มีเปียโนเล่นอิสระ เมโทรนอม ต่อเปียโนผ่าน USB MIDI อัปเดตในแอพ และสำรองข้อมูล บทเรียนจะตามมาในรุ่นถัดไป</string>
     <string name="home_diagnostics_title">ข้อมูลเครื่อง (Diagnostics)</string>
     <string name="home_diagnostics_body">ดูและคัดลอกข้อมูลเครื่องเป็น JSON เพื่อส่งกลับมาให้ตรวจ</string>
     <string name="home_about_title">เกี่ยวกับแอพและเครดิต</string>
@@ -121,6 +119,83 @@
     <string name="sim_pedal_down">เหยียบเพดัล</string>
     <string name="sim_pedal_up">ปล่อยเพดัล</string>
 
+    <string name="home_today_title">วันนี้ฝึกอะไร</string>
+    <string name="home_today_body">แผนฝึกวันนี้ตามเวลาที่มี บทเรียน ทบทวน จังหวะ และเล่นเอง</string>
+
+    <!-- Today -->
+    <string name="today_title">วันนี้</string>
+    <string name="today_time">วันนี้มีเวลาเท่าไร</string>
+    <string name="today_minutes">%1$d นาที</string>
+    <string name="today_start">เริ่มฝึก (จับเวลา)</string>
+    <string name="today_timer">⏱ %1$d:%2$02d จาก %3$d นาที</string>
+    <string name="today_finish">จบการฝึกวันนี้</string>
+    <string name="today_light">วันนี้เป็นวันเบา: ทบทวนและเล่นเพลงที่ชอบ ไม่มีบทใหม่</string>
+    <string name="block_warmup">วอร์มอัพ</string>
+    <string name="block_review">ทบทวน</string>
+    <string name="block_rhythm">จังหวะ</string>
+    <string name="block_lesson">บทเรียน</string>
+    <string name="block_new_reading">อ่านโน้ตใหม่</string>
+    <string name="block_ear">หู + สรุป</string>
+    <string name="block_free">เล่นเอง (ไม่มีคะแนน)</string>
+    <string name="block_review_body">รายการที่ถึงกำหนดทบทวน: %1$d (สูงสุด 20 ต่อครั้ง)</string>
+    <string name="block_start">เริ่ม</string>
+    <string name="block_rhythm_body">เคาะจังหวะคงที่จากบท %1$s %2$s</string>
+    <string name="block_lesson_body">บท %1$s %2$s
+เป้าหมาย: %3$s</string>
+    <string name="block_open_lesson">เปิดบทเรียน</string>
+    <string name="block_free_body">เล่นอะไรก็ได้ หรือลองแกะเพลงที่ชอบ ไม่มีการให้คะแนน</string>
+    <string name="block_open_piano">เปิดเปียโน</string>
+    <string name="today_stats">ข้อมูลการฝึก</string>
+    <string name="today_stats_body">วันนี้ %1$d นาที · สัปดาห์นี้ %2$d นาที (สัปดาห์ก่อน %3$d) · ฝึกมาแล้ว %4$d วัน · รวม %5$d นาที</string>
+    <string name="today_lessons">บทเรียนทั้งหมด</string>
+    <string name="today_estimate_note">ความก้าวหน้าวัดจากการผ่านเกณฑ์ ไม่ใช่ตามปฏิทิน (เวลาของแต่ละด่านในแผนเป็นแค่ประมาณการ)</string>
+    <string name="summary_title">สรุปวันนี้</string>
+    <string name="summary_minutes">ฝึก %1$d นาที</string>
+    <string name="summary_accuracy">ความแม่นยำการอ่านวันนี้ %1$d%%</string>
+    <string name="summary_accuracy_before"> (ครั้งก่อน %1$d%%)</string>
+    <string name="summary_due">พรุ่งนี้มีรายการต้องทบทวน %1$d รายการ</string>
+    <string name="summary_question">วันนี้ตรงไหนรู้สึกยากที่สุด? จำไว้แล้วบอกโค้ชในรอบหน้าได้</string>
+
+    <!-- Lesson -->
+    <string name="lesson_missing">ไม่พบบทเรียนนี้</string>
+    <string name="lesson_goal">เป้าหมาย: %1$s</string>
+    <string name="lesson_meta">ประมาณ %1$d นาที · %2$s</string>
+    <string name="lesson_locked">ต้องผ่านเกณฑ์บท %1$s ก่อนอย่างน้อยหนึ่งครั้ง</string>
+    <string name="lesson_explain">อธิบาย</string>
+    <string name="lesson_try">ลองพร้อมแอพ (ไม่ตัดสินคะแนน)</string>
+    <string name="lesson_show_keys">ไฮไลต์คีย์ %1$s ทุกตัว</string>
+    <string name="lesson_keys">%1$d คีย์</string>
+    <string name="lesson_count_ok">ถูกต้อง: เปียโน %2$d คีย์มี %3$s ทั้งหมด %1$d ตัว</string>
+    <string name="lesson_count_no">ยังไม่ใช่: เปียโน %2$d คีย์มี %3$s ทั้งหมด %1$d ตัว ลองนับจากกลุ่มคีย์ดำ 2 ตัว</string>
+    <string name="lesson_listen">ฟังเสียง</string>
+    <string name="lesson_drills">แบบฝึก (★ = แบบทดสอบผ่านบท)</string>
+    <string name="lesson_pass">เกณฑ์ผ่าน: %1$s</string>
+    <string name="lesson_tips">เคล็ดลับการฝึก</string>
+    <string name="lesson_status_passed">ผ่านแล้ว</string>
+    <string name="lesson_status_locked">ยังล็อกอยู่</string>
+    <string name="lesson_status_in_progress">กำลังฝึก</string>
+    <string name="lesson_status_available">พร้อมเริ่ม</string>
+    <string name="lesson_status_progress">ผ่านเกณฑ์แล้ว %1$d จาก %2$d วัน</string>
+    <string name="lesson_status_helper"> · ผ่านแบบใช้ตัวช่วย %1$d วัน (ยังไม่นับ)</string>
+
+    <!-- Drill -->
+    <string name="drill_title">แบบฝึก</string>
+    <string name="drill_ready_keyfind">แอพจะบอกชื่อโน้ต %1$d ข้อ ให้กดคีย์นั้นให้เร็ว (บนจอหรือเปียโนจริง) ถ้าผิด แอพจะชี้ตำแหน่งที่ถูกแล้วถามซ้ำท้ายรอบ</string>
+    <string name="drill_ready_noteid">แอพจะแสดงโน้ตบนบรรทัด %1$d ข้อ ให้กดคีย์ที่ตรงกัน (บนจอหรือเปียโนจริง)</string>
+    <string name="drill_ready_pulse">เมโทรนอมจะนับเตรียม 4 ครั้ง แล้วให้กดคีย์ใดก็ได้ (หรือแตะแผ่นสีชมพู) พร้อมเสียงคลิกทุกครั้ง นับออกเสียงไปด้วย</string>
+    <string name="drill_start">เริ่ม</string>
+    <string name="drill_correct">ถูก ✓</string>
+    <string name="drill_wrong">ยังไม่ใช่ ดูคีย์ที่ไฮไลต์</string>
+    <string name="drill_countin">เตรียม… %1$d</string>
+    <string name="drill_beat">%1$d / %2$d</string>
+    <string name="drill_taps">กดแล้ว %1$d ครั้ง</string>
+    <string name="drill_tap_pad">แตะตรงนี้ หรือกดคีย์ใดก็ได้บนเปียโน</string>
+    <string name="drill_result">ผล</string>
+    <string name="drill_met">ผ่านเกณฑ์ของบทนี้ในวันนี้</string>
+    <string name="drill_not_met">ยังไม่ผ่านเกณฑ์ ลองใหม่ได้</string>
+    <string name="drill_again">ทำอีกครั้ง</string>
+    <string name="drill_done">เสร็จ</string>
+
     <!-- Credits -->
     <string name="credits_title">เครดิตและสัญญาอนุญาต</string>
     <string name="about_open_credits">ดูเครดิตทั้งหมด</string>
@@ -133,6 +208,8 @@
     <string name="credit_font_body">The Zen Maru Gothic Project Authors · SIL Open Font License 1.1 (แปลงเป็นเส้นเวกเตอร์ ไม่ได้ใส่ไฟล์ฟอนต์ในแอพ)</string>
     <string name="credit_logo_title">โลโก้และไอคอน</string>
     <string name="credit_logo_body">สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
+    <string name="credit_bravura_title">ฟอนต์ตัวโน้ต: Bravura</string>
+    <string name="credit_bravura_body">Steinberg Media Technologies GmbH · SIL Open Font License 1.1 (ฟอนต์มาตรฐาน SMuFL ใช้ตามต้นฉบับ ไม่ได้ดัดแปลง)</string>
     <string name="credit_libs_title">ไลบรารีอื่น</string>
     <string name="credit_libs_body">Kotlin, kotlinx.coroutines, kotlinx.serialization, AndroidX (Compose, Material 3, Room, Navigation, Lifecycle) · Apache License 2.0</string>
 
@@ -214,7 +291,7 @@
     <string name="about_credit_font">ตัวอักษรโลโก้ ミミコピ: ฟอนต์ Zen Maru Gothic (SIL Open Font License 1.1) แปลงเป็นเส้นเวกเตอร์</string>
     <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
-    <string name="about_limit_1">บทเรียนและหน้าจอวันนี้ (M6)</string>
+    <string name="about_limit_1">บทเรียนตอนนี้มีบท 1.1 1.3 1.5 (บทอื่น วอร์มอัพ อ่านโน้ตใหม่ และ ear training ตามมาในรุ่นถัดไป)</string>
     <string name="about_limit_2">เสียงปล่อยคีย์และเสียงสะท้อนสายของเปียโน</string>
     <string name="about_limit_4">Bluetooth MIDI (ยังไม่ได้ทดสอบ อุปกรณ์ที่จับคู่ในระบบอาจใช้ได้)</string>
     <string name="about_limit_6">ธีมมืด และภาษาอังกฤษ</string>

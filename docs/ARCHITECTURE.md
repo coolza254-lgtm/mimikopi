@@ -26,6 +26,10 @@ core/   com.id.mimikopi.core
   piano/     PackDescriptor/PackManifest (+ validation), SampleMap (note/velocity -> sample, pitch ratio)
   keyboard/  KeyboardLayout (key geometry and multi-touch hit testing)
   metronome/ MetronomeSettings, TapTempo, JitterAnalysis
+  notation/  Clef, Staff (positions, ledger lines, stems)
+  lesson/    Lesson/Drill/PassRule (content/lessons/*.json), LessonRecord + ProgressRules
+  exercise/  Generators (seeded), Scoring and pass checks
+  session/   SessionPlanner (section 3 template, free play always)
   input/     InputEvent stream model, MidiParser (running status, vel-0 off, CC64, sysex/realtime),
              VelocityProbe, OctaveCalibration, LatencyCalibration, InputConfig
   time/      Clock
@@ -36,6 +40,9 @@ app/    com.id.mimikopi
              held-note set); InputConfigStore; OutputRoute
   midi/      MidiInputManager: device callback, hot-plug, one MidiParser per output port, octave offset
   metronome/ MetronomeController (settings, self-test)
+  learning/  LearningRepository (lessons from assets, records, SRS via Leitner + item_stats, attempts,
+             sessions, neutral stats), SessionTracker
+  ui/today, ui/lesson, ui/practice   Today plan, lesson page, drill runner (key / note / pulse)
   piano/     SamplePackManager (download, SHA-256, safe unzip, decode, atomic install),
              PianoController (shares one engine; stream open only while a screen plays)
   backup/    BackupService: export/import via the document picker, automatic backups in app storage,

@@ -32,6 +32,7 @@ class DiagnosticsCollector(
     private val piano: PianoController,
     private val packs: SamplePackManager,
     private val metronome: MetronomeController,
+    private val inputConfig: com.id.mimikopi.input.InputConfigStore,
 ) {
 
     suspend fun collect(): DiagnosticsReport {
@@ -39,8 +40,11 @@ class DiagnosticsCollector(
         val notes = mutableListOf(
             "engine.estimatedLatencyMs is Oboe's estimate for the current route; true touch-to-sound latency needs the external test in docs/DEVICE-TESTING.md.",
             "metronomeJitter: from the last self-test on the metronome screen (null if never run).",
-            "midi.probe: velocity capability probe arrives in M5.",
+            "midi.probe: from the velocity test on the MIDI screen (null if never run).",
         )
+        inputConfig.load().let { cfg ->
+            notes += "input.octaveOffset=${cfg.octaveOffset}; latencyMs=${cfg.latencyMs}"
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             notes += "audio.currentRoute needs Android 13+; empty on this device."
         }
@@ -77,7 +81,9 @@ class DiagnosticsCollector(
                     residentSampleBytes = it.residentBytes,
                 )
             },
-            midi = MidiInfo(midiDevices()),
+            midi = inputConfig.load().let { cfg ->
+                MidiInfo(midiDevices(), probe = cfg.velocityProbe?.describe())
+            },
             metronomeJitter = metronome.lastSelfTest()?.let {
                 JitterResult(it.report.meanAbsMs, it.report.maxAbsMs, it.report.clicks,
                     "${it.report.method} At ${it.bpm} bpm x${it.ticksPerBeat}, ${it.sampleRate} Hz, xruns during test: ${it.xRunsDuring ?: "?"}, ${it.atUtc}.")

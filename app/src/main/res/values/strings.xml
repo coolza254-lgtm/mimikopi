@@ -7,7 +7,7 @@
 
     <!-- Home -->
     <string name="home_status_title">สถานะของแอพตอนนี้</string>
-    <string name="home_status_body">รุ่นนี้มีเปียโนเล่นอิสระ เมโทรนอม อัปเดตในแอพ และสำรองข้อมูล ต่อเปียโนผ่าน MIDI และบทเรียนจะตามมาในรุ่นถัดๆ ไป</string>
+    <string name="home_status_body">รุ่นนี้มีเปียโนเล่นอิสระ เมโทรนอม ต่อเปียโนผ่าน USB MIDI อัปเดตในแอพ และสำรองข้อมูล บทเรียนจะตามมาในรุ่นถัดไป</string>
     <string name="home_diagnostics_title">ข้อมูลเครื่อง (Diagnostics)</string>
     <string name="home_diagnostics_body">ดูและคัดลอกข้อมูลเครื่องเป็น JSON เพื่อส่งกลับมาให้ตรวจ</string>
     <string name="home_about_title">เกี่ยวกับแอพและเครดิต</string>
@@ -74,6 +74,52 @@
     <string name="selftest_running">กำลังทดสอบ…</string>
     <string name="selftest_result">ที่ %1$d BPM: คลาดเฉลี่ย %2$s ms · มากสุด %3$s ms · %4$d คลิก · เสียงสะดุด %5$d ครั้ง</string>
     <string name="selftest_failed">วัดไม่ได้ (ระบบเสียงไม่ส่งค่าเวลา) ลองใหม่อีกครั้ง</string>
+
+    <string name="home_midi_title">ต่อเปียโน (MIDI)</string>
+    <string name="home_midi_body">ต่อ Badger C-918 ผ่านสาย USB-C ดูโน้ตที่เข้ามา และปรับเทียบเครื่อง</string>
+
+    <!-- MIDI -->
+    <string name="midi_title">ต่อเปียโน (MIDI)</string>
+    <string name="midi_devices">อุปกรณ์ที่ต่ออยู่</string>
+    <string name="midi_unsupported">เครื่องนี้ไม่รองรับ MIDI</string>
+    <string name="midi_none_help">ยังไม่พบอุปกรณ์ เสียบสาย USB-C (สายที่รับส่งข้อมูลได้ ไม่ใช่สายชาร์จอย่างเดียว) จากเปียโนเข้ามือถือ แล้วเปิดเปียโน แอพจะเชื่อมต่อเองภายในไม่กี่วินาที ถ้ามือถือถามว่าจะใช้ USB ทำอะไร ให้เลือก MIDI</string>
+    <string name="midi_connected">เชื่อมต่อแล้ว</string>
+    <string name="midi_connecting">กำลังเชื่อมต่อ…</string>
+    <string name="midi_sound_through">เล่นเสียงเปียโนของแอพเมื่อกดคีย์บนเปียโนจริง</string>
+    <string name="calib_title">ปรับเทียบ</string>
+    <string name="calib_status">เลื่อนอ็อกเทฟ: %1$d · แรงกด: %2$s</string>
+    <string name="calib_vel_yes">ไวต่อแรงกด</string>
+    <string name="calib_vel_no">แรงกดคงที่ (ซ่อนแบบฝึกเรื่องความดัง-เบา)</string>
+    <string name="calib_unknown">ยังไม่ได้ทดสอบ</string>
+    <string name="calib_latency_line">ความหน่วง %1$s: %2$s ms</string>
+    <string name="probe_title">1. ทดสอบแรงกด</string>
+    <string name="probe_start">เริ่มทดสอบแรงกด</string>
+    <string name="probe_soft">กดคีย์ใดก็ได้ "เบาที่สุด" %1$d/%2$d ครั้ง</string>
+    <string name="probe_hard">ต่อไปกด "แรงที่สุด" %1$d/%2$d ครั้ง</string>
+    <string name="probe_done_yes">เปียโนไวต่อแรงกด (%1$s)</string>
+    <string name="probe_done_no">เปียโนส่งแรงกดคงที่ แอพจะไม่ใช้ความดัง-เบาเป็นเงื่อนไขผ่านบทเรียน (%1$s)</string>
+    <string name="octave_title">2. ตั้งอ็อกเทฟ</string>
+    <string name="octave_start">เริ่มตั้งอ็อกเทฟ</string>
+    <string name="octave_waiting">กด Middle C (โดกลาง คีย์ C ที่อยู่ใกล้กลางเปียโนที่สุด) หนึ่งครั้งบนเปียโนจริง</string>
+    <string name="octave_done">ตั้งแล้ว: เลื่อน %1$d ครึ่งเสียง</string>
+    <string name="octave_rejected">โน้ตที่กด (%1$d) ไม่ใช่ C ลองกดใหม่</string>
+    <string name="latency_title">3. วัดความหน่วง</string>
+    <string name="latency_help">จะมีเสียงคลิกนับ 4 ครั้ง แล้วอีก 16 ครั้ง (ครั้งละ 1 วินาที) กดคีย์บนเปียโนจริงให้ตรงกับเสียงคลิกทุกครั้ง (หรือกดปุ่ม "แตะ" ถ้าวัดหน้าจอ) ค่าที่ได้จะใช้กับอุปกรณ์เสียงที่ใช้อยู่ตอนนี้ (ลำโพง/หูฟัง) แยกกัน</string>
+    <string name="latency_start">เริ่มวัด</string>
+    <string name="latency_tap_pad">แตะ</string>
+    <string name="latency_countin">นับเตรียม… %1$d/4</string>
+    <string name="latency_tapping">คลิก %1$d/%2$d · กดแล้ว %3$d ครั้ง</string>
+    <string name="latency_done">หน่วง %1$s ms (กระจาย %2$s ms, %3$d ครั้ง) บันทึกเป็น %4$s</string>
+    <string name="latency_failed">วัดไม่ได้ (กดน้อยเกินไปหรือไม่ตรงคลิก) ลองใหม่</string>
+    <string name="monitor_title">โน้ตที่เข้ามา (MIDI monitor)</string>
+    <string name="monitor_empty">ยังไม่มีโน้ต ลองกดคีย์บนเปียโน หรือใช้ตัวจำลองด้านล่าง</string>
+    <string name="sim_title">ตัวจำลอง MIDI (สำหรับทดสอบ)</string>
+    <string name="sim_help">แตะเพื่อเปิด ส่งข้อมูล MIDI จำลองผ่านทางเดียวกับเปียโนจริง ใช้ทดสอบโดยไม่ต้องต่อเปียโน</string>
+    <string name="sim_random">ความแรงสุ่ม</string>
+    <string name="sim_chord">คอร์ด C</string>
+    <string name="sim_scale">สเกล C</string>
+    <string name="sim_pedal_down">เหยียบเพดัล</string>
+    <string name="sim_pedal_up">ปล่อยเพดัล</string>
 
     <!-- Credits -->
     <string name="credits_title">เครดิตและสัญญาอนุญาต</string>
@@ -169,8 +215,8 @@
     <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
     <string name="about_limit_1">บทเรียนและหน้าจอวันนี้ (M6)</string>
-    <string name="about_limit_2">ปรับค่าความหน่วงเสียงแยกตามอุปกรณ์ (M5) และเสียงปล่อยคีย์/เสียงสะท้อนสาย</string>
-    <string name="about_limit_4">ต่อเปียโนผ่าน MIDI (M5)</string>
+    <string name="about_limit_2">เสียงปล่อยคีย์และเสียงสะท้อนสายของเปียโน</string>
+    <string name="about_limit_4">Bluetooth MIDI (ยังไม่ได้ทดสอบ อุปกรณ์ที่จับคู่ในระบบอาจใช้ได้)</string>
     <string name="about_limit_6">ธีมมืด และภาษาอังกฤษ</string>
     <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (ไปที่หน้า release สาธารณะบน GitHub) และไม่ส่งข้อมูลของคุณออกไป</string>
 </resources>

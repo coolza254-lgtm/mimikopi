@@ -78,4 +78,6 @@ object SettingKeys {
     const val HELPER_NOTE_NAMES_COUNT = "helper.noteNames.count"
     const val METRONOME_SETTINGS = "metronome.settings"
     const val METRONOME_SELF_TEST = "metronome.lastSelfTest"
+    const val INPUT_CONFIG = "input.config"
+    const val MIDI_SOUND_THROUGH = "midi.soundThrough"
 }

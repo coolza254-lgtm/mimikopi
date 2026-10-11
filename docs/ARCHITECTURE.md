@@ -25,10 +25,17 @@ core/   com.id.mimikopi.core
   backup/    BackupFile/BackupData (JSON mirror of all tables), BackupValidator
   piano/     PackDescriptor/PackManifest (+ validation), SampleMap (note/velocity -> sample, pitch ratio)
   keyboard/  KeyboardLayout (key geometry and multi-touch hit testing)
+  metronome/ MetronomeSettings, TapTempo, JitterAnalysis
+  input/     InputEvent stream model, MidiParser (running status, vel-0 off, CC64, sysex/realtime),
+             VelocityProbe, OctaveCalibration, LatencyCalibration, InputConfig
   time/      Clock
 app/    com.id.mimikopi
   data/db/   Room: practice_sessions, attempts, attempt_events, item_stats, settings
   diag/      DiagnosticsCollector (reads device facts, probes the Oboe stream)
+  input/     InputHub: the one event stream (sound on the caller's thread, SharedFlow for observers,
+             held-note set); InputConfigStore; OutputRoute
+  midi/      MidiInputManager: device callback, hot-plug, one MidiParser per output port, octave offset
+  metronome/ MetronomeController (settings, self-test)
   piano/     SamplePackManager (download, SHA-256, safe unzip, decode, atomic install),
              PianoController (shares one engine; stream open only while a screen plays)
   backup/    BackupService: export/import via the document picker, automatic backups in app storage,

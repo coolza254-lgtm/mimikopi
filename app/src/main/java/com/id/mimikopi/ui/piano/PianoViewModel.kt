@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.id.mimikopi.MimikopiApp
+import com.id.mimikopi.core.input.InputEvent
+import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.core.music.isBlackKey
 import com.id.mimikopi.data.db.SettingEntity
@@ -44,7 +46,6 @@ data class KeyboardUi(
     val showNames: Boolean = false,
     val nameStyle: NoteNameStyle = NoteNameStyle.BOTH,
     val sustain: Boolean = false,
-    val pressed: Set<Int> = emptySet(),
     val soundOn: Boolean = false,
     /** At least one start attempt finished (avoids flashing "no sound" while starting). */
     val soundTried: Boolean = false,
@@ -55,6 +56,10 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     private val packs = services.samplePacks
     private val piano = services.piano
     private val settings = services.database.settingsDao()
+    private val hub = services.inputHub
+
+    /** Held notes from every source: touches here and a connected MIDI piano. */
+    val pressed: StateFlow<Set<Int>> = hub.pressed
 
     private val _pack = MutableStateFlow<PackUi>(PackUi.Checking)
     val pack: StateFlow<PackUi> = _pack.asStateFlow()
@@ -150,7 +155,8 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     fun onStop() {
         if (!acquired) return
         acquired = false
-        _keys.update { it.copy(pressed = emptySet(), sustain = false, soundOn = false) }
+        hub.releaseAll()
+        _keys.update { it.copy(sustain = false, soundOn = false) }
         viewModelScope.launch {
             if (holding) {
                 holding = false
@@ -186,17 +192,15 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             k.velocity
         }
-        piano.noteOn(note, velocity)
-        _keys.update { it.copy(pressed = it.pressed + note) }
+        hub.dispatch(InputEvent.NoteOn(note, velocity, System.nanoTime(), InputSource.TOUCH))
     }
 
     fun noteOff(note: Int) {
-        piano.noteOff(note)
-        _keys.update { it.copy(pressed = it.pressed - note) }
+        hub.dispatch(InputEvent.NoteOff(note, System.nanoTime(), InputSource.TOUCH))
     }
 
     fun setSustain(down: Boolean) {
-        piano.sustain(down)
+        hub.dispatch(InputEvent.Sustain(down, System.nanoTime(), InputSource.TOUCH))
         _keys.update { it.copy(sustain = down) }
     }
 
@@ -267,8 +271,9 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The keyboard's touch tracking restarts when its range changes; never leave notes hanging. */
     private fun releaseAllKeys() {
+        hub.releaseAll()
         piano.allNotesOff()
-        _keys.update { it.copy(pressed = emptySet(), sustain = false) }
+        _keys.update { it.copy(sustain = false) }
     }
 
     private fun save(key: String, value: String) {

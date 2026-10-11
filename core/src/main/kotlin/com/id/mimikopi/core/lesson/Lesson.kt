@@ -47,6 +47,9 @@ data class Lesson(
                 ExerciseType.E_PULSE -> pass.maxSdMs != null
                 ExerciseType.E_FINGER_PATTERN, ExerciseType.E_RHYTHM_TAP, ExerciseType.E_READ_PIECE -> pass.cleanRuns != null
                 ExerciseType.E_PIECE -> pass.cleanRuns != null || pass.piecesPassed != null
+                ExerciseType.E_CHORD_BUILD -> pass.minAccuracy != null
+                ExerciseType.E_CHORD_CHANGE -> pass.minCount != null
+                ExerciseType.E_COMP_PATTERN, ExerciseType.E_TRANSPOSE -> pass.cleanRuns != null
             }
             if (!ok) add("$id: pass rule lacks the criterion for drill $i ($t)")
         }
@@ -79,10 +82,18 @@ enum class ExerciseType {
     /** Sight-read a newly generated short piece at a level of section 5.2 (at most 3 runs each). */
     E_READ_PIECE,
     /** Play fixed pieces or exercises from content (scales, repertoire). */
-    E_PIECE;
+    E_PIECE,
+    /** Build the chord that is named (by symbol or roman numeral): quick and right. */
+    E_CHORD_BUILD,
+    /** Change between the chords of a progression for 60 seconds; count the correct changes. */
+    E_CHORD_CHANGE,
+    /** An accompaniment pattern of the 8.2 ladder under a progression (with a melody the app can play). */
+    E_COMP_PATTERN,
+    /** Read a short phrase in one key and play it in another. */
+    E_TRANSPOSE;
 
     /** Exercises that run in the score reader with play-along judging. */
-    val isScore: Boolean get() = this in setOf(E_FINGER_PATTERN, E_RHYTHM_TAP, E_READ_PIECE, E_PIECE)
+    val isScore: Boolean get() = this in setOf(E_FINGER_PATTERN, E_RHYTHM_TAP, E_READ_PIECE, E_PIECE, E_COMP_PATTERN, E_TRANSPOSE)
 }
 
 @Serializable
@@ -127,6 +138,22 @@ data class Drill(
     val answer: String = "MOTION",
     /** E_PIECE: ids of pieces (content/pieces) or exercises (content/exercises). */
     val pieces: List<String> = emptyList(),
+    /** Stage 4-6: keys as fifths (chord drills, generated pieces; E_TRANSPOSE: the key it is written in). */
+    val keys: List<Int> = emptyList(),
+    /** E_CHORD_BUILD: chord qualities ("", "m", "dim", "aug", "7", "maj7", ...). */
+    val qualities: List<String> = emptyList(),
+    /** E_CHORD_BUILD by roman numeral ("I", "vi", "V7", "IVmaj7"). */
+    val degrees: List<String> = emptyList(),
+    /** E_CHORD_CHANGE: duration in seconds. */
+    val seconds: Int = 60,
+    /** E_COMP_PATTERN / E_CHORD_CHANGE: a progression name of 8.1 or roman numerals ("I V vi IV"). */
+    val progression: String = "",
+    /** E_COMP_PATTERN: step 1-7 of the accompaniment ladder (8.2). */
+    val pattern: Int = 1,
+    /** E_TRANSPOSE: keys to move to. */
+    val targetKeys: List<Int> = emptyList(),
+    /** Report sustain-pedal changes (learning-system.md 4.5); informative, never a pass condition. */
+    val pedal: Boolean = false,
 ) {
     fun problems(): List<String> = buildList {
         if (type.isScore || type == ExerciseType.E_INTERVAL_READ) {
@@ -151,8 +178,22 @@ data class Drill(
                 if (clef !in listOf("treble", "bass")) add("bad clef")
                 if (answer !in listOf("MOTION", "INTERVAL")) add("bad answer kind")
             }
-            ExerciseType.E_READ_PIECE -> if (level !in listOf("L1", "L2", "L3", "L4", "L5")) add("bad level")
+            ExerciseType.E_READ_PIECE -> if (level !in (1..8).map { "L$it" }) add("bad level")
             ExerciseType.E_PIECE -> if (pieces.isEmpty()) add("no pieces")
+            ExerciseType.E_CHORD_BUILD -> {
+                if (degrees.isEmpty() && qualities.isEmpty()) add("no chords to build")
+                if (qualities.any { it !in com.id.mimikopi.core.theory.ChordQualities.INTERVALS }) add("bad quality")
+                if (keys.any { it !in -6..6 }) add("bad key")
+            }
+            ExerciseType.E_CHORD_CHANGE -> {
+                if (progression.isBlank() || keys.isEmpty()) add("no progression or key")
+                if (seconds !in 10..300) add("bad seconds")
+            }
+            ExerciseType.E_COMP_PATTERN -> {
+                if (pattern !in 1..7) add("bad pattern")
+                if (progression.isBlank() || keys.isEmpty()) add("no progression or key")
+            }
+            ExerciseType.E_TRANSPOSE -> if (keys.isEmpty() || targetKeys.isEmpty()) add("no keys")
         }
         if (items <= 0) add("no items")
     }
@@ -179,6 +220,8 @@ data class PassRule(
     val alsoDrills: List<Int> = emptyList(),
     /** E_PIECE: how many of the drill's pieces must be passed (piece rule: 3 clean runs at target on 2 days). */
     val piecesPassed: Int? = null,
+    /** E_CHORD_CHANGE: correct changes needed in the time. */
+    val minCount: Int? = null,
 ) {
     val requiredDrills: List<Int> get() = (listOf(drill) + alsoDrills).distinct()
 }

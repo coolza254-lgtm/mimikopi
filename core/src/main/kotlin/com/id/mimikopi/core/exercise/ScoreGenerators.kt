@@ -290,5 +290,19 @@ object ScoreGenerators {
         return out
     }
 
+    /** Any sight-reading level: L1-L5 here, L6-L8 in [com.id.mimikopi.core.theory.StageGenerators]. */
+    fun read(drill: Drill, seed: Long): PieceFile {
+        val n = drill.level.removePrefix("L").toInt()
+        return if (n <= 5) sightReading(drill, seed) else com.id.mimikopi.core.theory.StageGenerators.sightReading(n, drill.keys, drill.bpm, seed)
+    }
+
+    /** E_COMP_PATTERN for a drill. */
+    fun comp(drill: Drill, seed: Long): PieceFile {
+        val degrees = ChordDrills.progressionDegrees(drill.progression)
+        val prog = com.id.mimikopi.core.theory.StageGenerators.Prog(drill.progression, degrees)
+        val keys = drill.keys.ifEmpty { listOf(0) }
+        return com.id.mimikopi.core.theory.StageGenerators.compPattern(keys[Random(seed).nextInt(keys.size)], prog, drill.pattern, maxOf(4, drill.bars), drill.bpm, seed)
+    }
+
     fun clefOf(drill: Drill): Clef = if (drill.clef == "bass") Clef.BASS else Clef.TREBLE
 }

@@ -8,6 +8,11 @@ import com.id.mimikopi.MimikopiApp
 import com.id.mimikopi.core.input.InputConfig
 import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
+import com.id.mimikopi.core.exercise.ScoreGenerators
+import com.id.mimikopi.core.lesson.Drill
+import com.id.mimikopi.core.lesson.ExerciseType
+import com.id.mimikopi.core.lesson.Lesson
+import com.id.mimikopi.core.progress.Benchmarks
 import com.id.mimikopi.core.metronome.FrameTimestamp
 import com.id.mimikopi.core.metronome.JitterAnalysis
 import com.id.mimikopi.core.music.NoteNameStyle
@@ -114,21 +119,113 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     private val scheduler = NoteScheduler(piano)
     private val json = Json { ignoreUnknownKeys = true }
 
-    val score: Score? = args.get<String>("pieceId")?.let { pieces.piece(it) }
-    val layout: ScoreLayout? = score?.let { ScoreLayout.of(it) }
+    /** What the reader shows: a library piece, a lesson's score drill, a new-reading piece, or a benchmark level. */
+    sealed interface Source {
+        data class Piece(val id: String, val hand: HandChoice?) : Source
+        data class LessonDrill(val lesson: Lesson, val index: Int) : Source { val drill: Drill get() = lesson.drills[index] }
+        data class NewReading(val level: Int) : Source
+        data class Benchmark(val level: Int) : Source
+    }
 
-    private val _ui = MutableStateFlow(ReaderUi(section = 0..((score?.measures ?: 1) - 1), bpm = score?.tempo ?: 60, targetBpm = score?.tempo ?: 60))
+    data class LoadedPiece(val score: Score, val layout: ScoreLayout, val keyRange: IntRange)
+
+    val source: Source = when {
+        args.get<String>("pieceId") != null -> Source.Piece(args.get<String>("pieceId")!!, args.get<String>("hand")?.let { h -> runCatching { HandChoice.valueOf(h) }.getOrNull() })
+        args.get<String>("lessonId") != null -> learning.lesson(args.get<String>("lessonId")!!)
+            ?.let { l -> args.get<String>("drill")?.toIntOrNull()?.takeIf { it in l.drills.indices }?.let { Source.LessonDrill(l, it) } }
+            ?: Source.Piece("", null)
+        args.get<String>("newread") != null -> Source.NewReading(args.get<String>("newread")!!.toIntOrNull()?.coerceIn(1, 5) ?: 1)
+        else -> Source.Benchmark(args.get<String>("bench")?.toIntOrNull()?.coerceIn(1, Benchmarks.MAX_LEVEL) ?: 1)
+    }
+
+    /** Library pieces keep options and progress; drills, new reading and benchmarks use fixed settings. */
+    val fixed: Boolean get() = source !is Source.Piece
+
+    private val _piece = MutableStateFlow<LoadedPiece?>(null)
+    val piece: StateFlow<LoadedPiece?> = _piece.asStateFlow()
+    val score: Score? get() = _piece.value?.score
+
+    private val _ui = MutableStateFlow(ReaderUi())
     val ui: StateFlow<ReaderUi> = _ui.asStateFlow()
     val pressed = hub.pressed
 
     var nameStyle: NoteNameStyle = NoteNameStyle.BOTH
         private set
 
-    /** Keyboard range covering the piece, from a C to a C. */
-    val keyRange: IntRange = score?.events?.flatMap { e -> e.pitches.map { it.midi } }.orEmpty().let { notes ->
+    private var seed = System.currentTimeMillis()
+    private var benchLevel = (source as? Source.Benchmark)?.level ?: 1
+    /** Drill sitting: clean runs so far, clean runs in a row, runs on the current generated piece. */
+    private var cleanCount = 0
+    private var cleanStreak = 0
+    private var runsOnPiece = 0
+    private var metThisSitting = false
+    private var newPieceNext = false
+
+    private fun keyRangeOf(score: Score): IntRange = score.events.flatMap { e -> e.pitches.map { it.midi } }.let { notes ->
         val lo = minOf(notes.minOrNull() ?: 48, 48)
         val hi = maxOf(notes.maxOrNull() ?: 72, 72)
         (lo - lo % 12)..(if (hi % 12 == 0) hi else hi - hi % 12 + 12)
+    }
+
+    /** Builds the score for the current source (a new one for generated material). */
+    private fun generate(): Score? = runCatching {
+        when (val src = source) {
+            is Source.Piece -> pieces.piece(src.id)
+            is Source.LessonDrill -> {
+                val d = src.drill
+                when (d.type) {
+                    ExerciseType.E_FINGER_PATTERN -> Score.from(ScoreGenerators.fingerPatterns(d, seed))
+                    ExerciseType.E_RHYTHM_TAP -> Score.from(ScoreGenerators.rhythm(d, seed))
+                    ExerciseType.E_READ_PIECE -> Score.from(ScoreGenerators.sightReading(d, seed))
+                    ExerciseType.E_PIECE -> pieces.pieceOrExercise(d.pieces.first())
+                    else -> null
+                }
+            }
+            is Source.NewReading -> Score.from(ScoreGenerators.sightReading(newReadingDrill(src.level), seed))
+            is Source.Benchmark -> Score.from(ScoreGenerators.sightReading(Benchmarks.sightReadingDrill(benchLevel), Benchmarks.sightReadingSeed(benchLevel)))
+        }
+    }.getOrNull()
+
+    private fun newReadingDrill(level: Int) = Drill(ExerciseType.E_READ_PIECE, "new", level = "L$level", bpm = 60, mode = "TEMPO",
+        hand = if (level == 2) "LEFT" else "RIGHT")
+
+    private fun loadPiece() {
+        val s = generate() ?: run { _piece.value = null; return }
+        _piece.value = LoadedPiece(s, ScoreLayout.of(s), keyRangeOf(s))
+        runsOnPiece = 0
+        newPieceNext = false
+        val bpm = when (val src = source) {
+            is Source.LessonDrill -> src.drill.bpm
+            is Source.NewReading, is Source.Benchmark -> 60
+            is Source.Piece -> s.tempo
+        }
+        _ui.update { it.copy(section = 0 until s.measures, bpm = bpm, targetBpm = bpm, results = emptyMap(), wrongMarks = emptyList(), pendingSectionStart = null) }
+    }
+
+    /** Options a fixed source dictates (mode, hands, no ramp); the keyboard choice stays the user's. */
+    private fun fixedOptions(saved: ReaderOptions): ReaderOptions = when (val src = source) {
+        is Source.LessonDrill -> {
+            val d = src.drill
+            ReaderOptions(
+                mode = if (d.mode == "WAIT") PlayMode.WAIT else PlayMode.TEMPO,
+                hands = runCatching { HandChoice.valueOf(d.hand) }.getOrDefault(HandChoice.RIGHT),
+                playOtherHand = d.type == ExerciseType.E_PIECE,
+                metronome = true, useRamp = false, showKeyboard = saved.showKeyboard,
+            )
+        }
+        is Source.NewReading -> ReaderOptions(PlayMode.TEMPO, if (src.level == 2) HandChoice.LEFT else if (src.level == 5) HandChoice.BOTH else HandChoice.RIGHT,
+            playOtherHand = false, metronome = true, useRamp = false, showKeyboard = saved.showKeyboard)
+        is Source.Benchmark -> ReaderOptions(PlayMode.TEMPO, if (benchLevel == 2) HandChoice.LEFT else if (benchLevel == 5) HandChoice.BOTH else HandChoice.RIGHT,
+            playOtherHand = false, metronome = true, useRamp = false, showKeyboard = saved.showKeyboard)
+        is Source.Piece -> saved.let { o -> src.hand?.let { o.copy(hands = it) } ?: o }
+    }
+
+    /** Title line for the top bar. */
+    fun title(): String = when (val src = source) {
+        is Source.Piece -> score?.title ?: ""
+        is Source.LessonDrill -> "${src.lesson.id} · ${src.drill.title}"
+        is Source.NewReading -> "อ่านโน้ตใหม่ (ระดับ L${src.level})"
+        is Source.Benchmark -> "วัดผล: อ่านโน้ตระดับ L$benchLevel"
     }
 
     private var holding = false
@@ -148,6 +245,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     @Volatile private var waitBeat = 0.0
 
     init {
+        loadPiece()
         viewModelScope.launch {
             pieces.load()
             learning.load()
@@ -155,7 +253,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             val options = services.database.settingsDao().get(SettingKeys.READER_OPTIONS)
                 ?.let { runCatching { json.decodeFromString(ReaderOptions.serializer(), it) }.getOrNull() } ?: ReaderOptions()
             val missing = withContext(Dispatchers.IO) { services.samplePacks.installed() == null }
-            _ui.update { it.copy(options = options, packMissing = missing) }
+            _ui.update { it.copy(options = fixedOptions(options), packMissing = missing) }
             refreshProgress()
             applyRampTempo()
         }
@@ -187,23 +285,28 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     private fun updateOptions(change: (ReaderOptions) -> ReaderOptions) {
         if (!editable()) return
-        val next = change(_ui.value.options)
+        val before = _ui.value.options
+        var next = change(before)
+        if (fixed) next = before.copy(showKeyboard = next.showKeyboard, playOtherHand = next.playOtherHand)
         _ui.update { it.copy(options = next) }
         viewModelScope.launch {
-            services.database.settingsDao().put(SettingEntity(SettingKeys.READER_OPTIONS, json.encodeToString(ReaderOptions.serializer(), next)))
+            val dao = services.database.settingsDao()
+            val stored = if (fixed) (dao.get(SettingKeys.READER_OPTIONS)?.let { runCatching { json.decodeFromString(ReaderOptions.serializer(), it) }.getOrNull() }
+                ?: ReaderOptions()).copy(showKeyboard = next.showKeyboard) else next
+            dao.put(SettingEntity(SettingKeys.READER_OPTIONS, json.encodeToString(ReaderOptions.serializer(), stored)))
         }
         applyRampTempo()
     }
 
     fun changeBpm(delta: Int) {
-        if (!editable()) return
+        if (!editable() || fixed) return
         val s = score ?: return
         _ui.update { it.copy(bpm = (it.bpm + delta).coerceIn(30, maxOf(s.tempo * 2, 160))) }
     }
 
     /** Bars are chosen by tapping: first tap = start (and end), second tap = end. */
     fun onMeasureTap(m: Int) {
-        if (!editable()) return
+        if (!editable() || fixed) return
         val start = _ui.value.pendingSectionStart
         if (start == null) {
             _ui.update { it.copy(section = m..m, pendingSectionStart = m, result = null, phase = Phase.IDLE, results = emptyMap()) }
@@ -260,6 +363,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     /** In tempo mode with the ramp on, the tempo comes from the ramp of the current hands + section. */
     private fun applyRampTempo() {
+        if (fixed) return
         val s = score ?: return
         val u = _ui.value
         if (u.options.mode != PlayMode.TEMPO || !u.options.useRamp) return
@@ -268,6 +372,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     }
 
     private fun refreshProgress() {
+        if (fixed) return
         val s = score ?: return
         val p = pieces.progressOf(s.id)
         _ui.update { it.copy(hotMeasures = PieceRules.hotMeasures(p), passDays = p.passDays.toSet().size) }
@@ -287,8 +392,12 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     // ---------------- runs ----------------
 
     fun start() {
-        val s = score ?: return
         if (!editable()) return
+        if (newPieceNext) {
+            seed = System.currentTimeMillis()
+            loadPiece()
+        }
+        val s = score ?: return
         val u = _ui.value
         val setup = PlaySetup(
             mode = u.options.mode,
@@ -296,8 +405,9 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             fromMeasure = u.section.first,
             toMeasure = u.section.last,
             bpm = u.bpm.toDouble(),
-            toleranceMs = TimingRules(learning.config.timing).toleranceMs(stageOf(s), u.bpm.toDouble()),
+            toleranceMs = TimingRules(learning.config.timing).toleranceMs((source as? Source.LessonDrill)?.lesson?.stage ?: stageOf(s), u.bpm.toDouble()),
             latencyMs = 0, // compensated per event and source in onInput
+            anyKey = (source as? Source.LessonDrill)?.drill?.type == ExerciseType.E_RHYTHM_TAP,
         )
         val j = PlayAlongJudge(s, setup)
         if (j.expected.isEmpty()) {
@@ -486,6 +596,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     }
 
     private fun finish(j: PlayAlongJudge) {
+        if (fixed) { finishFixed(j); return }
         val s = score ?: return
         val result = j.result()
         val u = _ui.value
@@ -498,14 +609,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             pieces.save(update.progress)
             saveAttempt(s, j, result, helper)
             val coach = coachLines(s, result, slower, update.newBpm, helper)
-            val troubleIds = result.troubleNotes.map { p ->
-                val clef = if (j.expected.firstOrNull { it.pitch == p }?.hand == Hand.LEFT) "bass" else "treble"
-                "note:$p:$clef"
-            }
-            if (troubleIds.isNotEmpty()) {
-                learning.enrol(troubleIds)
-                troubleIds.forEach { learning.review(it, correct = false, responseMs = 0) }
-            }
+            enrolTrouble(j, result)
             val progressLine = when {
                 update.piecePassed && update.passedToday -> "ผ่านเพลงนี้แล้ว (เล่นสะอาด 3 รอบติดที่ความเร็วเป้าหมาย ใน 2 วันที่ต่างกัน)"
                 update.passedToday -> "วันนี้เล่นสะอาดครบ 3 รอบติดที่ความเร็วเป้าหมายแล้ว ต้องทำอีกครั้งในวันอื่นเพื่อผ่านเพลงนี้"
@@ -519,9 +623,104 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                     countIn = null,
                 )
             }
+            if (update.passedToday) {
+                learning.checkPieceLessons { id, hand -> PieceRules.isPassed(pieces.progressOf(id), hand) }.forEach { l ->
+                    _ui.update { u2 -> u2.copy(result = u2.result?.let { r -> r.copy(progressLine = listOfNotNull(r.progressLine, "ผ่านบท ${l.id} ${l.title} แล้ว").joinToString("\n")) }) }
+                }
+            }
             refreshProgress()
         }
     }
+
+    /** Drills, new reading and benchmarks: count clean runs for the lesson criterion, rotate generated pieces. */
+    private fun finishFixed(j: PlayAlongJudge) {
+        val s = score ?: return
+        val result = j.result()
+        val helper = helperUsedThisRun
+        val clean = result.timingJudged && result.summary?.isClean(learning.config.cleanRun) == true
+        runsOnPiece++
+        if (clean) { cleanCount++; cleanStreak++ } else cleanStreak = 0
+        val generated = when (val src = source) {
+            is Source.LessonDrill -> src.drill.type != ExerciseType.E_PIECE
+            else -> true
+        }
+        // A clean run, or three runs of the same piece (learning-system.md 1.4), brings a new one.
+        newPieceNext = generated && (clean || runsOnPiece >= 3) && source !is Source.Benchmark
+        viewModelScope.launch {
+            val lines = mutableListOf<CoachLine>()
+            var progressLine: String? = null
+            when (val src = source) {
+                is Source.LessonDrill -> {
+                    val l = src.lesson
+                    val need = l.pass.cleanRuns
+                    val required = src.index in l.pass.requiredDrills && result.timingJudged
+                    val count = if (l.pass.inRow) cleanStreak else cleanCount
+                    val met = required && need != null && count >= need && !metThisSitting && !helper
+                    learning.saveAttempt(
+                        exerciseId = "${l.id}:${src.drill.type}:${src.index}",
+                        paramsJson = """{"seed":$seed,"drill":${src.index},"lesson":"${l.id}","bpm":${result.setup.bpm}}""",
+                        startedAt = runStartedAt, tempoBpm = if (result.timingJudged) result.setup.bpm else null,
+                        noteAccuracy = result.summary?.noteAccuracy, timingWithinTol = if (result.timingJudged) result.summary?.fractionWithinTiming else null,
+                        clean = if (result.timingJudged) clean else null, helperUses = if (helper) 1 else 0,
+                        events = emptyList(), sessionId = services.session.currentId(),
+                        hand = result.setup.hands.joinToString("+") { it.name }, stumbles = result.stumbles,
+                    )
+                    val passedNow = learning.recordDrill(l, src.index, met, helper)
+                    if (met) metThisSitting = true
+                    progressLine = when {
+                        passedNow && met -> "ผ่านบท ${l.id} แล้ว บทถัดไปปลดล็อก"
+                        met -> if (l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกันด้วย" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อผ่านบทนี้"
+                        required && need != null && !metThisSitting -> if (l.pass.inRow) "เล่นสะอาดติดกัน $cleanStreak/$need ครั้ง" else "เล่นสะอาดแล้ว $cleanCount/$need ครั้ง"
+                        !result.timingJudged -> "โหมดรอใช้ฝึกอ่าน แบบทดสอบใช้โหมดตามจังหวะ"
+                        else -> null
+                    }
+                    if (helper && required) lines += CoachLine("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่าน")
+                }
+                is Source.NewReading -> learning.saveAttempt(
+                    exerciseId = "NEW_READING:L${src.level}", paramsJson = """{"seed":$seed,"level":${src.level}}""",
+                    startedAt = runStartedAt, tempoBpm = result.setup.bpm, noteAccuracy = result.summary?.noteAccuracy,
+                    timingWithinTol = result.summary?.fractionWithinTiming, clean = clean, helperUses = if (helper) 1 else 0,
+                    events = emptyList(), sessionId = services.session.currentId(), stumbles = result.stumbles,
+                )
+                is Source.Benchmark -> {
+                    val level = benchLevel
+                    if (clean && !helper && level < Benchmarks.MAX_LEVEL) {
+                        learning.updateBenchmark { it.copy(sightReadingLevel = maxOf(it.sightReadingLevel ?: 0, level)) }
+                        benchLevel = level + 1
+                        newPieceNext = true
+                        progressLine = "ระดับ L$level เล่นสะอาด ไปต่อระดับ L${level + 1}"
+                    } else {
+                        val reached = if (clean && !helper) level else level - 1
+                        learning.updateBenchmark { it.copy(sightReadingLevel = maxOf(it.sightReadingLevel ?: 0, reached)) }
+                        progressLine = "บันทึกผลแล้ว: อ่านโน้ตสะอาดได้ถึงระดับ L$reached"
+                        benchDone = true
+                    }
+                }
+                is Source.Piece -> Unit
+            }
+            enrolTrouble(j, result)
+            lines += coachLines(s, result, (result.setup.bpm * 0.9).roundToInt(), null, false, drill = true)
+            _ui.update { it.copy(phase = Phase.RESULT, result = resultUi(result, lines.distinct(), progressLine), countIn = null) }
+        }
+    }
+
+    /** Notes that went wrong repeatedly join the note-reading review (stands in for "practise this note"). */
+    private suspend fun enrolTrouble(j: PlayAlongJudge, result: PlayResult) {
+        val ids = result.troubleNotes.map { p ->
+            val clef = if (j.expected.firstOrNull { it.pitch == p }?.hand == Hand.LEFT) "bass" else "treble"
+            "note:$p:$clef"
+        }
+        if (ids.isEmpty()) return
+        learning.enrol(ids)
+        ids.forEach { learning.review(it, correct = false, responseMs = 0) }
+    }
+
+    /** Benchmark: the sight-reading part is finished (no more levels to try). */
+    var benchDone = false
+        private set
+
+    /** Label for the button that starts the next run. */
+    fun nextLabelIsNew(): Boolean = newPieceNext
 
     private fun resultUi(r: PlayResult, coach: List<CoachLine>, progressLine: String?): ResultUi {
         val sum = r.summary
@@ -544,10 +743,20 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         return ResultUi(headline, details, clean, coach, progressLine)
     }
 
-    private fun coachLines(s: Score, r: PlayResult, slowerBpm: Int, newBpm: Int?, helper: Boolean): List<CoachLine> {
+    private fun coachLines(s: Score, r: PlayResult, slowerBpm: Int, newBpm: Int?, helper: Boolean, drill: Boolean = false): List<CoachLine> {
         val out = mutableListOf<CoachLine>()
         val unknownLatency = latencies.values.all { it == 0.0 }
         for (a in Coach.advise(r, slowerBpm)) {
+            if (drill) {
+                // Drills keep their own settings: advice only, no buttons that change the section, hands or tempo.
+                when (a) {
+                    is Advice.HandAlone -> out += CoachLine("ผิดเฉพาะมือ${if (a.hand == Hand.LEFT) "ซ้าย" else "ขวา"} ลองดูโน้ตของมือนั้นช้าๆ ก่อนเล่นรอบต่อไป")
+                    is Advice.SlowDown -> out += CoachLine("พลาดหลายโน้ต ลองแบบฝึกในโหมด \"รอ\" ของบทนี้ก่อน แล้วค่อยกลับมา")
+                    is Advice.Chain, Advice.Clean -> Unit
+                    else -> Unit
+                }
+                if (a !is Advice.TroubleNote && a !is Advice.ConsistentlyOff) continue
+            }
             out += when (a) {
                 Advice.Clean -> CoachLine(if (r.setup.toMeasure - r.setup.fromMeasure < s.measures - 1) "ท่อนนี้เล่นสะอาดแล้ว ลองท่อนถัดไป หรือเล่นคร่อมรอยต่อกับท่อนข้างๆ" else "เล่นสะอาดทั้งเพลง")
                 is Advice.TroubleNote -> CoachLine("โน้ต ${a.pitch.name(NoteNameStyle.BOTH, withOctave = true)} พลาดบ่อย เพิ่มเข้ารายการทบทวนแล้ว (ฝึกได้ที่หน้า \"วันนี้\")")
@@ -566,7 +775,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 is Advice.SlowDown -> CoachLine("ยังเร็วไปสำหรับตอนนี้ ลดเหลือ ${a.bpm} bpm ก่อน", ResultAction.Tempo(a.bpm))
             }
         }
-        r.problemMeasures.firstOrNull()?.let { m ->
+        if (!drill) r.problemMeasures.firstOrNull()?.let { m ->
             if (out.none { it.action is ResultAction.Loop } && r.setup.fromMeasure != r.setup.toMeasure) {
                 out += CoachLine("บาร์ ${m + 1} พลาดมากที่สุด ฝึกบาร์นี้ช้าๆ แยกก่อน แล้วค่อยกลับมาเล่นทั้งท่อน", ResultAction.Loop(m, m))
             }

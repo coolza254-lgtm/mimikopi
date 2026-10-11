@@ -80,18 +80,52 @@ class LearningRepository(private val context: Context, private val db: AppDataba
             ?.let { _records.value = it }
     }
 
-    /** Updates a lesson's record after a drill. Returns true if the lesson is now fully passed. */
-    suspend fun recordDrill(lesson: Lesson, metPassCriterion: Boolean, helperUsed: Boolean, day: LocalDate = LocalDate.now()): Boolean {
+    /**
+     * Updates a lesson's record after drill [drillIndex] ran. [met] = the drill met its criterion (only drills the
+     * pass rule requires count). Returns true if the lesson is now fully passed.
+     */
+    suspend fun recordDrill(lesson: Lesson, drillIndex: Int, met: Boolean, helperUsed: Boolean, day: LocalDate = LocalDate.now()): Boolean {
         load()
         val updated = mutex.withLock {
             val current = _records.value[lesson.id] ?: LessonRecord(lesson.id)
             var r = current.copy(attempts = current.attempts + 1)
-            if (metPassCriterion) r = ProgressRules.recordPass(r, day, helperUsed)
+            if (met && drillIndex in lesson.pass.requiredDrills) r = ProgressRules.recordDrillMet(r, lesson, drillIndex, day, helperUsed)
             _records.value = _records.value + (lesson.id to r)
             db.settingsDao().put(SettingEntity(SettingKeys.LESSON_RECORDS, json.encodeToString(recordsSerializer, _records.value)))
             r
         }
         return ProgressRules.isPassed(updated, lesson)
+    }
+
+    /**
+     * Lessons whose drill asks for a number of passed pieces (2.8, 3.7): records the drill as met once enough of
+     * its pieces are passed with the drill's hand. Called after a piece run. Returns the lessons passed now.
+     */
+    suspend fun checkPieceLessons(isPiecePassed: (pieceId: String, hand: String) -> Boolean): List<Lesson> {
+        load()
+        val passedNow = mutableListOf<Lesson>()
+        for (l in lessons) {
+            val need = l.pass.piecesPassed ?: continue
+            if (ProgressRules.isPassed(_records.value[l.id], l)) continue
+            for (i in l.pass.requiredDrills) {
+                val d = l.drills[i]
+                if (d.type != com.id.mimikopi.core.lesson.ExerciseType.E_PIECE) continue
+                if (d.pieces.count { isPiecePassed(it, d.hand) } >= need && recordDrill(l, i, met = true, helperUsed = false)) passedNow += l
+            }
+        }
+        return passedNow
+    }
+
+    // --- Benchmarks (12.1) ---
+
+    private val benchSerializer = kotlinx.serialization.builtins.ListSerializer(com.id.mimikopi.core.progress.BenchmarkResult.serializer())
+
+    suspend fun benchmarks(): List<com.id.mimikopi.core.progress.BenchmarkResult> =
+        db.settingsDao().get(SettingKeys.BENCHMARKS)?.let { runCatching { json.decodeFromString(benchSerializer, it) }.getOrNull() } ?: emptyList()
+
+    suspend fun updateBenchmark(change: (com.id.mimikopi.core.progress.BenchmarkResult) -> com.id.mimikopi.core.progress.BenchmarkResult) = mutex.withLock {
+        val next = com.id.mimikopi.core.progress.Benchmarks.update(benchmarks(), LocalDate.now(), change)
+        db.settingsDao().put(SettingEntity(SettingKeys.BENCHMARKS, json.encodeToString(benchSerializer, next)))
     }
 
     // --- Spaced repetition (6.6) ---
@@ -192,6 +226,38 @@ class LearningRepository(private val context: Context, private val db: AppDataba
         val prevDay = byDay.keys.filter { it.isBefore(today) }.maxOrNull()
         val prevAvg = prevDay?.let { d -> byDay.getValue(d).mapNotNull { it.noteAccuracy }.average() }
         return todayAvg to prevAvg
+    }
+
+    /** Practice minutes for each of the last [weeks] weeks (Monday start), oldest first. */
+    suspend fun weeklyMinutes(weeks: Int = 8): List<Pair<LocalDate, Long>> {
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        val thisWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
+        val sessions = db.learningDao().sessions()
+        return (weeks - 1 downTo 0).map { w ->
+            val start = thisWeek.minusWeeks(w.toLong())
+            val end = start.plusWeeks(1)
+            start to sessions.filter {
+                val d = Instant.ofEpochMilli(it.startedAtMillis).atZone(zone).toLocalDate()
+                !d.isBefore(start) && d.isBefore(end)
+            }.sumOf { it.activeSeconds } / 60
+        }
+    }
+
+    /**
+     * Daily averages over the last [days] days, oldest first: note accuracy of reading drills (untimed) and the
+     * share of notes within the timing tolerance (timed drills and pieces).
+     */
+    suspend fun dailyTrends(days: Int = 30): Pair<List<Pair<LocalDate, Double>>, List<Pair<LocalDate, Double>>> {
+        val zone = ZoneId.systemDefault()
+        val since = LocalDate.now().minusDays(days.toLong() - 1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val attempts = db.learningDao().attemptsSince(since)
+        fun day(ms: Long) = Instant.ofEpochMilli(ms).atZone(zone).toLocalDate()
+        val reading = attempts.filter { it.noteAccuracy != null && it.tempoBpm == null }
+            .groupBy { day(it.startedAtMillis) }.mapValues { (_, a) -> a.mapNotNull { it.noteAccuracy }.average() }
+        val timing = attempts.filter { it.timingWithinTol != null }
+            .groupBy { day(it.startedAtMillis) }.mapValues { (_, a) -> a.mapNotNull { it.timingWithinTol }.average() }
+        return reading.toSortedMap().toList() to timing.toSortedMap().toList()
     }
 
     fun daysBetween(a: LocalDate, b: LocalDate) = ChronoUnit.DAYS.between(a, b)

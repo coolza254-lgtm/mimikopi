@@ -110,7 +110,7 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: Les
         }
         PageCard(title = stringResource(R.string.lesson_drills)) {
             lesson.drills.forEachIndexed { i, d ->
-                val isPass = lesson.pass.drill == i
+                val isPass = i in lesson.pass.requiredDrills
                 Button(
                     onClick = { onOpenDrill(lesson.id, i) },
                     enabled = status != LessonStatus.LOCKED,

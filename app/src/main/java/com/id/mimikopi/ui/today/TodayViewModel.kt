@@ -25,7 +25,12 @@ data class TodayUi(
     val minutes: Int = 30,
     val plan: List<PlannedBlock> = emptyList(),
     val currentLesson: Lesson? = null,
-    val rhythmLesson: Lesson? = null,
+    /** Rhythm block: the latest rhythm drill reached (lesson, drill index). */
+    val rhythmDrill: Pair<Lesson, Int>? = null,
+    /** Warm-up block: five-finger or scale drill of the latest lesson reached. */
+    val warmup: Pair<Lesson, Int>? = null,
+    /** New-reading block: level 1-5, or null before reading lessons. */
+    val newReadingLevel: Int? = null,
     val dueCount: Int = 0,
     val stats: PracticeStats? = null,
     val lessons: List<Pair<Lesson, LessonStatus>> = emptyList(),
@@ -59,12 +64,20 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
             val records = repo.records.value
             val lessons = repo.lessons
             val current = ProgressRules.current(lessons, records)
-            val rhythm = lessons.firstOrNull { l -> l.drills.any { it.type == com.id.mimikopi.core.lesson.ExerciseType.E_PULSE } }
+            val reached = lessons.filter { (records[it.id]?.attempts ?: 0) > 0 || it == current }
+            val rhythmTypes = setOf(com.id.mimikopi.core.lesson.ExerciseType.E_RHYTHM_TAP, com.id.mimikopi.core.lesson.ExerciseType.E_PULSE)
+            val rhythm = (reached.lastOrNull { l -> l.drills.any { it.type == com.id.mimikopi.core.lesson.ExerciseType.E_RHYTHM_TAP } }
+                ?: lessons.firstOrNull { l -> l.drills.any { it.type in rhythmTypes } })
+                ?.let { l -> l to l.drills.indexOfLast { it.type in rhythmTypes && it.mode == "TEMPO" }.coerceAtLeast(0) }
+            val warmup = com.id.mimikopi.core.session.BlockContent.warmup(lessons, records)?.let { (id, i) -> repo.lesson(id)?.let { it to i } }
+            val newReading = com.id.mimikopi.core.session.BlockContent.newReadingLevel(lessons, records)
             val due = repo.dueCount()
             // Day 7 of the week is lighter: review and favourite pieces, no new lesson (section 3).
             val light = LocalDate.now().dayOfWeek == DayOfWeek.SUNDAY
             val available = buildSet {
-                // Only blocks with real content in this version (warm-up, new reading and ear come later).
+                // Only blocks with real content (ear training comes in a later version).
+                if (warmup != null) add(BlockKind.WARMUP)
+                if (newReading != null) add(BlockKind.NEW_READING)
                 add(BlockKind.REVIEW)
                 if (rhythm != null) add(BlockKind.RHYTHM)
                 if (current != null && !light) add(BlockKind.LESSON)
@@ -73,7 +86,9 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
                 minutes = minutes,
                 plan = SessionPlanner.plan(minutes, available),
                 currentLesson = current,
-                rhythmLesson = rhythm,
+                rhythmDrill = rhythm,
+                warmup = warmup,
+                newReadingLevel = newReading,
                 dueCount = due,
                 stats = repo.stats(),
                 lessons = lessons.map { it to ProgressRules.status(it, records) },

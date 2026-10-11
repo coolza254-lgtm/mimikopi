@@ -22,6 +22,7 @@ object Tokens {
         val Error = Color(0xFFB3261E)
         val Good = Color(0xFF2E7D4F) // correct note: ~5:1 on Paper
         val Off = Color(0xFFA35A00) // early/late note: ~5:1 on Paper
+        val ChartMark = Color(0xFFA8475F) // single-series chart marks: deep rose, ~5:1 on Paper
     }
 
     object Space {

@@ -105,6 +105,14 @@ private fun ReportSections(r: DiagnosticsReport) {
         Line("${r.app.applicationId} ${r.app.versionName} (${r.app.versionCode}) ${r.app.buildType}")
         r.database?.let { db -> Line("DB v${db.schemaVersion}: " + db.tableRowCounts.entries.joinToString { "${it.key}=${it.value}" }) }
     }
+    PageCard(title = stringResource(R.string.diag_section_crash)) {
+        val crash = r.lastCrash
+        if (crash == null) Line(stringResource(R.string.diag_crash_none))
+        else {
+            Line(stringResource(R.string.diag_crash_help))
+            Line(crash.lineSequence().take(12).joinToString("\n"), mono = true)
+        }
+    }
     PageCard(title = stringResource(R.string.diag_section_notes)) {
         r.notes.forEach { Line(it, mono = true) }
     }

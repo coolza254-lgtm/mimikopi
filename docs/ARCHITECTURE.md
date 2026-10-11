@@ -57,7 +57,7 @@ core/   com.id.mimikopi.core
   time/      Clock
 app/    com.id.mimikopi
   data/db/   Room: practice_sessions, attempts, attempt_events, item_stats, settings
-  diag/      DiagnosticsCollector (reads device facts, probes the Oboe stream)
+  diag/      DiagnosticsCollector (reads device facts, probes the Oboe stream), CrashLog (last crash kept locally)
   input/     InputHub: the one event stream (sound on the caller's thread, SharedFlow for observers,
              held-note set); InputConfigStore; OutputRoute
   midi/      MidiInputManager: device callback, hot-plug, one MidiParser per output port, octave offset
@@ -79,7 +79,8 @@ app/    com.id.mimikopi
   ui/reader  ReaderViewModel.Source: library piece, lesson score drill, new reading, benchmark level;
              PieceListScreen (optionally filtered by a repertoire drill), ReaderScreen/ReaderViewModel (count-in from native metronome tick frames
              -> downbeat t0 on the System.nanoTime clock; judging on the main thread; per-source latency),
-             ScoreView (Compose Canvas, cached glyph layouts, cursor read per frame)
+             ScoreView (Compose Canvas, cached glyph layouts, cursor read per frame),
+             PagedScoreView (page view: ScoreLayout.systems -> one ScoreView per sliced system, auto-scroll)
   piano/NoteScheduler  accompaniment/demo notes at nanoTime instants from one thread (parkNanos)
   piano/     SamplePackManager (download, SHA-256, safe unzip, decode, atomic install),
              PianoController (shares one engine; stream open only while a screen plays)

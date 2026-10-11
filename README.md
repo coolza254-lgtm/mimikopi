@@ -8,6 +8,17 @@ A personal piano-learning app for Android: reading sheet music, rhythm, ear trai
 - Install on the phone and update: [`docs/INSTALL.md`](docs/INSTALL.md)
 - What is not done yet: [`docs/KNOWN-LIMITATIONS.md`](docs/KNOWN-LIMITATIONS.md). Licenses: [`CREDITS.md`](CREDITS.md)
 
+## What the app does (v0.12)
+
+- Lessons for stages 1-6 of `docs/learning-system.md` (50 lessons, Thai) with seeded drills, pass rules on two
+  different days, spaced repetition, a daily plan (15/30/45/60 min) and neutral progress statistics.
+- Sheet reader with play-along (wait / tempo modes, per-note judging, tempo ramp, problem spots, page view),
+  sight-reading generators L1-L8, chord and accompaniment drills, ear training E1-E9.
+- Sheet editor with MusicXML / MIDI import-export and PDF, a song library with Song Ladder and the 7-day
+  transcription pipeline, a searchable pop-theory library.
+- Sampled grand piano (Salamander) on Oboe, sample-accurate metronome, USB MIDI with latency calibration,
+  JSON backup, in-app update from the public releases repo. Final status: [`docs/FINAL-REPORT.md`](docs/FINAL-REPORT.md).
+
 ## Build
 
 CI (GitHub Actions) is the build system. Every push runs `:core` tests, lint and a debug APK

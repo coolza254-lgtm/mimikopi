@@ -35,7 +35,11 @@ data class TodayUi(
     val stats: PracticeStats? = null,
     val lessons: List<Pair<Lesson, LessonStatus>> = emptyList(),
     val lightDay: Boolean = false,
+    /** Song project for the longer free block (section 3, 45+ minutes): the first unfinished song of the ladder. */
+    val songProject: SongProject? = null,
 )
+
+data class SongProject(val songId: String, val title: String, val nextDay: Int, val nextStep: String)
 
 data class SessionSummary(val minutes: Long, val accuracyToday: Double?, val accuracyBefore: Double?, val dueTomorrow: Int)
 
@@ -54,6 +58,8 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch {
             repo.load()
+            services.songs.load()
+            services.pieces.load()
             val saved = services.database.settingsDao().get(SettingKeys.SESSION_MINUTES)?.toIntOrNull() ?: 30
             refresh(saved)
         }
@@ -94,8 +100,19 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
                 stats = repo.stats(),
                 lessons = lessons.map { it to ProgressRules.status(it, records) },
                 lightDay = light,
+                songProject = songProject(),
             )
         }
+    }
+
+    private fun songProject(): SongProject? {
+        val passed = repo.records.value.filterValues { it.passDays.isNotEmpty() }.keys
+        val songs = services.songs.songs.value.filter { s -> s.pipeline.any { !it.done } }
+        val first = com.id.mimikopi.core.songs.SongLadder.ladder(songs.map {
+            it to com.id.mimikopi.core.songs.SongLadder.analyze(it, it.scoreId?.let(services.pieces::userScore), passed)
+        }).firstOrNull()?.first ?: return null
+        val day = first.pipeline.first { !it.done }.day
+        return SongProject(first.id, first.title, day, com.id.mimikopi.core.songs.Song.PIPELINE.getOrElse(day - 1) { "" })
     }
 
     fun setMinutes(m: Int) {

@@ -63,9 +63,20 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     private var job: Job? = null
 
+    val timingMode = services.learning.timingMode
+
     init {
         refreshInfo()
+        viewModelScope.launch { services.learning.load() }
     }
+
+    fun setTimingMode(mode: com.id.mimikopi.core.practice.TimingMode) {
+        viewModelScope.launch { services.learning.setTimingMode(mode) }
+    }
+
+    /** Example tolerance (stage 1 at 60 bpm) for each mode, shown next to the choice. */
+    fun exampleMs(mode: com.id.mimikopi.core.practice.TimingMode): Int =
+        com.id.mimikopi.core.practice.TimingRules(services.learning.config.timing).toleranceMs(1, 60.0, mode)
 
     private fun refreshInfo() {
         viewModelScope.launch {

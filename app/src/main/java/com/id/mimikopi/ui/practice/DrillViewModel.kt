@@ -21,7 +21,6 @@ import com.id.mimikopi.core.metronome.JitterAnalysis
 import com.id.mimikopi.core.music.Letter
 import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.core.music.SpelledPitch
-import com.id.mimikopi.core.practice.TimingRules
 import com.id.mimikopi.data.db.SettingEntity
 import com.id.mimikopi.data.db.SettingKeys
 import com.id.mimikopi.input.OutputRoute
@@ -406,7 +405,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         val cfg = inputConfig.load()
         val latency = cfg.latencyMs[InputConfig.latencyKey(source, OutputRoute.current(getApplication()))]
         val offsets = Scoring.tapOffsetsMs(beats, tapList.map { it.timeNanos }, latency ?: 0.0, beatMs * 0.45)
-        val tolerance = TimingRules(repo.config.timing).toleranceMs(l?.stage ?: 1, bpm.toDouble())
+        val tolerance = repo.toleranceMs(l?.stage ?: 1, bpm.toDouble(), benchmark = l == null)
         val stats = Scoring.pulse(offsets, tolerance)
         if (l == null) {
             // Benchmark: keep the SD only if enough beats were tapped to mean something.

@@ -37,6 +37,7 @@ class MimikopiApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.id.mimikopi.diag.CrashLog.install(this)
         // MIDI devices are listened for app-wide, so a connected piano works on every practice screen.
         midiInput.start()
         appScope.launch {

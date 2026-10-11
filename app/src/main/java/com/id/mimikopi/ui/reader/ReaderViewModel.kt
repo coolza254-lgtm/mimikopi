@@ -71,6 +71,8 @@ data class ReaderOptions(
     val hideNotes: Boolean = false,
     /** "Listen" repeats the section until stopped. */
     val loopListen: Boolean = false,
+    /** Page view: the score wrapped into lines that scroll down, instead of one long strip. */
+    val pageView: Boolean = false,
 )
 
 sealed interface ResultAction {
@@ -308,17 +310,18 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     fun setShowKeyboard(on: Boolean) = updateOptions { it.copy(showKeyboard = on) }
     fun setHideNotes(on: Boolean) = updateOptions { it.copy(hideNotes = on) }
     fun setLoopListen(on: Boolean) = updateOptions { it.copy(loopListen = on) }
+    fun setPageView(on: Boolean) = updateOptions { it.copy(pageView = on) }
 
     private fun updateOptions(change: (ReaderOptions) -> ReaderOptions) {
         if (!editable()) return
         val before = _ui.value.options
         var next = change(before)
-        if (fixed) next = before.copy(showKeyboard = next.showKeyboard, playOtherHand = next.playOtherHand)
+        if (fixed) next = before.copy(showKeyboard = next.showKeyboard, playOtherHand = next.playOtherHand, pageView = next.pageView)
         _ui.update { it.copy(options = next) }
         viewModelScope.launch {
             val dao = services.database.settingsDao()
             val stored = if (fixed) (dao.get(SettingKeys.READER_OPTIONS)?.let { runCatching { json.decodeFromString(ReaderOptions.serializer(), it) }.getOrNull() }
-                ?: ReaderOptions()).copy(showKeyboard = next.showKeyboard) else next
+                ?: ReaderOptions()).copy(showKeyboard = next.showKeyboard, pageView = next.pageView) else next
             dao.put(SettingEntity(SettingKeys.READER_OPTIONS, json.encodeToString(ReaderOptions.serializer(), stored)))
         }
         applyRampTempo()
@@ -431,7 +434,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             fromMeasure = u.section.first,
             toMeasure = u.section.last,
             bpm = u.bpm.toDouble(),
-            toleranceMs = TimingRules(learning.config.timing).toleranceMs((source as? Source.LessonDrill)?.lesson?.stage ?: stageOf(s), u.bpm.toDouble()),
+            toleranceMs = learning.toleranceMs((source as? Source.LessonDrill)?.lesson?.stage ?: stageOf(s), u.bpm.toDouble(), benchmark = source is Source.Benchmark),
             latencyMs = 0, // compensated per event and source in onInput
             anyKey = (source as? Source.LessonDrill)?.drill?.type == ExerciseType.E_RHYTHM_TAP,
         )
@@ -547,9 +550,12 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val held = j.score.sounding().associate { (it.eventId to it.midi) to it.duration }
         val durations = j.score.events.associate { it.id to it.duration }
         val beatNanos = j.beatMs * 1e6
+        // Tempo mode: the click timeline is in presentation time, so the app's notes are sent early by the
+        // output latency to sound with it (Oboe's estimate, capped; wait mode plays right away).
+        val lead = if (j.setup.mode == PlayMode.TEMPO) ((piano.outputLatencyMs() ?: 0.0).coerceIn(0.0, 250.0) * 1e6).toLong() else 0L
         for (n in j.accompaniment) {
             if (n.beat < from - 1e-9 || n.beat >= to - 1e-9) continue
-            val on = anchorNanos + ((n.beat - from) * beatNanos).toLong()
+            val on = anchorNanos + ((n.beat - from) * beatNanos).toLong() - lead
             val len = ((held[n.key.eventId to n.midi] ?: durations[n.key.eventId] ?: 1.0) * beatNanos * 0.92).toLong().coerceAtMost(8_000_000_000L)
             scheduler.noteOn(on, n.midi, 62)
             scheduler.noteOff(on + len, n.midi)

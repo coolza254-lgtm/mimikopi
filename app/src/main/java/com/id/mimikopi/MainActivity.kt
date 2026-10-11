@@ -161,6 +161,7 @@ private fun AppNavigation() {
                 onOpenPieces = { nav.navigate(Routes.PIECES_ALL) },
                 onOpenNewReading = { level -> nav.navigate("newread/$level") },
                 onOpenEar = { nav.navigate("eardrill/mix") },
+                onOpenSong = { nav.navigate("song/$it") },
             )
         }
         composable(Routes.LESSON) { LessonScreen(onBack = { nav.popBackStack() }, onOpenDrill = openDrill, onAppAction = { runAppAction(nav, app, it) }) }

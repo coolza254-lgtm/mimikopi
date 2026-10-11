@@ -78,7 +78,24 @@ class LearningRepository(private val context: Context, private val db: AppDataba
         db.settingsDao().get(SettingKeys.LESSON_RECORDS)
             ?.let { runCatching { json.decodeFromString(recordsSerializer, it) }.getOrNull() }
             ?.let { _records.value = it }
+        db.settingsDao().get(SettingKeys.TIMING_MODE)
+            ?.let { runCatching { com.id.mimikopi.core.practice.TimingMode.valueOf(it) }.getOrNull() }
+            ?.let { _timingMode.value = it }
     }
+
+    private val _timingMode = MutableStateFlow(com.id.mimikopi.core.practice.TimingMode.NORMAL)
+    /** The user's timing strictness (6.2); benchmarks always use NORMAL so results stay comparable. */
+    val timingMode: StateFlow<com.id.mimikopi.core.practice.TimingMode> = _timingMode.asStateFlow()
+
+    suspend fun setTimingMode(mode: com.id.mimikopi.core.practice.TimingMode) {
+        _timingMode.value = mode
+        db.settingsDao().put(SettingEntity(SettingKeys.TIMING_MODE, mode.name))
+    }
+
+    /** Allowed onset error for a stage and tempo in the user's strictness mode (or NORMAL for benchmarks). */
+    fun toleranceMs(stage: Int, bpm: Double, benchmark: Boolean = false): Int =
+        com.id.mimikopi.core.practice.TimingRules(config.timing)
+            .toleranceMs(stage, bpm, if (benchmark) com.id.mimikopi.core.practice.TimingMode.NORMAL else _timingMode.value)
 
     /**
      * Updates a lesson's record after drill [drillIndex] ran. [met] = the drill met its criterion (only drills the

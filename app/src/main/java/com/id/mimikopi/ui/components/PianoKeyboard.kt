@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.id.mimikopi.core.keyboard.KeyboardLayout
 import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.core.music.SpelledPitch
+import com.id.mimikopi.core.music.isBlackKey
 import com.id.mimikopi.ui.theme.Tokens
 
 /**
@@ -35,7 +36,8 @@ fun PianoKeyboard(
     pressed: Set<Int>,
     showNames: Boolean,
     nameStyle: NoteNameStyle,
-    onNoteOn: (Int) -> Unit,
+    /** Note and touch depth on the key (0 = back/top, 1 = front edge). */
+    onNoteOn: (Int, Float) -> Unit,
     onNoteOff: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -59,7 +61,10 @@ fun PianoKeyboard(
                             val before = fingers[change.id]
                             if (now != before) {
                                 if (before != null && --holdCount[before] == 0) noteOff(before)
-                                if (now != null && holdCount[now]++ == 0) noteOn(now)
+                                if (now != null && holdCount[now]++ == 0) {
+                                    val bottom = if (isBlackKey(now)) layout.height * layout.blackHeightRatio else layout.height
+                                    noteOn(now, change.position.y / bottom)
+                                }
                                 if (now == null) fingers.remove(change.id) else fingers[change.id] = now
                             }
                             change.consume()

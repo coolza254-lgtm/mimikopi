@@ -132,6 +132,7 @@ private fun Controls(keys: KeyboardUi, vm: PianoViewModel) {
             OutlinedButton(onClick = { vm.zoom(-6) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.piano_zoom_out)) }
             OutlinedButton(onClick = { vm.zoom(6) }, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.piano_zoom_in)) }
             FilterChip(selected = keys.showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
+            FilterChip(selected = keys.showTone, onClick = vm::toggleTonePanel, label = { Text(stringResource(R.string.piano_tone)) })
             SustainButton(down = keys.sustain, onChange = vm::setSustain)
         }
         if (keys.showNames) {
@@ -151,12 +152,27 @@ private fun Controls(keys: KeyboardUi, vm: PianoViewModel) {
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.piano_velocity, keys.velocity), style = MaterialTheme.typography.bodyMedium)
-            Slider(value = keys.velocity.toFloat(), onValueChange = { vm.setVelocity(it.toInt()) }, valueRange = 20f..127f, modifier = Modifier.weight(1f))
-            Text(stringResource(R.string.piano_volume), style = MaterialTheme.typography.bodyMedium)
-            Slider(value = keys.gain, onValueChange = vm::setGain, valueRange = 0f..1f, modifier = Modifier.weight(1f))
+        if (keys.showTone) {
+            LabeledSlider(stringResource(R.string.piano_volume), keys.gain, vm::setGain)
+            LabeledSlider(stringResource(R.string.piano_reverb), keys.reverb, vm::setReverb)
+            LabeledSlider(stringResource(R.string.piano_warmth), keys.warmth, vm::setWarmth)
+            LabeledSlider(stringResource(R.string.piano_velocity, keys.velocity), (keys.velocity - 20) / 107f) { vm.setVelocity((20 + it * 107).toInt()) }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
+                FilterChip(
+                    selected = keys.touchVelocity,
+                    onClick = { vm.setTouchVelocity(!keys.touchVelocity) },
+                    label = { Text(stringResource(R.string.piano_touch_velocity)) },
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun LabeledSlider(label: String, value: Float, onChange: (Float) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.widthIn(min = 110.dp))
+        Slider(value = value, onValueChange = onChange, valueRange = 0f..1f, modifier = Modifier.weight(1f))
     }
 }
 

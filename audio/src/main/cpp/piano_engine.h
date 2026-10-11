@@ -11,6 +11,7 @@
 
 #include <oboe/Oboe.h>
 
+#include "effects.h"
 #include "sample_store.h"
 
 namespace mimikopi {
@@ -63,6 +64,12 @@ public:
     void sustain(bool down);
     void allNotesOff();
     void setMasterGain(float gain) { masterGain_.store(gain); }
+    /** reverb: wet level 0..1; warmth 0..1 (softer highs, fuller mids for phone speakers). */
+    void setTone(float reverb, float warmth) {
+        reverb_.store(reverb);
+        warmth_.store(warmth);
+        toneVersion_.fetch_add(1);
+    }
 
     EngineMetrics metrics();
 
@@ -120,6 +127,12 @@ private:
     bool pedalDown_ = false;
     int outRate_ = 48000;
     std::atomic<float> masterGain_{0.35f};
+    std::atomic<float> reverb_{0.3f}, warmth_{0.5f};
+    std::atomic<int> toneVersion_{1};
+    int appliedToneVersion_ = 0;
+    std::array<Biquad, 2> highPass_{}, body_{}, shelf_{};
+    Freeverb reverbFx_;
+    Compressor compressor_;
 
     // Published by the audio thread for the prefetcher and metrics.
     std::array<std::atomic<int>, kMaxVoices> pubSample_{};

@@ -28,7 +28,8 @@ class NativePiano : PianoEngine {
             table.map { it.first }.toIntArray(),
             table.map { it.second }.toIntArray(),
             manifest.regions.map { it.keyCenter }.toIntArray(),
-            manifest.regions.map { it.releaseSec.toFloat() }.toFloatArray(),
+            // Damped keys: a slightly longer fade than the pack default sounds more natural with the room.
+            manifest.regions.map { (if (it.damped) maxOf(it.releaseSec, DAMPED_RELEASE_SEC) else it.releaseSec).toFloat() }.toFloatArray(),
             files.map { it.loVel }.toIntArray(),
             files.map { it.hiVel }.toIntArray(),
         )
@@ -54,7 +55,8 @@ class NativePiano : PianoEngine {
     override fun noteOff(note: Int) = nativeNoteOff(handle, note)
     override fun sustain(down: Boolean) = nativeSustain(handle, down)
     override fun allNotesOff() = nativeAllNotesOff(handle)
-    override fun setMasterGain(gain: Float) = nativeSetGain(handle, gain.coerceIn(0f, 1f))
+    override fun setMasterGain(gain: Float) = nativeSetGain(handle, gain.coerceIn(0f, 4f))
+    override fun setTone(reverb: Float, warmth: Float) = nativeSetTone(handle, reverb.coerceIn(0f, 1f), warmth.coerceIn(0f, 1f))
 
     override fun metrics(): EngineMetrics {
         val m = nativeMetrics(handle)
@@ -89,12 +91,15 @@ class NativePiano : PianoEngine {
     private external fun nativeSustain(handle: Long, down: Boolean)
     private external fun nativeAllNotesOff(handle: Long)
     private external fun nativeSetGain(handle: Long, gain: Float)
+    private external fun nativeSetTone(handle: Long, reverb: Float, warmth: Float)
     private external fun nativeMetrics(handle: Long): DoubleArray
 
     companion object {
         init {
             System.loadLibrary("mimikopi_audio")
         }
+
+        const val DAMPED_RELEASE_SEC = 0.6
 
         /** Decoded file name for a pack FLAC: r01_v02.flac -> r01_v02.pcm */
         fun pcmName(flacName: String): String = flacName.removeSuffix(".flac") + ".pcm"

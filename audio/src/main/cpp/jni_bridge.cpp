@@ -86,6 +86,10 @@ JNIEXPORT void JNICALL Java_com_id_mimikopi_audio_NativePiano_nativeSetGain(JNIE
     engine(h)->setMasterGain(g);
 }
 
+JNIEXPORT void JNICALL Java_com_id_mimikopi_audio_NativePiano_nativeSetTone(JNIEnv*, jobject, jlong h, jfloat reverb, jfloat warmth) {
+    engine(h)->setTone(reverb, warmth);
+}
+
 JNIEXPORT jdoubleArray JNICALL Java_com_id_mimikopi_audio_NativePiano_nativeMetrics(JNIEnv* env, jobject, jlong h) {
     EngineMetrics m = engine(h)->metrics();
     // Order must match NativePiano.metrics() in Kotlin.

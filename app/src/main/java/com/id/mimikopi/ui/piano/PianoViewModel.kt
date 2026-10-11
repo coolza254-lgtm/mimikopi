@@ -33,8 +33,14 @@ sealed interface PackUi {
 data class KeyboardUi(
     val lowNote: Int = 48, // C3
     val whiteKeyDp: Int = 44,
-    val velocity: Int = 90,
-    val gain: Float = 0.6f,
+    val velocity: Int = 80,
+    /** 0..1 slider; mapped to -24..+12 dB (see [volumeToGain]). */
+    val gain: Float = 0.75f,
+    val reverb: Float = 0.4f,
+    val warmth: Float = 0.6f,
+    /** Velocity follows where the key is touched: near the top is soft, near the front edge is loud. */
+    val touchVelocity: Boolean = true,
+    val showTone: Boolean = false,
     val showNames: Boolean = false,
     val nameStyle: NoteNameStyle = NoteNameStyle.BOTH,
     val sustain: Boolean = false,
@@ -89,6 +95,9 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
             whiteKeyDp = settings.get(SettingKeys.PIANO_KEY_WIDTH).int(s.whiteKeyDp),
             velocity = settings.get(SettingKeys.PIANO_VELOCITY).int(s.velocity),
             gain = settings.get(SettingKeys.PIANO_GAIN)?.toFloatOrNull() ?: s.gain,
+            reverb = settings.get(SettingKeys.PIANO_REVERB)?.toFloatOrNull() ?: s.reverb,
+            warmth = settings.get(SettingKeys.PIANO_WARMTH)?.toFloatOrNull() ?: s.warmth,
+            touchVelocity = settings.get(SettingKeys.PIANO_TOUCH_VELOCITY)?.toBooleanStrictOrNull() ?: s.touchVelocity,
             nameStyle = settings.get(SettingKeys.NOTE_NAME_STYLE)?.let { runCatching { NoteNameStyle.valueOf(it) }.getOrNull() } ?: s.nameStyle,
         )
     }
@@ -157,13 +166,26 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
             val ok = withContext(Dispatchers.IO) {
                 if (holding) piano.restart() else piano.acquire().also { holding = it }
             }
-            if (ok) piano.setGain(_keys.value.gain)
+            if (ok) applySound()
             _keys.update { it.copy(soundOn = ok, soundTried = true) }
         }
     }
 
-    fun noteOn(note: Int) {
-        piano.noteOn(note, _keys.value.velocity)
+    private fun applySound() {
+        val k = _keys.value
+        piano.setGain(volumeToGain(k.gain))
+        piano.setTone(k.reverb, k.warmth)
+    }
+
+    /** [depth] is where on the key the finger landed: 0 = back (top), 1 = front edge. */
+    fun noteOn(note: Int, depth: Float) {
+        val k = _keys.value
+        val velocity = if (k.touchVelocity) {
+            (k.velocity - 35 + depth.coerceIn(0f, 1f) * 60).toInt().coerceIn(15, 127)
+        } else {
+            k.velocity
+        }
+        piano.noteOn(note, velocity)
         _keys.update { it.copy(pressed = it.pressed + note) }
     }
 
@@ -200,8 +222,29 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setGain(g: Float) {
         _keys.update { it.copy(gain = g) }
-        piano.setGain(g)
+        piano.setGain(volumeToGain(g))
         save(SettingKeys.PIANO_GAIN, g.toString())
+    }
+
+    fun setReverb(r: Float) {
+        _keys.update { it.copy(reverb = r) }
+        applySound()
+        save(SettingKeys.PIANO_REVERB, r.toString())
+    }
+
+    fun setWarmth(w: Float) {
+        _keys.update { it.copy(warmth = w) }
+        applySound()
+        save(SettingKeys.PIANO_WARMTH, w.toString())
+    }
+
+    fun setTouchVelocity(on: Boolean) {
+        _keys.update { it.copy(touchVelocity = on) }
+        save(SettingKeys.PIANO_TOUCH_VELOCITY, on.toString())
+    }
+
+    fun toggleTonePanel() {
+        _keys.update { it.copy(showTone = !it.showTone) }
     }
 
     /** Showing names is a helper (learning-system.md 2.4); every use is counted. */
@@ -235,3 +278,6 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         onStop()
     }
 }
+
+/** Volume slider 0..1 -> linear gain, -24 dB .. +12 dB (the compressor/limiter keeps loud settings clean). */
+fun volumeToGain(v: Float): Float = Math.pow(10.0, (v.coerceIn(0f, 1f) * 36.0 - 24.0) / 20.0).toFloat()

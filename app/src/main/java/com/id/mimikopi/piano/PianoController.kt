@@ -66,6 +66,7 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
     /** True while the native output stream is open (it can close by itself on a route change). */
     fun streamAlive(): Boolean = engine?.let { it.isRunning && it.metrics().sampleRate > 0 } ?: false
     fun setGain(gain: Float) = engine?.setMasterGain(gain) ?: Unit
+    fun setTone(reverb: Float, warmth: Float) = engine?.setTone(reverb, warmth) ?: Unit
 
     /**
      * Measures the output stream for Diagnostics. If nothing is playing, opens the stream briefly

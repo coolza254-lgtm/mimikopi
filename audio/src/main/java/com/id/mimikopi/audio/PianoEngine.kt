@@ -22,7 +22,10 @@ interface PianoEngine {
     fun noteOff(note: Int)
     fun sustain(down: Boolean)
     fun allNotesOff()
+    /** Linear output gain before the compressor/limiter (1.0 = unity, up to 4.0). */
     fun setMasterGain(gain: Float)
+    /** Room reverb amount 0..1 and warmth 0..1 (softer highs, fuller mids). */
+    fun setTone(reverb: Float, warmth: Float)
 
     fun metrics(): EngineMetrics
 }

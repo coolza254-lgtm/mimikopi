@@ -27,7 +27,11 @@
     <string name="piano_zoom_in">คีย์ใหญ่ขึ้น</string>
     <string name="piano_show_names">แสดงชื่อโน้ต</string>
     <string name="piano_sustain">ซัสเทน (กดค้าง)</string>
-    <string name="piano_velocity">ความแรง %1$d</string>
+    <string name="piano_velocity">ความแรงพื้นฐาน %1$d</string>
+    <string name="piano_tone">ปรับเสียง</string>
+    <string name="piano_reverb">ความก้อง</string>
+    <string name="piano_warmth">ความนุ่ม</string>
+    <string name="piano_touch_velocity">ความแรงตามตำแหน่งนิ้ว (กดค่อนไปด้านบนเบา ด้านล่างแรง)</string>
     <string name="piano_volume">ความดัง</string>
     <string name="piano_no_sound">ตอนนี้ไม่มีเสียง (อุปกรณ์เสียงอาจเปลี่ยน เช่น หูฟังบลูทูธต่อ/หลุด)</string>
     <string name="piano_sound_retry">เปิดเสียงอีกครั้ง</string>

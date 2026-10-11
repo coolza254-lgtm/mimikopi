@@ -62,6 +62,10 @@ std::string PianoEngine::openStreamLocked() {
     oboe::Result r = builder.openStream(stream);
     if (r != oboe::Result::OK) return std::string("openStream: ") + oboe::convertToText(r);
     outRate_ = stream->getSampleRate();
+    // Effects are sized for the device rate before the callback can run (no allocation in the callback).
+    reverbFx_.prepare(outRate_);
+    compressor_.prepare(outRate_);
+    appliedToneVersion_ = 0;
     // Two bursts of buffering: lowest latency that usually survives UI load.
     stream->setBufferSizeInFrames(stream->getFramesPerBurst() * 2);
     r = stream->requestStart();
@@ -206,7 +210,11 @@ void PianoEngine::startNote(int note, int velocity) {
     v.sample = sample;
     v.pos = 0;
     v.inc = std::pow(2.0, (note - tables_.regionKeyCenter[region]) / 12.0) * tables_.packSampleRate / outRate_;
-    v.gain = 0.7f + 0.3f * within;  // the layer carries the timbre; this smooths steps between layers
+    // The layer carries the timbre at its recorded loudness; scale around the layer's centre so loudness
+    // follows velocity smoothly instead of jumping at layer boundaries.
+    float center = 0.5f * static_cast<float>(lo + hi);
+    v.gain = std::pow(static_cast<float>(velocity) / center, 0.8f);
+    (void)within;
     v.env = 1;
     v.order = nextOrder_++;
 }
@@ -307,13 +315,41 @@ oboe::DataCallbackResult PianoEngine::onAudioReady(oboe::AudioStream* stream, vo
         }
     }
 
+    if (appliedToneVersion_ != toneVersion_.load(std::memory_order_relaxed)) {
+        appliedToneVersion_ = toneVersion_.load(std::memory_order_relaxed);
+        const float w = warmth_.load(std::memory_order_relaxed);
+        const float rate = static_cast<float>(outRate_);
+        reverbFx_.setRoom(0.62f, 0.45f + 0.35f * w);
+        for (int ch = 0; ch < 2; ++ch) {
+            highPass_[ch].setHighPass(rate, 70.0f, 0.707f);          // below what phone speakers can play
+            body_[ch].setPeaking(rate, 320.0f, 0.8f, 3.5f * w);      // fuller low-mids
+            shelf_[ch].setHighShelf(rate, 2800.0f, -9.0f * w);       // softer, less metallic highs
+        }
+    }
     const float master = masterGain_.load(std::memory_order_relaxed);
-    for (int32_t k = 0; k < numFrames * channels; ++k) {
-        float x = out[k] * master;
+    const float wet = reverb_.load(std::memory_order_relaxed) * 0.35f;
+    for (int32_t f = 0; f < numFrames; ++f) {
+        float l = out[f * channels];
+        float r = channels >= 2 ? out[f * channels + 1] : l;
+        l = shelf_[0].process(body_[0].process(highPass_[0].process(l)));
+        r = shelf_[1].process(body_[1].process(highPass_[1].process(r)));
+        reverbFx_.process(l, r, wet);
+        l *= master;
+        r *= master;
+        const float g = compressor_.gainFor(l, r);
+        l *= g;
+        r *= g;
         // Soft limiter above -1 dBFS so dense chords never hard-clip.
-        float ax = std::fabs(x);
-        if (ax > 0.89f) x = std::copysign(0.89f + 0.11f * std::tanh((ax - 0.89f) / 0.11f), x);
-        out[k] = x;
+        auto limit = [](float x) {
+            float ax = std::fabs(x);
+            return ax > 0.89f ? std::copysign(0.89f + 0.11f * std::tanh((ax - 0.89f) / 0.11f), x) : x;
+        };
+        if (channels >= 2) {
+            out[f * channels] = limit(l);
+            out[f * channels + 1] = limit(r);
+        } else {
+            out[f] = limit(0.5f * (l + r));
+        }
     }
 
     activeVoices_.store(active, std::memory_order_relaxed);

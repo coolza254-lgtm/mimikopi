@@ -81,6 +81,8 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
     fun timestamp(): LongArray? = engine?.timestamp()
     fun outputSampleRate(): Int = engine?.metrics()?.sampleRate ?: 0
     fun xRuns(): Int? = engine?.metrics()?.xRuns
+    /** Oboe's estimate of the output latency of the open stream, in ms (null when unknown). */
+    fun outputLatencyMs(): Double? = engine?.metrics()?.estimatedLatencyMs
 
     /** True while the native output stream is open (it can close by itself on a route change). */
     fun streamAlive(): Boolean = engine?.let { it.isRunning && it.metrics().sampleRate > 0 } ?: false

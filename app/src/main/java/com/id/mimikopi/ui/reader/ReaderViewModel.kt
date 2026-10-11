@@ -550,9 +550,12 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val held = j.score.sounding().associate { (it.eventId to it.midi) to it.duration }
         val durations = j.score.events.associate { it.id to it.duration }
         val beatNanos = j.beatMs * 1e6
+        // Tempo mode: the click timeline is in presentation time, so the app's notes are sent early by the
+        // output latency to sound with it (Oboe's estimate, capped; wait mode plays right away).
+        val lead = if (j.setup.mode == PlayMode.TEMPO) ((piano.outputLatencyMs() ?: 0.0).coerceIn(0.0, 250.0) * 1e6).toLong() else 0L
         for (n in j.accompaniment) {
             if (n.beat < from - 1e-9 || n.beat >= to - 1e-9) continue
-            val on = anchorNanos + ((n.beat - from) * beatNanos).toLong()
+            val on = anchorNanos + ((n.beat - from) * beatNanos).toLong() - lead
             val len = ((held[n.key.eventId to n.midi] ?: durations[n.key.eventId] ?: 1.0) * beatNanos * 0.92).toLong().coerceAtMost(8_000_000_000L)
             scheduler.noteOn(on, n.midi, 62)
             scheduler.noteOff(on + len, n.midi)

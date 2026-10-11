@@ -108,6 +108,8 @@ object SettingKeys {
     const val INPUT_CONFIG = "input.config"
     const val MIDI_SOUND_THROUGH = "midi.soundThrough"
     const val LESSON_RECORDS = "lesson.records"
+    const val PIECE_PROGRESS = "piece.progress"
+    const val READER_OPTIONS = "reader.options"
     const val SESSION_MINUTES = "session.minutes"
     const val KEYBOARD_KEYS = "piano.keyCount"
 }

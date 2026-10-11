@@ -10,6 +10,10 @@ import com.id.mimikopi.core.playalong.NoteResult
 import com.id.mimikopi.core.playalong.PlayAlongJudge
 import com.id.mimikopi.core.playalong.PlayMode
 import com.id.mimikopi.core.playalong.PlaySetup
+import com.id.mimikopi.core.playalong.PieceProgress
+import com.id.mimikopi.core.playalong.PieceRules
+import com.id.mimikopi.core.config.TempoRampConfig
+import java.time.LocalDate
 import com.id.mimikopi.core.practice.isClean
 import com.id.mimikopi.core.score.Hand
 import com.id.mimikopi.core.score.KeySignature
@@ -295,5 +299,56 @@ class PlayAlongTest {
         j.onNoteOn(67, 3_000)
         val r = j.result()
         assertEquals(listOf(SpelledPitch(Letter.F, 1, 4)), r.troubleNotes)
+    }
+}
+
+class PieceRulesTest {
+    private val score = piece(listOf("C4/q D4/q E4/q F4/q", "G4/w"), listOf("C3/w", "C3/w"), tempo = 60)
+    private val cfg = TempoRampConfig()
+
+    private fun run(hands: Set<Hand>, bpm: Double, clean: Boolean, mode: PlayMode = PlayMode.TEMPO, to: Int = 1): com.id.mimikopi.core.playalong.PlayResult {
+        val j = PlayAlongJudge(score, PlaySetup(mode, hands, 0, to, bpm, 150))
+        j.start(0)
+        for ((i, n) in j.expected.withIndex()) {
+            if (!clean && i % 2 == 0) continue
+            j.onNoteOn(n.midi, j.expectedTimeMs(n.beat).toLong())
+        }
+        return j.result()
+    }
+
+    @Test
+    fun threeCleanRunsAtTargetOnTwoDaysPassThePiece() {
+        val both = setOf(Hand.LEFT, Hand.RIGHT)
+        var p = PieceProgress("t")
+        val day1 = LocalDate.of(2026, 10, 1)
+        repeat(3) { p = PieceRules.afterRun(p, score, run(both, 60.0, true), false, false, cfg, day = day1).progress }
+        assertEquals(listOf("2026-10-01"), p.passDays)
+        assertFalse(PieceRules.isPassed(p))
+        // A run with the name helper does not count.
+        repeat(3) { p = PieceRules.afterRun(p, score, run(both, 60.0, true), true, false, cfg, day = day1.plusDays(1)).progress }
+        assertEquals(1, p.passDays.size)
+        repeat(2) { p = PieceRules.afterRun(p, score, run(both, 60.0, true), false, false, cfg, day = day1.plusDays(2)).progress }
+        val last = PieceRules.afterRun(p, score, run(both, 60.0, true), false, false, cfg, day = day1.plusDays(2))
+        assertTrue(last.passedToday)
+        assertTrue(last.piecePassed)
+    }
+
+    @Test
+    fun rampStepsUpPerSectionAndWaitModeOnlyTracksProblemSpots() {
+        var p = PieceProgress("t")
+        val key = PieceRules.rampKey(setOf(Hand.RIGHT), 0, 1)
+        val start = PieceRules.ramp(p, key, 100, cfg).currentBpm
+        assertEquals(50, start)
+        var newBpm: Int? = null
+        repeat(3) {
+            val u = PieceRules.afterRun(p, score, run(setOf(Hand.RIGHT), start.toDouble(), true), false, true, cfg)
+            p = u.progress; newBpm = u.newBpm ?: newBpm
+        }
+        // score.tempo = 60 is the target here: 30 -> 40 (min start) -> 45
+        assertNotNull(newBpm)
+        val w = PieceRules.afterRun(p, score, run(setOf(Hand.RIGHT), 60.0, false, PlayMode.WAIT), false, true, cfg)
+        assertEquals(p.ramps, w.progress.ramps)
+        val hot = PieceRules.afterRun(w.progress, score, run(setOf(Hand.RIGHT), 60.0, false), false, false, cfg).progress
+        assertTrue(PieceRules.hotMeasures(hot).isNotEmpty())
     }
 }

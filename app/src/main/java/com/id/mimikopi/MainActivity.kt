@@ -16,6 +16,8 @@ import com.id.mimikopi.ui.midi.MidiScreen
 import com.id.mimikopi.ui.lesson.LessonScreen
 import com.id.mimikopi.ui.practice.DrillScreen
 import com.id.mimikopi.ui.today.TodayScreen
+import com.id.mimikopi.ui.reader.PieceListScreen
+import com.id.mimikopi.ui.reader.ReaderScreen
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
 import com.id.mimikopi.ui.home.HomeScreen
 import com.id.mimikopi.ui.settings.SettingsScreen
@@ -44,6 +46,9 @@ private object Routes {
     const val LESSON = "lesson/{lessonId}"
     const val DRILL = "drill/{lessonId}/{drill}"
     const val REVIEW = "review/{review}"
+    const val PIECES = "pieces"
+    const val READER = "reader/{pieceId}"
+    fun reader(id: String) = "reader/$id"
     fun lesson(id: String) = "lesson/$id"
     fun drill(id: String, index: Int) = "drill/$id/$index"
     const val REVIEW_NOW = "review/true"
@@ -62,6 +67,7 @@ private fun AppNavigation() {
                 onOpenMetronome = { nav.navigate(Routes.METRONOME) },
                 onOpenMidi = { nav.navigate(Routes.MIDI) },
                 onOpenToday = { nav.navigate(Routes.TODAY) },
+                onOpenReader = { nav.navigate(Routes.PIECES) },
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
@@ -77,11 +83,14 @@ private fun AppNavigation() {
                 onOpenDrill = { id, i -> nav.navigate(Routes.drill(id, i)) },
                 onOpenReview = { nav.navigate(Routes.REVIEW_NOW) },
                 onOpenPiano = { nav.navigate(Routes.PIANO) },
+                onOpenPieces = { nav.navigate(Routes.PIECES) },
             )
         }
         composable(Routes.LESSON) { LessonScreen(onBack = { nav.popBackStack() }, onOpenDrill = { id, i -> nav.navigate(Routes.drill(id, i)) }) }
         composable(Routes.DRILL) { DrillScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.REVIEW) { DrillScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.PIECES) { PieceListScreen(onBack = { nav.popBackStack() }, onOpenPiece = { nav.navigate(Routes.reader(it)) }) }
+        composable(Routes.READER) { ReaderScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
     }
 }

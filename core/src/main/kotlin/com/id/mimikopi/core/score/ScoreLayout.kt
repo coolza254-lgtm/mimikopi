@@ -73,6 +73,7 @@ data class ScoreLayout(
         const val BOTTOM_Y = BASS_Y + 2.0
 
         const val NOTEHEAD_WIDTH = 1.18
+        const val WHOLE_NOTEHEAD_WIDTH = 1.688
         const val STEM_LENGTH = 3.5
         const val STEM_THICKNESS = 0.12
         const val STAFF_LINE_THICKNESS = 0.13
@@ -227,6 +228,7 @@ private class Engraver(private val score: Score) {
             e.duration >= 2.0 -> ScoreLayout.HEAD_HALF
             else -> ScoreLayout.HEAD_BLACK
         }
+        val headWidth = if (head == ScoreLayout.HEAD_WHOLE) ScoreLayout.WHOLE_NOTEHEAD_WIDTH else ScoreLayout.NOTEHEAD_WIDTH
         // Seconds inside a chord: alternate noteheads to the other side of the stem.
         val offsets = DoubleArray(positions.size)
         val order = positions.indices.sortedBy { positions[it] }
@@ -255,11 +257,11 @@ private class Engraver(private val score: Score) {
             glyphs += ScoreLayout.Glyph(hx, ScoreLayout.yOf(hand, pos), head, e.id, NoteKey(e.id, k))
             for (ledger in Staff.ledgerLines(pos)) {
                 val y = ScoreLayout.yOf(hand, ledger)
-                lines += ScoreLayout.Line(hx - 0.4, y, hx + ScoreLayout.NOTEHEAD_WIDTH + 0.4, y, ScoreLayout.LEDGER_THICKNESS, e.id)
+                lines += ScoreLayout.Line(hx - 0.4, y, hx + headWidth + 0.4, y, ScoreLayout.LEDGER_THICKNESS, e.id)
             }
             if (isDotted(e.duration)) {
                 val dotPos = if (Staff.onLine(pos)) pos + 1 else pos
-                glyphs += ScoreLayout.Glyph(x + offsets.max() + ScoreLayout.NOTEHEAD_WIDTH + 0.35, ScoreLayout.yOf(hand, dotPos), ScoreLayout.DOT, e.id)
+                glyphs += ScoreLayout.Glyph(x + offsets.max() + headWidth + 0.35, ScoreLayout.yOf(hand, dotPos), ScoreLayout.DOT, e.id)
             }
         }
         if (e.duration < 4.0) {

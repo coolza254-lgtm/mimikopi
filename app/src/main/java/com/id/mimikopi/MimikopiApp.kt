@@ -28,6 +28,7 @@ class MimikopiApp : Application() {
     val inputConfig: InputConfigStore by lazy { InputConfigStore(database.settingsDao()) }
     val midiInput: MidiInputManager by lazy { MidiInputManager(this, inputHub) }
     val learning: com.id.mimikopi.learning.LearningRepository by lazy { com.id.mimikopi.learning.LearningRepository(this, database) }
+    val pieces: com.id.mimikopi.pieces.PieceRepository by lazy { com.id.mimikopi.pieces.PieceRepository(this, database) }
     val session: com.id.mimikopi.learning.SessionTracker by lazy { com.id.mimikopi.learning.SessionTracker(learning) }
 
     /** Process-lifetime scope for small startup work. */

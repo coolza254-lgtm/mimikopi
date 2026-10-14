@@ -88,6 +88,7 @@ private object Routes {
     const val SONG = "song/{songId}"
     const val KNOWLEDGE = "knowledge"
     const val ARTICLE = "article/{articleId}"
+    const val LADDER = "ladder"
     fun lesson(id: String) = "lesson/$id"
     fun drill(id: String, index: Int) = "drill/$id/$index"
     const val REVIEW_NOW = "review/true"
@@ -185,6 +186,8 @@ private fun AppNavigation() {
                 onOpenNewReading = { level -> nav.navigate("newread/$level") },
                 onOpenEar = { nav.navigate("eardrill/mix") },
                 onOpenSong = { nav.navigate("song/$it") },
+                onOpenBench = { selectTab(Routes.PROGRESS) },
+                onOpenLadder = { nav.navigate(Routes.LADDER) },
             )
         }
         composable(Routes.LESSON) { LessonScreen(onBack = { nav.popBackStack() }, onOpenDrill = openDrill, onAppAction = { runAppAction(nav, app, it) }) }
@@ -222,13 +225,14 @@ private fun AppNavigation() {
         composable(Routes.SONG) {
             SongScreen(
                 onBack = { nav.popBackStack() },
-                onOpenLesson = { nav.navigate(Routes.lesson(it)) },
+                onOpenLesson = { nav.navigate(Routes.lesson(app.learning.stepFor(it))) },
                 onEditScore = { nav.navigate("editor/$it") },
                 onPlayScore = { nav.navigate(Routes.reader(it, null)) },
             )
         }
+        composable(Routes.LADDER) { com.id.mimikopi.ui.ladder.LadderScreen(onBack = { nav.popBackStack() }, onOpenStep = { nav.navigate(Routes.lesson(it)) }) }
         composable(Routes.KNOWLEDGE) { KnowledgeScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("article/$it") }) }
-        composable(Routes.ARTICLE) { ArticleScreen(onBack = { nav.popBackStack() }, onOpenLesson = { nav.navigate(Routes.lesson(it)) }) }
+        composable(Routes.ARTICLE) { ArticleScreen(onBack = { nav.popBackStack() }, onOpenLesson = { nav.navigate(Routes.lesson(app.learning.stepFor(it))) }) }
         composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
     }
     }

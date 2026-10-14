@@ -27,6 +27,16 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; touch keyboard; USB MIDI with the Badger
   C-918 (docs/BADGER-C918-CHECKLIST.md is still open: issue #9); the timing feel of judging.
 
+## As of M14 (v0.14.x)
+- The step ladder is built mechanically from the 50 lessons' drills (one step per drill, ear drills moved to the ear
+  ladder); step titles come from the drill titles and some read a little terse. Stage tests became several steps.
+- "Repeat an older step" picks one confirmed step by the date, not by weakness yet.
+- The ear ladder starts at rung 1 for everyone (old ear statistics still steer which items come up within a rung).
+- The daily list is fixed in the morning (confirmations, review, repetition); steps met later in the day appear
+  as they happen. A failed confirmation reopens the step the next day it is opened.
+- The old lesson pages are gone; their full explanations are under "อ่านละเอียด" on each step. Song Ladder and
+  knowledge links still name the old lesson numbers and open their first step.
+
 ## As of M13 (v0.13.x)
 - Redesign from the Claude Design canvas: bottom bar (home, today, piano, songs, me), new home, timeline Today,
   lesson badges and "นับผ่าน" tags, chord prompt card, ladder Song list, stage tiles, bundled fonts (IBM Plex Sans

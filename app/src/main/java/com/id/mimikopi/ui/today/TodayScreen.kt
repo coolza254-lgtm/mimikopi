@@ -1,38 +1,27 @@
 package com.id.mimikopi.ui.today
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.id.mimikopi.ui.components.MeterBar
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -43,22 +32,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.id.mimikopi.R
-import com.id.mimikopi.core.lesson.ExerciseType
-import com.id.mimikopi.core.lesson.LessonStatus
-import com.id.mimikopi.core.session.BlockKind
+import com.id.mimikopi.ui.components.MeterBar
 import com.id.mimikopi.ui.components.PageCard
+import com.id.mimikopi.ui.components.Pill
 import com.id.mimikopi.ui.components.ScreenScaffold
 import com.id.mimikopi.ui.theme.Tokens
 import kotlinx.coroutines.delay
 
-/** Today: pick 15/30/45/60 minutes, follow the blocks (section 3), always ending with free play. */
+/**
+ * Today on the step ladder: one list, top to bottom. The big button always starts the next unfinished part;
+ * nothing to plan or choose. Practice time is not limited.
+ */
 @Composable
 fun TodayScreen(
     onBack: (() -> Unit)?,
@@ -70,6 +69,8 @@ fun TodayScreen(
     onOpenNewReading: (Int) -> Unit,
     onOpenEar: () -> Unit,
     onOpenSong: (String) -> Unit = {},
+    onOpenBench: () -> Unit = {},
+    onOpenLadder: () -> Unit = {},
     vm: TodayViewModel = viewModel(),
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -79,116 +80,65 @@ fun TodayScreen(
     LaunchedEffect(active) { while (active != null) { now = System.currentTimeMillis(); delay(1000) } }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
 
-    ScreenScaffold(title = stringResource(R.string.today_title), onBack = onBack) {
-        // Time choice as a segmented row; the selected one is filled with ink.
-        Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
-            listOf(15, 30, 45, 60).forEach { m ->
-                val selected = ui.minutes == m
-                OutlinedButton(
-                    onClick = { vm.setMinutes(m) },
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(Tokens.border, if (selected) Tokens.Palette.Ink else Tokens.Palette.Line),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (selected) Tokens.Palette.Ink else Tokens.Palette.Card,
-                        contentColor = if (selected) Tokens.Palette.Paper else Tokens.Palette.Ink,
-                    ),
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.weight(1f).heightIn(min = 44.dp),
-                ) { Text(stringResource(R.string.today_minutes, m), style = MaterialTheme.typography.labelLarge) }
-            }
+    val open: (FlowItem) -> Unit = { item ->
+        vm.opened()
+        when (item.kind) {
+            FlowKind.STEP -> item.lessonId?.let(onOpenLesson)
+            FlowKind.CONFIRM, FlowKind.REPEAT, FlowKind.EAR -> item.lessonId?.let { onOpenDrill(it, 0) }
+            FlowKind.REVIEW -> onOpenReview()
+            FlowKind.BENCH -> onOpenBench()
         }
-        val a = active
-        if (a == null) {
-            Button(onClick = vm::startSession, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+    }
+
+    ScreenScaffold(title = stringResource(R.string.today_title), onBack = onBack) {
+        // Where you are on the ladder.
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.ladder_step), style = MaterialTheme.typography.titleMedium)
+                Text("${(ui.stepsMet + 1).coerceAtMost(ui.stepsTotal)}", fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = 34.sp, color = Tokens.Palette.Ink)
+                Text("/ ${ui.stepsTotal}", style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 4.dp))
+                Spacer(Modifier.weight(1f))
+                Text(stringResource(R.string.ladder_ear, ui.earMet, ui.earTotal), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 6.dp))
+            }
+            MeterBar(if (ui.stepsTotal == 0) 0f else ui.stepsMet.toFloat() / ui.stepsTotal, Modifier.fillMaxWidth())
+        }
+
+        // The one button.
+        val next = ui.next
+        val optional = ui.items.firstOrNull { it.optional }
+        when {
+            next != null -> Button(onClick = { open(next) }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                 Icon(painterResource(R.drawable.ic_play), contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.today_start), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(if (ui.items.any { it.done }) R.string.flow_continue else R.string.flow_start), style = MaterialTheme.typography.labelLarge)
             }
-        } else {
-            val elapsed = (now - a.startedAtMillis) / 1000
-            Row(
-                Modifier.fillMaxWidth().background(Tokens.Palette.MustardSoft, RoundedCornerShape(20.dp)).padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ui.allDone -> Column(
+                Modifier.fillMaxWidth().background(Tokens.Palette.GoodSoft, RoundedCornerShape(20.dp)).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("%02d:%02d".format(elapsed / 60, elapsed % 60), fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Bold, fontSize = 32.sp, color = Tokens.Palette.Ink)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(stringResource(R.string.today_of_minutes, a.plannedMinutes), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.MustardInk)
-                    MeterBar((elapsed / 60f) / a.plannedMinutes.coerceAtLeast(1), color = Tokens.Palette.Ink)
-                }
-                Button(onClick = vm::finishSession, shape = RoundedCornerShape(14.dp), modifier = Modifier.heightIn(min = 44.dp)) {
-                    Text(stringResource(R.string.today_finish_short))
+                Text(stringResource(R.string.flow_all_done), style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.GoodInk)
+                if (optional != null) OutlinedButton(onClick = { open(optional) }, shape = RoundedCornerShape(14.dp), modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.flow_more_step))
                 }
             }
         }
-        if (ui.lightDay) Text(stringResource(R.string.today_light), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+        // The parts of today, in order.
         Column {
-        ui.plan.forEachIndexed { i, block ->
-            TimelineRow(i, block.kind == BlockKind.FREE_PLAY, last = i == ui.plan.lastIndex) {
-            PageCard(title = blockTitle(block.kind, block.minutes)) {
-                when (block.kind) {
-                    BlockKind.REVIEW -> {
-                        Text(stringResource(R.string.block_review_body, ui.dueCount), style = MaterialTheme.typography.bodyMedium)
-                        Button(onClick = onOpenReview, enabled = ui.dueCount > 0, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                            Text(stringResource(R.string.block_start))
-                        }
-                    }
-                    BlockKind.RHYTHM -> ui.rhythmDrill?.let { (l, idx) ->
-                        Text(stringResource(R.string.block_rhythm_body, l.id, l.title), style = MaterialTheme.typography.bodyMedium)
-                        Button(onClick = { onOpenDrill(l.id, idx) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                            Text(stringResource(R.string.block_start))
-                        }
-                    }
-                    BlockKind.WARMUP -> ui.warmup?.let { (l, idx) ->
-                        Text(stringResource(R.string.block_warmup_body, l.drills[idx].title), style = MaterialTheme.typography.bodyMedium)
-                        Button(onClick = { onOpenDrill(l.id, idx) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                            Text(stringResource(R.string.block_start))
-                        }
-                    }
-                    BlockKind.EAR -> {
-                        Text(stringResource(R.string.block_ear_body), style = MaterialTheme.typography.bodyMedium)
-                        Button(onClick = onOpenEar, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                            Text(stringResource(R.string.block_start))
-                        }
-                    }
-                    BlockKind.NEW_READING -> ui.newReadingLevel?.let { level ->
-                        Text(stringResource(R.string.block_new_reading_body, level), style = MaterialTheme.typography.bodyMedium)
-                        Button(onClick = { onOpenNewReading(level) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                            Text(stringResource(R.string.block_start))
-                        }
-                    }
-                    BlockKind.LESSON -> ui.currentLesson?.let { l ->
-                        Text(stringResource(R.string.block_lesson_body, l.id, l.title, l.goal), style = MaterialTheme.typography.bodyMedium)
-                        Button(onClick = { onOpenLesson(l.id) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                            Text(stringResource(R.string.block_open_lesson))
-                        }
-                        OutlinedButton(onClick = onOpenPieces, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                            Text(stringResource(R.string.block_open_pieces))
-                        }
-                    }
-                    BlockKind.FREE_PLAY -> {
-                        Text(stringResource(R.string.block_free_body), style = MaterialTheme.typography.bodyMedium)
-                        val project = ui.songProject
-                        if (block.minutes >= 15 && project != null) {
-                            Text(stringResource(R.string.block_song_project, project.title, project.nextDay, project.nextStep), style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(top = Tokens.Space.xs))
-                            Button(onClick = { onOpenSong(project.songId) }, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                                Text(stringResource(R.string.block_open_song))
-                            }
-                        }
-                        Button(onClick = onOpenPiano, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                            Text(stringResource(R.string.block_open_piano))
-                        }
-                        OutlinedButton(onClick = onOpenPieces, modifier = Modifier.padding(top = Tokens.Space.xs).heightIn(min = Tokens.minTouch)) {
-                            Text(stringResource(R.string.block_open_transcribe))
-                        }
-                    }
-                    else -> Unit
-                }
-            }
+            ui.items.forEachIndexed { i, item ->
+                FlowRow(i, item, last = i == ui.items.lastIndex) { open(item) }
             }
         }
+
+        val a = active
+        if (a != null) {
+            val minutes = (now - a.startedAtMillis) / 60_000
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.flow_minutes, minutes), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.weight(1f))
+                OutlinedButton(onClick = vm::finishSession, shape = RoundedCornerShape(14.dp), modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.flow_finish))
+                }
+            }
         }
 
         ui.stats?.let { s ->
@@ -197,20 +147,7 @@ fun TodayScreen(
                     style = MaterialTheme.typography.bodyMedium)
             }
         }
-
-        PageCard(title = stringResource(R.string.today_lessons)) {
-            ui.lessons.forEach { (l, st) ->
-                TextButton(onClick = { onOpenLesson(l.id) }, modifier = Modifier.fillMaxWidth()) {
-                    Text("${l.id} ${l.title} · ${stringResource(when (st) {
-                        LessonStatus.PASSED -> R.string.lesson_status_passed
-                        LessonStatus.LOCKED -> R.string.lesson_status_locked
-                        LessonStatus.IN_PROGRESS -> R.string.lesson_status_in_progress
-                        LessonStatus.AVAILABLE -> R.string.lesson_status_available
-                    })}", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth())
-                }
-            }
-            Text(stringResource(R.string.today_estimate_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        TextButton(onClick = onOpenLadder, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.ladder_open)) }
     }
 
     summary?.let { s ->
@@ -227,8 +164,6 @@ fun TodayScreen(
                     }
                     append("\n")
                     append(stringResource(R.string.summary_due, s.dueTomorrow))
-                    append("\n")
-                    append(stringResource(R.string.summary_question))
                 })
             },
             confirmButton = { TextButton(onClick = vm::dismissSummary) { Text(stringResource(R.string.drill_done)) } },
@@ -236,18 +171,18 @@ fun TodayScreen(
     }
 }
 
-/** One block of the plan on a dashed timeline: a numbered marker (a note for free play) and its card. */
+/** One part of today on the dashed line: a tick when done, its number otherwise. */
 @Composable
-private fun TimelineRow(index: Int, free: Boolean, last: Boolean, content: @Composable () -> Unit) {
+private fun FlowRow(index: Int, item: FlowItem, last: Boolean, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(Modifier.width(36.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 Modifier.padding(top = 12.dp).size(36.dp)
-                    .background(if (free) Tokens.Palette.MustardSoft else Tokens.Palette.Card, CircleShape)
-                    .border(if (free) 0.dp else 2.dp, Tokens.Palette.Line, CircleShape),
+                    .background(if (item.done) Tokens.Palette.Good else Tokens.Palette.Card, CircleShape)
+                    .border(if (item.done) 0.dp else 2.dp, Tokens.Palette.Line, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                if (free) Icon(painterResource(R.drawable.ic_nav_songs), contentDescription = null, tint = Tokens.Palette.MustardInk, modifier = Modifier.size(18.dp))
+                if (item.done) Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.flow_done), tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(18.dp))
                 else Text("${index + 1}", style = MaterialTheme.typography.labelLarge, color = Tokens.Palette.InkMuted)
             }
             if (!last) Canvas(Modifier.weight(1f).width(2.dp)) {
@@ -255,17 +190,31 @@ private fun TimelineRow(index: Int, free: Boolean, last: Boolean, content: @Comp
                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f)))
             }
         }
-        Box(Modifier.weight(1f).padding(vertical = 6.dp)) { content() }
+        Column(
+            Modifier
+                .weight(1f)
+                .padding(vertical = 6.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(Tokens.Palette.Card)
+                .border(Tokens.border, if (!item.done && !item.optional) Tokens.Palette.Rose else Tokens.Palette.Line, RoundedCornerShape(18.dp))
+                .clickable(onClick = onClick)
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Pill(stringResource(kindLabel(item.kind)), if (item.kind == FlowKind.STEP || item.kind == FlowKind.EAR) Tokens.Palette.MustardSoft else Tokens.Palette.RoseSoft,
+                if (item.kind == FlowKind.STEP || item.kind == FlowKind.EAR) Tokens.Palette.MustardInk else Tokens.Palette.RoseInk)
+            Text(item.title, style = MaterialTheme.typography.titleSmall, color = if (item.done) Tokens.Palette.InkMuted else Tokens.Palette.Ink)
+            Text(item.detail, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+            if (item.notYet) Text(stringResource(R.string.flow_not_yet), style = MaterialTheme.typography.labelMedium, color = Tokens.Palette.RoseDeep)
+        }
     }
 }
 
-@Composable
-private fun blockTitle(kind: BlockKind, minutes: Int): String = stringResource(when (kind) {
-    BlockKind.WARMUP -> R.string.block_warmup
-    BlockKind.REVIEW -> R.string.block_review
-    BlockKind.RHYTHM -> R.string.block_rhythm
-    BlockKind.LESSON -> R.string.block_lesson
-    BlockKind.NEW_READING -> R.string.block_new_reading
-    BlockKind.EAR -> R.string.block_ear
-    BlockKind.FREE_PLAY -> R.string.block_free
-}) + " · " + stringResource(R.string.today_minutes, minutes)
+private fun kindLabel(kind: FlowKind): Int = when (kind) {
+    FlowKind.CONFIRM -> R.string.flow_kind_confirm
+    FlowKind.REVIEW -> R.string.flow_kind_review
+    FlowKind.REPEAT -> R.string.flow_kind_repeat
+    FlowKind.STEP -> R.string.flow_kind_step
+    FlowKind.EAR -> R.string.flow_kind_ear
+    FlowKind.BENCH -> R.string.flow_kind_bench
+}

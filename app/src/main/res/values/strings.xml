@@ -587,4 +587,37 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="drill_chord_in_key">ในคีย์ %1$s</string>
     <string name="songs_difficulty_short">ความยาก</string>
     <string name="songs_days_short">7 วัน</string>
+    <string name="ladder_step">ขั้นที่</string>
+    <string name="ladder_ear">ฝึกฟัง %1$d/%2$d</string>
+    <string name="ladder_open">ดูบันไดทั้งหมด</string>
+    <string name="flow_start">เริ่มฝึกวันนี้</string>
+    <string name="flow_continue">ทำต่อ</string>
+    <string name="flow_all_done">ฝึกครบแล้ววันนี้ พรุ่งนี้แอพจะให้ทวนและยืนยันสิ่งที่ผ่านวันนี้</string>
+    <string name="flow_more_step">ฝึกขั้นต่อไป (ไม่บังคับ)</string>
+    <string name="flow_minutes">ฝึกมาแล้ว %1$d นาที</string>
+    <string name="flow_finish">จบการฝึกวันนี้</string>
+    <string name="flow_done">เสร็จแล้ว</string>
+    <string name="flow_not_yet">ลองแล้วแต่ยังไม่ผ่านเกณฑ์ ลองอีกครั้งได้</string>
+    <string name="flow_kind_confirm">ยืนยัน</string>
+    <string name="flow_kind_review">ทวน</string>
+    <string name="flow_kind_repeat">ฝึกซ้ำ</string>
+    <string name="flow_kind_step">ขั้นใหม่</string>
+    <string name="flow_kind_ear">ฝึกฟัง</string>
+    <string name="flow_kind_bench">วัดผล</string>
+    <string name="home_ladder">บันไดฝึก · ขั้น %1$d/%2$d</string>
+    <string name="home_next_step">ขั้นวันนี้ · ด่าน %1$d</string>
+    <string name="home_done_today">ฝึกครบแล้ววันนี้ · เปิดดู</string>
+    <string name="ladder_title">บันไดฝึก</string>
+    <string name="ladder_tab_steps">ขั้นเล่นและอ่าน</string>
+    <string name="ladder_tab_ear">ขั้นฝึกฟัง</string>
+    <string name="ladder_legend">เขียว = ผ่านและยืนยันแล้ว · เหลือง = ผ่านวันแรก รอยืนยัน · ชมพู = ขั้นปัจจุบัน</string>
+    <string name="ladder_stage">ด่าน %1$d</string>
+    <string name="ladder_passed">ผ่านแล้ว</string>
+    <string name="ladder_confirm">รอยืนยัน</string>
+    <string name="ladder_now">ตอนนี้</string>
+    <string name="ladder_locked">ยังไม่ถึง</string>
+    <string name="ladder_open_step">เปิดแล้ว</string>
+    <string name="lesson_more">อ่านละเอียด</string>
+    <string name="lesson_less">ย่อ</string>
+    <string name="lesson_start_step">เริ่มฝึกขั้นนี้</string>
 </resources>

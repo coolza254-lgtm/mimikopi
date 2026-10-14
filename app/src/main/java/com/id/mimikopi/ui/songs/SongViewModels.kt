@@ -28,8 +28,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /** Lessons passed at least once count for the ladder (the second day can come later, like unlocking). */
-private fun passedLessons(app: MimikopiApp): Set<String> =
-    app.learning.records.value.filterValues { it.passDays.isNotEmpty() }.keys
+private fun passedLessons(app: MimikopiApp): Set<String> = app.learning.legacyPassed()
 
 /** Song Ladder (learning-system.md 9.4): the library ordered by what is still missing, then difficulty. */
 class SongListViewModel(app: Application) : AndroidViewModel(app) {

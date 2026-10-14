@@ -129,4 +129,9 @@ object SettingKeys {
     const val SONGS_SEEDED = "songs.seeded"
     /** Timing strictness for judging (learning-system.md 6.2): STRICT, NORMAL or FORGIVING. */
     const val TIMING_MODE = "timing.mode"
+    /** "2" once lesson records use the step ladder's ids (M14); the old records are kept under [LESSON_RECORDS_V1]. */
+    const val PATH_VERSION = "path.version"
+    const val LESSON_RECORDS_V1 = "lesson.records.v1"
+    /** Today's session: item keys opened, by date ("flow:2026-10-14"). */
+    const val FLOW_PREFIX = "flow:"
 }

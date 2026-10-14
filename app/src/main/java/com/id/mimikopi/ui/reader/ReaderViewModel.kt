@@ -706,7 +706,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val s = score ?: return
         val result = j.result()
         val helper = helperUsedThisRun
-        val clean = result.timingJudged && result.summary?.isClean(learning.config.cleanRun) == true
+        // A wait-mode step (no timing) counts a run as clean when its first-try accuracy reaches the step's minimum.
+        val waitMin = (source as? Source.LessonDrill)?.lesson?.pass?.minAccuracy?.takeIf { !result.timingJudged }
+        val clean = if (waitMin != null) (result.summary?.noteAccuracy ?: 0.0) >= waitMin
+        else result.timingJudged && result.summary?.isClean(learning.config.cleanRun) == true
         runsOnPiece++
         if (clean) { cleanCount++; cleanStreak++ } else cleanStreak = 0
         val generated = when (val src = source) {
@@ -722,7 +725,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 is Source.LessonDrill -> {
                     val l = src.lesson
                     val need = l.pass.cleanRuns
-                    val required = src.index in l.pass.requiredDrills && result.timingJudged
+                    val required = src.index in l.pass.requiredDrills && (result.timingJudged || waitMin != null)
                     val count = if (l.pass.inRow) cleanStreak else cleanCount
                     val met = required && need != null && count >= need && !metThisSitting && !helper
                     learning.saveAttempt(
@@ -740,7 +743,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                         passedNow && met -> "ผ่านบท ${l.id} แล้ว บทถัดไปปลดล็อก"
                         met -> if (l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกันด้วย" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อผ่านบทนี้"
                         required && need != null && !metThisSitting -> if (l.pass.inRow) "เล่นสะอาดติดกัน $cleanStreak/$need ครั้ง" else "เล่นสะอาดแล้ว $cleanCount/$need ครั้ง"
-                        !result.timingJudged -> "โหมดรอใช้ฝึกอ่าน แบบทดสอบใช้โหมดตามจังหวะ"
+                        !result.timingJudged && waitMin == null -> "โหมดรอใช้ฝึกอ่าน แบบทดสอบใช้โหมดตามจังหวะ"
                         else -> null
                     }
                     if (helper && required) lines += CoachLine("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่าน")

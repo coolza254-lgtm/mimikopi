@@ -26,6 +26,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -94,7 +98,25 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
             modifier = Modifier.fillMaxWidth().background(Tokens.Palette.MustardSoft, RoundedCornerShape(18.dp)).padding(horizontal = 16.dp, vertical = 14.dp),
         )
         PageCard(title = stringResource(R.string.lesson_explain)) {
+            var more by remember { mutableStateOf(false) }
             lesson.explain.forEach { Text("• $it", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.xs)) }
+            // Steps keep their topic's full explanation one tap away.
+            val extra = lesson.more.filter { it !in lesson.explain }
+            if (extra.isNotEmpty()) {
+                if (more) extra.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = Tokens.Space.xs)) }
+                TextButton(onClick = { more = !more }) { Text(stringResource(if (more) R.string.lesson_less else R.string.lesson_more)) }
+            }
+        }
+        if (lesson.drills.size == 1) {
+            Button(
+                onClick = { onOpenDrill(lesson.id, 0) },
+                enabled = status != LessonStatus.LOCKED,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) {
+                Icon(painterResource(R.drawable.ic_play), contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("  " + stringResource(R.string.lesson_start_step), style = MaterialTheme.typography.labelLarge)
+            }
         }
         PageCard(title = stringResource(R.string.lesson_try)) {
             lesson.tryIt.forEachIndexed { i, step ->

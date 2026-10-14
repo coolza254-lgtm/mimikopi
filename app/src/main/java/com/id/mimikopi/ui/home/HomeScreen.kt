@@ -128,21 +128,22 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.home_today_minutes, ui.minutes), style = MaterialTheme.typography.labelLarge, color = Tokens.Palette.RoseDeep, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.home_ladder, (ui.stepsMet + 1).coerceAtMost(ui.stepsTotal), ui.stepsTotal), style = MaterialTheme.typography.labelLarge,
+                            color = Tokens.Palette.RoseDeep, modifier = Modifier.weight(1f))
                         ui.stats?.let { Text(stringResource(R.string.home_week_minutes, it.minutesThisWeek), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted) }
                     }
-                    val lesson = ui.currentLesson
-                    if (lesson != null) {
+                    val step = ui.step
+                    if (step != null) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(stringResource(R.string.home_next_lesson, lesson.stage), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
-                            Text("${lesson.id} ${lesson.title}", style = MaterialTheme.typography.titleLarge)
+                            Text(stringResource(R.string.home_next_step, step.stage), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+                            Text(step.title, style = MaterialTheme.typography.titleLarge)
                         }
                     } else {
                         Text(stringResource(R.string.home_all_passed), style = MaterialTheme.typography.titleMedium)
                     }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ui.plan.forEachIndexed { i, b ->
-                            Pill("${stringResource(blockName(b.kind))} ${b.minutes}", if (i % 2 == 0) Tokens.Palette.MustardSoft else Tokens.Palette.RoseSoft)
+                        ui.items.filter { !it.optional }.forEachIndexed { i, item ->
+                            Pill(stringResource(flowLabel(item.kind)) + if (item.done) " ✓" else "", if (i % 2 == 0) Tokens.Palette.MustardSoft else Tokens.Palette.RoseSoft)
                         }
                     }
                     Button(
@@ -152,7 +153,11 @@ fun HomeScreen(
                     ) {
                         Icon(painterResource(R.drawable.ic_play), contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.home_start_today), style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(when {
+                            ui.allDone -> R.string.home_done_today
+                            ui.items.any { it.done } -> R.string.flow_continue
+                            else -> R.string.home_start_today
+                        }), style = MaterialTheme.typography.labelLarge)
                     }
                 }
                 }
@@ -223,6 +228,15 @@ private fun ToolRow(icon: Int, title: Int, onClick: () -> Unit) {
         Text(stringResource(title), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.InkMuted, modifier = Modifier.size(18.dp))
     }
+}
+
+fun flowLabel(kind: com.id.mimikopi.ui.today.FlowKind): Int = when (kind) {
+    com.id.mimikopi.ui.today.FlowKind.CONFIRM -> R.string.flow_kind_confirm
+    com.id.mimikopi.ui.today.FlowKind.REVIEW -> R.string.flow_kind_review
+    com.id.mimikopi.ui.today.FlowKind.REPEAT -> R.string.flow_kind_repeat
+    com.id.mimikopi.ui.today.FlowKind.STEP -> R.string.flow_kind_step
+    com.id.mimikopi.ui.today.FlowKind.EAR -> R.string.flow_kind_ear
+    com.id.mimikopi.ui.today.FlowKind.BENCH -> R.string.flow_kind_bench
 }
 
 fun blockName(kind: BlockKind): Int = when (kind) {

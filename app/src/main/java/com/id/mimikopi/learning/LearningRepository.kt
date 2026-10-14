@@ -66,7 +66,72 @@ class LearningRepository(private val context: Context, private val db: AppDataba
             .sortedWith(compareBy({ it.id.substringBefore('.').toInt() }, { it.id.substringAfter('.').toInt() }))
     }
 
-    fun lesson(id: String): Lesson? = lessons.firstOrNull { it.id == id }
+    /** The ear ladder (content/ear): small listening steps e1, e2 ... each gated by its previous rung and a ladder step. */
+    val earRungs: List<Lesson> by lazy {
+        context.assets.list("ear").orEmpty().filter { it.endsWith(".json") }
+            .map { name -> context.assets.open("ear/$name").use { Lesson.parse(it.readBytes().toString(Charsets.UTF_8)) } }
+            .sortedBy { it.id.removePrefix("e").toInt() }
+    }
+
+    fun lesson(id: String): Lesson? = lessons.firstOrNull { it.id == id } ?: earRungs.firstOrNull { it.id == id }
+
+    // ---------------- step ladder (M14) ----------------
+
+    /** Today's new step: the first step not yet met on any day. */
+    fun currentStep(): Lesson? = ProgressRules.nextToLearn(lessons, _records.value)
+
+    /** Today's ear rung. */
+    fun currentEarRung(): Lesson? = ProgressRules.nextToLearn(earRungs, _records.value)
+
+    /** Steps and rungs passed on an earlier day that wait for their confirming run, oldest first. */
+    fun confirmations(today: LocalDate = LocalDate.now()): List<Lesson> =
+        ProgressRules.awaitingConfirmation(lessons, _records.value, today) + ProgressRules.awaitingConfirmation(earRungs, _records.value, today)
+
+    /** Old stage 1-6 lesson ids whose steps were all met at least once (Song Ladder and knowledge links use them). */
+    fun legacyPassed(): Set<String> = lessons.groupBy { it.legacy?.substringBefore('#') }
+        .filterKeys { it != null }
+        .filterValues { steps -> steps.all { !_records.value[it.id]?.passDays.isNullOrEmpty() } }
+        .keys.filterNotNull().toSet()
+
+    /** The first step made from an old lesson id ("5.6"), or the id itself when it is already a step. */
+    fun stepFor(legacyOrId: String): String = lessons.firstOrNull { it.legacy?.substringBefore('#') == legacyOrId }?.id ?: legacyOrId
+
+    /** Steps whose confirming run failed on an earlier day go back to practice (the ladder returns to them). */
+    suspend fun reopenFailedConfirmations(today: LocalDate = LocalDate.now()) {
+        load()
+        mutex.withLock {
+            val all = lessons + earRungs
+            var changed = false
+            val next = _records.value.toMutableMap()
+            for (l in all) {
+                val r = next[l.id] ?: continue
+                if (ProgressRules.failedConfirmation(l, r, today)) { next[l.id] = ProgressRules.reopen(r); changed = true }
+            }
+            if (changed) {
+                _records.value = next
+                db.settingsDao().put(SettingEntity(SettingKeys.LESSON_RECORDS, json.encodeToString(recordsSerializer, next)))
+            }
+        }
+    }
+
+    /**
+     * M14 migration: records of the old 50 lessons become records of the steps made from their drills. A step gets
+     * the days its drill met its criterion, plus the lesson's pass days (practice drills had no criterion of their
+     * own). The old records stay in settings under "lesson.records.v1".
+     */
+    private fun migrate(old: Map<String, LessonRecord>): Map<String, LessonRecord> {
+        val out = mutableMapOf<String, LessonRecord>()
+        for (s in lessons) {
+            val ref = s.legacy ?: continue
+            val o = old[ref.substringBefore('#')] ?: continue
+            val i = ref.substringAfter('#').toIntOrNull() ?: continue
+            val days = ((o.drillDays[i] ?: emptySet()) + o.passDays).sorted().takeLast(s.pass.days).toSet()
+            if (days.isEmpty() && o.helperDays.isEmpty()) continue
+            out[s.id] = LessonRecord(s.id, passDays = days, helperDays = o.helperDays, attempts = if (days.isEmpty()) 0 else 1,
+                drillDays = if (days.isEmpty()) emptyMap() else mapOf(0 to days), triedDays = days)
+        }
+        return out
+    }
 
     private val _records = MutableStateFlow<Map<String, LessonRecord>>(emptyMap())
     val records: StateFlow<Map<String, LessonRecord>> = _records.asStateFlow()
@@ -75,9 +140,21 @@ class LearningRepository(private val context: Context, private val db: AppDataba
     suspend fun load() = mutex.withLock {
         if (loaded) return@withLock
         loaded = true
-        db.settingsDao().get(SettingKeys.LESSON_RECORDS)
-            ?.let { runCatching { json.decodeFromString(recordsSerializer, it) }.getOrNull() }
-            ?.let { _records.value = it }
+        val dao = db.settingsDao()
+        val raw = dao.get(SettingKeys.LESSON_RECORDS)
+        val stored = raw?.let { runCatching { json.decodeFromString(recordsSerializer, it) }.getOrNull() } ?: emptyMap()
+        if (dao.get(SettingKeys.PATH_VERSION) != "2") {
+            // Records written before the step ladder use the old lesson ids: convert them once.
+            if (raw != null && stored.isNotEmpty()) {
+                dao.put(SettingEntity(SettingKeys.LESSON_RECORDS_V1, raw))
+                val migrated = migrate(stored)
+                dao.put(SettingEntity(SettingKeys.LESSON_RECORDS, json.encodeToString(recordsSerializer, migrated)))
+                _records.value = migrated
+            }
+            dao.put(SettingEntity(SettingKeys.PATH_VERSION, "2"))
+        } else {
+            _records.value = stored
+        }
         db.settingsDao().get(SettingKeys.TIMING_MODE)
             ?.let { runCatching { com.id.mimikopi.core.practice.TimingMode.valueOf(it) }.getOrNull() }
             ?.let { _timingMode.value = it }
@@ -106,6 +183,7 @@ class LearningRepository(private val context: Context, private val db: AppDataba
         val updated = mutex.withLock {
             val current = _records.value[lesson.id] ?: LessonRecord(lesson.id)
             var r = current.copy(attempts = current.attempts + 1)
+            if (drillIndex in lesson.pass.requiredDrills) r = r.copy(triedDays = r.triedDays + day.toString())
             if (met && drillIndex in lesson.pass.requiredDrills) r = ProgressRules.recordDrillMet(r, lesson, drillIndex, day, helperUsed)
             _records.value = _records.value + (lesson.id to r)
             db.settingsDao().put(SettingEntity(SettingKeys.LESSON_RECORDS, json.encodeToString(recordsSerializer, _records.value)))

@@ -160,6 +160,12 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
             val seed = System.currentTimeMillis()
             questions = when {
                 bench -> EarStats.benchmarkSet()
+                // An ear-ladder rung: every question from its one narrow step.
+                lessonDrill?.ear != null -> {
+                    val spec = lessonDrill!!.ear!!
+                    val g = EarGenerator(seed, weights)
+                    List(count) { g.next(EarLevel.valueOf(levelArg), spec) }
+                }
                 else -> EarGenerator(seed, weights).mixed(levels(), count,
                     EarStats.levelWeights(stats) { id -> EarStats.levelsOf(id).firstOrNull { it in levels() } })
             }
@@ -197,7 +203,8 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
     /** Prompt, buttons and whether keys answer, for the current question and step. */
     private fun stepSpec(q: EarQuestion): Triple<String, List<Choice>, Boolean> = when (q) {
         is EarQuestion.Higher -> Triple("เสียงที่สองสูงขึ้น ต่ำลง หรือเท่ากัน?",
-            listOf(Choice("สูงขึ้น", "HIGHER"), Choice("ต่ำลง", "LOWER"), Choice("เท่ากัน", "SAME")), false)
+            listOf(Choice("สูงขึ้น", "HIGHER"), Choice("ต่ำลง", "LOWER"), Choice("เท่ากัน", "SAME"))
+                .filter { it.value != "SAME" || lessonDrill?.ear?.same != false }, false)
         is EarQuestion.Direction -> Triple("โน้ตตัวที่ ${step + 1} → ${step + 2} ไปทางไหน?",
             listOf(Choice("ขึ้น", "UP"), Choice("ลง", "DOWN"), Choice("ซ้ำ", "SAME")), false)
         is EarQuestion.Interval -> Triple(
@@ -206,7 +213,7 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
                 IntervalPlay.DOWN -> "เสียงที่สองต่ำลงเท่าไร? (หรือกดเสียงที่สองบนคีย์บอร์ด)"
                 IntervalPlay.UP -> "เสียงที่สองสูงขึ้นเท่าไร? (หรือกดเสียงที่สองบนคีย์บอร์ด)"
             },
-            (if (q.level == EarLevel.E2) 1..7 else 1..12).map { Choice(EarAnswers.INTERVAL_NAMES.getValue(it), "$it") }, true)
+            (lessonDrill?.ear?.intervals?.takeIf { it.isNotEmpty() }?.sorted() ?: if (q.level == EarLevel.E2) (1..7).toList() else (1..12).toList()).map { Choice(EarAnswers.INTERVAL_NAMES.getValue(it), "$it") }, true)
         is EarQuestion.Triad -> Triple("คอร์ดนี้เมเจอร์ (สว่าง) หรือไมเนอร์ (หม่น)?",
             listOf(Choice("เมเจอร์", "MAJOR"), Choice("ไมเนอร์", "MINOR")), false)
         is EarQuestion.Melody -> Triple("โน้ตแรกคือคีย์ที่มีจุด เล่นทำนองที่เหลืออีก ${q.notes.size - 1} ตัวบนคีย์บอร์ด", emptyList(), true)

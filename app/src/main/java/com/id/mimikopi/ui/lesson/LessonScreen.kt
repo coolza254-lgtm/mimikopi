@@ -118,7 +118,7 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
                 Text("  " + stringResource(R.string.lesson_start_step), style = MaterialTheme.typography.labelLarge)
             }
         }
-        PageCard(title = stringResource(R.string.lesson_try)) {
+        if (lesson.tryIt.isNotEmpty()) PageCard(title = stringResource(R.string.lesson_try)) {
             lesson.tryIt.forEachIndexed { i, step ->
                 Text("${i + 1}. ${step.text}", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.s))
                 val (kind, arg) = step.action?.split(":", limit = 2)?.let { it[0] to it.getOrNull(1) } ?: (null to null)

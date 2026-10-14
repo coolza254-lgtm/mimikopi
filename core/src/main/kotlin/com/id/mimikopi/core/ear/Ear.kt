@@ -4,6 +4,7 @@ import com.id.mimikopi.core.exercise.RhythmCells
 import com.id.mimikopi.core.music.Letter
 import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.core.score.PieceFile
+import kotlinx.serialization.Serializable
 import kotlin.random.Random
 
 /**
@@ -21,6 +22,29 @@ enum class EarLevel(val unlockStage: Int) {
     E8(5), // sevenths and bass lines
     E9(6), // mixed: key, progression and melody of a short phrase
 }
+
+/**
+ * One small step of the ear ladder (M14): a level narrowed down so it can be learnt gradually.
+ * [kind]: E1 "compare" / "direction", E8 "seventh" / "bass"; [minGap]..[maxGap]: semitones between the two notes of a
+ * compare question; [same]: "the same note" can be the answer; [intervals]: semitone sizes asked (E2/E4) — the answer
+ * buttons offer only these; [play]: UP / DOWN / TOGETHER (E4); [notes] and [skips]: melody length and leaps (E5, E1
+ * direction); [bars] (E6); [degrees] pool and [named] famous progressions only (E7); [keys] the keys used.
+ */
+@Serializable
+data class EarSpec(
+    val kind: String? = null,
+    val minGap: Int = 1,
+    val maxGap: Int = 12,
+    val same: Boolean = false,
+    val intervals: List<Int> = emptyList(),
+    val play: List<IntervalPlay> = emptyList(),
+    val notes: Int? = null,
+    val skips: Boolean? = null,
+    val bars: Int? = null,
+    val degrees: List<String> = emptyList(),
+    val named: Boolean? = null,
+    val keys: List<EarKey> = emptyList(),
+)
 
 enum class Compare { HIGHER, LOWER, SAME }
 enum class Dir { UP, DOWN, SAME }
@@ -193,6 +217,72 @@ class EarGenerator(private val seed: Long, private val weights: Map<String, Doub
     }
 
     private fun key(): EarKey = EarKey.entries[rnd.nextInt(EarKey.entries.size)]
+
+    /** A question of [level] narrowed by [spec] (the ear ladder); without a spec, the level as a whole. */
+    fun next(level: EarLevel, spec: EarSpec?): EarQuestion {
+        if (spec == null) return next(level)
+        fun k(): EarKey = spec.keys.ifEmpty { EarKey.entries }.let { it[rnd.nextInt(it.size)] }
+        return when (level) {
+            EarLevel.E1 -> if (spec.kind == "direction") {
+                val key = k()
+                var d = rnd.nextInt(0, 5)
+                val notes = mutableListOf(scaleNote(key.tonic, d))
+                val moves = if (spec.skips == true) listOf(-2, -1, 0, 1, 2) else listOf(-1, 0, 1)
+                while (notes.size < (spec.notes ?: 3)) {
+                    d = (d + moves[rnd.nextInt(moves.size)]).coerceIn(-2, 7)
+                    notes += scaleNote(key.tonic, d)
+                }
+                EarQuestion.Direction(notes)
+            } else {
+                val a = rnd.nextInt(55, 72)
+                val gap = if (spec.same && rnd.nextInt(6) == 0) 0 else rnd.nextInt(spec.minGap, spec.maxGap + 1) * if (rnd.nextBoolean()) 1 else -1
+                EarQuestion.Higher(a, (a + gap).coerceIn(40, 88))
+            }
+            EarLevel.E2, EarLevel.E4 -> {
+                val sizes = spec.intervals.ifEmpty { (1..(if (level == EarLevel.E2) 7 else 12)).toList() }
+                val s = pickWeighted(sizes) { "ear:int:$it" }
+                val play = spec.play.ifEmpty { listOf(IntervalPlay.UP) }.let { it[rnd.nextInt(it.size)] }
+                val root = if (play == IntervalPlay.DOWN) rnd.nextInt(60, 74) else rnd.nextInt(50, 64)
+                EarQuestion.Interval(level, root, s, play)
+            }
+            EarLevel.E5 -> {
+                val key = k()
+                val skips = spec.skips == true
+                var d = listOf(0, 2, 4)[rnd.nextInt(3)]
+                val notes = mutableListOf(scaleNote(key.tonic, d))
+                while (notes.size < (spec.notes ?: 3)) {
+                    val moves = if (skips) listOf(-2, -1, 1, 2) else listOf(-1, 1)
+                    val nd = d + moves[rnd.nextInt(moves.size)]
+                    if (nd in -1..7) { d = nd; notes += scaleNote(key.tonic, d) }
+                }
+                EarQuestion.Melody(level, key, notes, skips)
+            }
+            EarLevel.E6 -> next(level).let { q -> if (spec.bars == 1 && q is EarQuestion.Rhythm && q.bars > 1) next(level, spec) else q }
+            EarLevel.E7 -> {
+                val key = k()
+                val pool = spec.degrees.mapNotNull { n -> Degree.entries.firstOrNull { it.name == n } }.ifEmpty { listOf(Degree.I, Degree.IV, Degree.V, Degree.vi) }
+                if (spec.named == true) {
+                    val named = Progressions.NAMED.filter { (_, ds) -> ds.all { it in pool } }.ifEmpty { Progressions.NAMED }
+                    val (name, degrees) = named[rnd.nextInt(named.size)]
+                    EarQuestion.Progression(level, key, degrees, name)
+                } else {
+                    val degrees = mutableListOf(Degree.I)
+                    while (degrees.size < 4) degrees += pickWeighted(pool.filter { it != degrees.last() }.ifEmpty { pool }) { "ear:deg:${it.name}" }
+                    EarQuestion.Progression(level, key, degrees, null)
+                }
+            }
+            EarLevel.E8 -> when (spec.kind) {
+                "seventh" -> EarQuestion.Seventh(rnd.nextInt(48, 60), pickWeighted(SeventhQuality.entries) { "ear:7th:${it.name.lowercase()}" })
+                "bass" -> {
+                    val key = k()
+                    val (_, degrees) = Progressions.NAMED[rnd.nextInt(Progressions.NAMED.size)]
+                    EarQuestion.BassLine(key, degrees.mapIndexed { i, d -> d to if (i == 0) 0 else listOf(0, 0, 2, 4)[rnd.nextInt(4)] })
+                }
+                else -> next(level)
+            }
+            else -> next(level)
+        }
+    }
 
     fun next(level: EarLevel): EarQuestion = when (level) {
         EarLevel.E1 -> if (rnd.nextInt(3) < 2) {

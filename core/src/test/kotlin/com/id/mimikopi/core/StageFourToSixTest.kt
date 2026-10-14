@@ -220,7 +220,8 @@ class BundledSongsAndKnowledgeTest {
         }
         assertTrue(articles.size >= 15)
         articles.forEach { assertEquals(emptyList(), it.problems(), it.id) }
-        val lessonIds = java.io.File("../content/lessons").listFiles()!!.map { it.nameWithoutExtension }.toSet()
+        // Articles name the topic lessons of stages 1-6, kept on the steps as their legacy reference.
+        val lessonIds = java.io.File("../content/lessons").listFiles()!!.mapNotNull { com.id.mimikopi.core.lesson.Lesson.parse(it.readText()).legacy?.substringBefore('#') }.toSet()
         articles.flatMap { it.lessons }.forEach { assertTrue(it in lessonIds, it) }
         val k = com.id.mimikopi.core.knowledge.Knowledge
         assertEquals("jpop-progressions", k.search(articles, "王道進行").first().id)
@@ -250,5 +251,49 @@ class ChordScoringTest {
         assertFalse(s.chordBuildPassed(List(9) { a(true) }, rule, 10)) // too few items
         assertTrue(s.chordChangePassed(14, rule))
         assertFalse(s.chordChangePassed(13, rule))
+    }
+}
+
+
+class EarLadderTest {
+    private val rungs = java.io.File("../content/ear").listFiles()!!.map { com.id.mimikopi.core.lesson.Lesson.parse(it.readText()) }
+        .sortedBy { it.id.removePrefix("e").toInt() }
+    private val steps = java.io.File("../content/lessons").listFiles()!!.map { com.id.mimikopi.core.lesson.Lesson.parse(it.readText()).id }.toSet()
+
+    @Test
+    fun rungsAreOrderedValidAndGated() {
+        assertEquals((1..rungs.size).map { "e$it" }, rungs.map { it.id })
+        assertTrue(rungs.size >= 25)
+        rungs.forEachIndexed { i, r ->
+            assertEquals(emptyList(), r.problems(), r.id)
+            if (i > 0) assertTrue(rungs[i - 1].id in r.prerequisites, r.id)
+            r.prerequisites.filter { !it.startsWith("e") }.forEach { assertTrue(it in steps, "${r.id} -> $it") }
+            assertEquals(com.id.mimikopi.core.lesson.ExerciseType.E_EAR, r.drills.single().type)
+            assertTrue((r.pass.minAccuracy ?: 0.0) >= 0.8)
+        }
+    }
+
+    @Test
+    fun everyRungGeneratesQuestionsInsideItsStep() {
+        for (r in rungs) {
+            val d = r.drills.single()
+            val level = com.id.mimikopi.core.ear.EarLevel.valueOf(d.level)
+            val g = com.id.mimikopi.core.ear.EarGenerator(7L)
+            repeat(60) {
+                val q = g.next(level, d.ear)
+                val spec = d.ear
+                if (q is com.id.mimikopi.core.ear.EarQuestion.Interval && spec != null && spec.intervals.isNotEmpty()) assertTrue(q.semitones in spec.intervals, r.id)
+                if (q is com.id.mimikopi.core.ear.EarQuestion.Higher && spec != null) {
+                    val gap = kotlin.math.abs(q.second - q.first)
+                    assertTrue(gap == 0 && spec.same || gap in spec.minGap..spec.maxGap, "${r.id}: gap $gap")
+                }
+                if (q is com.id.mimikopi.core.ear.EarQuestion.Melody && spec?.notes != null) assertEquals(spec.notes, q.notes.size, r.id)
+                if (q is com.id.mimikopi.core.ear.EarQuestion.Progression && spec != null && spec.degrees.isNotEmpty())
+                    assertTrue(q.degrees.all { it.name in spec.degrees }, r.id)
+                assertTrue(q.sounds().isNotEmpty() || q is com.id.mimikopi.core.ear.EarQuestion.Rhythm)
+            }
+        }
+        // The first rungs are a gentle start: far apart notes only.
+        assertEquals(12, rungs.first().drills.single().ear!!.minGap)
     }
 }

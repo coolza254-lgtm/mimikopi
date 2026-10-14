@@ -53,18 +53,21 @@ class LessonContentTest {
     fun allLessonFilesAreCompleteAndValid() {
         val lessons = all()
         val ids = lessons.map { it.id }.toSet()
-        val expected = (listOf("1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.10") +
-            (1..9).map { "2.$it" } + (1..8).map { "3.$it" } + (1..8).map { "4.$it" } + (1..10).map { "5.$it" } +
-            (1..7).map { "6.$it" }).toSet()
-        assertEquals(expected, ids)
+        // The step ladder (M14): stages 1-6, steps numbered 1..n in each stage, every step after the previous one.
+        assertEquals((1..6).toSet(), lessons.map { it.stage }.toSet())
+        lessons.groupBy { it.stage }.forEach { (stage, ls) ->
+            assertEquals((1..ls.size).map { "$stage.$it" }.toSet(), ls.map { it.id }.toSet())
+        }
+        assertTrue(lessons.size in 120..220, "${lessons.size} steps")
+        lessons.forEach { l -> assertEquals(1, l.drills.size, l.id); assertTrue(l.legacy != null && l.more.isNotEmpty(), l.id) }
         // Prerequisites exist and come earlier in the order (no cycles).
         val order = lessons.sortedWith(compareBy({ it.stage }, { it.id.substringAfter('.').toInt() })).map { it.id }
         lessons.forEach { l -> l.prerequisites.forEach { p -> assertTrue(p in ids && order.indexOf(p) < order.indexOf(l.id), "${l.id} -> $p") } }
         lessons.forEach { assertEquals(emptyList(), it.problems(), it.id) }
         // SRS items must be ones the drills can produce.
-        val l15 = lessons.first { it.id == "1.5" }
-        val poolIds = l15.drills.flatMap { it.pool }.map { "note:$it" }.toSet()
-        assertTrue(l15.srsItems.all { it in poolIds })
+        val l15 = lessons.filter { it.legacy!!.startsWith("1.5#") }
+        val poolIds = l15.flatMap { it.drills }.flatMap { it.pool }.map { "note:$it" }.toSet()
+        assertTrue(l15.first().srsItems.all { it in poolIds })
         // Every SRS item is a valid note item.
         lessons.flatMap { it.srsItems }.filter { it.startsWith("note:") }.forEach { com.id.mimikopi.core.exercise.NoteIdItem.parse(it) }
     }
@@ -124,30 +127,32 @@ class LessonContentTest {
 
 class GeneratorTest {
     private val lessons = File("../content/lessons").listFiles()!!.associate { Lesson.parse(it.readText()).let { l -> l.id to l } }
+    /** The drill of the step made from an old lesson drill ("1.1#2"). */
+    private fun legacy(ref: String) = lessons.values.first { it.legacy == ref }.drills[0]
 
     @Test
     fun keyFindIsDeterministicNoRepeatsAndInRange() {
-        val round3 = lessons.getValue("1.1").drills[2]
+        val round3 = legacy("1.1#2")
         val a = Generators.keyFind(round3, 42)
         assertEquals(a, Generators.keyFind(round3, 42))
         assertEquals(10, a.size)
         a.zipWithNext().forEach { (x, y) -> assertTrue(x != y) }
         a.forEach { item -> assertTrue(item.target!!.midi in 48..83 && item.accepts(item.target!!.midi)) }
         repeat(1000) { seed ->
-            Generators.keyFind(lessons.getValue("1.1").drills[1], seed.toLong()).forEach { assertTrue(it.target == null) }
+            Generators.keyFind(legacy("1.1#1"), seed.toLong()).forEach { assertTrue(it.target == null) }
         }
     }
 
     @Test
     fun anyOctaveAcceptsEveryKeyOfThatName() {
-        val item = Generators.keyFind(lessons.getValue("1.1").drills[0], 1).first()
+        val item = Generators.keyFind(legacy("1.1#0"), 1).first()
         val names = (21..108).filter { item.accepts(it) }
         assertEquals(names.size, (21..108).count { it % 12 == item.letter.semitonesFromC })
     }
 
     @Test
     fun noteIdPutsDueItemsFirstAndStaysInPool() {
-        val test = lessons.getValue("1.5").drills[1]
+        val test = legacy("1.5#1")
         val items = Generators.noteId(test, 7, due = listOf("note:E3:bass", "note:B3:treble", "note:C6:treble"))
         assertEquals(20, items.size)
         assertEquals(NoteIdItem.parse("note:E3:bass"), items[0])
@@ -162,10 +167,11 @@ class GeneratorTest {
 class ScoringAndProgressTest {
     private val lessons = File("../content/lessons").listFiles()!!.map { Lesson.parse(it.readText()) }.sortedBy { it.id }
     private fun byId(id: String) = lessons.first { it.id == id }
+    private fun byLegacy(ref: String) = lessons.first { it.legacy == ref }
 
     @Test
     fun keyFindPassNeedsAllFirstTryWithinTime() {
-        val rule = byId("1.1").pass
+        val rule = byLegacy("1.1#3").pass
         val good = List(10) { Answer(true, 2500, true) }
         assertTrue(Scoring.keyFindPassed(good, rule, 10))
         assertFalse(Scoring.keyFindPassed(good.take(9) + Answer(true, 3500, true), rule, 10))
@@ -177,8 +183,8 @@ class ScoringAndProgressTest {
         val offsets = List(32) { if (it % 2 == 0) 50.0 else -50.0 }
         val s = Scoring.pulse(offsets, 150)
         assertEquals(50.0, s.sdMs, 1e-9)
-        assertTrue(Scoring.pulsePassed(s, byId("1.3").pass, 32))
-        assertFalse(Scoring.pulsePassed(Scoring.pulse(List(32) { if (it % 2 == 0) 100.0 else -100.0 }, 150), byId("1.3").pass, 32))
+        assertTrue(Scoring.pulsePassed(s, byLegacy("1.3#1").pass, 32))
+        assertFalse(Scoring.pulsePassed(Scoring.pulse(List(32) { if (it % 2 == 0) 100.0 else -100.0 }, 150), byLegacy("1.3#1").pass, 32))
         // Latency is removed before judging; taps match their nearest beat.
         val beats = List(4) { it * 1e9 }
         assertEquals(listOf(0.0, 0.0, 0.0), Scoring.tapOffsetsMs(beats, listOf(120_000_000L, 1_120_000_000L, 2_120_000_000L), 120.0, 400.0).map { Math.round(it * 1000) / 1000.0 })
@@ -200,11 +206,46 @@ class ScoringAndProgressTest {
 
     @Test
     fun unlockingFollowsPrerequisites() {
-        val l15 = byId("1.5")
+        val l15 = byId("1.2")
         assertEquals(LessonStatus.LOCKED, ProgressRules.status(l15, emptyMap()))
         val after = mapOf("1.1" to LessonRecord("1.1", passDays = setOf("2026-10-12"), attempts = 1))
         assertEquals(LessonStatus.AVAILABLE, ProgressRules.status(l15, after))
         assertEquals("1.1", ProgressRules.current(lessons, emptyMap())?.id)
+    }
+}
+
+class StepLadderTest {
+    private val steps = File("../content/lessons").listFiles()!!.map { Lesson.parse(it.readText()) }
+        .sortedWith(compareBy({ it.stage }, { it.id.substringAfter('.').toInt() }))
+
+    @Test
+    fun passTodayUnlocksNextAndWaitsForConfirmation() {
+        val s1 = steps[0]
+        val s2 = steps[1]
+        val d1 = LocalDate.of(2026, 10, 14)
+        val r1 = ProgressRules.recordDrillMet(LessonRecord(s1.id, attempts = 1, triedDays = setOf(d1.toString())), s1, 0, d1, helperUsed = false)
+        val records = mapOf(s1.id to r1)
+        assertEquals(LessonStatus.AVAILABLE, ProgressRules.status(s2, records))
+        assertEquals(s2.id, ProgressRules.nextToLearn(steps, records)?.id)
+        // Same day: nothing to confirm yet; next day: s1 waits for its confirmation.
+        assertEquals(emptyList(), ProgressRules.awaitingConfirmation(steps, records, d1).map { it.id })
+        assertEquals(listOf(s1.id), ProgressRules.awaitingConfirmation(steps, records, d1.plusDays(1)).map { it.id })
+        // Confirmed on day 2: passed.
+        val confirmed = ProgressRules.recordDrillMet(r1, s1, 0, d1.plusDays(1), helperUsed = false)
+        assertTrue(ProgressRules.isPassed(confirmed, s1))
+    }
+
+    @Test
+    fun failedConfirmationReopensTheStep() {
+        val s1 = steps[0]
+        val d1 = LocalDate.of(2026, 10, 14)
+        val r = LessonRecord(s1.id, passDays = setOf(d1.toString()), attempts = 3, triedDays = setOf(d1.toString(), d1.plusDays(1).toString()))
+        // Still the day of the failed try: it can be retried today.
+        assertFalse(ProgressRules.failedConfirmation(s1, r, d1.plusDays(1)))
+        assertTrue(ProgressRules.failedConfirmation(s1, r, d1.plusDays(2)))
+        val reopened = ProgressRules.reopen(r)
+        assertEquals(s1.id, ProgressRules.nextToLearn(steps, mapOf(s1.id to reopened))?.id)
+        assertEquals(3, reopened.attempts)
     }
 }
 

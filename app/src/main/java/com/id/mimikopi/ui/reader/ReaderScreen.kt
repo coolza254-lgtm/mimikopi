@@ -189,8 +189,9 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
             horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                stringResource(if (ui.pendingSectionStart != null) R.string.reader_tap_end_hint else R.string.reader_tap_hint),
+            // Only the hint that is needed right now: the second tap of a section choice.
+            if (ui.pendingSectionStart != null) Text(
+                stringResource(R.string.reader_tap_end_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = Tokens.Palette.InkMuted,
             )
@@ -274,7 +275,6 @@ private fun ResultPanel(r: ResultUi, vm: ReaderViewModel, onBack: () -> Unit) {
                 line.action?.let { a -> TextButton(onClick = { vm.applyAction(a) }) { Text(actionLabel(a)) } }
             }
         }
-        Text(stringResource(R.string.reader_legend), style = MaterialTheme.typography.labelSmall, color = Tokens.Palette.InkMuted)
         Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
             if (vm.benchDone) {
                 Button(onClick = onBack) { Text(stringResource(R.string.reader_done)) }

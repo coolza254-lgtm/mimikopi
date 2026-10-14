@@ -61,7 +61,6 @@ fun SongListScreen(onBack: (() -> Unit)?, onOpen: (String) -> Unit, vm: SongList
     val ladder by vm.ladder.collectAsStateWithLifecycle()
     var adding by remember { mutableStateOf(false) }
     ScreenScaffold(title = stringResource(R.string.songs_title), onBack = onBack) {
-        Text(stringResource(R.string.songs_intro), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.songs_add)) }
         Column { ladder.forEachIndexed { i, (song, a) -> LadderRung(i, song, a, last = i == ladder.lastIndex, onOpen = { onOpen(song.id) }) } }
     }

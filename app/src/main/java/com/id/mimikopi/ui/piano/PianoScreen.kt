@@ -108,6 +108,7 @@ fun PianoScreen(onBack: () -> Unit, vm: PianoViewModel = viewModel()) {
                 val visibleWhite = (maxWidth.value / keys.whiteKeyDp).toInt().coerceAtLeast(7)
                 val high = noteAfterWhiteKeys(keys.lowNote, visibleWhite)
                 PianoKeyboard(
+                    hideWithMidi = false,
                     lowNote = keys.lowNote,
                     highNote = high,
                     pressed = pressed,

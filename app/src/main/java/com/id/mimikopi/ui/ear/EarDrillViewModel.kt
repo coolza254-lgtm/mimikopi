@@ -458,7 +458,6 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
             } else if (l != null && lessonDrill != null) {
                 learning.recordDrill(l, drillIndex, met = false, helperUsed = false)
             }
-            lines += "ลองเล่นเสียงที่ยังสับสนบนเปียโนช้าๆ เทียบกัน การเชื่อมหูกับมือช่วยให้จำเสียงได้"
             _ui.value = EarUi.Done("ถูก $right จาก $total ข้อ (${(acc * 100).toInt()}%)", lines)
         }
     }

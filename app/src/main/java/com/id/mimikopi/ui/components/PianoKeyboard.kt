@@ -3,6 +3,9 @@ package com.id.mimikopi.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -24,6 +27,14 @@ import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.core.music.isBlackKey
 import com.id.mimikopi.ui.theme.Tokens
 
+/** True while a MIDI piano is connected and open (USB or Bluetooth). */
+@Composable
+fun midiConnected(): Boolean {
+    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as com.id.mimikopi.MimikopiApp
+    val devices by app.midiInput.devices.collectAsState()
+    return devices.any { it.open }
+}
+
 /**
  * Multi-touch piano keyboard. Each finger is tracked separately; sliding a finger across keys plays
  * a glissando. Notes are reported once per key even if two fingers hold the same key.
@@ -44,7 +55,19 @@ fun PianoKeyboard(
     marked: Set<Int> = emptySet(),
     /** Notes whose names are shown even when [showNames] is off (e.g. confirming a correct key). */
     namedNotes: Set<Int> = emptySet(),
+    /** With a MIDI piano connected the real keys are used: the on-screen keyboard steps aside (not on the piano screen). */
+    hideWithMidi: Boolean = true,
 ) {
+    if (hideWithMidi && midiConnected()) {
+        // Keys that would be pointed out (an answer, a given first note) are named instead.
+        if (marked.isNotEmpty()) androidx.compose.material3.Text(
+            marked.sorted().joinToString("  ·  ") { SpelledPitch.fromMidiSharp(it).name(nameStyle, withOctave = true) },
+            style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+            color = Tokens.Palette.RoseDeep,
+            modifier = androidx.compose.ui.Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+        )
+        return
+    }
     val noteOn by rememberUpdatedState(onNoteOn)
     val noteOff by rememberUpdatedState(onNoteOff)
     val measurer = rememberTextMeasurer()

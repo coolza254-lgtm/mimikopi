@@ -550,7 +550,7 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="knowledge_lessons">บทเรียนที่เกี่ยวข้อง</string>
     <string name="knowledge_lesson">เปิดบท %1$s</string>
     <string name="timing_title">ความเข้มงวดของจังหวะ</string>
-    <string name="timing_body">ใช้ตัดสินว่าเล่นตรงจังหวะหรือไม่ (หลังหักความหน่วงของเครื่องแล้ว) ค่าในวงเล็บคือช่วงที่ยอมให้ในด่าน 1 ที่ 60 bpm ด่านหลังๆ และเพลงเร็วจะแคบลง การวัดผล (benchmark) ใช้แบบปกติเสมอเพื่อให้เทียบกันได้</string>
+    <string name="timing_body">ช่วงที่ยอมให้คลาดจากจังหวะ (การวัดผลใช้แบบปกติเสมอ)</string>
     <string name="timing_strict">เข้ม (±%1$d ms)</string>
     <string name="timing_normal">ปกติ (±%1$d ms)</string>
     <string name="timing_forgiving">ผ่อน (±%1$d ms)</string>
@@ -592,12 +592,12 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="ladder_open">ดูบันไดทั้งหมด</string>
     <string name="flow_start">เริ่มฝึกวันนี้</string>
     <string name="flow_continue">ทำต่อ</string>
-    <string name="flow_all_done">ฝึกครบแล้ววันนี้ พรุ่งนี้แอพจะให้ทวนและยืนยันสิ่งที่ผ่านวันนี้</string>
+    <string name="flow_all_done">ฝึกครบแล้ววันนี้</string>
     <string name="flow_more_step">ฝึกขั้นต่อไป (ไม่บังคับ)</string>
     <string name="flow_minutes">ฝึกมาแล้ว %1$d นาที</string>
     <string name="flow_finish">จบการฝึกวันนี้</string>
     <string name="flow_done">เสร็จแล้ว</string>
-    <string name="flow_not_yet">ลองแล้วแต่ยังไม่ผ่านเกณฑ์ ลองอีกครั้งได้</string>
+    <string name="flow_not_yet">ยังไม่ผ่าน ลองอีกครั้งได้</string>
     <string name="flow_kind_confirm">ยืนยัน</string>
     <string name="flow_kind_review">ทวน</string>
     <string name="flow_kind_repeat">ฝึกซ้ำ</string>
@@ -610,7 +610,7 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="ladder_title">บันไดฝึก</string>
     <string name="ladder_tab_steps">ขั้นเล่นและอ่าน</string>
     <string name="ladder_tab_ear">ขั้นฝึกฟัง</string>
-    <string name="ladder_legend">เขียว = ผ่านและยืนยันแล้ว · เหลือง = ผ่านวันแรก รอยืนยัน · ชมพู = ขั้นปัจจุบัน</string>
+    <string name="ladder_legend">เขียว ผ่าน · เหลือง รอยืนยัน · ชมพู ตอนนี้</string>
     <string name="ladder_stage">ด่าน %1$d</string>
     <string name="ladder_passed">ผ่านแล้ว</string>
     <string name="ladder_confirm">รอยืนยัน</string>

@@ -96,7 +96,6 @@ fun HomeScreen(
                         contentDescription = stringResource(R.string.app_name),
                         modifier = Modifier.height(40.dp),
                     )
-                    Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
                 }
                 Row(
                     Modifier
@@ -136,14 +135,10 @@ fun HomeScreen(
                     Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.home_ladder, (ui.stepsMet + 1).coerceAtMost(ui.stepsTotal), ui.stepsTotal), style = MaterialTheme.typography.labelLarge,
                             color = Tokens.Palette.RoseDeep, modifier = Modifier.weight(1f))
-                        ui.stats?.let { Text(stringResource(R.string.home_week_minutes, it.minutesThisWeek), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted) }
                     }
                     val step = ui.step
                     if (step != null) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(stringResource(R.string.home_next_step, step.stage), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
-                            Text(step.title, style = MaterialTheme.typography.titleLarge)
-                        }
+                        Text(step.title, style = MaterialTheme.typography.titleLarge)
                     } else {
                         Text(stringResource(R.string.home_all_passed), style = MaterialTheme.typography.titleMedium)
                     }
@@ -223,7 +218,6 @@ private fun Tile(icon: Int, iconBg: Color, iconTint: Color, title: Int, sub: Int
             Icon(painterResource(icon), contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
         }
         Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
-        Text(stringResource(sub), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
     }
 }
 

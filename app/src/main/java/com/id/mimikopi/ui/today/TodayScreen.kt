@@ -143,12 +143,6 @@ fun TodayScreen(
             }
         }
 
-        ui.stats?.let { s ->
-            PageCard(title = stringResource(R.string.today_stats)) {
-                Text(stringResource(R.string.today_stats_body, s.minutesToday, s.minutesThisWeek, s.minutesLastWeek, s.daysPracticed, s.totalMinutes),
-                    style = MaterialTheme.typography.bodyMedium)
-            }
-        }
         TextButton(onClick = onOpenLadder, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.ladder_open)) }
     }
 
@@ -209,7 +203,6 @@ private fun FlowRow(index: Int, item: FlowItem, last: Boolean, onClick: () -> Un
             Pill(stringResource(kindLabel(item.kind)), if (item.kind == FlowKind.STEP || item.kind == FlowKind.EAR) Tokens.Palette.MustardSoft else Tokens.Palette.RoseSoft,
                 if (item.kind == FlowKind.STEP || item.kind == FlowKind.EAR) Tokens.Palette.MustardInk else Tokens.Palette.RoseInk)
             Text(item.title, style = MaterialTheme.typography.titleSmall, color = if (item.done) Tokens.Palette.InkMuted else Tokens.Palette.Ink)
-            Text(item.detail, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
             if (item.notYet) Text(stringResource(R.string.flow_not_yet), style = MaterialTheme.typography.labelMedium, color = Tokens.Palette.RoseDeep)
         }
     }

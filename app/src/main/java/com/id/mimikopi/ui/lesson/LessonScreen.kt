@@ -77,7 +77,6 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(lesson.id, fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Tokens.Palette.Paper,
                     modifier = Modifier.background(Tokens.Palette.Ink, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
-                Text(stringResource(R.string.lesson_meta, lesson.minutes, lesson.tracks.joinToString()), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
             }
             val days = record?.passDays?.size ?: 0
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -92,18 +91,15 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
             if (status == LessonStatus.LOCKED) Text(stringResource(R.string.lesson_locked, lesson.prerequisites.joinToString()),
                 color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         }
-        Text(
-            stringResource(R.string.lesson_goal, lesson.goal),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.fillMaxWidth().background(Tokens.Palette.MustardSoft, RoundedCornerShape(18.dp)).padding(horizontal = 16.dp, vertical = 14.dp),
-        )
-        PageCard(title = stringResource(R.string.lesson_explain)) {
+
+        PageCard {
             var more by remember { mutableStateOf(false) }
             lesson.explain.forEach { Text("• $it", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.xs)) }
             // Steps keep their topic's full explanation one tap away.
-            val extra = lesson.more.filter { it !in lesson.explain }
+            // Everything else (the full explanation, tips, honest caveats) stays one tap away.
+            val extra = lesson.more.filter { it !in lesson.explain }.map { "• $it" } + lesson.tips.map { "เคล็ดลับ: $it" } + lesson.caveats.map { "ⓘ $it" }
             if (extra.isNotEmpty()) {
-                if (more) extra.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = Tokens.Space.xs)) }
+                if (more) extra.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = Tokens.Space.xs)) }
                 TextButton(onClick = { more = !more }) { Text(stringResource(if (more) R.string.lesson_less else R.string.lesson_more)) }
             }
         }
@@ -117,6 +113,7 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
                 Icon(painterResource(R.drawable.ic_play), contentDescription = null, modifier = Modifier.size(18.dp))
                 Text("  " + stringResource(R.string.lesson_start_step), style = MaterialTheme.typography.labelLarge)
             }
+            Text(stringResource(R.string.lesson_pass, lesson.passText), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         }
         if (lesson.tryIt.isNotEmpty()) PageCard(title = stringResource(R.string.lesson_try)) {
             lesson.tryIt.forEachIndexed { i, step ->
@@ -162,7 +159,7 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
                 modifier = Modifier.fillMaxWidth().height(150.dp).padding(top = Tokens.Space.s),
             )
         }
-        PageCard(title = stringResource(R.string.lesson_drills)) {
+        if (lesson.drills.size > 1) PageCard(title = stringResource(R.string.lesson_drills)) {
             lesson.drills.forEachIndexed { i, d ->
                 val isPass = i in lesson.pass.requiredDrills
                 val enabled = status != LessonStatus.LOCKED
@@ -185,10 +182,6 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
                 }
             }
             Text(stringResource(R.string.lesson_pass, lesson.passText), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = Tokens.Space.s))
-        }
-        PageCard(title = stringResource(R.string.lesson_tips)) {
-            lesson.tips.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = Tokens.Space.xs)) }
-            lesson.caveats.forEach { Text("ⓘ $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = Tokens.Space.xs)) }
         }
     }
 }

@@ -51,6 +51,8 @@ import com.id.mimikopi.ui.components.MeterBar
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.Pill
 import com.id.mimikopi.ui.components.ScreenScaffold
+import com.id.mimikopi.ui.components.pressScale
+import com.id.mimikopi.ui.components.softShadow
 import com.id.mimikopi.ui.theme.Tokens
 import kotlinx.coroutines.delay
 
@@ -190,14 +192,17 @@ private fun FlowRow(index: Int, item: FlowItem, last: Boolean, onClick: () -> Un
                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f)))
             }
         }
+        val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
         Column(
             Modifier
                 .weight(1f)
                 .padding(vertical = 6.dp)
+                .pressScale(interaction)
+                .softShadow(RoundedCornerShape(18.dp))
                 .clip(RoundedCornerShape(18.dp))
                 .background(Tokens.Palette.Card)
                 .border(Tokens.border, if (!item.done && !item.optional) Tokens.Palette.Rose else Tokens.Palette.Line, RoundedCornerShape(18.dp))
-                .clickable(onClick = onClick)
+                .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), onClick = onClick)
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {

@@ -65,7 +65,21 @@ object Tokens {
         val chip = 999.dp
     }
 
-    val border = 1.5.dp
+    val border = 1.dp
+
+    /** Soft, warm, low shadows (premium look without heavy material elevation). */
+    object Elevation {
+        val card = 10.dp
+        val raised = 18.dp
+        val shadow = Color(0xFF7A4A3A) // warm brown, used at low alpha
+    }
+
+    /** Motion: short, eased, consistent. */
+    object Motion {
+        const val fast = 140
+        const val normal = 260
+        const val slow = 420
+    }
 
     /** Minimum touch target; larger than Material's 48dp because the phone sits on a music stand. */
     val minTouch = 56.dp

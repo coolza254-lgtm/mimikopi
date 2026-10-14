@@ -57,6 +57,7 @@ import com.id.mimikopi.ui.theme.Tokens
 @Composable
 fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    com.id.mimikopi.ui.components.AnswerHaptics(ui.result?.clean)
     val pressed by vm.pressed.collectAsStateWithLifecycle()
     val piece by vm.piece.collectAsStateWithLifecycle()
     var showOptions by remember { mutableStateOf(false) }

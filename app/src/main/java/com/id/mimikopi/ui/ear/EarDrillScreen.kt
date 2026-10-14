@@ -49,6 +49,7 @@ import com.id.mimikopi.ui.theme.Tokens
 @Composable
 fun EarDrillScreen(onBack: () -> Unit, vm: EarDrillViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    com.id.mimikopi.ui.components.AnswerHaptics((ui as? EarUi.Asking)?.correct)
     val pressed by vm.pressed.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }

@@ -48,6 +48,11 @@ import com.id.mimikopi.ui.components.Pill
 import com.id.mimikopi.ui.components.Tape
 import com.id.mimikopi.ui.components.WavyDivider
 import com.id.mimikopi.ui.components.paper
+import com.id.mimikopi.ui.components.pressScale
+import com.id.mimikopi.ui.components.softShadow
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.remember
 import com.id.mimikopi.ui.theme.Tokens
 import com.id.mimikopi.ui.today.TodayViewModel
 
@@ -111,12 +116,13 @@ fun HomeScreen(
 
             // Hero: today's plan.
             Box {
-                // The soft rose band under the card stands in for a shadow (flat notebook look).
+                // A raised paper card with a warm soft shadow and a rose edge at the bottom.
                 Column(
                     Modifier
                         .fillMaxWidth()
+                        .softShadow(RoundedCornerShape(24.dp), Tokens.Elevation.raised)
                         .background(Tokens.Palette.RoseSoft, RoundedCornerShape(24.dp))
-                        .padding(bottom = 6.dp),
+                        .padding(bottom = 4.dp),
                 ) {
                 Column(
                     Modifier
@@ -180,9 +186,10 @@ fun HomeScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
+                    .softShadow(RoundedCornerShape(20.dp))
                     .clip(RoundedCornerShape(20.dp))
                     .background(Tokens.Palette.Card)
-                    .border(Tokens.border, Tokens.Palette.Line, RoundedCornerShape(20.dp)),
+                    .border(Tokens.border, Tokens.Palette.Line.copy(alpha = 0.7f), RoundedCornerShape(20.dp)),
             ) {
                 ToolRow(R.drawable.ic_metronome, R.string.home_metronome_title, onOpenMetronome)
                 HorizontalDivider(color = Tokens.Palette.Line)
@@ -200,12 +207,15 @@ fun HomeScreen(
 
 @Composable
 private fun Tile(icon: Int, iconBg: Color, iconTint: Color, title: Int, sub: Int, onClick: () -> Unit, modifier: Modifier) {
+    val interaction = remember { MutableInteractionSource() }
     Column(
         modifier
+            .pressScale(interaction)
+            .softShadow(RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
             .background(Tokens.Palette.Card)
-            .border(Tokens.border, Tokens.Palette.Line, RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
+            .border(Tokens.border, Tokens.Palette.Line.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+            .clickable(interactionSource = interaction, indication = ripple(), onClick = onClick)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

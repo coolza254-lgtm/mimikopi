@@ -45,6 +45,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.id.mimikopi.ui.components.BottomNav
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -150,7 +155,16 @@ private fun AppNavigation() {
         containerColor = com.id.mimikopi.ui.theme.Tokens.Palette.Paper,
         bottomBar = { if (showBar) BottomNav(route, selectTab) },
     ) { inner ->
-    NavHost(navController = nav, startDestination = Routes.HOME, modifier = Modifier.padding(inner).consumeWindowInsets(inner)) {
+    // Screens arrive with a short fade and a small slide, and leave with a fade (quiet, not flashy).
+    NavHost(
+        navController = nav,
+        startDestination = Routes.HOME,
+        modifier = Modifier.padding(inner).consumeWindowInsets(inner),
+        enterTransition = { fadeIn(tween(260)) + slideInHorizontally(tween(260)) { it / 14 } },
+        exitTransition = { fadeOut(tween(180)) },
+        popEnterTransition = { fadeIn(tween(260)) + slideInHorizontally(tween(260)) { -it / 14 } },
+        popExitTransition = { fadeOut(tween(180)) + slideOutHorizontally(tween(220)) { it / 14 } },
+    ) {
         composable(Routes.HOME) {
             HomeScreen(
                 onOpenDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },

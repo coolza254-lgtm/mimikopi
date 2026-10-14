@@ -65,6 +65,13 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
     val showNames by vm.showNames.collectAsStateWithLifecycle()
     val pressed by vm.pressed.collectAsStateWithLifecycle()
 
+    val answer = when (val s = ui) {
+        is DrillUi.Question -> s.feedback
+        is DrillUi.ChordAsk -> s.feedback
+        is DrillUi.Interval -> s.feedback
+        else -> null
+    }
+    com.id.mimikopi.ui.components.AnswerHaptics(answer?.let { it == Feedback.CORRECT })
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
@@ -220,6 +227,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                 }
                 is DrillUi.Result -> Centered {
                     PageCard(title = stringResource(R.string.drill_result)) {
+                        Box(Modifier.fillMaxWidth().padding(vertical = Tokens.Space.s), contentAlignment = Alignment.Center) { com.id.mimikopi.ui.components.ResultBadge(s.passCriterionMet) }
                         Text(s.summary, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.xs))
                         s.passCriterionMet?.let {
                             Text(

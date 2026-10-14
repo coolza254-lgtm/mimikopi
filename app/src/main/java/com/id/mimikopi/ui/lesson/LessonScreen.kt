@@ -1,6 +1,20 @@
 package com.id.mimikopi.ui.lesson
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.id.mimikopi.ui.components.Pill
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,15 +69,30 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
             Text(stringResource(R.string.lesson_missing))
             return@ScreenScaffold
         }
-        PageCard {
-            Text(stringResource(R.string.lesson_goal, lesson.goal), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.lesson_meta, lesson.minutes, lesson.tracks.joinToString()), style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = Tokens.Space.xs))
-            Text(statusText(status, record?.passDays?.size ?: 0, lesson.pass.days, record?.helperDays?.size ?: 0),
-                style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = Tokens.Space.xs))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(lesson.id, fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Tokens.Palette.Paper,
+                    modifier = Modifier.background(Tokens.Palette.Ink, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
+                Text(stringResource(R.string.lesson_meta, lesson.minutes, lesson.tracks.joinToString()), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+            }
+            val days = record?.passDays?.size ?: 0
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    repeat(lesson.pass.days) { d ->
+                        Box(Modifier.size(28.dp, 8.dp).background(if (d < days) Tokens.Palette.Good else Tokens.Palette.Line, RoundedCornerShape(4.dp)))
+                    }
+                }
+                Text(statusText(status, days, lesson.pass.days, record?.helperDays?.size ?: 0), style = MaterialTheme.typography.labelMedium,
+                    color = if (status == LessonStatus.PASSED || days > 0) Tokens.Palette.GoodInk else Tokens.Palette.InkMuted)
+            }
             if (status == LessonStatus.LOCKED) Text(stringResource(R.string.lesson_locked, lesson.prerequisites.joinToString()),
                 color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         }
+        Text(
+            stringResource(R.string.lesson_goal, lesson.goal),
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.fillMaxWidth().background(Tokens.Palette.MustardSoft, RoundedCornerShape(18.dp)).padding(horizontal = 16.dp, vertical = 14.dp),
+        )
         PageCard(title = stringResource(R.string.lesson_explain)) {
             lesson.explain.forEach { Text("• $it", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.xs)) }
         }
@@ -114,11 +143,24 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
         PageCard(title = stringResource(R.string.lesson_drills)) {
             lesson.drills.forEachIndexed { i, d ->
                 val isPass = i in lesson.pass.requiredDrills
-                Button(
-                    onClick = { onOpenDrill(lesson.id, i) },
-                    enabled = status != LessonStatus.LOCKED,
-                    modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.s).heightIn(min = Tokens.minTouch),
-                ) { Text(if (isPass) "★ ${d.title}" else d.title) }
+                val enabled = status != LessonStatus.LOCKED
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = Tokens.Space.s)
+                        .heightIn(min = Tokens.minTouch)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Tokens.Palette.Paper)
+                        .border(Tokens.border, if (isPass) Tokens.Palette.Rose else Tokens.Palette.Line, RoundedCornerShape(16.dp))
+                        .clickable(enabled = enabled) { onOpenDrill(lesson.id, i) }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (isPass) Pill(stringResource(R.string.lesson_counts), Tokens.Palette.RoseSoft, Tokens.Palette.RoseInk)
+                    Text(d.title, style = MaterialTheme.typography.bodyLarge, color = if (enabled) Tokens.Palette.Ink else Tokens.Palette.InkMuted, modifier = Modifier.weight(1f))
+                    Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.InkMuted, modifier = Modifier.size(18.dp))
+                }
             }
             Text(stringResource(R.string.lesson_pass, lesson.passText), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = Tokens.Space.s))
         }

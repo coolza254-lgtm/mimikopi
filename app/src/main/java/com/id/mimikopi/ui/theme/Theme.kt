@@ -12,8 +12,9 @@ import androidx.compose.ui.unit.sp
 
 // Rose fails contrast for text on cream, so text on/near rose surfaces uses Ink.
 private val colors = lightColorScheme(
-    primary = Tokens.Palette.Rose,
-    onPrimary = Tokens.Palette.Ink,
+    // Filled buttons are dark ink on cream (the design's main action), rose stays decorative.
+    primary = Tokens.Palette.Ink,
+    onPrimary = Tokens.Palette.Paper,
     primaryContainer = Tokens.Palette.RoseSoft,
     onPrimaryContainer = Tokens.Palette.Ink,
     secondary = Tokens.Palette.Mustard,
@@ -33,15 +34,20 @@ private val colors = lightColorScheme(
     error = Tokens.Palette.Error,
 )
 
-// System font: on One UI it covers Thai and Japanese. Sizes are in sp so they follow the
-// user's font-size setting. Thai needs generous line height for vowels and tone marks.
+// IBM Plex Sans Thai Looped (bundled, OFL); Japanese song titles fall back to the system font.
+// Sizes are in sp so they follow the user's font-size setting. Thai needs generous line height.
+private val body = Tokens.Fonts.body
 private val typography = Typography(
-    headlineMedium = TextStyle(fontSize = 26.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold),
-    titleLarge = TextStyle(fontSize = 21.sp, lineHeight = 32.sp, fontWeight = FontWeight.SemiBold),
-    titleMedium = TextStyle(fontSize = 18.sp, lineHeight = 28.sp, fontWeight = FontWeight.SemiBold),
-    bodyLarge = TextStyle(fontSize = 17.sp, lineHeight = 28.sp),
-    bodyMedium = TextStyle(fontSize = 15.sp, lineHeight = 24.sp),
-    labelLarge = TextStyle(fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
+    headlineMedium = TextStyle(fontFamily = body, fontSize = 26.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold),
+    titleLarge = TextStyle(fontFamily = body, fontSize = 22.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold),
+    titleMedium = TextStyle(fontFamily = body, fontSize = 17.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold),
+    titleSmall = TextStyle(fontFamily = body, fontSize = 15.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
+    bodyLarge = TextStyle(fontFamily = body, fontSize = 16.sp, lineHeight = 26.sp),
+    bodyMedium = TextStyle(fontFamily = body, fontSize = 14.sp, lineHeight = 22.sp),
+    bodySmall = TextStyle(fontFamily = body, fontSize = 12.sp, lineHeight = 18.sp),
+    labelLarge = TextStyle(fontFamily = body, fontSize = 15.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
+    labelMedium = TextStyle(fontFamily = body, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold),
+    labelSmall = TextStyle(fontFamily = body, fontSize = 11.sp, lineHeight = 14.sp),
 )
 
 private val shapes = Shapes(

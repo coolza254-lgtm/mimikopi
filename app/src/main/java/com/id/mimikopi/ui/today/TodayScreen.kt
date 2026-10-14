@@ -1,6 +1,31 @@
 package com.id.mimikopi.ui.today
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.id.mimikopi.ui.components.MeterBar
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -36,7 +61,7 @@ import kotlinx.coroutines.delay
 /** Today: pick 15/30/45/60 minutes, follow the blocks (section 3), always ending with free play. */
 @Composable
 fun TodayScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onOpenLesson: (String) -> Unit,
     onOpenDrill: (String, Int) -> Unit,
     onOpenReview: () -> Unit,
@@ -55,28 +80,52 @@ fun TodayScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
 
     ScreenScaffold(title = stringResource(R.string.today_title), onBack = onBack) {
-        PageCard {
-            Text(stringResource(R.string.today_time), style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
-                listOf(15, 30, 45, 60).forEach { m -> FilterChip(selected = ui.minutes == m, onClick = { vm.setMinutes(m) }, label = { Text(stringResource(R.string.today_minutes, m)) }) }
+        // Time choice as a segmented row; the selected one is filled with ink.
+        Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
+            listOf(15, 30, 45, 60).forEach { m ->
+                val selected = ui.minutes == m
+                OutlinedButton(
+                    onClick = { vm.setMinutes(m) },
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(Tokens.border, if (selected) Tokens.Palette.Ink else Tokens.Palette.Line),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (selected) Tokens.Palette.Ink else Tokens.Palette.Card,
+                        contentColor = if (selected) Tokens.Palette.Paper else Tokens.Palette.Ink,
+                    ),
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                ) { Text(stringResource(R.string.today_minutes, m), style = MaterialTheme.typography.labelLarge) }
             }
-            val a = active
-            if (a == null) {
-                Button(onClick = vm::startSession, modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.s).heightIn(min = Tokens.minTouch)) {
-                    Text(stringResource(R.string.today_start))
-                }
-            } else {
-                val elapsed = (now - a.startedAtMillis) / 1000
-                Text(stringResource(R.string.today_timer, elapsed / 60, elapsed % 60, a.plannedMinutes), style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(top = Tokens.Space.s))
-                OutlinedButton(onClick = vm::finishSession, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
-                    Text(stringResource(R.string.today_finish))
-                }
-            }
-            if (ui.lightDay) Text(stringResource(R.string.today_light), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        val a = active
+        if (a == null) {
+            Button(onClick = vm::startSession, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                Icon(painterResource(R.drawable.ic_play), contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.today_start), style = MaterialTheme.typography.labelLarge)
+            }
+        } else {
+            val elapsed = (now - a.startedAtMillis) / 1000
+            Row(
+                Modifier.fillMaxWidth().background(Tokens.Palette.MustardSoft, RoundedCornerShape(20.dp)).padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text("%02d:%02d".format(elapsed / 60, elapsed % 60), fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Bold, fontSize = 32.sp, color = Tokens.Palette.Ink)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(stringResource(R.string.today_of_minutes, a.plannedMinutes), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.MustardInk)
+                    MeterBar((elapsed / 60f) / a.plannedMinutes.coerceAtLeast(1), color = Tokens.Palette.Ink)
+                }
+                Button(onClick = vm::finishSession, shape = RoundedCornerShape(14.dp), modifier = Modifier.heightIn(min = 44.dp)) {
+                    Text(stringResource(R.string.today_finish_short))
+                }
+            }
+        }
+        if (ui.lightDay) Text(stringResource(R.string.today_light), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        ui.plan.forEach { block ->
+        Column {
+        ui.plan.forEachIndexed { i, block ->
+            TimelineRow(i, block.kind == BlockKind.FREE_PLAY, last = i == ui.plan.lastIndex) {
             PageCard(title = blockTitle(block.kind, block.minutes)) {
                 when (block.kind) {
                     BlockKind.REVIEW -> {
@@ -138,6 +187,8 @@ fun TodayScreen(
                     else -> Unit
                 }
             }
+            }
+        }
         }
 
         ui.stats?.let { s ->
@@ -182,6 +233,29 @@ fun TodayScreen(
             },
             confirmButton = { TextButton(onClick = vm::dismissSummary) { Text(stringResource(R.string.drill_done)) } },
         )
+    }
+}
+
+/** One block of the plan on a dashed timeline: a numbered marker (a note for free play) and its card. */
+@Composable
+private fun TimelineRow(index: Int, free: Boolean, last: Boolean, content: @Composable () -> Unit) {
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.width(36.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                Modifier.padding(top = 12.dp).size(36.dp)
+                    .background(if (free) Tokens.Palette.MustardSoft else Tokens.Palette.Card, CircleShape)
+                    .border(if (free) 0.dp else 2.dp, Tokens.Palette.Line, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (free) Icon(painterResource(R.drawable.ic_nav_songs), contentDescription = null, tint = Tokens.Palette.MustardInk, modifier = Modifier.size(18.dp))
+                else Text("${index + 1}", style = MaterialTheme.typography.labelLarge, color = Tokens.Palette.InkMuted)
+            }
+            if (!last) Canvas(Modifier.weight(1f).width(2.dp)) {
+                drawLine(Tokens.Palette.Rose, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), strokeWidth = size.width,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f)))
+            }
+        }
+        Box(Modifier.weight(1f).padding(vertical = 6.dp)) { content() }
     }
 }
 

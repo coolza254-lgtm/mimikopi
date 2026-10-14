@@ -41,11 +41,12 @@ fun ScreenScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        modifier = Modifier.paper(),
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+                title = { Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
@@ -53,7 +54,7 @@ fun ScreenScaffold(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
             )
         },
     ) { padding ->

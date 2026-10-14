@@ -38,6 +38,13 @@ import com.id.mimikopi.ui.knowledge.KnowledgeScreen
 import com.id.mimikopi.ui.songs.SongListScreen
 import com.id.mimikopi.ui.songs.SongScreen
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.id.mimikopi.ui.components.BottomNav
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,7 +134,22 @@ private fun AppNavigation() {
     val app = LocalContext.current.applicationContext as MimikopiApp
     val openDrill: (String, Int) -> Unit = { id, i -> openLessonDrill(nav, app, id, i) }
     val optional = { name: String -> navArgument(name) { type = NavType.StringType; nullable = true; defaultValue = null } }
-    NavHost(navController = nav, startDestination = Routes.HOME) {
+    val entry by nav.currentBackStackEntryAsState()
+    val route = entry?.destination?.route
+    // The bottom bar shows on the portrait tab screens; the piano tab is a full-screen keyboard with its own back.
+    val showBar = route in setOf(Routes.HOME, Routes.TODAY, Routes.SONGS, Routes.PROGRESS)
+    val selectTab: (String) -> Unit = { target ->
+        nav.navigate(target) {
+            popUpTo(Routes.HOME) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+    Scaffold(
+        containerColor = com.id.mimikopi.ui.theme.Tokens.Palette.Paper,
+        bottomBar = { if (showBar) BottomNav(route, selectTab) },
+    ) { inner ->
+    NavHost(navController = nav, startDestination = Routes.HOME, modifier = Modifier.padding(inner).consumeWindowInsets(inner)) {
         composable(Routes.HOME) {
             HomeScreen(
                 onOpenDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },
@@ -143,6 +165,7 @@ private fun AppNavigation() {
                 onOpenLibrary = { nav.navigate(Routes.LIBRARY) },
                 onOpenSongs = { nav.navigate(Routes.SONGS) },
                 onOpenKnowledge = { nav.navigate(Routes.KNOWLEDGE) },
+                onOpenReview = { nav.navigate(Routes.REVIEW_NOW) },
             )
         }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = { nav.popBackStack() }) }
@@ -153,7 +176,7 @@ private fun AppNavigation() {
         composable(Routes.MIDI) { MidiScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.TODAY) {
             TodayScreen(
-                onBack = { nav.popBackStack() },
+                onBack = null,
                 onOpenLesson = { nav.navigate(Routes.lesson(it)) },
                 onOpenDrill = openDrill,
                 onOpenReview = { nav.navigate(Routes.REVIEW_NOW) },
@@ -177,7 +200,7 @@ private fun AppNavigation() {
         composable(Routes.BENCH_DRILL) { DrillScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.PROGRESS) {
             ProgressScreen(
-                onBack = { nav.popBackStack() },
+                onBack = null,
                 onBenchNotes = { nav.navigate("benchdrill/noteid") },
                 onBenchPulse = { nav.navigate("benchdrill/pulse") },
                 onBenchReading = { nav.navigate("benchread/1") },
@@ -194,7 +217,7 @@ private fun AppNavigation() {
         composable(Routes.EAR_DRILL, arguments = listOf(optional("bench"))) { EarDrillScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.LESSON_EAR) { EarDrillScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SONGS) {
-            SongListScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("song/$it") })
+            SongListScreen(onBack = null, onOpen = { nav.navigate("song/$it") })
         }
         composable(Routes.SONG) {
             SongScreen(
@@ -207,5 +230,6 @@ private fun AppNavigation() {
         composable(Routes.KNOWLEDGE) { KnowledgeScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate("article/$it") }) }
         composable(Routes.ARTICLE) { ArticleScreen(onBack = { nav.popBackStack() }, onOpenLesson = { nav.navigate(Routes.lesson(it)) }) }
         composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
+    }
     }
 }

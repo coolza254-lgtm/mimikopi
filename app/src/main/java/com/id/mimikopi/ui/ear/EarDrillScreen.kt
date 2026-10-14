@@ -42,6 +42,7 @@ import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.PianoKeyboard
+import com.id.mimikopi.ui.components.paper
 import com.id.mimikopi.ui.theme.Tokens
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,12 +55,13 @@ fun EarDrillScreen(onBack: () -> Unit, vm: EarDrillViewModel = viewModel()) {
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        modifier = Modifier.paper(),
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.ear_title), style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.action_back)) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
             )
         },
     ) { padding ->

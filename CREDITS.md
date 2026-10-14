@@ -9,7 +9,13 @@
   vector outlines (`tools/brand/make_wordmark.py`); the font file itself is not shipped.
 
 ## Fonts
-- UI text uses the device's system font (covers Thai and Japanese on Samsung One UI). No font is bundled yet.
+- **IBM Plex Sans Thai Looped** (Regular, SemiBold, Bold), © 2017 IBM Corp., SIL Open Font License 1.1 with
+  Reserved Font Name "Plex". Shipped unmodified (`app/src/main/res/font/plex_thai_*.ttf`) from
+  https://github.com/google/fonts (ofl/ibmplexsansthailooped). License text: `docs/brand/fonts/OFL-IBMPlexSansThaiLooped.txt`.
+- **Zen Maru Gothic** (Bold, Black), © 2021 The Zen Maru Gothic Project Authors, SIL Open Font License 1.1 (no
+  Reserved Font Name). Shipped as a subset (Latin, digits and ミコピ) for big numbers and lesson ids
+  (`app/src/main/res/font/zen_maru_*.ttf`). License text: `docs/brand/fonts/OFL-ZenMaruGothic.txt`.
+- Japanese text the bundled fonts do not cover (song titles) uses the device's system font.
 
 ## Libraries (Apache License 2.0)
 - Kotlin, kotlinx.coroutines, kotlinx.serialization (JetBrains)

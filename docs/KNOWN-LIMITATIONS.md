@@ -27,6 +27,14 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; touch keyboard; USB MIDI with the Badger
   C-918 (docs/BADGER-C918-CHECKLIST.md is still open: issue #9); the timing feel of judging.
 
+## As of M13 (v0.13.x)
+- Redesign from the Claude Design canvas: bottom bar (home, today, piano, songs, me), new home, timeline Today,
+  lesson badges and "นับผ่าน" tags, chord prompt card, ladder Song list, stage tiles, bundled fonts (IBM Plex Sans
+  Thai Looped; Zen Maru Gothic subset), dot-grid paper. The reader, editor, piano, ear, metronome, MIDI, settings,
+  song detail and knowledge screens take the new colours and fonts but keep their layouts.
+- The Today plan does not track which blocks are done, so the timeline numbers the blocks instead of ticking them.
+- Japanese song titles use the system font (the bundled fonts cover Thai and Latin).
+
 ## As of M12 (v0.12.x)
 - Timing strictness (strict / normal / forgiving = ×0.75 / ×1 / ×1.3 of the 6.2 tolerances) is a setting and applies
   to reader runs, drills and the rhythm echo; benchmarks always use normal so results stay comparable.

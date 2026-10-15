@@ -113,6 +113,8 @@ object SettingKeys {
     const val METRONOME_SELF_TEST = "metronome.lastSelfTest"
     const val INPUT_CONFIG = "input.config"
     const val MIDI_SOUND_THROUGH = "midi.soundThrough"
+    /** Remembered Bluetooth MIDI instrument: "<address>|<name>". */
+    const val MIDI_BLE_DEVICE = "midi.bleDevice"
     const val LESSON_RECORDS = "lesson.records"
     const val PIECE_PROGRESS = "piece.progress"
     const val READER_OPTIONS = "reader.options"

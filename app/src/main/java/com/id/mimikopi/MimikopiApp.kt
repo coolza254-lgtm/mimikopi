@@ -27,6 +27,7 @@ class MimikopiApp : Application() {
     val inputHub: InputHub by lazy { InputHub(piano) }
     val inputConfig: InputConfigStore by lazy { InputConfigStore(database.settingsDao()) }
     val midiInput: MidiInputManager by lazy { MidiInputManager(this, inputHub) }
+    val bleScanner: com.id.mimikopi.midi.BleMidiScanner by lazy { com.id.mimikopi.midi.BleMidiScanner(this) }
     val learning: com.id.mimikopi.learning.LearningRepository by lazy { com.id.mimikopi.learning.LearningRepository(this, database) }
     val pieces: com.id.mimikopi.pieces.PieceRepository by lazy { com.id.mimikopi.pieces.PieceRepository(this, database) }
     val songs: com.id.mimikopi.songs.SongRepository by lazy { com.id.mimikopi.songs.SongRepository(this, database) }
@@ -43,6 +44,11 @@ class MimikopiApp : Application() {
         appScope.launch {
             midiInput.octaveOffset = inputConfig.load().octaveOffset
             inputHub.soundThrough = database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_SOUND_THROUGH)?.toBooleanStrictOrNull() ?: true
+            // Reconnect the remembered Bluetooth piano (only if the user already allowed nearby devices).
+            database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_BLE_DEVICE)?.substringBefore('|')?.takeIf { it.isNotBlank() }?.let { address ->
+                midiInput.bleAddress = address
+                if (bleScanner.hasPermissions()) midiInput.connectBluetooth(address)
+            }
         }
     }
 }

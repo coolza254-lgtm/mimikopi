@@ -74,7 +74,7 @@
     <string name="selftest_failed">วัดไม่ได้ (ระบบเสียงไม่ส่งค่าเวลา) ลองใหม่อีกครั้ง</string>
 
     <string name="home_midi_title">ต่อเปียโน (MIDI)</string>
-    <string name="home_midi_body">ต่อ Badger C-918 ผ่านสาย USB-C ดูโน้ตที่เข้ามา และปรับเทียบเครื่อง</string>
+    <string name="home_midi_body">ต่อเปียโนผ่านสาย USB-C หรือบลูทูธ ดูโน้ตที่เข้ามา และปรับเทียบเครื่อง</string>
 
     <!-- MIDI -->
     <string name="midi_title">ต่อเปียโน (MIDI)</string>
@@ -83,6 +83,17 @@
     <string name="midi_none_help">ยังไม่พบอุปกรณ์ เสียบสาย USB-C (สายที่รับส่งข้อมูลได้ ไม่ใช่สายชาร์จอย่างเดียว) จากเปียโนเข้ามือถือ แล้วเปิดเปียโน แอพจะเชื่อมต่อเองภายในไม่กี่วินาที ถ้ามือถือถามว่าจะใช้ USB ทำอะไร ให้เลือก MIDI</string>
     <string name="midi_connected">เชื่อมต่อแล้ว</string>
     <string name="midi_connecting">กำลังเชื่อมต่อ…</string>
+    <string name="ble_title">เปียโนบลูทูธ (Bluetooth MIDI)</string>
+    <string name="ble_help">ถ้าเปียโนมีบลูทูธ MIDI ให้เปิดเปียโนแล้วกดค้นหา เลือกชื่อเปียโนครั้งเดียว ครั้งต่อไปแอพจะเชื่อมต่อเอง</string>
+    <string name="ble_scan">ค้นหาเปียโนบลูทูธ</string>
+    <string name="ble_scanning">กำลังค้นหา…</string>
+    <string name="ble_connect_to">เชื่อมต่อ %1$s</string>
+    <string name="ble_saved_connected">%1$s · เชื่อมต่อแล้ว</string>
+    <string name="ble_saved_waiting">%1$s · ยังไม่เชื่อมต่อ (เปิดเปียโนแล้วกดเชื่อมต่ออีกครั้ง)</string>
+    <string name="ble_reconnect">เชื่อมต่ออีกครั้ง</string>
+    <string name="ble_forget">เลิกจำเครื่องนี้</string>
+    <string name="ble_need_permission">ต้องอนุญาต \"อุปกรณ์ใกล้เคียง\" ก่อน แอพใช้เพื่อหาเปียโนเท่านั้น ไม่ได้ใช้ตำแหน่ง</string>
+    <string name="ble_off">บลูทูธของมือถือปิดอยู่ เปิดบลูทูธแล้วกดอีกครั้ง</string>
     <string name="midi_sound_through">เล่นเสียงเปียโนของแอพเมื่อกดคีย์บนเปียโนจริง</string>
     <string name="calib_title">ปรับเทียบ</string>
     <string name="calib_status">เลื่อนอ็อกเทฟ: %1$d · แรงกด: %2$s</string>
@@ -295,7 +306,7 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงจริง และไม่ดึงข้อมูลเพลงจากอินเทอร์เน็ต เพลงในคลังต้องถอดเอง ความยากของ Song Ladder คำนวณจากข้อมูลที่ใส่เท่านั้น การตรวจแป้นเหยียบใช้ได้เฉพาะเมื่อเปียโนส่งสัญญาณแป้นผ่าน MIDI</string>
     <string name="about_limit_2">เสียงปล่อยคีย์และเสียงสะท้อนสายของเปียโน</string>
     <string name="about_limit_3">เครื่องมือเขียนโน้ตยังไม่รองรับไตรเพลต เสียงที่สองในบรรทัดเดียวกัน เครื่องหมายความดังเบา และการเปลี่ยนคีย์/จังหวะกลางเพลง ยังไม่มีมุมมองโน้ตตก (falling notes)</string>
-    <string name="about_limit_4">Bluetooth MIDI (ยังไม่ได้ทดสอบ อุปกรณ์ที่จับคู่ในระบบอาจใช้ได้)</string>
+    <string name="about_limit_4">Bluetooth MIDI ยังไม่ได้ทดสอบกับเปียโนจริง และหน่วงกว่าสาย USB ควรปรับเทียบความหน่วงใหม่ตอนต่อบลูทูธ</string>
     <string name="about_limit_6">ธีมมืด ภาษาอังกฤษ ระบบเตือน (ผู้ใช้ยังไม่ต้องการ) และรุ่น Windows (ทำเมื่อผู้ใช้อนุมัติเท่านั้น)</string>
     <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (ไปที่หน้า release สาธารณะบน GitHub) และไม่ส่งข้อมูลของคุณออกไป</string>
 

@@ -158,8 +158,10 @@ What the app does not do, or does only partly, as of the last milestone. Details
   without calibration it says so in the result.
 
 ## As of M5 (v0.5.x)
-- USB MIDI is the tested path; Bluetooth MIDI devices already paired in Android may appear but there is
-  no in-app Bluetooth pairing/scan yet.
+- USB MIDI is the tested path. Bluetooth LE MIDI (scan + connect on the MIDI screen, from v0.14.2) is
+  untested on real hardware: the Badger C-918 has no Bluetooth MIDI. BLE adds its own latency (often
+  10-30 ms, varies by phone), so calibrate latency again while connected over Bluetooth; it is stored
+  separately per input source.
 - Latency calibration measures the whole chain (input + audio output + the player's habit) for the current
   output route; it is stored per "input source | route" and applied by the practice scoring (from M6/M7).
 - The octave offset applies to all MIDI devices (one piano expected).

@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "mimikopi"
-include(":core", ":audio", ":app")
+include(":core", ":audio", ":app", ":desktop")

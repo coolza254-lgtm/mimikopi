@@ -25,6 +25,20 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Windows version, phase 1 (v0.17.0)
+- Only ear training and section practice; reading and songs come in phase 2. Built with Compose Multiplatform for the
+  desktop JVM; the logic is the shared :core module, the screens are a desktop copy of the Android ones.
+- USB MIDI only, through javax.sound.midi. Java Sound has no plug/unplug events, so devices are polled every 2 s;
+  on some Windows setups a keyboard plugged in after the program started only shows after a restart. Active Sensing
+  silence is used for "switched off" as on Android (whether Windows passes Active Sensing through is a PC check).
+- Sound: Java's built-in synthesizer until the sampled piano (the Android pack, decoded with jflac, LGPL 2.1) is
+  installed; the sampled piano plays through a SourceDataLine with about 40 ms of buffer. No metronome screen yet;
+  the rhythm rungs use clicks played by the piano.
+- Data in %APPDATA%\Mimikopi\data.json; moved to and from the phone with the Android backup file format (settings
+  rows and item stats only; practice sessions and attempts are not carried).
+- The MSI is unsigned (SmartScreen warns on first install); per-user install, upgrades keep the same upgrade UUID.
+- Nothing of the desktop app has been run by anyone yet: CI builds and unit-tests it, and packages the MSI on Windows.
+
 ## As of v0.16.0
 - "Connected" for MIDI: an instrument whose USB-MIDI chip stays powered by the phone stays listed by Android after it
   is switched off. The app detects that only for instruments that send Active Sensing (silence > 1.2 s); for others

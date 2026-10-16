@@ -51,7 +51,34 @@ object Tokens {
 
     val cardRadius = 22.dp
     val minTouch = 48.dp
+
+    // The rest of the Android tokens, used by the screens ported from the app (desktop/.../port).
+    object Space {
+        val xs = 4.dp
+        val s = 8.dp
+        val m = 16.dp
+        val l = 24.dp
+        val xl = 32.dp
+    }
+
+    object Radius {
+        val card = 22.dp
+        val button = 32.dp
+        val chip = 999.dp
+    }
+
+    val border = 1.dp
+
+    object Motion {
+        const val fast = 140
+        const val normal = 260
+        const val slow = 420
+    }
 }
+
+/** A font bundled as a resource (the Android app's res/font is on the classpath). */
+fun resourceFont(file: String, weight: FontWeight = FontWeight.Normal) =
+    Font(identity = "$file-${weight.weight}", data = Thread.currentThread().contextClassLoader.getResourceAsStream(file)!!.use { it.readBytes() }, weight = weight)
 
 private fun colors(dark: Boolean): ColorScheme {
     val p = Tokens.Palette

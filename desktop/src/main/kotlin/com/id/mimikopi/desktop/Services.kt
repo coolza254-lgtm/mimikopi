@@ -6,9 +6,11 @@ import com.id.mimikopi.desktop.audio.PackInstaller
 import com.id.mimikopi.desktop.audio.Piano
 import com.id.mimikopi.desktop.audio.SamplerPiano
 import com.id.mimikopi.desktop.data.Store
-import com.id.mimikopi.desktop.learning.EarLearning
+import com.id.mimikopi.desktop.learning.LearningRepository
+import com.id.mimikopi.desktop.learning.PieceRepository
 import com.id.mimikopi.desktop.learning.SectionStore
 import com.id.mimikopi.desktop.midi.DesktopMidi
+import com.id.mimikopi.desktop.port.PianoController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -125,7 +127,10 @@ object Services {
     val hub = InputHub(::piano)
     val scheduler = NoteScheduler(::piano)
     val midi = DesktopMidi(onEvent = hub::dispatch, onSilent = hub::releaseAll)
-    val learning = EarLearning(store)
+    val learning = LearningRepository(store)
+    val pieces = PieceRepository(store)
+    /** The reading drills and the score reader drive the piano and the metronome through this (as on Android). */
+    val pianoController = PianoController(::piano)
     val sections = SectionStore(store)
 
     val themeMode = MutableStateFlow(store.get(Keys.THEME_MODE)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.DARK)

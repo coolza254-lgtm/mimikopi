@@ -39,7 +39,26 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.core.lesson.Lesson
+import com.id.mimikopi.desktop.port.MimikopiApp
+import com.id.mimikopi.desktop.port.R
+import com.id.mimikopi.desktop.port.SavedStateHandle
+import com.id.mimikopi.desktop.port.lesson.LessonScreen
+import com.id.mimikopi.desktop.port.lesson.LessonViewModel
+import com.id.mimikopi.desktop.port.practice.DrillScreen
+import com.id.mimikopi.desktop.port.practice.DrillViewModel
+import com.id.mimikopi.desktop.port.reader.PieceListScreen
+import com.id.mimikopi.desktop.port.reader.PieceListViewModel
+import com.id.mimikopi.desktop.port.reader.ReaderScreen
+import com.id.mimikopi.desktop.port.reader.ReaderViewModel
+import com.id.mimikopi.desktop.port.rememberViewModel
+import com.id.mimikopi.desktop.port.skill.Skill
+import com.id.mimikopi.desktop.port.skill.SkillScreen
+import com.id.mimikopi.desktop.port.skill.SkillViewModel
+import com.id.mimikopi.desktop.port.songs.SongsScreen
+import com.id.mimikopi.desktop.port.songs.SongsViewModel
+import com.id.mimikopi.desktop.port.stringResource
 import com.id.mimikopi.desktop.ui.MimikopiTheme
 import com.id.mimikopi.desktop.ui.SettingsScreen
 import com.id.mimikopi.desktop.ui.Tokens
@@ -52,13 +71,41 @@ import com.id.mimikopi.desktop.ui.sections.SectionsHome
 
 /** Where the window is. */
 sealed interface Screen {
+    data object Reading : Screen
     data object Ear : Screen
+    data object Songs : Screen
     data object Sections : Screen
     data object Settings : Screen
     data class EarDrill(val lesson: Lesson) : Screen
     data class SectionEdit(val id: String) : Screen
     data class SectionPractice(val id: String) : Screen
+    // Reading and songs (the screens ported from the Android app).
+    data class LessonPage(val lessonId: String) : Screen
+    data class Drill(val lessonId: String, val index: Int) : Screen
+    data object Review : Screen
+    data class Pieces(val lessonId: String, val index: Int) : Screen
+    data class Reader(val pieceId: String, val hand: String?) : Screen
+    data class ScoreDrill(val lessonId: String, val index: Int) : Screen
 }
+
+/** The page that runs a step's drill, by its type (as on Android). */
+private fun lessonDrill(lessonId: String, index: Int): Screen? {
+    val lesson = Services.learning.lesson(lessonId) ?: return null
+    val d = lesson.drills.getOrNull(index) ?: return null
+    return when {
+        d.type == ExerciseType.E_PIECE && d.pieces.size > 1 -> Screen.Pieces(lessonId, index)
+        // A piece the step counts by the piece rule: practised in the reader with its own progress.
+        d.type == ExerciseType.E_PIECE && lesson.pass.piecesPassed != null -> Screen.Reader(d.pieces.first(), d.hand)
+        d.type == ExerciseType.E_EAR -> Screen.EarDrill(lesson)
+        d.type.isScore -> Screen.ScoreDrill(lessonId, index)
+        else -> Screen.Drill(lessonId, index)
+    }
+}
+
+/** Phase 1 screens are laid out as one scrolling column; the ported ones manage their own height. */
+private val Screen.scrollsInPage: Boolean
+    get() = this is Screen.Ear || this is Screen.Sections || this is Screen.Settings || this is Screen.EarDrill ||
+        this is Screen.SectionEdit || this is Screen.SectionPractice
 
 /** The window icon (the same art as the Android launcher icon). */
 private val appIcon by lazy {
@@ -77,10 +124,10 @@ fun main() {
     }
 }
 
-/** The window: a left rail (two tabs, MIDI state, settings) and the page, centred and width-limited for reading. */
+/** The window: a left rail (four tabs, MIDI state, settings) and the page, centred and width-limited for reading. */
 @Composable
 private fun App() {
-    var stack by remember { mutableStateOf(listOf<Screen>(Screen.Ear)) }
+    var stack by remember { mutableStateOf(listOf<Screen>(Screen.Reading)) }
     val screen = stack.last()
     fun go(s: Screen) { stack = stack + s }
     fun back() { if (stack.size > 1) stack = stack.dropLast(1) }
@@ -91,8 +138,10 @@ private fun App() {
         Column(Modifier.width(220.dp).fillMaxHeight().padding(start = 28.dp, top = 32.dp, bottom = 28.dp)) {
             Text("ミミコピ", fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, color = Tokens.Palette.Ink)
             Spacer(Modifier.height(36.dp))
-            RailItem("ฝึกฟัง", stack.first() == Screen.Ear) { tab(Screen.Ear) }
-            RailItem("ฝึกท่อน", stack.first() == Screen.Sections) { tab(Screen.Sections) }
+            RailItem(stringResource(R.string.tab_reading), stack.first() == Screen.Reading) { tab(Screen.Reading) }
+            RailItem(stringResource(R.string.tab_ear), stack.first() == Screen.Ear) { tab(Screen.Ear) }
+            RailItem(stringResource(R.string.tab_songs), stack.first() == Screen.Songs) { tab(Screen.Songs) }
+            RailItem(stringResource(R.string.tab_sections), stack.first() == Screen.Sections) { tab(Screen.Sections) }
             Spacer(Modifier.weight(1f))
             val ready = midiReady()
             Row(Modifier.heightIn(min = 40.dp).clickable(onClick = openMidi), verticalAlignment = Alignment.CenterVertically) {
@@ -102,7 +151,9 @@ private fun App() {
             RailItem("ตั้งค่า", screen == Screen.Settings) { go(Screen.Settings) }
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(Tokens.Palette.Hair))
-        Box(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
+        if (!screen.scrollsInPage) Box(Modifier.weight(1f).fillMaxHeight()) {
+            PortedPage(screen, go = ::go, back = ::back, openMidi = openMidi)
+        } else Box(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().padding(horizontal = 48.dp, vertical = 40.dp)) {
                 when (screen) {
                     Screen.Ear -> EarHome(onOpen = { go(Screen.EarDrill(it)) }, onOpenMidi = openMidi)
@@ -111,9 +162,48 @@ private fun App() {
                     is Screen.EarDrill -> EarDrillScreen(screen.lesson, onBack = ::back, onOpenMidi = openMidi)
                     is Screen.SectionEdit -> SectionEditScreen(screen.id, onBack = ::back, onPractice = { stack = stack.dropLast(1) + Screen.SectionPractice(it) }, onOpenMidi = openMidi)
                     is Screen.SectionPractice -> SectionPracticeScreen(screen.id, onBack = ::back, onEdit = { stack = stack.dropLast(1) + Screen.SectionEdit(it) }, onOpenMidi = openMidi)
+                    else -> Unit
                 }
             }
         }
+    }
+}
+
+/** Reading, songs and their pages: the Android screens, with their view models made here instead of by navigation. */
+@Composable
+private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, openMidi: () -> Unit) {
+    val app = MimikopiApp
+    fun args(vararg pairs: Pair<String, String?>) = SavedStateHandle(mapOf(*pairs))
+    val openDrill: (String, Int) -> Unit = { id, i -> lessonDrill(id, i)?.let(go) }
+    val openSettings = { go(Screen.Settings) }
+    when (screen) {
+        Screen.Reading -> SkillScreen(
+            skill = Skill.READING,
+            onOpenStep = { go(Screen.LessonPage(it)) },
+            onOpenDrill = { openDrill(it, 0) },
+            onReview = { go(Screen.Review) },
+            onOpenMidi = openMidi,
+            onOpenSettings = openSettings,
+            vm = rememberViewModel(screen) { SkillViewModel(app) },
+        )
+        Screen.Songs -> SongsScreen(
+            onPlay = { id, hand -> go(Screen.Reader(id, hand)) },
+            onOpenMidi = openMidi,
+            onOpenSettings = openSettings,
+            vm = rememberViewModel(screen) { SongsViewModel(app) },
+        )
+        is Screen.LessonPage -> LessonScreen(onBack = back, onOpenDrill = openDrill,
+            vm = rememberViewModel(screen) { LessonViewModel(app, args("lessonId" to screen.lessonId)) })
+        is Screen.Drill -> DrillScreen(onBack = back,
+            vm = rememberViewModel(screen) { DrillViewModel(app, args("lessonId" to screen.lessonId, "drill" to screen.index.toString())) })
+        Screen.Review -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("review" to "true")) })
+        is Screen.Pieces -> PieceListScreen(onBack = back, onOpenPiece = { id, hand -> go(Screen.Reader(id, hand)) },
+            vm = rememberViewModel(screen) { PieceListViewModel(app, args("lesson" to screen.lessonId, "drill" to screen.index.toString())) })
+        is Screen.Reader -> ReaderScreen(onBack = back,
+            vm = rememberViewModel(screen) { ReaderViewModel(app, args("pieceId" to screen.pieceId, "hand" to screen.hand)) })
+        is Screen.ScoreDrill -> ReaderScreen(onBack = back,
+            vm = rememberViewModel(screen) { ReaderViewModel(app, args("lessonId" to screen.lessonId, "drill" to screen.index.toString())) })
+        else -> Unit
     }
 }
 

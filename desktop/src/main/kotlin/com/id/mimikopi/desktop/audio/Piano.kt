@@ -21,6 +21,10 @@ interface Piano {
     fun sustain(down: Boolean)
     fun allNotesOff()
     fun close()
+    /** A metronome click; [level] 0 strong .. 3 sub (as on Android), [volume] 0..1. */
+    fun click(level: Int, volume: Float)
+    /** About how long after a call the sound is heard (the output buffer). */
+    val latencyNanos: Long
 }
 
 /**
@@ -36,6 +40,14 @@ class GervillPiano : Piano {
     override fun sustain(down: Boolean) { channel?.controlChange(64, if (down) 127 else 0) }
     override fun allNotesOff() { channel?.allNotesOff() }
     override fun close() { runCatching { synth?.close() } }
+
+    /** General MIDI percussion: high and low wood block. */
+    private val drums = synth?.channels?.getOrNull(9)
+    override fun click(level: Int, volume: Float) {
+        val v = (volume * (if (level == 0) 120 else if (level == 1) 100 else 80)).toInt().coerceIn(1, 127)
+        drums?.noteOn(if (level == 0) 76 else 77, v)
+    }
+    override val latencyNanos: Long = (synth?.latency ?: 0L) * 1000L
 }
 
 /**
@@ -63,6 +75,10 @@ class SamplerPiano(private val dir: File, private val manifest: PackManifest) : 
     }
 
     private val voices = ArrayList<Voice>()
+    /** Metronome clicks: a short decaying tone mixed in with the piano. */
+    private class Click(val freq: Float, val gain: Float) { var n = 0 }
+    private val clicks = ArrayList<Click>()
+    private val clickFrames = (0.05f * manifest.sampleRate).toInt()
     private val lock = Any()
     private var sustainDown = false
     @Volatile private var running = true
@@ -107,6 +123,12 @@ class SamplerPiano(private val dir: File, private val manifest: PackManifest) : 
 
     override fun allNotesOff() = synchronized(lock) { voices.forEach { it.held = false; if (it.releaseLeft < 0) it.releaseLeft = (0.05f * rate).toInt() } }
 
+    override fun click(level: Int, volume: Float) = synchronized(lock) {
+        clicks += Click(if (level == 0) 1760f else 1320f, volume.coerceIn(0f, 1f) * (if (level == 0) 9000f else if (level == 1) 7000f else 5500f))
+    }
+
+    override val latencyNanos: Long get() = (line.bufferSize / 4).toLong() * 1_000_000_000L / rate.toLong() + 10_000_000L
+
     override fun close() {
         running = false
         thread.join(500)
@@ -135,6 +157,19 @@ class SamplerPiano(private val dir: File, private val manifest: PackManifest) : 
                         v.pos += v.step
                     }
                     if (v.done) it.remove()
+                }
+                val c = clicks.iterator()
+                while (c.hasNext()) {
+                    val k = c.next()
+                    for (f in 0 until BLOCK) {
+                        if (k.n >= clickFrames) break
+                        val t = k.n / rate
+                        val s = (kotlin.math.sin(2.0 * Math.PI * k.freq * t) * kotlin.math.exp(-t * 90.0)).toFloat() * k.gain
+                        mix[f * 2] += s
+                        mix[f * 2 + 1] += s
+                        k.n++
+                    }
+                    if (k.n >= clickFrames) c.remove()
                 }
             }
             for (k in mix.indices) {

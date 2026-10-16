@@ -2,7 +2,7 @@ package com.id.mimikopi.desktop
 
 import com.id.mimikopi.core.backup.ItemStatRow
 import com.id.mimikopi.desktop.data.Store
-import com.id.mimikopi.desktop.learning.EarLearning
+import com.id.mimikopi.desktop.learning.LearningRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -39,7 +39,7 @@ class StoreTest {
 
     @Test
     fun earLadderLoadsFromTheSharedContent() {
-        val l = EarLearning(tempStore())
+        val l = LearningRepository(tempStore())
         assertTrue(l.rungs.size >= 30)
         assertEquals("e1", l.rungs.first().id)
         val r = l.rungs.first()

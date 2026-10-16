@@ -122,7 +122,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 OutlinedButton(onClick = {
                     val f = pickFile(load = true, "mimikopi-backup.json") ?: return@OutlinedButton
                     val error = runCatching { Services.store.importBackup(f.readText()) }.getOrElse { it.message }
-                    if (error == null) { Services.learning.reload(); Services.sections.reload() }
+                    if (error == null) { Services.learning.reload(); Services.pieces.reload(); Services.sections.reload() }
                     backupMessage = error?.let { "นำเข้าไม่ได้: $it" } ?: "นำเข้าแล้ว"
                 }) { Text("นำเข้าไฟล์สำรอง") }
                 OutlinedButton(onClick = {

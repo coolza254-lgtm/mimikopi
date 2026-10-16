@@ -123,17 +123,13 @@ object SettingKeys {
     const val USER_SCORE_PREFIX = "score:"
     const val SESSION_MINUTES = "session.minutes"
     const val KEYBOARD_KEYS = "piano.keyCount"
-    /** Id of the user score made from the Capstone A template (lesson 6.6). */
-    const val CAPSTONE_SCORE = "capstone.scoreId"
-    /** Songs in the user's library: one row per song, key "song:<id>" (backups include them). */
-    const val SONG_PREFIX = "song:"
-    /** Set once the bundled target-song shells were copied into the library (so deleting one keeps it deleted). */
-    const val SONGS_SEEDED = "songs.seeded"
     /** Timing strictness for judging (learning-system.md 6.2): STRICT, NORMAL or FORGIVING. */
     const val TIMING_MODE = "timing.mode"
-    /** "2" once lesson records use the step ladder's ids (M14); the old records are kept under [LESSON_RECORDS_V1]. */
+    /** "3" once the M15 reading and ear ladders started fresh; the records before are kept under [LESSON_RECORDS_V2]. */
     const val PATH_VERSION = "path.version"
-    const val LESSON_RECORDS_V1 = "lesson.records.v1"
+    const val LESSON_RECORDS_V2 = "lesson.records.v2"
+    /** Section practice: all sections as one JSON list (backups include them). */
+    const val SECTIONS = "sections"
     /** Today's session: item keys opened, by date ("flow:2026-10-14"). */
     const val FLOW_PREFIX = "flow:"
 }

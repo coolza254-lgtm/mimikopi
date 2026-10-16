@@ -47,20 +47,18 @@ import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.core.notation.Clef
 import com.id.mimikopi.ui.components.PageCard
-import com.id.mimikopi.ui.components.PianoKeyboard
+import com.id.mimikopi.ui.components.KeyHint
 import com.id.mimikopi.ui.components.ScreenScaffold
 import com.id.mimikopi.ui.components.StaffView
 import com.id.mimikopi.ui.theme.Tokens
 
 /** A lesson laid out like learning-system.md section 10: explain → try with the app → drills → pass rule → tips. */
 @Composable
-fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAction: (String) -> Unit = {}, vm: LessonViewModel = viewModel()) {
+fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: LessonViewModel = viewModel()) {
     val lesson = vm.lesson
     val record by vm.record.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
     val marked by vm.marked.collectAsStateWithLifecycle()
-    val pressed by vm.pressed.collectAsStateWithLifecycle()
-    val namedLetter by vm.namedLetter.collectAsStateWithLifecycle()
     val keyboard by vm.keyboard.collectAsStateWithLifecycle()
     val countAnswer by vm.countAnswer.collectAsStateWithLifecycle()
 
@@ -136,9 +134,6 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
                                 style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    "template", "open" -> Button(onClick = { onAppAction(step.action!!) }, modifier = Modifier.heightIn(min = Tokens.minTouch)) {
-                        Text(stringResource(if (kind == "template") R.string.lesson_action_template else R.string.lesson_action_open))
-                    }
                     "show" -> {
                         val parts = arg?.split(":")
                         val pitch = parts?.getOrNull(0)?.let { runCatching { SpelledPitch.parse(it) }.getOrNull() }
@@ -150,14 +145,7 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
                     }
                 }
             }
-            PianoKeyboard(
-                lowNote = 48, highNote = 83,
-                pressed = pressed, showNames = false, nameStyle = NoteNameStyle.BOTH,
-                onNoteOn = { n, _ -> vm.touch(n, true) }, onNoteOff = { n -> vm.touch(n, false) },
-                marked = marked,
-                namedNotes = namedLetter?.let { l -> pressed.filter { it % 12 == l.semitonesFromC }.toSet() } ?: emptySet(),
-                modifier = Modifier.fillMaxWidth().height(150.dp).padding(top = Tokens.Space.s),
-            )
+            KeyHint(marked = marked, nameStyle = NoteNameStyle.BOTH)
         }
         if (lesson.drills.size > 1) PageCard(title = stringResource(R.string.lesson_drills)) {
             lesson.drills.forEachIndexed { i, d ->

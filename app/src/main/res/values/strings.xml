@@ -74,7 +74,7 @@
     <string name="selftest_failed">วัดไม่ได้ (ระบบเสียงไม่ส่งค่าเวลา) ลองใหม่อีกครั้ง</string>
 
     <string name="home_midi_title">ต่อเปียโน (MIDI)</string>
-    <string name="home_midi_body">ต่อเปียโนผ่านสาย USB-C หรือบลูทูธ ดูโน้ตที่เข้ามา และปรับเทียบเครื่อง</string>
+    <string name="home_midi_body">ต่อคีย์บอร์ดผ่านสาย USB-C หรือบลูทูธ ดูโน้ตที่เข้ามา และปรับเทียบเครื่อง</string>
 
     <!-- MIDI -->
     <string name="midi_title">ต่อเปียโน (MIDI)</string>
@@ -303,11 +303,11 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="about_credit_font">ฟอนต์ Zen Maru Gothic และ IBM Plex Sans Thai Looped (SIL Open Font License 1.1)</string>
     <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
-    <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงจริง และไม่ดึงข้อมูลเพลงจากอินเทอร์เน็ต เพลงในคลังต้องถอดเอง ความยากของ Song Ladder คำนวณจากข้อมูลที่ใส่เท่านั้น การตรวจแป้นเหยียบใช้ได้เฉพาะเมื่อเปียโนส่งสัญญาณแป้นผ่าน MIDI</string>
+    <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงที่ยังมีลิขสิทธิ์ เพลงฝึกเป็นเพลงที่หมดลิขสิทธิ์แล้ว (ทำนองเขียนจากความจำ ยังไม่ได้เทียบต้นฉบับ) ท่อนเพลงที่ชอบต้องจดเองในโหมดฝึกท่อน</string>
     <string name="about_limit_2">เสียงปล่อยคีย์และเสียงสะท้อนสายของเปียโน</string>
-    <string name="about_limit_3">เครื่องมือเขียนโน้ตยังไม่รองรับไตรเพลต เสียงที่สองในบรรทัดเดียวกัน เครื่องหมายความดังเบา และการเปลี่ยนคีย์/จังหวะกลางเพลง ยังไม่มีมุมมองโน้ตตก (falling notes)</string>
+    <string name="about_limit_3">โหมดฝึกท่อนจดเฉพาะโน้ตและลำดับ ยังไม่จดจังหวะ และยังไม่มีมุมมองโน้ตตก (falling notes)</string>
     <string name="about_limit_4">Bluetooth MIDI ยังไม่ได้ทดสอบกับเปียโนจริง และหน่วงกว่าสาย USB ควรปรับเทียบความหน่วงใหม่ตอนต่อบลูทูธ</string>
-    <string name="about_limit_6">ธีมมืด ภาษาอังกฤษ ระบบเตือน (ผู้ใช้ยังไม่ต้องการ) และรุ่น Windows (ทำเมื่อผู้ใช้อนุมัติเท่านั้น)</string>
+    <string name="about_limit_6">ธีมมืด ภาษาอังกฤษ ระบบเตือน (ผู้ใช้ยังไม่ต้องการ) และรุ่น Windows (ทำเมื่อผู้ใช้อนุมัติเท่านั้น) แอพไม่มีคีย์บอร์ดบนจอแล้ว ต้องต่อคีย์บอร์ด MIDI</string>
     <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (ไปที่หน้า release สาธารณะบน GitHub) และไม่ส่งข้อมูลของคุณออกไป</string>
 
     <!-- M7: reader and play-along -->
@@ -631,4 +631,72 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="lesson_more">อ่านละเอียด</string>
     <string name="lesson_less">ย่อ</string>
     <string name="lesson_start_step">เริ่มฝึกขั้นนี้</string>
+
+    <!-- M15: four tabs, section practice -->
+    <string name="tab_reading">อ่านโน้ต</string>
+    <string name="tab_ear">ฝึกฟัง</string>
+    <string name="tab_sections">ฝึกท่อน</string>
+    <string name="midi_needed">ต่อคีย์บอร์ด MIDI ก่อน (สาย USB หรือบลูทูธ) แอพรับโน้ตจากคีย์บอร์ดเท่านั้น</string>
+    <string name="midi_ready">MIDI พร้อม</string>
+    <string name="midi_not_ready">ยังไม่ต่อ MIDI</string>
+    <string name="skill_reading_goal">เป้าหมาย: เห็นโน้ตแล้วเล่นตามได้</string>
+    <string name="skill_ear_goal">เป้าหมาย: ฟังแล้วแกะเพลงเองได้</string>
+    <string name="skill_today">วันนี้</string>
+    <string name="skill_passed">ผ่านแล้ว %1$d จาก %2$d ขั้น</string>
+    <string name="skill_rule">แต่ละขั้นต้องผ่านเกณฑ์วันนี้ แล้วทำได้อีกครั้งในวันถัดไป จึงนับว่าผ่าน</string>
+    <string name="skill_all_steps">ทุกขั้น</string>
+    <string name="skill_show_stage">ดูเฉพาะด่านนี้</string>
+    <string name="skill_show_all">ดูทุกขั้น</string>
+    <string name="skill_finished">ครบทุกขั้นแล้ว</string>
+    <string name="skill_done_today">วันนี้ครบแล้ว</string>
+    <string name="skill_done_body">พรุ่งนี้กลับมายืนยันขั้นที่ผ่านวันนี้ หรือไปฝึกเพลงและท่อนที่ชอบต่อได้</string>
+    <string name="skill_review_title">ทวนสิ่งที่ถึงรอบ</string>
+    <string name="skill_not_yet">วันนี้ลองแล้ว ยังไม่ผ่านเกณฑ์ ลองอีกได้</string>
+    <string name="skill_start">เริ่ม</string>
+    <string name="skill_kind_confirm">ยืนยันขั้นที่ผ่านเมื่อวาน</string>
+    <string name="skill_kind_review">ทวน</string>
+    <string name="skill_kind_repeat">ฝึกซ้ำขั้นเก่า</string>
+    <string name="skill_kind_step">ขั้นใหม่</string>
+    <string name="songs_intro">เพลงที่หมดลิขสิทธิ์แล้ว เรียงจากง่ายไปยาก แตะเพลงแล้วเลือกมือที่จะเล่น</string>
+    <string name="songs_level">ระดับ %1$s</string>
+    <string name="songs_passed">ผ่านแล้ว: %1$s</string>
+    <string name="songs_unverified">ทำนองเขียนจากความจำ ยังไม่ได้เทียบกับโน้ตต้นฉบับ อาจต่างจากที่เคยได้ยินบ้าง</string>
+    <string name="sections_intro">ท่อนเพลงที่ชอบ: เล่นบนคีย์บอร์ดให้แอพจดโน้ต แล้วฝึกทีละวลีจนเล่นได้ทั้งท่อน</string>
+    <string name="sections_new">ท่อนใหม่</string>
+    <string name="sections_mastered">เล่นได้แล้ว</string>
+    <string name="sections_summary">%1$d โน้ต · %2$d วลี</string>
+    <string name="sections_stats">เล่นจบไม่ผิด %1$d จาก %2$d รอบ · แม่นยำ %3$d%%</string>
+    <string name="sections_practice">ฝึก</string>
+    <string name="sections_edit">แก้โน้ต</string>
+    <string name="sections_delete">ลบ</string>
+    <string name="sections_default_title">ท่อนที่ %1$d</string>
+    <string name="sections_name_title">ชื่อท่อน</string>
+    <string name="sections_create">เริ่มจดโน้ต</string>
+    <string name="sections_delete_q">ลบ \"%1$s\" ?</string>
+    <string name="sections_edit_title">จดโน้ต</string>
+    <string name="sections_record_help">เล่นบนคีย์บอร์ดทีละโน้ต แอพจดให้เอง กดพร้อมกันจะเป็นคอร์ด ไม่ต้องตรงจังหวะ แตะโน้ตเพื่อแก้</string>
+    <string name="sections_replace_help">เล่นโน้ตใหม่บนคีย์บอร์ดเพื่อแทนตัวที่เลือก</string>
+    <string name="sections_empty">ยังไม่มีโน้ต เริ่มเล่นได้เลย</string>
+    <string name="sections_phrase">วลี %1$d</string>
+    <string name="sections_delete_note">ลบตัวนี้</string>
+    <string name="sections_split_here">เริ่มวลีใหม่ตรงนี้</string>
+    <string name="sections_join_phrase">รวมกับวลีก่อนหน้า</string>
+    <string name="sections_undo">ลบตัวล่าสุด</string>
+    <string name="sections_listen">ฟัง</string>
+    <string name="sections_auto_phrases">แบ่งวลีอัตโนมัติ</string>
+    <string name="sections_flats">แสดงเป็น ♭</string>
+    <string name="sections_clear">ล้างทั้งหมด</string>
+    <string name="sections_clear_q">ล้างโน้ตทั้งหมดของท่อนนี้?</string>
+    <string name="sections_start_practice">เริ่มฝึกท่อนนี้</string>
+    <string name="sections_whole">ทั้งท่อน</string>
+    <string name="sections_mode_phrase">วลี %1$d จาก %2$d</string>
+    <string name="sections_mode_full">ทั้งท่อน (ผิดตรงไหน เริ่มวลีนั้นใหม่)</string>
+    <string name="sections_streak">ไม่ผิดติดกัน %1$d/%2$d</string>
+    <string name="sections_wrong">ผิด เริ่มวลีนี้ใหม่จากโน้ตแรก</string>
+    <string name="sections_phrase_run">ไม่ผิดเลย อีก %1$d รอบติดกันจะไปวลีถัดไป</string>
+    <string name="sections_phrase_passed">ผ่านวลีนี้แล้ว ต่อวลีถัดไป</string>
+    <string name="sections_full_clean">เล่นจบไม่ผิดเลย อีก %1$d รอบติดกัน</string>
+    <string name="sections_full_mistakes">เล่นจบแล้ว แต่มีที่ผิด รอบนี้ไม่นับ เริ่มใหม่ได้เลย</string>
+    <string name="sections_mastered_now">เล่นทั้งท่อนไม่ผิด 3 รอบติดกันแล้ว ฝึกต่อได้เรื่อยๆ ให้ติดมือ</string>
+    <string name="sections_play_hint">เล่นโน้ตที่กรอบสีชมพู</string>
 </resources>

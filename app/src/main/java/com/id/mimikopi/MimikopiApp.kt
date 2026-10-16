@@ -30,7 +30,7 @@ class MimikopiApp : Application() {
     val bleScanner: com.id.mimikopi.midi.BleMidiScanner by lazy { com.id.mimikopi.midi.BleMidiScanner(this) }
     val learning: com.id.mimikopi.learning.LearningRepository by lazy { com.id.mimikopi.learning.LearningRepository(this, database) }
     val pieces: com.id.mimikopi.pieces.PieceRepository by lazy { com.id.mimikopi.pieces.PieceRepository(this, database) }
-    val songs: com.id.mimikopi.songs.SongRepository by lazy { com.id.mimikopi.songs.SongRepository(this, database) }
+    val sections: com.id.mimikopi.sections.SectionRepository by lazy { com.id.mimikopi.sections.SectionRepository(database) }
     val session: com.id.mimikopi.learning.SessionTracker by lazy { com.id.mimikopi.learning.SessionTracker(learning) }
 
     /** Process-lifetime scope for small startup work. */

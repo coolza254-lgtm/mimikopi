@@ -1,0 +1,25 @@
+{
+  "id": "eine-kleine-nachtmusik",
+  "title": "Eine kleine Nachtmusik (ท่อนเปิด)",
+  "composer": "Wolfgang Amadeus Mozart (K. 525) เรียบเรียงง่ายโดยแอพ",
+  "source": "Public domain (Mozart, 1787). Melody written from memory for the app; not yet checked against a printed edition.",
+  "level": "L5",
+  "key": 1,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 100,
+  "rh": [
+    "G4/q r/e D4/e G4/q r/e D4/e",
+    "G4/e D4/e G4/e B4/e D5/h",
+    "C5/q r/e A4/e C5/q r/e A4/e",
+    "C5/e A4/e F#4/e A4/e D4/h"
+  ],
+  "lh": [
+    "G2/h G2/h",
+    "G2/h G2/h",
+    "D3/h D3/h",
+    "D3/h D3/h"
+  ]
+}

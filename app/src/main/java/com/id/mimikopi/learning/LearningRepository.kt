@@ -66,7 +66,7 @@ class LearningRepository(private val context: Context, private val db: AppDataba
             .sortedWith(compareBy({ it.id.substringBefore('.').toInt() }, { it.id.substringAfter('.').toInt() }))
     }
 
-    /** The ear ladder (content/ear): small listening steps e1, e2 ... each gated by its previous rung and a ladder step. */
+    /** The ear ladder (content/ear): small listening steps e1, e2 ..., each after the previous one. */
     val earRungs: List<Lesson> by lazy {
         context.assets.list("ear").orEmpty().filter { it.endsWith(".json") }
             .map { name -> context.assets.open("ear/$name").use { Lesson.parse(it.readBytes().toString(Charsets.UTF_8)) } }
@@ -83,18 +83,9 @@ class LearningRepository(private val context: Context, private val db: AppDataba
     /** Today's ear rung. */
     fun currentEarRung(): Lesson? = ProgressRules.nextToLearn(earRungs, _records.value)
 
-    /** Steps and rungs passed on an earlier day that wait for their confirming run, oldest first. */
-    fun confirmations(today: LocalDate = LocalDate.now()): List<Lesson> =
-        ProgressRules.awaitingConfirmation(lessons, _records.value, today) + ProgressRules.awaitingConfirmation(earRungs, _records.value, today)
-
-    /** Old stage 1-6 lesson ids whose steps were all met at least once (Song Ladder and knowledge links use them). */
-    fun legacyPassed(): Set<String> = lessons.groupBy { it.legacy?.substringBefore('#') }
-        .filterKeys { it != null }
-        .filterValues { steps -> steps.all { !_records.value[it.id]?.passDays.isNullOrEmpty() } }
-        .keys.filterNotNull().toSet()
-
-    /** The first step made from an old lesson id ("5.6"), or the id itself when it is already a step. */
-    fun stepFor(legacyOrId: String): String = lessons.firstOrNull { it.legacy?.substringBefore('#') == legacyOrId }?.id ?: legacyOrId
+    /** Steps (or ear rungs) passed on an earlier day that wait for their confirming run, oldest first. */
+    fun confirmations(ladder: List<Lesson>, today: LocalDate = LocalDate.now()): List<Lesson> =
+        ProgressRules.awaitingConfirmation(ladder, _records.value, today)
 
     /** Steps whose confirming run failed on an earlier day go back to practice (the ladder returns to them). */
     suspend fun reopenFailedConfirmations(today: LocalDate = LocalDate.now()) {
@@ -114,25 +105,6 @@ class LearningRepository(private val context: Context, private val db: AppDataba
         }
     }
 
-    /**
-     * M14 migration: records of the old 50 lessons become records of the steps made from their drills. A step gets
-     * the days its drill met its criterion, plus the lesson's pass days (practice drills had no criterion of their
-     * own). The old records stay in settings under "lesson.records.v1".
-     */
-    private fun migrate(old: Map<String, LessonRecord>): Map<String, LessonRecord> {
-        val out = mutableMapOf<String, LessonRecord>()
-        for (s in lessons) {
-            val ref = s.legacy ?: continue
-            val o = old[ref.substringBefore('#')] ?: continue
-            val i = ref.substringAfter('#').toIntOrNull() ?: continue
-            val days = ((o.drillDays[i] ?: emptySet()) + o.passDays).sorted().takeLast(s.pass.days).toSet()
-            if (days.isEmpty() && o.helperDays.isEmpty()) continue
-            out[s.id] = LessonRecord(s.id, passDays = days, helperDays = o.helperDays, attempts = if (days.isEmpty()) 0 else 1,
-                drillDays = if (days.isEmpty()) emptyMap() else mapOf(0 to days), triedDays = days)
-        }
-        return out
-    }
-
     private val _records = MutableStateFlow<Map<String, LessonRecord>>(emptyMap())
     val records: StateFlow<Map<String, LessonRecord>> = _records.asStateFlow()
     private var loaded = false
@@ -143,15 +115,11 @@ class LearningRepository(private val context: Context, private val db: AppDataba
         val dao = db.settingsDao()
         val raw = dao.get(SettingKeys.LESSON_RECORDS)
         val stored = raw?.let { runCatching { json.decodeFromString(recordsSerializer, it) }.getOrNull() } ?: emptyMap()
-        if (dao.get(SettingKeys.PATH_VERSION) != "2") {
-            // Records written before the step ladder use the old lesson ids: convert them once.
-            if (raw != null && stored.isNotEmpty()) {
-                dao.put(SettingEntity(SettingKeys.LESSON_RECORDS_V1, raw))
-                val migrated = migrate(stored)
-                dao.put(SettingEntity(SettingKeys.LESSON_RECORDS, json.encodeToString(recordsSerializer, migrated)))
-                _records.value = migrated
-            }
-            dao.put(SettingEntity(SettingKeys.PATH_VERSION, "2"))
+        if (dao.get(SettingKeys.PATH_VERSION) != "3") {
+            // M15: reading and ear training start again from their first steps. The earlier records stay in settings.
+            if (raw != null) dao.put(SettingEntity(SettingKeys.LESSON_RECORDS_V2, raw))
+            dao.put(SettingEntity(SettingKeys.LESSON_RECORDS, json.encodeToString(recordsSerializer, emptyMap())))
+            dao.put(SettingEntity(SettingKeys.PATH_VERSION, "3"))
         } else {
             _records.value = stored
         }
@@ -209,15 +177,6 @@ class LearningRepository(private val context: Context, private val db: AppDataba
             }
         }
         return passedNow
-    }
-
-    /** Capstone B (6.7): lessons asking for completed library songs. Returns the lessons passed now. */
-    suspend fun checkSongLessons(completedSongs: Int): List<Lesson> {
-        load()
-        return lessons.filter { l ->
-            val need = l.pass.songsCompleted ?: return@filter false
-            !ProgressRules.isPassed(_records.value[l.id], l) && completedSongs >= need && recordDrill(l, l.pass.drill, met = true, helperUsed = false)
-        }
     }
 
     // --- Benchmarks (12.1) ---

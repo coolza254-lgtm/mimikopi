@@ -21,12 +21,6 @@ import kotlinx.serialization.json.Json
  * original pieces) plus each piece's practice record.
  */
 class PieceRepository(private val context: Context, private val db: AppDatabase) {
-    companion object {
-        /** Lesson piece placeholders: the user's Capstone A score, and the score linked to a library song. */
-        const val CAPSTONE = "capstone"
-        const val SONG = "song"
-    }
-
     private val json = Json { ignoreUnknownKeys = true }
     private val serializer = MapSerializer(String.serializer(), PieceProgress.serializer())
     private val mutex = Mutex()
@@ -38,41 +32,7 @@ class PieceRepository(private val context: Context, private val db: AppDatabase)
             .sortedWith(compareBy({ it.level }, { it.title }))
     }
 
-    fun piece(id: String): Score? = pieces.firstOrNull { it.id == id } ?: userScore(id)
-
-    // ---------------- user scores (written in the editor or imported) ----------------
-
-    private val _user = MutableStateFlow<Map<String, PieceFile>>(emptyMap())
-    /** The user's own scores by id. */
-    val userScores: StateFlow<Map<String, PieceFile>> = _user.asStateFlow()
-    private val userCache = mutableMapOf<String, Pair<PieceFile, Score?>>()
-
-    fun userScore(id: String): Score? {
-        val f = _user.value[id] ?: return null
-        val cached = userCache[id]
-        if (cached != null && cached.first === f) return cached.second
-        val s = runCatching { Score.from(f) }.getOrNull()
-        userCache[id] = f to s
-        return s
-    }
-
-    suspend fun loadUserScores() {
-        val rows = db.settingsDao().withPrefix(SettingKeys.USER_SCORE_PREFIX)
-        _user.value = rows.mapNotNull { r -> runCatching { PieceFile.parse(r.value) }.getOrNull() }.associateBy { it.id }
-    }
-
-    suspend fun saveUserScore(f: PieceFile) {
-        db.settingsDao().put(SettingEntity(SettingKeys.USER_SCORE_PREFIX + f.id, f.toJson()))
-        _user.value = _user.value + (f.id to f)
-    }
-
-    suspend fun deleteUserScore(id: String) {
-        db.settingsDao().delete(SettingKeys.USER_SCORE_PREFIX + id)
-        _user.value = _user.value - id
-        userCache.remove(id)
-    }
-
-    fun newUserId(): String = "user-" + System.currentTimeMillis().toString(36)
+    fun piece(id: String): Score? = pieces.firstOrNull { it.id == id }
 
     /** Practice material that is not a song (scales, accompaniment patterns): content/exercises. */
     val exercises: List<Score> by lazy {
@@ -89,42 +49,14 @@ class PieceRepository(private val context: Context, private val db: AppDatabase)
     suspend fun load() = mutex.withLock {
         if (loaded) return@withLock
         loaded = true
-        loadUserScores()
-        capstoneId = db.settingsDao().get(SettingKeys.CAPSTONE_SCORE)?.takeIf { it in _user.value }
         db.settingsDao().get(SettingKeys.PIECE_PROGRESS)
             ?.let { runCatching { json.decodeFromString(serializer, it) }.getOrNull() }
             ?.let { _progress.value = it }
     }
 
-    // ---------------- lesson piece tokens ----------------
-
-    /** The user score made from the Capstone A template, if any. */
-    var capstoneId: String? = null
-        private set
-
-    /** Makes the Capstone A score (32 bars, royal-road chords, left hand written, right hand empty) once. */
-    suspend fun createCapstone(): String {
-        load()
-        capstoneId?.let { if (it in _user.value) return it }
-        val id = newUserId()
-        saveUserScore(com.id.mimikopi.core.theory.Templates.capstoneA(id, "เพลงต้นฉบับของฉัน (Capstone A)", 0, 88, 4))
-        db.settingsDao().put(SettingEntity(SettingKeys.CAPSTONE_SCORE, id))
-        capstoneId = id
-        return id
-    }
-
-    /**
-     * Whether a lesson's piece counts as passed with [hand]. "capstone" is the user's Capstone A score, which counts
-     * only once its melody is written (at least 16 right-hand notes).
-     */
-    fun lessonPiecePassed(id: String, hand: String): Boolean {
-        if (id == CAPSTONE) {
-            val real = capstoneId ?: return false
-            val melody = userScore(real)?.events?.count { it.hand == com.id.mimikopi.core.score.Hand.RIGHT && !it.isRest } ?: 0
-            return melody >= 16 && com.id.mimikopi.core.playalong.PieceRules.isPassed(progressOf(real), hand)
-        }
-        return com.id.mimikopi.core.playalong.PieceRules.isPassed(progressOf(id), hand)
-    }
+    /** Whether a lesson's piece counts as passed with [hand]. */
+    fun lessonPiecePassed(id: String, hand: String): Boolean =
+        com.id.mimikopi.core.playalong.PieceRules.isPassed(progressOf(id), hand)
 
     fun progressOf(id: String): PieceProgress = _progress.value[id] ?: PieceProgress(id)
 

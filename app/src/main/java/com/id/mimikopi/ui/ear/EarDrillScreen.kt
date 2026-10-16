@@ -41,7 +41,7 @@ import com.id.mimikopi.core.ear.EarQuestion
 import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.ui.components.PageCard
-import com.id.mimikopi.ui.components.PianoKeyboard
+import com.id.mimikopi.ui.components.KeyHint
 import com.id.mimikopi.ui.components.paper
 import com.id.mimikopi.ui.theme.Tokens
 
@@ -110,14 +110,7 @@ fun EarDrillScreen(onBack: () -> Unit, vm: EarDrillViewModel = viewModel()) {
                             Button(onClick = vm::next, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ear_next)) }
                         }
                     }
-                    PianoKeyboard(
-                        lowNote = 36, highNote = 84,
-                        pressed = pressed, showNames = false, nameStyle = vm.nameStyle,
-                        onNoteOn = { n, depth -> dispatch(vm, n, (40 + depth * 80).toInt().coerceIn(1, 127)) },
-                        onNoteOff = { n -> dispatch(vm, n, 0) },
-                        marked = s.marked,
-                        modifier = Modifier.fillMaxWidth().height(150.dp).padding(Tokens.Space.s),
-                    )
+                    KeyHint(marked = s.marked, nameStyle = vm.nameStyle)
                 }
                 is EarUi.Done -> Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {
                     PageCard(title = stringResource(R.string.drill_result), modifier = Modifier.widthIn(max = 720.dp)) {

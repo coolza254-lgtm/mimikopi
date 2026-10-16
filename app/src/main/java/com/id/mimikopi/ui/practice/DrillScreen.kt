@@ -52,7 +52,7 @@ import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.ui.components.PageCard
-import com.id.mimikopi.ui.components.PianoKeyboard
+import com.id.mimikopi.ui.components.KeyHint
 import com.id.mimikopi.ui.components.StaffView
 import com.id.mimikopi.ui.components.StaffSequenceView
 import com.id.mimikopi.ui.components.paper
@@ -129,17 +129,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                             )
                         }
                     }
-                    PianoKeyboard(
-                        lowNote = vm.keyRange.first,
-                        highNote = vm.keyRange.last,
-                        pressed = pressed,
-                        showNames = showNames,
-                        nameStyle = vm.nameStyle,
-                        onNoteOn = { n, _ -> dispatchTouch(vm, n, true) },
-                        onNoteOff = { n -> dispatchTouch(vm, n, false) },
-                        marked = if (s.feedback == Feedback.WRONG) s.prompt.answerKeys(vm.keyRange) else emptySet(),
-                        modifier = Modifier.fillMaxWidth().height(190.dp).padding(Tokens.Space.s),
-                    )
+                    KeyHint(marked = if (s.feedback == Feedback.WRONG) s.prompt.answerKeys(vm.keyRange) else emptySet(), nameStyle = vm.nameStyle)
                 }
                 is DrillUi.Interval -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
@@ -158,16 +148,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         if (s.feedback == Feedback.WRONG && s.pair == null) Text(stringResource(R.string.drill_wrong), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
                         if (s.pair != null) IntervalAnswers(s, vm)
                     }
-                    PianoKeyboard(
-                        lowNote = vm.keyRange.first,
-                        highNote = vm.keyRange.last,
-                        pressed = pressed,
-                        showNames = showNames,
-                        nameStyle = vm.nameStyle,
-                        onNoteOn = { n, _ -> dispatchTouch(vm, n, true) },
-                        onNoteOff = { n -> dispatchTouch(vm, n, false) },
-                        modifier = Modifier.fillMaxWidth().height(150.dp).padding(Tokens.Space.s),
-                    )
+                    KeyHint(marked = emptySet(), nameStyle = vm.nameStyle)
                 }
                 is DrillUi.ChordAsk -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
@@ -203,17 +184,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                             )
                         }
                     }
-                    PianoKeyboard(
-                        lowNote = vm.keyRange.first,
-                        highNote = vm.keyRange.last,
-                        pressed = pressed,
-                        showNames = showNames,
-                        nameStyle = vm.nameStyle,
-                        onNoteOn = { n, _ -> dispatchTouch(vm, n, true) },
-                        onNoteOff = { n -> dispatchTouch(vm, n, false) },
-                        marked = s.answer,
-                        modifier = Modifier.fillMaxWidth().height(190.dp).padding(Tokens.Space.s),
-                    )
+                    KeyHint(marked = s.answer, nameStyle = vm.nameStyle)
                 }
                 is DrillUi.Pulse -> Column(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("${s.bpm} BPM", style = MaterialTheme.typography.titleLarge)

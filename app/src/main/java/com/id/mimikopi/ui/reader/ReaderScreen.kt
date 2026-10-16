@@ -42,23 +42,19 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.id.mimikopi.MimikopiApp
 import com.id.mimikopi.R
-import com.id.mimikopi.core.input.InputEvent
-import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.playalong.PlayMode
-import com.id.mimikopi.ui.components.PianoKeyboard
+import com.id.mimikopi.ui.components.KeyHint
 import com.id.mimikopi.ui.theme.Tokens
 
 /**
  * Reader / play-along screen, laid out for landscape on the music stand: a thin top bar, the score strip,
- * one row of controls (or the result), and the on-screen keyboard (can be hidden when a piano is connected).
+ * one row of controls (or the result). Played from the MIDI piano only; while playing the notes take the full height.
  */
 @Composable
 fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     com.id.mimikopi.ui.components.AnswerHaptics(ui.result?.clean)
-    val pressed by vm.pressed.collectAsStateWithLifecycle()
     val piece by vm.piece.collectAsStateWithLifecycle()
     var showOptions by remember { mutableStateOf(false) }
 
@@ -74,7 +70,9 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding(),
     ) {
-        Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
+        val playing = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING
+        // While playing the title bar steps aside so the notes get the whole height (stop is in the controls).
+        if (!playing) Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back))
             }
@@ -90,7 +88,6 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
         }
         if (score == null || layout == null) return@Column
 
-        val playing = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING
         if (ui.options.pageView) PagedScoreView(
             score = score,
             cursorBeat = vm::cursorAt,
@@ -103,7 +100,6 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             nameStyle = vm.nameStyle,
             onMeasureTap = vm::onMeasureTap,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            hideNotes = ui.options.hideNotes && ui.phase != Phase.RESULT,
         ) else ScoreView(
             score = score,
             layout = layout,
@@ -117,7 +113,6 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             nameStyle = vm.nameStyle,
             onMeasureTap = vm::onMeasureTap,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            hideNotes = ui.options.hideNotes && ui.phase != Phase.RESULT,
         )
 
         ui.message?.let { msg ->
@@ -133,18 +128,7 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             Phase.RESULT -> ui.result?.let { ResultPanel(it, vm, onBack) }
         }
 
-        if (ui.options.showKeyboard && ui.phase != Phase.RESULT) {
-            PianoKeyboard(
-                lowNote = piece?.keyRange?.first ?: 48,
-                highNote = piece?.keyRange?.last ?: 72,
-                pressed = pressed,
-                showNames = ui.showNames,
-                nameStyle = vm.nameStyle,
-                onNoteOn = { n, depth -> dispatchTouch(vm, n, (40 + depth * 80).toInt().coerceIn(1, 127)) },
-                onNoteOff = { n -> dispatchTouch(vm, n, 0) },
-                modifier = Modifier.fillMaxWidth().height(120.dp).padding(horizontal = Tokens.Space.s, vertical = Tokens.Space.xs),
-            )
-        }
+        if (ui.phase != Phase.RESULT) KeyHint(marked = emptySet(), nameStyle = vm.nameStyle)
     }
 
     if (showOptions) OptionsDialog(ui.options, vm, onDismiss = { showOptions = false })
@@ -305,9 +289,7 @@ private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -
                 OptionRow(R.string.reader_opt_other_hand, R.string.reader_opt_other_hand_body, o.playOtherHand, vm::setPlayOtherHand)
                 if (!fixed) OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)
                 if (!fixed) OptionRow(R.string.reader_opt_ramp, R.string.reader_opt_ramp_body, o.useRamp, vm::setUseRamp)
-                OptionRow(R.string.reader_opt_keyboard, R.string.reader_opt_keyboard_body, o.showKeyboard, vm::setShowKeyboard)
                 OptionRow(R.string.reader_opt_page, R.string.reader_opt_page_body, o.pageView, vm::setPageView)
-                if (!fixed) OptionRow(R.string.reader_opt_hide, R.string.reader_opt_hide_body, o.hideNotes, vm::setHideNotes)
                 if (!fixed) OptionRow(R.string.reader_opt_loop, R.string.reader_opt_loop_body, o.loopListen, vm::setLoopListen)
             }
         },
@@ -323,12 +305,4 @@ private fun OptionRow(title: Int, body: Int, checked: Boolean, onChange: (Boolea
         }
         Box(Modifier.padding(start = Tokens.Space.s)) { Switch(checked = checked, onCheckedChange = onChange) }
     }
-}
-
-private fun dispatchTouch(vm: ReaderViewModel, note: Int, velocity: Int) {
-    val hub = vm.getApplication<MimikopiApp>().inputHub
-    hub.dispatch(
-        if (velocity > 0) InputEvent.NoteOn(note, velocity, System.nanoTime(), InputSource.TOUCH)
-        else InputEvent.NoteOff(note, System.nanoTime(), InputSource.TOUCH),
-    )
 }

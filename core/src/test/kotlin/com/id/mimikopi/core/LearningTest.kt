@@ -53,12 +53,12 @@ class LessonContentTest {
     fun allLessonFilesAreCompleteAndValid() {
         val lessons = all()
         val ids = lessons.map { it.id }.toSet()
-        // The step ladder (M14): stages 1-6, steps numbered 1..n in each stage, every step after the previous one.
-        assertEquals((1..6).toSet(), lessons.map { it.stage }.toSet())
+        // The step ladder (M14): stages 1-4 (M15: reading only), steps numbered 1..n in each stage, every step after the previous one.
+        assertEquals((1..4).toSet(), lessons.map { it.stage }.toSet())
         lessons.groupBy { it.stage }.forEach { (stage, ls) ->
             assertEquals((1..ls.size).map { "$stage.$it" }.toSet(), ls.map { it.id }.toSet())
         }
-        assertTrue(lessons.size in 120..220, "${lessons.size} steps")
+        assertTrue(lessons.size in 80..220, "${lessons.size} steps")
         lessons.forEach { l -> assertEquals(1, l.drills.size, l.id); assertTrue(l.legacy != null && l.more.isNotEmpty(), l.id) }
         // Prerequisites exist and come earlier in the order (no cycles).
         val order = lessons.sortedWith(compareBy({ it.stage }, { it.id.substringAfter('.').toInt() })).map { it.id }

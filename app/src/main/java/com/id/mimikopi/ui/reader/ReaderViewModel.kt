@@ -692,8 +692,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 )
             }
             if (update.passedToday) {
-                val songs = services.songs.also { it.load() }
-                (learning.checkPieceLessons(pieces::lessonPiecePassed) + learning.checkSongLessons(songs.completedCount(pieces))).forEach { l ->
+                learning.checkPieceLessons(pieces::lessonPiecePassed).forEach { l ->
                     _ui.update { u2 -> u2.copy(result = u2.result?.let { r -> r.copy(progressLine = listOfNotNull(r.progressLine, "ผ่านบท ${l.id} ${l.title} แล้ว").joinToString("\n")) }) }
                 }
             }

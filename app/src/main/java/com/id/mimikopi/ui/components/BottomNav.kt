@@ -19,14 +19,13 @@ import com.id.mimikopi.ui.theme.Tokens
 data class Tab(val route: String, val label: Int, val icon: Int)
 
 val TABS = listOf(
-    Tab("home", R.string.tab_home, R.drawable.ic_nav_home),
-    Tab("today", R.string.tab_today, R.drawable.ic_nav_today),
-    Tab("piano", R.string.tab_piano, R.drawable.ic_nav_piano),
+    Tab("reading", R.string.tab_reading, R.drawable.ic_book),
+    Tab("ear", R.string.tab_ear, R.drawable.ic_ear),
     Tab("songs", R.string.tab_songs, R.drawable.ic_nav_songs),
-    Tab("progress", R.string.tab_me, R.drawable.ic_nav_me),
+    Tab("sections", R.string.tab_sections, R.drawable.ic_nav_piano),
 )
 
-/** The bottom bar of the redesign: five tabs, the current one marked with a soft rose pill. */
+/** The bottom bar (M15): four tabs, one per skill, the current one marked with a soft rose pill. */
 @Composable
 fun BottomNav(current: String?, onSelect: (String) -> Unit) {
     NavigationBar(containerColor = Tokens.Palette.Card, tonalElevation = 0.dp) {

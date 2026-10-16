@@ -1,0 +1,49 @@
+{
+  "id": "lightly-row",
+  "title": "Lightly Row (Hänschen klein)",
+  "composer": "เพลงพื้นบ้านเยอรมัน เรียบเรียงง่ายโดยแอพ",
+  "source": "Public domain (traditional German). Melody written from memory for the app; not yet checked against a printed edition.",
+  "level": "L2",
+  "key": 0,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 88,
+  "rh": [
+    "G4/q E4/q E4/h",
+    "F4/q D4/q D4/h",
+    "C4/q D4/q E4/q F4/q",
+    "G4/q G4/q G4/h",
+    "G4/q E4/q E4/h",
+    "F4/q D4/q D4/h",
+    "C4/q E4/q G4/q G4/q",
+    "C4/w",
+    "D4/q D4/q D4/q D4/q",
+    "D4/q E4/q F4/h",
+    "E4/q E4/q E4/q E4/q",
+    "E4/q F4/q G4/h",
+    "G4/q E4/q E4/h",
+    "F4/q D4/q D4/h",
+    "C4/q E4/q G4/q G4/q",
+    "C4/w"
+  ],
+  "lh": [
+    "C3/w",
+    "G2/w",
+    "C3/w",
+    "C3/h G2/h",
+    "C3/w",
+    "G2/w",
+    "C3/h G2/h",
+    "C3/w",
+    "G2/w",
+    "G2/w",
+    "C3/w",
+    "C3/w",
+    "C3/w",
+    "G2/w",
+    "C3/h G2/h",
+    "C3/w"
+  ]
+}

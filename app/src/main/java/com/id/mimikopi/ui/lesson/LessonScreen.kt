@@ -26,6 +26,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -43,20 +47,18 @@ import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.core.notation.Clef
 import com.id.mimikopi.ui.components.PageCard
-import com.id.mimikopi.ui.components.PianoKeyboard
+import com.id.mimikopi.ui.components.KeyHint
 import com.id.mimikopi.ui.components.ScreenScaffold
 import com.id.mimikopi.ui.components.StaffView
 import com.id.mimikopi.ui.theme.Tokens
 
 /** A lesson laid out like learning-system.md section 10: explain → try with the app → drills → pass rule → tips. */
 @Composable
-fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAction: (String) -> Unit = {}, vm: LessonViewModel = viewModel()) {
+fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: LessonViewModel = viewModel()) {
     val lesson = vm.lesson
     val record by vm.record.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
     val marked by vm.marked.collectAsStateWithLifecycle()
-    val pressed by vm.pressed.collectAsStateWithLifecycle()
-    val namedLetter by vm.namedLetter.collectAsStateWithLifecycle()
     val keyboard by vm.keyboard.collectAsStateWithLifecycle()
     val countAnswer by vm.countAnswer.collectAsStateWithLifecycle()
 
@@ -64,39 +66,53 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
 
-    ScreenScaffold(title = lesson?.let { "${it.id} ${it.title}" } ?: "", onBack = onBack) {
+    ScreenScaffold(title = lesson?.let { stringResource(R.string.ladder_stage, it.stage) } ?: "", onBack = onBack) {
         if (lesson == null) {
             Text(stringResource(R.string.lesson_missing))
             return@ScreenScaffold
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(lesson.id, fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Tokens.Palette.Paper,
-                    modifier = Modifier.background(Tokens.Palette.Ink, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
-                Text(stringResource(R.string.lesson_meta, lesson.minutes, lesson.tracks.joinToString()), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
-            }
+            // The step's number large in mono, its name in the serif (same as the tab's hero).
+            Text(lesson.id, fontFamily = Tokens.Fonts.mono, fontWeight = FontWeight.Light, fontSize = 80.sp, lineHeight = 84.sp, letterSpacing = (-3).sp)
+            Text(lesson.title, style = MaterialTheme.typography.headlineSmall)
             val days = record?.passDays?.size ?: 0
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     repeat(lesson.pass.days) { d ->
-                        Box(Modifier.size(28.dp, 8.dp).background(if (d < days) Tokens.Palette.Good else Tokens.Palette.Line, RoundedCornerShape(4.dp)))
+                        Box(Modifier.size(28.dp, 8.dp).background(if (d < days) Tokens.Palette.Ink else Tokens.Palette.Line, RoundedCornerShape(4.dp)))
                     }
                 }
                 Text(statusText(status, days, lesson.pass.days, record?.helperDays?.size ?: 0), style = MaterialTheme.typography.labelMedium,
-                    color = if (status == LessonStatus.PASSED || days > 0) Tokens.Palette.GoodInk else Tokens.Palette.InkMuted)
+                    color = if (status == LessonStatus.PASSED || days > 0) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
             }
             if (status == LessonStatus.LOCKED) Text(stringResource(R.string.lesson_locked, lesson.prerequisites.joinToString()),
                 color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         }
-        Text(
-            stringResource(R.string.lesson_goal, lesson.goal),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.fillMaxWidth().background(Tokens.Palette.MustardSoft, RoundedCornerShape(18.dp)).padding(horizontal = 16.dp, vertical = 14.dp),
-        )
-        PageCard(title = stringResource(R.string.lesson_explain)) {
+
+        PageCard {
+            var more by remember { mutableStateOf(false) }
             lesson.explain.forEach { Text("• $it", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.xs)) }
+            // Steps keep their topic's full explanation one tap away.
+            // Everything else (the full explanation, tips, honest caveats) stays one tap away.
+            val extra = lesson.more.filter { it !in lesson.explain }.map { "• $it" } + lesson.tips.map { "เคล็ดลับ: $it" } + lesson.caveats.map { "ⓘ $it" }
+            if (extra.isNotEmpty()) {
+                if (more) extra.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = Tokens.Space.xs)) }
+                TextButton(onClick = { more = !more }) { Text(stringResource(if (more) R.string.lesson_less else R.string.lesson_more)) }
+            }
         }
-        PageCard(title = stringResource(R.string.lesson_try)) {
+        if (lesson.drills.size == 1) {
+            Button(
+                onClick = { onOpenDrill(lesson.id, 0) },
+                enabled = status != LessonStatus.LOCKED,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            ) {
+                Icon(painterResource(R.drawable.ic_play), contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("  " + stringResource(R.string.lesson_start_step), style = MaterialTheme.typography.labelLarge)
+            }
+            Text(stringResource(R.string.lesson_pass, lesson.passText), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+        }
+        if (lesson.tryIt.isNotEmpty()) PageCard(title = stringResource(R.string.lesson_try)) {
             lesson.tryIt.forEachIndexed { i, step ->
                 Text("${i + 1}. ${step.text}", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.s))
                 val (kind, arg) = step.action?.split(":", limit = 2)?.let { it[0] to it.getOrNull(1) } ?: (null to null)
@@ -117,9 +133,6 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
                                 style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    "template", "open" -> Button(onClick = { onAppAction(step.action!!) }, modifier = Modifier.heightIn(min = Tokens.minTouch)) {
-                        Text(stringResource(if (kind == "template") R.string.lesson_action_template else R.string.lesson_action_open))
-                    }
                     "show" -> {
                         val parts = arg?.split(":")
                         val pitch = parts?.getOrNull(0)?.let { runCatching { SpelledPitch.parse(it) }.getOrNull() }
@@ -131,16 +144,9 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
                     }
                 }
             }
-            PianoKeyboard(
-                lowNote = 48, highNote = 83,
-                pressed = pressed, showNames = false, nameStyle = NoteNameStyle.BOTH,
-                onNoteOn = { n, _ -> vm.touch(n, true) }, onNoteOff = { n -> vm.touch(n, false) },
-                marked = marked,
-                namedNotes = namedLetter?.let { l -> pressed.filter { it % 12 == l.semitonesFromC }.toSet() } ?: emptySet(),
-                modifier = Modifier.fillMaxWidth().height(150.dp).padding(top = Tokens.Space.s),
-            )
+            KeyHint(marked = marked, nameStyle = NoteNameStyle.BOTH)
         }
-        PageCard(title = stringResource(R.string.lesson_drills)) {
+        if (lesson.drills.size > 1) PageCard(title = stringResource(R.string.lesson_drills)) {
             lesson.drills.forEachIndexed { i, d ->
                 val isPass = i in lesson.pass.requiredDrills
                 val enabled = status != LessonStatus.LOCKED
@@ -151,22 +157,18 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, onAppAc
                         .heightIn(min = Tokens.minTouch)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Tokens.Palette.Paper)
-                        .border(Tokens.border, if (isPass) Tokens.Palette.Rose else Tokens.Palette.Line, RoundedCornerShape(16.dp))
+                        .border(Tokens.border, if (isPass) Tokens.Palette.Ink else Tokens.Palette.Line, RoundedCornerShape(16.dp))
                         .clickable(enabled = enabled) { onOpenDrill(lesson.id, i) }
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    if (isPass) Pill(stringResource(R.string.lesson_counts), Tokens.Palette.RoseSoft, Tokens.Palette.RoseInk)
+                    if (isPass) Pill(stringResource(R.string.lesson_counts))
                     Text(d.title, style = MaterialTheme.typography.bodyLarge, color = if (enabled) Tokens.Palette.Ink else Tokens.Palette.InkMuted, modifier = Modifier.weight(1f))
                     Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.InkMuted, modifier = Modifier.size(18.dp))
                 }
             }
             Text(stringResource(R.string.lesson_pass, lesson.passText), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = Tokens.Space.s))
-        }
-        PageCard(title = stringResource(R.string.lesson_tips)) {
-            lesson.tips.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = Tokens.Space.xs)) }
-            lesson.caveats.forEach { Text("ⓘ $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = Tokens.Space.xs)) }
         }
     }
 }

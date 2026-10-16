@@ -20,6 +20,7 @@ import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.data.db.SettingEntity
 import com.id.mimikopi.data.db.SettingKeys
 import com.id.mimikopi.input.OutputRoute
+import com.id.mimikopi.midi.BleMidiDevice
 import com.id.mimikopi.midi.MidiDeviceState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,6 +32,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
+
+enum class BleProblem { PERMISSION, OFF }
 
 /** One line of the MIDI monitor. */
 data class MonitorLine(val millis: Long, val text: String)
@@ -66,6 +69,15 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
     private val settings = services.database.settingsDao()
 
     val devices: StateFlow<List<MidiDeviceState>> = midi.devices
+    private val ble = services.bleScanner
+    val bleFound: StateFlow<List<BleMidiDevice>> = ble.found
+    val bleScanning: StateFlow<Boolean> = ble.scanning
+    val bleSupported: Boolean = ble.supported && midi.supported
+    private val _bleSaved = MutableStateFlow<BleMidiDevice?>(null)
+    /** The remembered Bluetooth instrument, reconnected automatically. */
+    val bleSaved: StateFlow<BleMidiDevice?> = _bleSaved.asStateFlow()
+    private val _bleProblem = MutableStateFlow<BleProblem?>(null)
+    val bleProblem: StateFlow<BleProblem?> = _bleProblem.asStateFlow()
     val midiSupported: Boolean = midi.supported
     val config: StateFlow<InputConfig> = store.config
 
@@ -91,6 +103,45 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch { store.load() }
         viewModelScope.launch { hub.events.collect(::onEvent) }
+        viewModelScope.launch {
+            _bleSaved.value = settings.get(SettingKeys.MIDI_BLE_DEVICE)?.split('|', limit = 2)?.takeIf { it.size == 2 }?.let { BleMidiDevice(it[0], it[1]) }
+        }
+    }
+
+    // --- Bluetooth LE MIDI ---
+
+    /** Called after the permission dialog (or right away when already allowed). */
+    fun bleScan() {
+        _bleProblem.value = when {
+            !ble.hasPermissions() -> BleProblem.PERMISSION
+            !ble.enabled -> BleProblem.OFF
+            else -> null
+        }
+        if (_bleProblem.value == null) ble.scan()
+    }
+
+    fun bleConnect(device: BleMidiDevice) {
+        ble.stop()
+        _bleSaved.value = device
+        viewModelScope.launch { settings.put(SettingEntity(SettingKeys.MIDI_BLE_DEVICE, "${device.address}|${device.name.replace('|', ' ')}")) }
+        midi.connectBluetooth(device.address)
+    }
+
+    /** Retries the remembered instrument now (e.g. after switching the piano on). */
+    fun bleReconnect() {
+        val saved = _bleSaved.value ?: return
+        _bleProblem.value = when {
+            !ble.hasPermissions() -> BleProblem.PERMISSION
+            !ble.enabled -> BleProblem.OFF
+            else -> null
+        }
+        if (_bleProblem.value == null) midi.connectBluetooth(saved.address)
+    }
+
+    fun bleForget() {
+        _bleSaved.value = null
+        midi.forgetBluetooth()
+        viewModelScope.launch { settings.delete(SettingKeys.MIDI_BLE_DEVICE) }
     }
 
     fun onStart() {
@@ -105,6 +156,12 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
         holding = false
         hub.releaseAll()
         viewModelScope.launch(Dispatchers.IO) { piano.release() }
+    }
+
+    /** Re-reads the system's device list (and retries the remembered Bluetooth instrument). */
+    fun recheck() {
+        midi.resync()
+        bleReconnect()
     }
 
     fun setSoundThrough(on: Boolean) {
@@ -251,6 +308,7 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
+        ble.stop()
         piano.setMetronome(false, 60.0, 1, intArrayOf(0), 0f)
         onStop()
     }

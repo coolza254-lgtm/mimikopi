@@ -344,7 +344,6 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             if (helperUses > 0 && met == true) coach += "ผ่านเกณฑ์ แต่ใช้ปุ่มแสดงชื่อโน้ต จึงยังไม่นับเป็นการผ่านเต็ม ลองอีกครั้งโดยไม่ใช้ตัวช่วย"
             if (met == true && !passedNow && helperUses == 0) coach += if (l != null && l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อให้ผ่านบทนี้ (ช่วยให้จำได้นาน)"
             if (passedNow) coach += "ผ่านบทนี้แล้ว บทถัดไปปลดล็อก"
-            if (coach.isEmpty()) l?.tips?.firstOrNull()?.let { coach += it }
             val pct = (acc * 100).toInt()
             _ui.value = DrillUi.Result("ถูกตั้งแต่ครั้งแรก $pct% (${answers.count { it.correct }}/${answers.size})", met, passedNow, coach)
         }

@@ -2,4 +2,6 @@
 <resources>
     <!-- Window/launcher background before Compose draws. Compose colours live in ui/theme/Tokens.kt. -->
     <color name="brand_paper">#FFFEF5E6</color>
+    <!-- M15: the app itself is OLED black (the launcher icon keeps its paper background). -->
+    <color name="brand_black">#FF000000</color>
 </resources>

@@ -5,7 +5,14 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -41,7 +48,14 @@ import com.id.mimikopi.update.InstallEvents
 import java.time.LocalDate
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    onOpenMidi: () -> Unit,
+    onOpenMetronome: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onOpenDiagnostics: () -> Unit,
+    vm: SettingsViewModel = viewModel(),
+) {
     val update by vm.update.collectAsStateWithLifecycle()
     val backup by vm.backup.collectAsStateWithLifecycle()
     val lastCheck by vm.lastCheck.collectAsStateWithLifecycle()
@@ -75,6 +89,25 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
     }
 
     ScreenScaffold(title = stringResource(R.string.settings_title), onBack = onBack) {
+        PageCard {
+            NavRow(R.drawable.ic_usb, R.string.home_midi_title, onOpenMidi)
+            NavRow(R.drawable.ic_metronome, R.string.home_metronome_title, onOpenMetronome)
+            NavRow(R.drawable.ic_info, R.string.home_about_title, onOpenAbout)
+            NavRow(R.drawable.ic_device, R.string.home_diagnostics_title, onOpenDiagnostics)
+        }
+        PageCard(title = stringResource(R.string.theme_title)) {
+            val app = context.applicationContext as com.id.mimikopi.MimikopiApp
+            val mode by app.themeMode.collectAsStateWithLifecycle()
+            Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
+                listOf(
+                    com.id.mimikopi.ui.theme.ThemeMode.DARK to R.string.theme_dark,
+                    com.id.mimikopi.ui.theme.ThemeMode.LIGHT to R.string.theme_light,
+                    com.id.mimikopi.ui.theme.ThemeMode.SYSTEM to R.string.theme_system,
+                ).forEach { (m, label) ->
+                    androidx.compose.material3.FilterChip(selected = mode == m, onClick = { app.setThemeMode(m) }, label = { Text(stringResource(label)) })
+                }
+            }
+        }
         PageCard(title = stringResource(R.string.update_title)) {
             Body(stringResource(R.string.update_current, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
             lastCheck?.let { Body(stringResource(R.string.update_last_check, it), muted = true) }
@@ -243,4 +276,17 @@ private fun Body(text: String, muted: Boolean = false, error: Boolean = false) {
         },
         modifier = Modifier.padding(top = Tokens.Space.xs),
     )
+}
+
+@Composable
+private fun NavRow(icon: Int, label: Int, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch).clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m),
+    ) {
+        Icon(painterResource(icon), contentDescription = null, tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
+        Text(stringResource(label), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.InkMuted, modifier = Modifier.size(18.dp))
+    }
 }

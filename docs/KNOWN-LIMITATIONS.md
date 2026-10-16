@@ -2,30 +2,62 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
-## Current list (M12, v0.12.x)
+## Current list (M15, v0.15.x)
 What the app does not do, or does only partly, as of the last milestone. Details per milestone follow below.
 
 **Not built**
-- Falling-notes view (reading the staff is the point of the app), dark theme, English UI, reminders (the user
-  does not want them now), Windows desktop (only on the user's approval), audio-file import for transcription.
+- Falling-notes view, dark theme, English UI, reminders (the user does not want them now), Windows desktop
+  (only on the user's approval), audio-file import for transcription.
+- On-screen keyboard: removed on purpose in M15; every exercise is played on a MIDI keyboard.
 - Release ("damper") noise and sympathetic resonance samples; velocity layers are switched, not cross-faded.
-- Editor: tuplets, second voices, slurs, dynamics, articulations, lyrics, 1st/2nd endings, D.C./D.S., key or time
-  changes inside a piece, pickup measures. Play-along follows the written order (repeats are not played out).
-- Measuring legato/staccato, dynamics and fingering (the app sees notes and timing only); dynamics drills stay
-  hidden on a fixed-velocity piano.
+- Section practice: rhythm is not recorded or judged; no tempo mode for sections.
+- Measuring legato/staccato, dynamics and fingering (the app sees notes and timing only).
 
 **Partial / approximations**
-- Song data: only what the user types; the bundled target songs are shells with unverified web facts. Song Ladder
-  difficulty is a heuristic over the data present.
+- Practice songs: public-domain melodies written from memory and simply arranged; not yet checked against
+  printed editions (each song says so).
 - The app's accompaniment in tempo mode is sent early by Oboe's output-latency estimate (capped at 250 ms); with
   Bluetooth headphones the estimate can be off. Your own playing is judged with your calibrated latency.
-- Pedal check needs CC64 over MIDI; the chord drills accept any inversion; the key finder needs 8+ notes.
-- Many thresholds (pieces needed per repertoire lesson, chord-change counts, tempos of test drills, E3/E4/E6 unlock
-  stages) are my own choices where learning-system.md gives none; lessons mark them in their notes.
+- Many thresholds (clean runs needed for a section phrase, pieces needed per repertoire step, tempos of test
+  drills) are my own choices where learning-system.md gives none.
 
 **Only verifiable on the phone (never confirmed by CI)**
-- Audio quality, latency and glitch-free playback; the metronome's feel; touch keyboard; USB MIDI with the Badger
-  C-918 (docs/BADGER-C918-CHECKLIST.md is still open: issue #9); the timing feel of judging.
+- Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
+  section recording/practice and the large notation layout; the timing feel of judging.
+
+## As of v0.16.0
+- "Connected" for MIDI: an instrument whose USB-MIDI chip stays powered by the phone stays listed by Android after it
+  is switched off. The app detects that only for instruments that send Active Sensing (silence > 1.2 s); for others
+  it cannot tell and says so on the MIDI screen. Bluetooth links are watched through ACL disconnect broadcasts
+  (needs the "nearby devices" permission). Whether the Badger C-918 sends Active Sensing is unknown (phone check).
+
+## As of M15 (v0.15.x)
+- The app is slimmed down to two skills plus songs and sections: reading (play from notation) and ear training
+  (towards transcribing by ear). Removed: the free on-screen piano and every on-screen keyboard, the transcribe
+  helper, the knowledge library, the song library (Song Ladder), the score editor ("my scores") and the
+  benchmarks/progress tab. Every exercise now needs a MIDI keyboard (USB or Bluetooth).
+- Ladder progress started again from step 1 in both skills (the user chose this). Earlier records stay in the
+  settings table under `lesson.records.v2` and in backups.
+- The reading ladder keeps stages 1-4 (98 steps); the chord, accompaniment and transposition stages (5-6) are gone.
+  The ear ladder is 36 rungs with more melody-dictation rungs (2 to 8 notes) before intervals and chords.
+- New practice songs (13) are public-domain melodies written from memory and arranged simply; they are marked in
+  their `source` as not yet checked against a printed edition, and the app says so on the song card.
+- The whole UI is black and white (no colour at all): OLED black by default, a light mode (white) and "follow the
+  phone" in settings since v0.15.1 (the stored choice is read at start, so light mode may flash black briefly); note results in the reader are told apart by grey
+  levels (played notes fade) and right/wrong by words, inverted labels and haptics. Untested on the phone.
+- Section practice records pitches and their order only (no rhythm); notes struck within 60 ms are one chord.
+  Wait mode only: a wrong note restarts the phrase; 3 clean runs in a row pass a phrase; 3 clean play-throughs of
+  the whole section in a row mark it as mastered. Untested on the phone.
+
+## As of M14 (v0.14.x)
+- The step ladder is built mechanically from the 50 lessons' drills (one step per drill, ear drills moved to the ear
+  ladder); step titles come from the drill titles and some read a little terse. Stage tests became several steps.
+- "Repeat an older step" picks one confirmed step by the date, not by weakness yet.
+- The ear ladder starts at rung 1 for everyone (old ear statistics still steer which items come up within a rung).
+- The daily list is fixed in the morning (confirmations, review, repetition); steps met later in the day appear
+  as they happen. A failed confirmation reopens the step the next day it is opened.
+- The old lesson pages are gone; their full explanations are under "อ่านละเอียด" on each step. Song Ladder and
+  knowledge links still name the old lesson numbers and open their first step.
 
 ## As of M13 (v0.13.x)
 - Redesign from the Claude Design canvas: bottom bar (home, today, piano, songs, me), new home, timeline Today,
@@ -148,8 +180,10 @@ What the app does not do, or does only partly, as of the last milestone. Details
   without calibration it says so in the result.
 
 ## As of M5 (v0.5.x)
-- USB MIDI is the tested path; Bluetooth MIDI devices already paired in Android may appear but there is
-  no in-app Bluetooth pairing/scan yet.
+- USB MIDI is the tested path. Bluetooth LE MIDI (scan + connect on the MIDI screen, from v0.14.2) is
+  untested on real hardware: the Badger C-918 has no Bluetooth MIDI. BLE adds its own latency (often
+  10-30 ms, varies by phone), so calibrate latency again while connected over Bluetooth; it is stored
+  separately per input source.
 - Latency calibration measures the whole chain (input + audio output + the player's habit) for the current
   output route; it is stored per "input source | route" and applied by the practice scoring (from M6/M7).
 - The octave offset applies to all MIDI devices (one piano expected).

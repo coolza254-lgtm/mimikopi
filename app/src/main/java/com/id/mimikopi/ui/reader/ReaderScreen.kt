@@ -1,6 +1,7 @@
 package com.id.mimikopi.ui.reader
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,22 +43,19 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.id.mimikopi.MimikopiApp
 import com.id.mimikopi.R
-import com.id.mimikopi.core.input.InputEvent
-import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.playalong.PlayMode
-import com.id.mimikopi.ui.components.PianoKeyboard
+import com.id.mimikopi.ui.components.KeyHint
 import com.id.mimikopi.ui.theme.Tokens
 
 /**
  * Reader / play-along screen, laid out for landscape on the music stand: a thin top bar, the score strip,
- * one row of controls (or the result), and the on-screen keyboard (can be hidden when a piano is connected).
+ * one row of controls (or the result). Played from the MIDI piano only; while playing the notes take the full height.
  */
 @Composable
 fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
-    val pressed by vm.pressed.collectAsStateWithLifecycle()
+    com.id.mimikopi.ui.components.AnswerHaptics(ui.result?.clean)
     val piece by vm.piece.collectAsStateWithLifecycle()
     var showOptions by remember { mutableStateOf(false) }
 
@@ -73,7 +71,9 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding(),
     ) {
-        Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
+        val playing = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING
+        // While playing the title bar steps aside so the notes get the whole height (stop is in the controls).
+        if (!playing) Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back))
             }
@@ -89,7 +89,6 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
         }
         if (score == null || layout == null) return@Column
 
-        val playing = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING
         if (ui.options.pageView) PagedScoreView(
             score = score,
             cursorBeat = vm::cursorAt,
@@ -102,7 +101,6 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             nameStyle = vm.nameStyle,
             onMeasureTap = vm::onMeasureTap,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            hideNotes = ui.options.hideNotes && ui.phase != Phase.RESULT,
         ) else ScoreView(
             score = score,
             layout = layout,
@@ -116,12 +114,11 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             nameStyle = vm.nameStyle,
             onMeasureTap = vm::onMeasureTap,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            hideNotes = ui.options.hideNotes && ui.phase != Phase.RESULT,
         )
 
         ui.message?.let { msg ->
             Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-                Text(msg, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Error, modifier = Modifier.weight(1f))
+                Text(msg, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
                 TextButton(onClick = vm::dismissMessage) { Text(stringResource(R.string.reader_done)) }
             }
         }
@@ -132,18 +129,7 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             Phase.RESULT -> ui.result?.let { ResultPanel(it, vm, onBack) }
         }
 
-        if (ui.options.showKeyboard && ui.phase != Phase.RESULT) {
-            PianoKeyboard(
-                lowNote = piece?.keyRange?.first ?: 48,
-                highNote = piece?.keyRange?.last ?: 72,
-                pressed = pressed,
-                showNames = ui.showNames,
-                nameStyle = vm.nameStyle,
-                onNoteOn = { n, depth -> dispatchTouch(vm, n, (40 + depth * 80).toInt().coerceIn(1, 127)) },
-                onNoteOff = { n -> dispatchTouch(vm, n, 0) },
-                modifier = Modifier.fillMaxWidth().height(120.dp).padding(horizontal = Tokens.Space.s, vertical = Tokens.Space.xs),
-            )
-        }
+        if (ui.phase != Phase.RESULT) KeyHint(marked = emptySet(), nameStyle = vm.nameStyle)
     }
 
     if (showOptions) OptionsDialog(ui.options, vm, onDismiss = { showOptions = false })
@@ -153,7 +139,7 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
 private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Unit) {
     val score = vm.score ?: return
     Column(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.s)) {
-        if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.Error)
+        if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
@@ -188,8 +174,9 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
             horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                stringResource(if (ui.pendingSectionStart != null) R.string.reader_tap_end_hint else R.string.reader_tap_hint),
+            // Only the hint that is needed right now: the second tap of a section choice.
+            if (ui.pendingSectionStart != null) Text(
+                stringResource(R.string.reader_tap_end_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = Tokens.Palette.InkMuted,
             )
@@ -207,7 +194,7 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
 @Composable
 private fun FixedControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.s)) {
-        if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.Error)
+        if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
@@ -231,26 +218,26 @@ private fun FixedControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
     }
 }
 
+/** While playing: one small floating pill (status, then a white stop button) so the notes keep the height. */
 @Composable
 private fun RunControls(ui: ReaderUi, vm: ReaderViewModel) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.s),
-        horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Button(onClick = vm::stop) { Text(stringResource(R.string.reader_stop)) }
-        val status = when {
-            ui.phase == Phase.COUNT_IN -> stringResource(R.string.reader_count_in, ui.countIn ?: 0)
-            ui.phase == Phase.LISTENING -> stringResource(R.string.reader_listening, ui.bpm)
-            ui.options.mode == PlayMode.WAIT -> stringResource(R.string.reader_playing_wait)
-            else -> stringResource(R.string.reader_playing_tempo, ui.bpm)
+    Box(Modifier.fillMaxWidth().padding(bottom = Tokens.Space.s), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier
+                .border(1.dp, Tokens.Palette.Line, androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
+                .padding(start = 20.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val status = when {
+                ui.phase == Phase.COUNT_IN -> stringResource(R.string.reader_count_in, ui.countIn ?: 0)
+                ui.phase == Phase.LISTENING -> stringResource(R.string.reader_listening, ui.bpm)
+                ui.options.mode == PlayMode.WAIT -> stringResource(R.string.reader_playing_wait)
+                else -> stringResource(R.string.reader_playing_tempo, ui.bpm)
+            }
+            Text(status, fontFamily = Tokens.Fonts.mono, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, maxLines = 1)
+            Button(onClick = vm::stop, shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)) { Text(stringResource(R.string.reader_stop)) }
         }
-        Text(
-            status,
-            style = if (ui.phase == Phase.COUNT_IN) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyMedium,
-            maxLines = 2,
-            modifier = Modifier.weight(1f),
-        )
     }
 }
 
@@ -264,16 +251,15 @@ private fun ResultPanel(r: ResultUi, vm: ReaderViewModel, onBack: () -> Unit) {
             .padding(horizontal = Tokens.Space.m, vertical = Tokens.Space.xs),
         verticalArrangement = Arrangement.spacedBy(Tokens.Space.xs),
     ) {
-        Text(r.headline, style = MaterialTheme.typography.titleMedium, color = if (r.clean == true) Tokens.Palette.Good else MaterialTheme.colorScheme.onSurface)
+        Text(r.headline, style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.Ink)
         if (r.details.isNotEmpty()) Text(r.details, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
-        r.progressLine?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Good) }
+        r.progressLine?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink) }
         for (line in r.coach) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("• " + line.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 line.action?.let { a -> TextButton(onClick = { vm.applyAction(a) }) { Text(actionLabel(a)) } }
             }
         }
-        Text(stringResource(R.string.reader_legend), style = MaterialTheme.typography.labelSmall, color = Tokens.Palette.InkMuted)
         Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
             if (vm.benchDone) {
                 Button(onClick = onBack) { Text(stringResource(R.string.reader_done)) }
@@ -304,9 +290,7 @@ private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -
                 OptionRow(R.string.reader_opt_other_hand, R.string.reader_opt_other_hand_body, o.playOtherHand, vm::setPlayOtherHand)
                 if (!fixed) OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)
                 if (!fixed) OptionRow(R.string.reader_opt_ramp, R.string.reader_opt_ramp_body, o.useRamp, vm::setUseRamp)
-                OptionRow(R.string.reader_opt_keyboard, R.string.reader_opt_keyboard_body, o.showKeyboard, vm::setShowKeyboard)
                 OptionRow(R.string.reader_opt_page, R.string.reader_opt_page_body, o.pageView, vm::setPageView)
-                if (!fixed) OptionRow(R.string.reader_opt_hide, R.string.reader_opt_hide_body, o.hideNotes, vm::setHideNotes)
                 if (!fixed) OptionRow(R.string.reader_opt_loop, R.string.reader_opt_loop_body, o.loopListen, vm::setLoopListen)
             }
         },
@@ -322,12 +306,4 @@ private fun OptionRow(title: Int, body: Int, checked: Boolean, onChange: (Boolea
         }
         Box(Modifier.padding(start = Tokens.Space.s)) { Switch(checked = checked, onCheckedChange = onChange) }
     }
-}
-
-private fun dispatchTouch(vm: ReaderViewModel, note: Int, velocity: Int) {
-    val hub = vm.getApplication<MimikopiApp>().inputHub
-    hub.dispatch(
-        if (velocity > 0) InputEvent.NoteOn(note, velocity, System.nanoTime(), InputSource.TOUCH)
-        else InputEvent.NoteOff(note, System.nanoTime(), InputSource.TOUCH),
-    )
 }

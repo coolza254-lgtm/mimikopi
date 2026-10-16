@@ -27,10 +27,19 @@ class MimikopiApp : Application() {
     val inputHub: InputHub by lazy { InputHub(piano) }
     val inputConfig: InputConfigStore by lazy { InputConfigStore(database.settingsDao()) }
     val midiInput: MidiInputManager by lazy { MidiInputManager(this, inputHub) }
+    val bleScanner: com.id.mimikopi.midi.BleMidiScanner by lazy { com.id.mimikopi.midi.BleMidiScanner(this) }
     val learning: com.id.mimikopi.learning.LearningRepository by lazy { com.id.mimikopi.learning.LearningRepository(this, database) }
     val pieces: com.id.mimikopi.pieces.PieceRepository by lazy { com.id.mimikopi.pieces.PieceRepository(this, database) }
-    val songs: com.id.mimikopi.songs.SongRepository by lazy { com.id.mimikopi.songs.SongRepository(this, database) }
+    val sections: com.id.mimikopi.sections.SectionRepository by lazy { com.id.mimikopi.sections.SectionRepository(database) }
     val session: com.id.mimikopi.learning.SessionTracker by lazy { com.id.mimikopi.learning.SessionTracker(learning) }
+
+    /** The chosen look (dark by default until the stored choice is read). */
+    val themeMode = kotlinx.coroutines.flow.MutableStateFlow(com.id.mimikopi.ui.theme.ThemeMode.DARK)
+
+    fun setThemeMode(mode: com.id.mimikopi.ui.theme.ThemeMode) {
+        themeMode.value = mode
+        appScope.launch { database.settingsDao().put(com.id.mimikopi.data.db.SettingEntity(com.id.mimikopi.data.db.SettingKeys.THEME_MODE, mode.name)) }
+    }
 
     /** Process-lifetime scope for small startup work. */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -41,8 +50,15 @@ class MimikopiApp : Application() {
         // MIDI devices are listened for app-wide, so a connected piano works on every practice screen.
         midiInput.start()
         appScope.launch {
+            database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.THEME_MODE)
+                ?.let { runCatching { com.id.mimikopi.ui.theme.ThemeMode.valueOf(it) }.getOrNull() }?.let { themeMode.value = it }
             midiInput.octaveOffset = inputConfig.load().octaveOffset
             inputHub.soundThrough = database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_SOUND_THROUGH)?.toBooleanStrictOrNull() ?: true
+            // Reconnect the remembered Bluetooth piano (only if the user already allowed nearby devices).
+            database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_BLE_DEVICE)?.substringBefore('|')?.takeIf { it.isNotBlank() }?.let { address ->
+                midiInput.bleAddress = address
+                if (bleScanner.hasPermissions()) midiInput.connectBluetooth(address)
+            }
         }
     }
 }

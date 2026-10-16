@@ -1,5 +1,7 @@
 package com.id.mimikopi.ui.midi
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -29,6 +32,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.id.mimikopi.R
+import com.id.mimikopi.core.input.InputSource
+import com.id.mimikopi.midi.BleMidiScanner
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.ScreenScaffold
 import com.id.mimikopi.ui.theme.Tokens
@@ -43,6 +48,20 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
     val octave by vm.octave.collectAsStateWithLifecycle()
     val latency by vm.latency.collectAsStateWithLifecycle()
     var showSim by remember { mutableStateOf(false) }
+    val bleFound by vm.bleFound.collectAsStateWithLifecycle()
+    val bleScanning by vm.bleScanning.collectAsStateWithLifecycle()
+    val bleSaved by vm.bleSaved.collectAsStateWithLifecycle()
+    val bleProblem by vm.bleProblem.collectAsStateWithLifecycle()
+    // The scan or reconnect continues once the user answers the "nearby devices" dialog.
+    var afterPermission by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        afterPermission?.invoke()
+        afterPermission = null
+    }
+    fun withPermission(action: () -> Unit) {
+        afterPermission = action
+        permissionLauncher.launch(BleMidiScanner.REQUIRED)
+    }
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
@@ -56,12 +75,49 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
                 Body(stringResource(R.string.midi_none_help))
             } else {
                 devices.forEach { d ->
-                    Body("• ${d.name} · ${d.source.name} · " + if (d.open) stringResource(R.string.midi_connected) else (d.error ?: stringResource(R.string.midi_connecting)))
+                    val status = when {
+                        !d.open -> d.error ?: stringResource(R.string.midi_connecting)
+                        d.silent -> stringResource(R.string.midi_silent)
+                        d.sendsSensing -> stringResource(R.string.midi_live)
+                        else -> stringResource(R.string.midi_connected_unknown)
+                    }
+                    Body("• ${d.name} · ${d.source.name} · $status", error = d.silent)
                 }
             }
+            if (vm.midiSupported) TextButton(onClick = vm::recheck, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.midi_recheck)) }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Tokens.Space.s)) {
                 Text(stringResource(R.string.midi_sound_through), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(checked = soundThrough, onCheckedChange = vm::setSoundThrough)
+            }
+        }
+
+        if (vm.bleSupported) {
+            PageCard(title = stringResource(R.string.ble_title)) {
+                val bleConnected = devices.any { it.source == InputSource.BLE_MIDI && it.open }
+                bleSaved?.let { saved ->
+                    Body(stringResource(if (bleConnected) R.string.ble_saved_connected else R.string.ble_saved_waiting, saved.name))
+                    Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s), modifier = Modifier.fillMaxWidth()) {
+                        if (!bleConnected) {
+                            OutlinedButton(onClick = { withPermission(vm::bleReconnect) }, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ble_reconnect)) }
+                        }
+                        OutlinedButton(onClick = vm::bleForget, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ble_forget)) }
+                    }
+                } ?: Body(stringResource(R.string.ble_help), muted = true)
+                when (bleProblem) {
+                    BleProblem.PERMISSION -> Body(stringResource(R.string.ble_need_permission), error = true)
+                    BleProblem.OFF -> Body(stringResource(R.string.ble_off), error = true)
+                    null -> Unit
+                }
+                Button(
+                    onClick = { withPermission(vm::bleScan) },
+                    enabled = !bleScanning,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch).padding(top = Tokens.Space.s),
+                ) { Text(stringResource(if (bleScanning) R.string.ble_scanning else R.string.ble_scan)) }
+                bleFound.filter { it.address != bleSaved?.address || !bleConnected }.forEach { d ->
+                    OutlinedButton(onClick = { vm.bleConnect(d) }, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
+                        Text(stringResource(R.string.ble_connect_to, d.name))
+                    }
+                }
             }
         }
 

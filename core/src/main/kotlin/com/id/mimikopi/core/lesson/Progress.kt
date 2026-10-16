@@ -14,6 +14,8 @@ data class LessonRecord(
     val attempts: Int = 0,
     /** Days on which each drill (by index) met its criterion without helpers; a pass day needs every required drill. */
     val drillDays: Map<Int, Set<String>> = emptyMap(),
+    /** Days on which a required drill was run at all (met or not): the step ladder's confirmation check. */
+    val triedDays: Set<String> = emptySet(),
 )
 
 enum class LessonStatus { LOCKED, AVAILABLE, IN_PROGRESS, PASSED }
@@ -48,6 +50,35 @@ object ProgressRules {
         if (!prerequisitesMet) return LessonStatus.LOCKED
         return if ((record?.attempts ?: 0) > 0) LessonStatus.IN_PROGRESS else LessonStatus.AVAILABLE
     }
+
+    // ---------------- step ladder (M14): pass today, confirm on a later day ----------------
+
+    /**
+     * Steps passed on one day that still need their confirming day (shown first in the next day's session),
+     * oldest first. Steps passed in one day (pieces, songs) never wait.
+     */
+    fun awaitingConfirmation(lessons: List<Lesson>, records: Map<String, LessonRecord>, today: LocalDate): List<Lesson> =
+        lessons.filter { l ->
+            val r = records[l.id] ?: return@filter false
+            l.pass.days > 1 && r.passDays.size in 1 until l.pass.days && r.passDays.all { it < today.toString() }
+        }
+
+    /**
+     * A step passed on one day, then run again on a later day (before today) without meeting its criterion,
+     * failed its confirmation: it goes back to practice so the ladder returns to it.
+     */
+    fun failedConfirmation(lesson: Lesson, record: LessonRecord, today: LocalDate): Boolean {
+        if (lesson.pass.days < 2 || record.passDays.size != 1) return false
+        val passed = record.passDays.first()
+        return record.triedDays.any { it > passed && it < today.toString() && it !in record.passDays }
+    }
+
+    /** The ladder's step for today: the first unlocked step not yet met on any day (confirmations are separate). */
+    fun nextToLearn(lessons: List<Lesson>, records: Map<String, LessonRecord>): Lesson? =
+        lessons.firstOrNull { l -> records[l.id]?.passDays.isNullOrEmpty() && status(l, records) != LessonStatus.LOCKED }
+
+    /** Back to practice: the pass days are cleared, attempts and history stay. */
+    fun reopen(record: LessonRecord): LessonRecord = record.copy(passDays = emptySet(), drillDays = emptyMap())
 
     /** The lesson to work on now: the first not-yet-passed, unlocked lesson in order. */
     fun current(lessons: List<Lesson>, records: Map<String, LessonRecord>): Lesson? =

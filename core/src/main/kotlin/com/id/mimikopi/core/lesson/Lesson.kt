@@ -28,12 +28,15 @@ data class Lesson(
     val tips: List<String>,
     /** Honest caveats shown to the user (e.g. unverified numbers). */
     val caveats: List<String> = emptyList(),
+    /** Step ladder (M14): the full explanation of the topic, shown on request ("อ่านละเอียด"). */
+    val more: List<String> = emptyList(),
+    /** Step ladder: the stage-1-6 lesson drill this step came from ("1.5#1"), for migrating old progress. */
+    val legacy: String? = null,
 ) {
     fun problems(): List<String> = buildList {
-        if (!Regex("""^\d+\.\d+$""").matches(id)) add("$id: bad id")
+        if (!Regex("""^(\d+\.\d+|e\d+)$""").matches(id)) add("$id: bad id")
         if (title.isBlank() || goal.isBlank()) add("$id: missing title/goal")
         if (explain.isEmpty()) add("$id: no explanation")
-        if (tryIt.isEmpty()) add("$id: no try-with-app steps")
         if (drills.isEmpty()) add("$id: no drills")
         if (tips.isEmpty()) add("$id: no tips")
         if (passText.isBlank()) add("$id: no pass text")
@@ -45,11 +48,14 @@ data class Lesson(
                 ExerciseType.E_KEYFIND -> true
                 ExerciseType.E_NOTEID, ExerciseType.E_INTERVAL_READ -> pass.minAccuracy != null
                 ExerciseType.E_PULSE -> pass.maxSdMs != null
-                ExerciseType.E_FINGER_PATTERN, ExerciseType.E_RHYTHM_TAP, ExerciseType.E_READ_PIECE -> pass.cleanRuns != null
-                ExerciseType.E_PIECE -> pass.cleanRuns != null || pass.piecesPassed != null || pass.songsCompleted != null
+                // A wait-mode run has no timing, so its clean runs are judged by first-try accuracy.
+                ExerciseType.E_FINGER_PATTERN, ExerciseType.E_RHYTHM_TAP, ExerciseType.E_READ_PIECE ->
+                    pass.cleanRuns != null && (drills[i].mode != "WAIT" || pass.minAccuracy != null)
+                ExerciseType.E_PIECE -> pass.piecesPassed != null || pass.songsCompleted != null ||
+                    (pass.cleanRuns != null && (drills[i].mode != "WAIT" || pass.minAccuracy != null))
                 ExerciseType.E_CHORD_BUILD -> pass.minAccuracy != null
                 ExerciseType.E_CHORD_CHANGE -> pass.minCount != null
-                ExerciseType.E_COMP_PATTERN, ExerciseType.E_TRANSPOSE -> pass.cleanRuns != null
+                ExerciseType.E_COMP_PATTERN, ExerciseType.E_TRANSPOSE -> pass.cleanRuns != null && (drills[i].mode != "WAIT" || pass.minAccuracy != null)
                 ExerciseType.E_EAR -> pass.minAccuracy != null
             }
             if (!ok) add("$id: pass rule lacks the criterion for drill $i ($t)")
@@ -159,6 +165,8 @@ data class Drill(
     val pedal: Boolean = false,
     /** L8 lead sheets: the app plays a bass line as a backing track. */
     val backing: Boolean = false,
+    /** E_EAR on the ear ladder: narrows the level to one small step (intervals, gaps, notes, degrees). */
+    val ear: com.id.mimikopi.core.ear.EarSpec? = null,
 ) {
     fun problems(): List<String> = buildList {
         if (type.isScore || type == ExerciseType.E_INTERVAL_READ) {

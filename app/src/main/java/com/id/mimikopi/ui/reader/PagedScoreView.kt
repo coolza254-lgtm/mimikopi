@@ -42,8 +42,8 @@ fun PagedScoreView(
     hideNotes: Boolean = false,
 ) {
     BoxWithConstraints(modifier) {
-        // About two systems on screen in landscape, more in portrait; never smaller than readable.
-        val systemHeight = (maxHeight / 2).coerceIn(120.dp, 190.dp)
+        // Large type for a phone on the music stand: about one and a half systems on screen.
+        val systemHeight = (maxHeight / 1.5f).coerceIn(160.dp, 320.dp)
         val density = LocalDensity.current
         val widthSpaces = with(density) { maxWidth.toPx() / (systemHeight.toPx() / 24f) } - 3f
         val systems = remember(score, widthSpaces.toInt()) {

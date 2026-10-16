@@ -103,8 +103,8 @@ fun StaffSequenceView(clef: Clef, notes: List<SpelledPitch>, highlight: Set<Int>
             val pos = Staff.position(p, clef)
             val x = start + i * step
             val color = when {
-                i < played -> Tokens.Palette.Good
-                i in highlight -> Tokens.Palette.Rose
+                i < played -> Tokens.Palette.Dim
+                i in highlight -> Tokens.Palette.Ink
                 else -> ink
             }
             val width = Smufl.WHOLE_NOTE_WIDTH * space

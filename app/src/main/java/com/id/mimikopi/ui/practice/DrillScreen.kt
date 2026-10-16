@@ -52,7 +52,8 @@ import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.ui.components.PageCard
-import com.id.mimikopi.ui.components.PianoKeyboard
+import com.id.mimikopi.ui.components.DrillProgress
+import com.id.mimikopi.ui.components.KeyHint
 import com.id.mimikopi.ui.components.StaffView
 import com.id.mimikopi.ui.components.StaffSequenceView
 import com.id.mimikopi.ui.components.paper
@@ -65,6 +66,13 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
     val showNames by vm.showNames.collectAsStateWithLifecycle()
     val pressed by vm.pressed.collectAsStateWithLifecycle()
 
+    val answer = when (val s = ui) {
+        is DrillUi.Question -> s.feedback
+        is DrillUi.ChordAsk -> s.feedback
+        is DrillUi.Interval -> s.feedback
+        else -> null
+    }
+    com.id.mimikopi.ui.components.AnswerHaptics(answer?.let { it == Feedback.CORRECT })
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
@@ -105,7 +113,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                 }
                 is DrillUi.Question -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-                        Text("${s.index}/${s.total}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        DrillProgress(s.index, s.total)
                         FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
                     }
                     Box(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), contentAlignment = Alignment.Center) {
@@ -116,27 +124,17 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         s.feedback?.let { f ->
                             Text(
                                 stringResource(if (f == Feedback.CORRECT) R.string.drill_correct else R.string.drill_wrong),
-                                color = if (f == Feedback.CORRECT) Tokens.Palette.GoodInk else MaterialTheme.colorScheme.error,
+                                color = Tokens.Palette.Ink,
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.align(Alignment.BottomCenter),
                             )
                         }
                     }
-                    PianoKeyboard(
-                        lowNote = vm.keyRange.first,
-                        highNote = vm.keyRange.last,
-                        pressed = pressed,
-                        showNames = showNames,
-                        nameStyle = vm.nameStyle,
-                        onNoteOn = { n, _ -> dispatchTouch(vm, n, true) },
-                        onNoteOff = { n -> dispatchTouch(vm, n, false) },
-                        marked = if (s.feedback == Feedback.WRONG) s.prompt.answerKeys(vm.keyRange) else emptySet(),
-                        modifier = Modifier.fillMaxWidth().height(190.dp).padding(Tokens.Space.s),
-                    )
+                    KeyHint(marked = if (s.feedback == Feedback.WRONG) s.prompt.answerKeys(vm.keyRange) else emptySet(), nameStyle = vm.nameStyle)
                 }
                 is DrillUi.Interval -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-                        Text("${s.index}/${s.total}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        DrillProgress(s.index, s.total)
                         FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
                     }
                     Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -151,16 +149,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         if (s.feedback == Feedback.WRONG && s.pair == null) Text(stringResource(R.string.drill_wrong), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
                         if (s.pair != null) IntervalAnswers(s, vm)
                     }
-                    PianoKeyboard(
-                        lowNote = vm.keyRange.first,
-                        highNote = vm.keyRange.last,
-                        pressed = pressed,
-                        showNames = showNames,
-                        nameStyle = vm.nameStyle,
-                        onNoteOn = { n, _ -> dispatchTouch(vm, n, true) },
-                        onNoteOff = { n -> dispatchTouch(vm, n, false) },
-                        modifier = Modifier.fillMaxWidth().height(150.dp).padding(Tokens.Space.s),
-                    )
+                    KeyHint(marked = emptySet(), nameStyle = vm.nameStyle)
                 }
                 is DrillUi.ChordAsk -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
@@ -175,10 +164,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         val parts = s.label.split(" ในคีย์ ", limit = 2)
                         Column(
                             Modifier
-                                .background(Tokens.Palette.MustardSoft, RoundedCornerShape(28.dp))
-                                .padding(bottom = 6.dp)
-                                .background(Tokens.Palette.Card, RoundedCornerShape(28.dp))
-                                .border(Tokens.border, Tokens.Palette.Line, RoundedCornerShape(28.dp))
+                                .border(Tokens.border, Tokens.Palette.Ink, RoundedCornerShape(28.dp))
                                 .padding(horizontal = 36.dp, vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
@@ -190,23 +176,13 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         s.feedback?.let { f ->
                             Text(
                                 stringResource(if (f == Feedback.CORRECT) R.string.drill_correct else R.string.drill_chord_wrong),
-                                color = if (f == Feedback.CORRECT) Tokens.Palette.GoodInk else MaterialTheme.colorScheme.error,
+                                color = Tokens.Palette.Ink,
                                 style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(top = Tokens.Space.m),
                             )
                         }
                     }
-                    PianoKeyboard(
-                        lowNote = vm.keyRange.first,
-                        highNote = vm.keyRange.last,
-                        pressed = pressed,
-                        showNames = showNames,
-                        nameStyle = vm.nameStyle,
-                        onNoteOn = { n, _ -> dispatchTouch(vm, n, true) },
-                        onNoteOff = { n -> dispatchTouch(vm, n, false) },
-                        marked = s.answer,
-                        modifier = Modifier.fillMaxWidth().height(190.dp).padding(Tokens.Space.s),
-                    )
+                    KeyHint(marked = s.answer, nameStyle = vm.nameStyle)
                 }
                 is DrillUi.Pulse -> Column(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("${s.bpm} BPM", style = MaterialTheme.typography.titleLarge)
@@ -218,23 +194,27 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                     Text(stringResource(R.string.drill_taps, s.taps), style = MaterialTheme.typography.bodyLarge)
                     TapPad(vm, Modifier.fillMaxWidth().weight(1f).padding(top = Tokens.Space.m))
                 }
-                is DrillUi.Result -> Centered {
-                    PageCard(title = stringResource(R.string.drill_result)) {
-                        Text(s.summary, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.xs))
-                        s.passCriterionMet?.let {
-                            Text(
-                                stringResource(if (it) R.string.drill_met else R.string.drill_not_met),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (it) Tokens.Palette.Ink else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = Tokens.Space.s),
-                            )
-                        }
-                        s.coach.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = Tokens.Space.s)) }
-                        Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s), modifier = Modifier.padding(top = Tokens.Space.m)) {
-                            OutlinedButton(onClick = vm::again, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.drill_again)) }
-                            Button(onClick = onBack, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.drill_done)) }
-                        }
+                is DrillUi.Result -> Centered { Column(Modifier.fillMaxWidth()) {
+                    // A result page: the badge, the verdict in the serif, the numbers, then the coach's notes.
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        com.id.mimikopi.ui.components.ResultBadge(s.passCriterionMet)
+                        Text(
+                            stringResource(when (s.passCriterionMet) { true -> R.string.drill_met; false -> R.string.drill_not_met; null -> R.string.drill_result }),
+                            style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 20.dp),
+                        )
+                        Text(s.summary, style = MaterialTheme.typography.bodyLarge, color = Tokens.Palette.InkMuted, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
                     }
+                    if (s.coach.isNotEmpty()) Column(Modifier.fillMaxWidth().padding(top = 24.dp)) {
+                        s.coach.forEach {
+                            com.id.mimikopi.ui.components.Hairline()
+                            Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 12.dp))
+                        }
+                        com.id.mimikopi.ui.components.Hairline()
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s), modifier = Modifier.padding(top = 28.dp)) {
+                        OutlinedButton(onClick = vm::again, modifier = Modifier.weight(1f).heightIn(min = 60.dp)) { Text(stringResource(R.string.drill_again)) }
+                        Button(onClick = onBack, modifier = Modifier.weight(1f).heightIn(min = 60.dp)) { Text(stringResource(R.string.drill_done)) }
+                    } }
                 }
             }
         }
@@ -283,7 +263,7 @@ private fun TapPad(vm: DrillViewModel, modifier: Modifier) {
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as MimikopiApp
     Box(
         modifier
-            .background(Tokens.Palette.RoseSoft, RoundedCornerShape(Tokens.Radius.card))
+            .border(1.5.dp, Tokens.Palette.Ink, RoundedCornerShape(Tokens.Radius.card))
             .pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown()

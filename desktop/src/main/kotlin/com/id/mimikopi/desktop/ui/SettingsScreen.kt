@@ -28,6 +28,7 @@ import com.id.mimikopi.desktop.Keys
 import com.id.mimikopi.desktop.Services
 import com.id.mimikopi.desktop.ThemeMode
 import com.id.mimikopi.desktop.audio.PackInstaller
+import com.id.mimikopi.desktop.update.DesktopUpdater
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -152,13 +153,57 @@ fun SettingsScreen(onBack: () -> Unit) {
             }
             backupMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp)) }
         }
+        UpdateSection()
         PageCard(title = "เกี่ยวกับ") {
             Text("ミミコピ สำหรับ Windows รุ่น $appVersion", style = MaterialTheme.typography.bodyMedium)
-            Text("ข้อมูลทั้งหมดอยู่ในเครื่องนี้ (โฟลเดอร์ ${Services.dir.path}) โปรแกรมใช้อินเทอร์เน็ตเฉพาะตอนดาวน์โหลดเสียงเปียโน",
+            Text("ข้อมูลทั้งหมดอยู่ในเครื่องนี้ (โฟลเดอร์ ${Services.dir.path}) โปรแกรมใช้อินเทอร์เน็ตเฉพาะตอนตรวจรุ่นใหม่ (วันละครั้ง) และตอนดาวน์โหลดเสียงเปียโน",
                 style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 4.dp))
-            Text("รุ่นนี้มีฝึกฟังและฝึกท่อน ส่วนอ่านโน้ตและเพลงจะตามมาในรุ่นถัดไป · เสียงเปียโน: Salamander Grand Piano V3 (Alexander Holm, CC BY 3.0) · ฟอนต์ Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono (SIL OFL 1.1)",
+            Text("เสียงเปียโน: Salamander Grand Piano V3 (Alexander Holm, CC BY 3.0) · ฟอนต์ Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono, Bravura (SIL OFL 1.1)",
                 style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 4.dp).width(640.dp))
         }
+    }
+}
+
+/** The program's own updates: the result of the daily check, a button to check now, and download + install. */
+@Composable
+private fun UpdateSection() {
+    val updater = Services.updater
+    val state by updater.state.collectAsState()
+    PageCard(title = "อัปเดตโปรแกรม") {
+        if (!updater.supported) {
+            Text("อัปเดตจากในโปรแกรมใช้ได้กับโปรแกรมที่ติดตั้งบน Windows", style = MaterialTheme.typography.bodyMedium)
+            return@PageCard
+        }
+        val busy = state is DesktopUpdater.State.Checking || state is DesktopUpdater.State.Downloading || state is DesktopUpdater.State.Installing
+        Text(
+            when (val s = state) {
+                DesktopUpdater.State.Idle -> "รุ่นที่ใช้อยู่ $appVersion"
+                DesktopUpdater.State.Checking -> "กำลังตรวจรุ่นใหม่…"
+                is DesktopUpdater.State.UpToDate -> "ใช้รุ่นล่าสุดอยู่แล้ว ($appVersion)"
+                is DesktopUpdater.State.Available -> "มีรุ่นใหม่ ${s.manifest.versionName} (ใช้อยู่ $appVersion) · ${s.manifest.msiSize / 1_000_000} MB"
+                is DesktopUpdater.State.Downloading -> "กำลังดาวน์โหลด ${(s.fraction * 100).toInt()}%"
+                DesktopUpdater.State.Installing -> "กำลังติดตั้ง โปรแกรมจะปิดแล้วเปิดใหม่เอง"
+                is DesktopUpdater.State.Failed -> s.message
+            },
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        (state as? DesktopUpdater.State.Available)?.manifest?.notesTh?.takeIf { it.isNotBlank() }?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
+            val available = state as? DesktopUpdater.State.Available
+            if (available != null) Button(enabled = !busy, onClick = {
+                Thread {
+                    if (updater.downloadAndInstall(available.manifest)) {
+                        // The installer replaces this program's files: close it.
+                        Services.midi.stop()
+                        kotlin.system.exitProcess(0)
+                    }
+                }.apply { isDaemon = true; start() }
+            }) { Text("ดาวน์โหลดและติดตั้ง") }
+            OutlinedButton(enabled = !busy, onClick = { Thread { updater.check(force = true) }.apply { isDaemon = true; start() } }) { Text("ตรวจรุ่นใหม่") }
+        }
+        Text("ข้อมูลและความคืบหน้าอยู่ครบหลังอัปเดต", style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 8.dp))
     }
 }
 

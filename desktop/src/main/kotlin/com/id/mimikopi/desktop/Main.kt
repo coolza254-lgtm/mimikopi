@@ -149,6 +149,11 @@ private fun App() {
                 Text(if (ready) "  MIDI" else "  ไม่มี MIDI", fontFamily = Tokens.Fonts.mono, fontSize = 12.sp, color = if (ready) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
             }
             RailItem("ตั้งค่า", screen == Screen.Settings) { go(Screen.Settings) }
+            val update by Services.updater.state.collectAsState()
+            if (update is com.id.mimikopi.desktop.update.DesktopUpdater.State.Available) {
+                Text("มีรุ่นใหม่ · ดูในตั้งค่า", fontFamily = Tokens.Fonts.mono, fontSize = 11.sp, color = Tokens.Palette.Ink,
+                    modifier = Modifier.padding(start = 14.dp).clickable { go(Screen.Settings) })
+            }
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(Tokens.Palette.Hair))
         if (!screen.scrollsInPage) Box(Modifier.weight(1f).fillMaxHeight()) {

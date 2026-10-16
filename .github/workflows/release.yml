@@ -205,5 +205,27 @@ jobs:
           OUT="mimikopi-windows-$TAG.msi"
           cp "$MSI" "$OUT"
           sha256sum "$OUT"
+          # windows.json: what the program's own update check reads (version, link, size, checksum, notes).
+          SHA=$(sha256sum "$OUT" | cut -d' ' -f1)
+          SIZE=$(stat -c%s "$OUT")
+          URL="https://github.com/$RELEASES_REPO/releases/download/$TAG/$OUT"
+          SHA="$SHA" SIZE="$SIZE" URL="$URL" python - <<'PY'
+          import json, os, datetime
+          tag = os.environ["TAG"]
+          notes = open(f"release-notes/{tag}.md", encoding="utf-8").read().strip()
+          data = {
+              "schema": 1,
+              "versionName": os.environ["VERSION_NAME"],
+              "tag": tag,
+              "msiUrl": os.environ["URL"],
+              "msiSize": int(os.environ["SIZE"]),
+              "sha256": os.environ["SHA"],
+              "notesTh": notes,
+              "publishedAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+          }
+          json.dump(data, open("windows.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          PY
+          cat windows.json
           gh release upload "$TAG" "$OUT" --repo "$RELEASES_REPO" --clobber
+          gh release upload "$TAG" windows.json --repo "$RELEASES_REPO" --clobber
 

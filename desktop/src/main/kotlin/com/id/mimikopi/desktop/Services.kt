@@ -11,6 +11,7 @@ import com.id.mimikopi.desktop.learning.PieceRepository
 import com.id.mimikopi.desktop.learning.SectionStore
 import com.id.mimikopi.desktop.midi.DesktopMidi
 import com.id.mimikopi.desktop.port.PianoController
+import com.id.mimikopi.desktop.update.DesktopUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -131,6 +132,7 @@ object Services {
     val pieces = PieceRepository(store)
     /** The reading drills and the score reader drive the piano and the metronome through this (as on Android). */
     val pianoController = PianoController(::piano)
+    val updater = DesktopUpdater(dir, store, System.getProperty("jpackage.app-version") ?: "dev")
     val sections = SectionStore(store)
 
     val themeMode = MutableStateFlow(store.get(Keys.THEME_MODE)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.DARK)
@@ -140,5 +142,6 @@ object Services {
         hub.soundThrough = store.get(Keys.SOUND_THROUGH)?.toBooleanStrictOrNull() ?: false
         midi.start()
         Thread { loadSampledPiano() }.apply { isDaemon = true; start() }
+        Thread { updater.check(force = false) }.apply { isDaemon = true; start() }
     }
 }

@@ -72,5 +72,6 @@ for 7 days or indefinitely. ADB installs are exempt.
 5. To bring progress over from the phone: on the phone, Settings → Backup → Export; on the PC, Settings → Move data →
    Import backup. The PC can export a backup the phone can import too.
 
-Updating on Windows: download the newer MSI and run it; it replaces the old version and keeps your data
-(`%APPDATA%\Mimikopi`).
+Updating on Windows: from v0.18.1 the program checks once a day when it starts (and on demand in Settings → Update)
+and can download, verify (size + SHA-256) and install the new MSI itself, then start again. Before v0.18.1: download
+the newer MSI and run it. Either way it replaces the old version and keeps your data (`%APPDATA%\Mimikopi`).

@@ -25,6 +25,14 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Windows version, v0.18.1
+- In-program update: reads `windows.json` from the latest release (attached by the release workflow's Windows job a
+  few minutes after the release itself; until then the check finds nothing new). The MSI is unsigned, so its
+  integrity rests on HTTPS from github.com and the SHA-256 in windows.json (the same trust as the APK update). The
+  installer runs through a small cmd script with `msiexec /passive`; Windows may still show its own prompts.
+- MIDI: Settings shows messages received per keyboard and a copyable report of every device Java Sound sees, to find
+  out why a keyboard does not connect on a given PC (the cause on the user's PC is not known yet).
+
 ## Windows version, phase 2 (v0.18.0)
 - Reading (steps, drills, review), the score reader and songs are the Android screens copied into
   desktop/.../port with only their imports changed; a small layer supplies the Android names (R generated from

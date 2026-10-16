@@ -65,7 +65,7 @@ class Store(private val file: File) {
         BackupFile(
             applicationId = APPLICATION_ID, appVersionName = appVersion, appVersionCode = 0, databaseVersion = DATABASE_VERSION,
             createdAtUtc = Instant.now().toString(),
-            data = BackupData(itemStats = stats, settings = settings, totalRows = settings.size + stats.size),
+            data = BackupData(itemStats = stats, settings = settings),
         ).toJson()
     }
 

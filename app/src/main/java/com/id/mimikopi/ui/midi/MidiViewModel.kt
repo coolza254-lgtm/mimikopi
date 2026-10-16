@@ -158,6 +158,12 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) { piano.release() }
     }
 
+    /** Re-reads the system's device list (and retries the remembered Bluetooth instrument). */
+    fun recheck() {
+        midi.resync()
+        bleReconnect()
+    }
+
     fun setSoundThrough(on: Boolean) {
         hub.soundThrough = on
         _soundThrough.value = on

@@ -717,4 +717,12 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="theme_dark">มืด (OLED)</string>
     <string name="theme_light">สว่าง</string>
     <string name="theme_system">ตามเครื่อง</string>
+    <string name="midi_live">เชื่อมต่อแล้ว · เปิดเครื่องอยู่</string>
+    <string name="midi_silent">ยังเสียบอยู่แต่ไม่มีสัญญาณ (น่าจะปิดเครื่อง)</string>
+    <string name="midi_connected_unknown">เชื่อมต่อแล้ว (คีย์บอร์ดนี้ไม่ส่งสัญญาณบอกสถานะ แอพจึงรู้ไม่ได้ว่าปิดเครื่องหรือยัง ถ้าสายยังเสียบอยู่)</string>
+    <string name="midi_recheck">ตรวจการเชื่อมต่อใหม่</string>
+    <string name="midi_banner">ยังไม่ได้ต่อคีย์บอร์ด (หรือปิดเครื่องอยู่)</string>
+    <string name="midi_banner_action">ต่อ →</string>
+    <string name="sections_empty_list">ยังไม่มีท่อน ลองเลือกท่อนสั้นๆ ที่ชอบ 4–8 โน้ตก่อน เช่นท่อนฮุก แล้วค่อยต่อท่อนยาวขึ้น</string>
+    <string name="songs_passed_count">ผ่านแล้ว %1$d จาก %2$d เพลง (สองมือ)</string>
 </resources>

@@ -101,6 +101,8 @@ fun SectionsScreen(
             TabHeader(stringResource(R.string.tab_sections), stringResource(R.string.sections_subtitle), onOpenMidi, onOpenSettings)
             Column(Modifier.padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 NewSectionCard { naming = true }
+                if (sections.isEmpty()) Text(stringResource(R.string.sections_empty_list), style = MaterialTheme.typography.bodyMedium,
+                    color = Tokens.Palette.InkMuted, modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp))
                 sections.forEach { s -> SectionCard(s, onPractice = { onPractice(s.id) }, onEdit = { onEdit(s.id) }, onDelete = { deleting = s }) }
             }
         }

@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import com.id.mimikopi.core.input.InputSource
+import com.id.mimikopi.core.input.MidiLiveness
 import com.id.mimikopi.core.input.MidiParser
 import com.id.mimikopi.core.input.shifted
 import com.id.mimikopi.input.InputHub
@@ -19,19 +20,38 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.IOException
 
-data class MidiDeviceState(val id: Int, val name: String, val source: InputSource, val ports: Int, val open: Boolean, val error: String? = null)
+data class MidiDeviceState(
+    val id: Int,
+    val name: String,
+    val source: InputSource,
+    val ports: Int,
+    val open: Boolean,
+    val error: String? = null,
+    /** The instrument sends Active Sensing, so the app can tell when it is switched off. */
+    val sendsSensing: Boolean = false,
+    /** Still listed but silent: its Active Sensing stopped (switched off while the cable stays in). */
+    val silent: Boolean = false,
+) {
+    /** Connected and, as far as the app can tell, switched on. */
+    val ready: Boolean get() = open && !silent
+}
 
 /**
  * Listens for MIDI devices and feeds every output port into the [InputHub]. USB devices are opened when they
  * are plugged in and closed when removed. Bluetooth LE MIDI devices are connected on request
  * ([connectBluetooth]) and remembered, so the app reconnects to them by itself when it starts or when the
  * connection drops. Several devices can play at once.
+ *
+ * "Connected" is checked three ways, because Android alone can keep listing an instrument that is off: Active
+ * Sensing silence ([MidiLiveness], for instruments that send it), the Bluetooth link dropping (ACL disconnect, at
+ * once instead of after the BLE timeout), and a re-check of the system's device list when the app comes back.
  */
 class MidiInputManager(private val context: Context, private val hub: InputHub) {
     private val midi: MidiManager? =
         if (context.packageManager.hasSystemFeature(PackageManager.FEATURE_MIDI)) context.getSystemService(MidiManager::class.java) else null
     private val handler = Handler(Looper.getMainLooper())
     private val open = mutableMapOf<Int, Pair<MidiDevice, List<MidiOutputPort>>>()
+    private val liveness = java.util.concurrent.ConcurrentHashMap<Int, MidiLiveness>()
 
     private val _devices = MutableStateFlow<List<MidiDeviceState>>(emptyList())
     val devices: StateFlow<List<MidiDeviceState>> = _devices.asStateFlow()
@@ -100,14 +120,85 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
         val info = device.info
         if (open.containsKey(info.id)) { runCatching { device.close() }; return }
         val source = sourceOf(info)
-        val ports = (0 until info.outputPortCount).mapNotNull { i -> device.openOutputPort(i)?.also { port -> port.connect(receiverFor(source)) } }
+        val ports = (0 until info.outputPortCount).mapNotNull { i -> device.openOutputPort(i)?.also { port -> port.connect(receiverFor(source, info.id)) } }
         open[info.id] = device to ports
         update(MidiDeviceState(info.id, nameOf(info), source, ports.size, open = ports.isNotEmpty(), error = if (ports.isEmpty()) "no ports" else null))
+    }
+
+    /** Checks every 400 ms whether an instrument that sends Active Sensing went quiet (or came back). */
+    private val watchdog = object : Runnable {
+        override fun run() {
+            val now = System.nanoTime()
+            for (state in _devices.value) {
+                val l = liveness[state.id] ?: continue
+                val silent = synchronized(l) { l.silent(now) }
+                val senses = synchronized(l) { l.sendsSensing }
+                if (silent != state.silent || senses != state.sendsSensing) {
+                    update(state.copy(silent = silent, sendsSensing = senses))
+                    if (silent) hub.releaseAll() // keys held when it went off must not ring forever
+                }
+            }
+            handler.postDelayed(this, 400)
+        }
+    }
+
+    /** Bluetooth: the link to the instrument dropped, or Bluetooth was switched off. */
+    private val bluetoothReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: Context, intent: android.content.Intent) {
+            when (intent.action) {
+                android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                    val gone = intent.getDeviceCompat()?.address ?: return
+                    val ids = open.filterValues { (d, _) -> d.info.type == MidiDeviceInfo.TYPE_BLUETOOTH && d.info.properties.getParcelableCompat()?.address == gone }.keys.toList()
+                    if (ids.isEmpty()) return
+                    ids.forEach { closeDevice(it, removed = true) }
+                    scheduleReconnect()
+                }
+                android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED -> {
+                    val state = intent.getIntExtra(android.bluetooth.BluetoothAdapter.EXTRA_STATE, -1)
+                    if (state == android.bluetooth.BluetoothAdapter.STATE_TURNING_OFF || state == android.bluetooth.BluetoothAdapter.STATE_OFF) {
+                        open.filterValues { (d, _) -> d.info.type == MidiDeviceInfo.TYPE_BLUETOOTH }.keys.toList().forEach { closeDevice(it, removed = true) }
+                    } else if (state == android.bluetooth.BluetoothAdapter.STATE_ON) {
+                        reconnectTries = 0
+                        scheduleReconnect()
+                    }
+                }
+            }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun android.content.Intent.getDeviceCompat(): android.bluetooth.BluetoothDevice? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) getParcelableExtra(android.bluetooth.BluetoothDevice.EXTRA_DEVICE, android.bluetooth.BluetoothDevice::class.java)
+        else getParcelableExtra(android.bluetooth.BluetoothDevice.EXTRA_DEVICE)
+
+    /**
+     * Re-checks the system's device list (when the app comes back to the screen): devices that are gone are closed,
+     * new ones opened. Callbacks can be missed while the app is in the background.
+     */
+    @Suppress("DEPRECATION")
+    fun resync() {
+        val m = midi ?: return
+        val listed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) m.getDevicesForTransport(MidiManager.TRANSPORT_MIDI_BYTE_STREAM) else m.devices.toSet()
+        val ids = listed.map { it.id }.toSet()
+        (open.keys - ids).toList().forEach { id ->
+            val wasBle = open[id]?.first?.info?.type == MidiDeviceInfo.TYPE_BLUETOOTH
+            closeDevice(id, removed = true)
+            if (wasBle) scheduleReconnect()
+        }
+        _devices.value.filter { it.id !in ids && it.id !in open }.forEach { closeDevice(it.id, removed = true) }
+        listed.forEach(::openDevice)
     }
 
     @Suppress("DEPRECATION")
     fun start() {
         val m = midi ?: return
+        handler.post(watchdog)
+        val filter = android.content.IntentFilter().apply {
+            addAction(android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED)
+            addAction(android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED)
+        }
+        // System broadcasts only; ACL events need the Bluetooth connect permission (granted with the MIDI screen's scan).
+        runCatching { androidx.core.content.ContextCompat.registerReceiver(context, bluetoothReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             m.registerDeviceCallback(MidiManager.TRANSPORT_MIDI_BYTE_STREAM, { handler.post(it) }, callback)
             m.getDevicesForTransport(MidiManager.TRANSPORT_MIDI_BYTE_STREAM).forEach(::openDevice)
@@ -141,17 +232,19 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
                 return@openDevice
             }
             val ports = (0 until info.outputPortCount).mapNotNull { i ->
-                device.openOutputPort(i)?.also { port -> port.connect(receiverFor(source)) }
+                device.openOutputPort(i)?.also { port -> port.connect(receiverFor(source, info.id)) }
             }
             open[info.id] = device to ports
             update(MidiDeviceState(info.id, nameOf(info), source, ports.size, open = ports.isNotEmpty(), error = if (ports.isEmpty()) "no ports" else null))
         }, handler)
     }
 
-    private fun receiverFor(source: InputSource) = object : MidiReceiver() {
+    private fun receiverFor(source: InputSource, deviceId: Int) = object : MidiReceiver() {
         private val parser = MidiParser(source) // one parser per port: running status is per stream
+        private val alive = liveness.getOrPut(deviceId) { MidiLiveness() } // one per device, shared by its ports
 
         override fun onSend(msg: ByteArray, offset: Int, count: Int, timestamp: Long) {
+            synchronized(alive) { alive.received(msg, offset, count, System.nanoTime()) }
             // Timestamps are System.nanoTime() based (CLOCK_MONOTONIC), the same clock as audio timestamps.
             val t = if (timestamp > 0) timestamp else System.nanoTime()
             parser.parse(msg, offset, count, t) { event -> event.shifted(octaveOffset)?.let(hub::dispatch) }
@@ -159,6 +252,7 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
     }
 
     private fun closeDevice(id: Int, removed: Boolean) {
+        liveness.remove(id)
         open.remove(id)?.let { (device, ports) ->
             ports.forEach { runCatching { it.close() } }
             try {
@@ -173,6 +267,9 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
     }
 
     private fun update(state: MidiDeviceState) {
-        _devices.value = _devices.value.filterNot { it.id == state.id } + state
+        val before = _devices.value.firstOrNull { it.id == state.id }
+        // Re-opening keeps what is known about the instrument's liveness.
+        val merged = if (before != null && state.open && !state.sendsSensing && before.sendsSensing) state.copy(sendsSensing = true, silent = before.silent) else state
+        _devices.value = _devices.value.filterNot { it.id == state.id } + merged
     }
 }

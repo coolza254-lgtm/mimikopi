@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -74,9 +75,16 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
                 Body(stringResource(R.string.midi_none_help))
             } else {
                 devices.forEach { d ->
-                    Body("• ${d.name} · ${d.source.name} · " + if (d.open) stringResource(R.string.midi_connected) else (d.error ?: stringResource(R.string.midi_connecting)))
+                    val status = when {
+                        !d.open -> d.error ?: stringResource(R.string.midi_connecting)
+                        d.silent -> stringResource(R.string.midi_silent)
+                        d.sendsSensing -> stringResource(R.string.midi_live)
+                        else -> stringResource(R.string.midi_connected_unknown)
+                    }
+                    Body("• ${d.name} · ${d.source.name} · $status", error = d.silent)
                 }
             }
+            if (vm.midiSupported) TextButton(onClick = vm::recheck, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.midi_recheck)) }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Tokens.Space.s)) {
                 Text(stringResource(R.string.midi_sound_through), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(checked = soundThrough, onCheckedChange = vm::setSoundThrough)

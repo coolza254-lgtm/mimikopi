@@ -68,7 +68,10 @@ fun SongsScreen(onPlay: (pieceId: String, hand: String) -> Unit, onOpenMidi: () 
         .map { (h, id) -> h to stringResource(id) }
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
+            val passedCount = vm.pieces.count { s -> progress[s.id]?.let { PieceRules.isPassed(it) } == true }
             TabHeader(stringResource(R.string.tab_songs), stringResource(R.string.songs_count, vm.pieces.size), onOpenMidi, onOpenSettings)
+            if (passedCount > 0) Text(stringResource(R.string.songs_passed_count, passedCount, vm.pieces.size), fontFamily = Tokens.Fonts.mono, fontSize = 12.sp,
+                color = Tokens.Palette.InkMuted, modifier = Modifier.padding(start = 24.dp, top = 6.dp))
             Column(Modifier.padding(horizontal = 24.dp).padding(top = 22.dp, bottom = 24.dp)) {
                 vm.pieces.forEachIndexed { i, s ->
                     val p = progress[s.id]

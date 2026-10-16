@@ -73,6 +73,12 @@ class MainActivity : ComponentActivity() {
             MimikopiTheme(dark) { AppNavigation() }
         }
     }
+
+    /** Coming back to the app: re-check which MIDI instruments are really there. */
+    override fun onResume() {
+        super.onResume()
+        (application as MimikopiApp).midiInput.resync()
+    }
 }
 
 private object Routes {

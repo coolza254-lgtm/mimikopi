@@ -66,16 +66,15 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: Les
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
 
-    ScreenScaffold(title = lesson?.let { "${it.id} ${it.title}" } ?: "", onBack = onBack) {
+    ScreenScaffold(title = lesson?.let { stringResource(R.string.ladder_stage, it.stage) } ?: "", onBack = onBack) {
         if (lesson == null) {
             Text(stringResource(R.string.lesson_missing))
             return@ScreenScaffold
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(lesson.id, fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Tokens.Palette.Paper,
-                    modifier = Modifier.background(Tokens.Palette.Ink, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
-            }
+            // The step's number large in mono, its name in the serif (same as the tab's hero).
+            Text(lesson.id, fontFamily = Tokens.Fonts.mono, fontWeight = FontWeight.Light, fontSize = 80.sp, lineHeight = 84.sp, letterSpacing = (-3).sp)
+            Text(lesson.title, style = MaterialTheme.typography.headlineSmall)
             val days = record?.passDays?.size ?: 0
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

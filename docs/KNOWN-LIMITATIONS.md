@@ -25,6 +25,12 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## As of v0.16.0
+- "Connected" for MIDI: an instrument whose USB-MIDI chip stays powered by the phone stays listed by Android after it
+  is switched off. The app detects that only for instruments that send Active Sensing (silence > 1.2 s); for others
+  it cannot tell and says so on the MIDI screen. Bluetooth links are watched through ACL disconnect broadcasts
+  (needs the "nearby devices" permission). Whether the Badger C-918 sends Active Sensing is unknown (phone check).
+
 ## As of M15 (v0.15.x)
 - The app is slimmed down to two skills plus songs and sections: reading (play from notation) and ear training
   (towards transcribing by ear). Removed: the free on-screen piano and every on-screen keyboard, the transcribe

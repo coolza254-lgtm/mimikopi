@@ -18,12 +18,12 @@ import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.ui.theme.Tokens
 
-/** True while a MIDI piano is connected and open (USB or Bluetooth). */
+/** True while a MIDI piano is connected, open and (as far as the app can tell) switched on. */
 @Composable
 fun midiConnected(): Boolean {
     val app = LocalContext.current.applicationContext as MimikopiApp
     val devices by app.midiInput.devices.collectAsState()
-    return devices.any { it.open }
+    return devices.any { it.ready }
 }
 
 /**

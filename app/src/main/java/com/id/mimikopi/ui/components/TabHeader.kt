@@ -56,6 +56,16 @@ fun TabHeader(title: String, subtitle: String?, onOpenMidi: () -> Unit, onOpenSe
             }
         }
         if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted)
+        // Without a keyboard nothing can be practised: say so once, at the top, with the way to fix it.
+        if (!ready) Row(
+            Modifier.fillMaxWidth().padding(top = 16.dp, end = 16.dp).heightIn(min = 52.dp)
+                .border(1.dp, Tokens.Palette.Ink, androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
+                .clickable(onClick = onOpenMidi).padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.midi_banner), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.midi_banner_action), style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 

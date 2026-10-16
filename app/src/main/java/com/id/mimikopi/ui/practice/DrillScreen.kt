@@ -112,7 +112,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                 }
                 is DrillUi.Question -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-                        Text("${s.index}/${s.total}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        com.id.mimikopi.ui.components.DrillProgress(s.index, s.total)
                         FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
                     }
                     Box(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), contentAlignment = Alignment.Center) {
@@ -133,7 +133,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                 }
                 is DrillUi.Interval -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-                        Text("${s.index}/${s.total}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        com.id.mimikopi.ui.components.DrillProgress(s.index, s.total)
                         FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
                     }
                     Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -193,24 +193,27 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                     Text(stringResource(R.string.drill_taps, s.taps), style = MaterialTheme.typography.bodyLarge)
                     TapPad(vm, Modifier.fillMaxWidth().weight(1f).padding(top = Tokens.Space.m))
                 }
-                is DrillUi.Result -> Centered {
-                    PageCard(title = stringResource(R.string.drill_result)) {
-                        Box(Modifier.fillMaxWidth().padding(vertical = Tokens.Space.s), contentAlignment = Alignment.Center) { com.id.mimikopi.ui.components.ResultBadge(s.passCriterionMet) }
-                        Text(s.summary, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.xs))
-                        s.passCriterionMet?.let {
-                            Text(
-                                stringResource(if (it) R.string.drill_met else R.string.drill_not_met),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (it) Tokens.Palette.Ink else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = Tokens.Space.s),
-                            )
-                        }
-                        s.coach.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = Tokens.Space.s)) }
-                        Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s), modifier = Modifier.padding(top = Tokens.Space.m)) {
-                            OutlinedButton(onClick = vm::again, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.drill_again)) }
-                            Button(onClick = onBack, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.drill_done)) }
-                        }
+                is DrillUi.Result -> Centered { Column(Modifier.fillMaxWidth()) {
+                    // A result page: the badge, the verdict in the serif, the numbers, then the coach's notes.
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        com.id.mimikopi.ui.components.ResultBadge(s.passCriterionMet)
+                        Text(
+                            stringResource(when (s.passCriterionMet) { true -> R.string.drill_met; false -> R.string.drill_not_met; null -> R.string.drill_result }),
+                            style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 20.dp),
+                        )
+                        Text(s.summary, style = MaterialTheme.typography.bodyLarge, color = Tokens.Palette.InkMuted, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
                     }
+                    if (s.coach.isNotEmpty()) Column(Modifier.fillMaxWidth().padding(top = 24.dp)) {
+                        s.coach.forEach {
+                            com.id.mimikopi.ui.components.Hairline()
+                            Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 12.dp))
+                        }
+                        com.id.mimikopi.ui.components.Hairline()
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s), modifier = Modifier.padding(top = 28.dp)) {
+                        OutlinedButton(onClick = vm::again, modifier = Modifier.weight(1f).heightIn(min = 60.dp)) { Text(stringResource(R.string.drill_again)) }
+                        Button(onClick = onBack, modifier = Modifier.weight(1f).heightIn(min = 60.dp)) { Text(stringResource(R.string.drill_done)) }
+                    } }
                 }
             }
         }

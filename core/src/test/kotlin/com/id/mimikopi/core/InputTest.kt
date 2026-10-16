@@ -105,3 +105,30 @@ class CalibrationTest {
         assertNull(LatencyCalibration.analyze(clicks, taps.take(5)))
     }
 }
+
+class MidiLivenessTest {
+    private val ms = 1_000_000L
+
+    @Test
+    fun instrumentsWithoutActiveSensingAreNeverSilent() {
+        val l = com.id.mimikopi.core.input.MidiLiveness()
+        kotlin.test.assertFalse(l.silent(10_000 * ms))
+        l.received(byteArrayOf(0x90.toByte(), 60, 90), 0, 3, 0)
+        kotlin.test.assertFalse(l.silent(60_000 * ms))
+        kotlin.test.assertFalse(l.sendsSensing)
+    }
+
+    @Test
+    fun activeSensingStoppingMeansSwitchedOff() {
+        val l = com.id.mimikopi.core.input.MidiLiveness(timeoutNanos = 1_200 * ms)
+        l.received(byteArrayOf(0xFE.toByte()), 0, 1, 0)
+        l.received(byteArrayOf(0xFE.toByte()), 0, 1, 300 * ms)
+        kotlin.test.assertTrue(l.sendsSensing)
+        kotlin.test.assertFalse(l.silent(1_000 * ms))
+        kotlin.test.assertTrue(l.silent(1_600 * ms))
+        // Sensing again (switched back on): live.
+        l.received(byteArrayOf(0x90.toByte(), 60, 90, 0xFE.toByte()), 0, 4, 5_000 * ms)
+        kotlin.test.assertFalse(l.silent(5_500 * ms))
+    }
+}
+

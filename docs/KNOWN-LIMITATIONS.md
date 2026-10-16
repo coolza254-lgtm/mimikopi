@@ -25,8 +25,21 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Windows version, phase 2 (v0.18.0)
+- Reading (steps, drills, review), the score reader and songs are the Android screens copied into
+  desktop/.../port with only their imports changed; a small layer supplies the Android names (R generated from
+  strings.xml and the drawables at build time, view-model base, lifecycle effects, services). Changes to those Android
+  files have to be copied again by hand.
+- Metronome clicks on the PC: a thread sends each click at its time; a click counts as heard at send time plus the
+  piano's output buffer (Java synthesizer: its reported latency; sampled piano: the line buffer + 10 ms). Windows'
+  own mixer delay is not included, so tempo-mode timing can read consistently "late" on some PCs; the steadiness
+  (SD) is unaffected. There is no latency calibration on the PC (phone calibration values are keyed by phone outputs).
+- Attempts and practice sessions are not stored on the PC (the Android app's statistics screens are gone since M15;
+  lesson records, piece progress, spaced-repetition items and benchmarks are stored and move with a backup).
+- No on-screen tap pad for the pulse step other than the large pad (clicking it counts as a tap; a MIDI key is better).
+
 ## Windows version, phase 1 (v0.17.0)
-- Only ear training and section practice; reading and songs come in phase 2. Built with Compose Multiplatform for the
+- Ear training and section practice (reading and songs added in phase 2). Built with Compose Multiplatform for the
   desktop JVM; the logic is the shared :core module, the screens are a desktop copy of the Android ones.
 - USB MIDI only, through javax.sound.midi. Java Sound has no plug/unplug events, so devices are polled every 2 s;
   on some Windows setups a keyboard plugged in after the program started only shows after a restart. Active Sensing

@@ -62,7 +62,7 @@ turn on Developer options → confirm you are not being coached → restart and 
 one-time 24 hours → confirm with fingerprint/PIN → allow installs from unverified developers
 for 7 days or indefinitely. ADB installs are exempt.
 
-## Windows (from v0.17.0)
+## Windows (from v0.17.0; reading and songs from v0.18.0)
 1. Open the releases page of `coolza254-lgtm/mimikopi-releases` and download `mimikopi-windows-vX.Y.Z.msi`.
 2. Double-click it. The installer is not signed, so Windows SmartScreen may say "Windows protected your PC":
    choose **More info → Run anyway**. It installs for the current user only (no admin rights) and adds a Start-menu

@@ -4,40 +4,30 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Black and white only (M15). Filled buttons are white with black text; everything else is lines and type.
-private val colors = darkColorScheme(
-    primary = Tokens.Palette.Ink,
-    onPrimary = Tokens.Palette.OnInk,
-    primaryContainer = Tokens.Palette.Ink,
-    onPrimaryContainer = Tokens.Palette.OnInk,
-    secondary = Tokens.Palette.Ink,
-    onSecondary = Tokens.Palette.OnInk,
-    secondaryContainer = Tokens.Palette.Ink,
-    onSecondaryContainer = Tokens.Palette.OnInk,
-    tertiary = Tokens.Palette.Ink,
-    onTertiary = Tokens.Palette.OnInk,
-    background = Tokens.Palette.Paper,
-    onBackground = Tokens.Palette.Ink,
-    surface = Tokens.Palette.Paper,
-    onSurface = Tokens.Palette.Ink,
-    surfaceContainer = Tokens.Palette.Paper,
-    surfaceContainerLow = Tokens.Palette.Paper,
-    surfaceContainerHigh = Color(0xFF111111),
-    surfaceContainerHighest = Color(0xFF161616),
-    surfaceVariant = Tokens.Palette.Paper,
-    onSurfaceVariant = Tokens.Palette.InkMuted,
-    outline = Tokens.Palette.Ink,
-    outlineVariant = Tokens.Palette.Line,
-    error = Tokens.Palette.Ink,
-    onError = Tokens.Palette.OnInk,
-)
+// Black and white only (M15). Filled buttons are ink with paper text; everything else is lines and type.
+private fun colors(dark: Boolean): ColorScheme {
+    val p = Tokens.Palette
+    val base = if (dark) darkColorScheme() else lightColorScheme()
+    return base.copy(
+        primary = p.Ink, onPrimary = p.OnInk, primaryContainer = p.Ink, onPrimaryContainer = p.OnInk,
+        secondary = p.Ink, onSecondary = p.OnInk, secondaryContainer = p.Ink, onSecondaryContainer = p.OnInk,
+        tertiary = p.Ink, onTertiary = p.OnInk,
+        background = p.Paper, onBackground = p.Ink, surface = p.Paper, onSurface = p.Ink,
+        surfaceContainer = p.Paper, surfaceContainerLow = p.Paper, surfaceContainerLowest = p.Paper,
+        surfaceContainerHigh = p.Raised, surfaceContainerHighest = p.Raised,
+        surfaceVariant = p.Paper, onSurfaceVariant = p.InkMuted,
+        outline = p.Ink, outlineVariant = p.Line, error = p.Ink, onError = p.OnInk,
+    )
+}
 
 // IBM Plex Sans Thai for text, Noto Serif Thai for headings (bundled, OFL); other scripts fall back to the system font.
 // Sizes are in sp so they follow the user's font-size setting. Thai needs generous line height.
@@ -62,7 +52,10 @@ private val shapes = Shapes(
     large = RoundedCornerShape(Tokens.Radius.card),
 )
 
+/** [dark]: OLED black; otherwise the light palette. The palette tokens follow it. */
 @Composable
-fun MimikopiTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = colors, typography = typography, shapes = shapes, content = content)
+fun MimikopiTheme(dark: Boolean, content: @Composable () -> Unit) {
+    // Set before anything below reads a token in this composition.
+    remember(dark) { Tokens.dark = dark; dark }
+    MaterialTheme(colorScheme = colors(dark), typography = typography, shapes = shapes, content = content)
 }

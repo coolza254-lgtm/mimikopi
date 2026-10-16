@@ -713,4 +713,8 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="sections_meta">%1$d โน้ต · %2$d วลี</string>
     <string name="sections_subtitle">ท่อนที่ชอบ จดด้วยการเล่น ฝึกทีละวลี</string>
     <string name="ear_answer_row">เฉลย</string>
+    <string name="theme_title">หน้าตา</string>
+    <string name="theme_dark">มืด (OLED)</string>
+    <string name="theme_light">สว่าง</string>
+    <string name="theme_system">ตามเครื่อง</string>
 </resources>

@@ -111,7 +111,7 @@ fun SectionsScreen(
         val fallback = stringResource(R.string.sections_default_title, sections.size + 1)
         AlertDialog(
             onDismissRequest = { naming = false },
-            containerColor = Color(0xFF111111),
+            containerColor = Tokens.Palette.Raised,
             title = { Text(stringResource(R.string.sections_name_title)) },
             text = { OutlinedTextField(value = title, onValueChange = { title = it.take(60) }, singleLine = true, placeholder = { Text(fallback) }) },
             confirmButton = {
@@ -126,7 +126,7 @@ fun SectionsScreen(
     deleting?.let { s ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            containerColor = Color(0xFF111111),
+            containerColor = Tokens.Palette.Raised,
             title = { Text(stringResource(R.string.sections_delete_q, s.title)) },
             confirmButton = { TextButton(onClick = { vm.delete(s.id); deleting = null }) { Text(stringResource(R.string.sections_delete)) } },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.action_cancel)) } },
@@ -284,7 +284,7 @@ fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: Sect
     }
     if (confirmClear) AlertDialog(
         onDismissRequest = { confirmClear = false },
-        containerColor = Color(0xFF111111),
+        containerColor = Tokens.Palette.Raised,
         title = { Text(stringResource(R.string.sections_clear_q)) },
         confirmButton = { TextButton(onClick = { vm.clear(); confirmClear = false }) { Text(stringResource(R.string.sections_clear)) } },
         dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.action_cancel)) } },

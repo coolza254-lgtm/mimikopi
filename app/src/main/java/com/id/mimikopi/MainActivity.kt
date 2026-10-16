@@ -43,6 +43,10 @@ import com.id.mimikopi.ui.skill.Skill
 import com.id.mimikopi.ui.skill.SkillScreen
 import com.id.mimikopi.ui.songs.SongsScreen
 import com.id.mimikopi.ui.theme.MimikopiTheme
+import com.id.mimikopi.ui.theme.ThemeMode
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,8 +56,21 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
+        val app = application as MimikopiApp
         setContent {
-            MimikopiTheme { AppNavigation() }
+            val mode by app.themeMode.collectAsState()
+            val dark = when (mode) {
+                ThemeMode.DARK -> true
+                ThemeMode.LIGHT -> false
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            }
+            // Status and navigation bar icons follow the look (light icons on black, dark icons on white).
+            LaunchedEffect(dark) {
+                val t = android.graphics.Color.TRANSPARENT
+                val style = if (dark) androidx.activity.SystemBarStyle.dark(t) else androidx.activity.SystemBarStyle.light(t, t)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+            }
+            MimikopiTheme(dark) { AppNavigation() }
         }
     }
 }

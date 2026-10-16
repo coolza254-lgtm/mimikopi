@@ -95,6 +95,19 @@ fun SettingsScreen(
             NavRow(R.drawable.ic_info, R.string.home_about_title, onOpenAbout)
             NavRow(R.drawable.ic_device, R.string.home_diagnostics_title, onOpenDiagnostics)
         }
+        PageCard(title = stringResource(R.string.theme_title)) {
+            val app = context.applicationContext as com.id.mimikopi.MimikopiApp
+            val mode by app.themeMode.collectAsStateWithLifecycle()
+            Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
+                listOf(
+                    com.id.mimikopi.ui.theme.ThemeMode.DARK to R.string.theme_dark,
+                    com.id.mimikopi.ui.theme.ThemeMode.LIGHT to R.string.theme_light,
+                    com.id.mimikopi.ui.theme.ThemeMode.SYSTEM to R.string.theme_system,
+                ).forEach { (m, label) ->
+                    androidx.compose.material3.FilterChip(selected = mode == m, onClick = { app.setThemeMode(m) }, label = { Text(stringResource(label)) })
+                }
+            }
+        }
         PageCard(title = stringResource(R.string.update_title)) {
             Body(stringResource(R.string.update_current, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
             lastCheck?.let { Body(stringResource(R.string.update_last_check, it), muted = true) }

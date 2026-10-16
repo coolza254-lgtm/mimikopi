@@ -36,6 +36,8 @@ What the app does not do, or does only partly, as of the last milestone. Details
   The ear ladder is 36 rungs with more melody-dictation rungs (2 to 8 notes) before intervals and chords.
 - New practice songs (13) are public-domain melodies written from memory and arranged simply; they are marked in
   their `source` as not yet checked against a printed edition, and the app says so on the song card.
+- The whole UI is OLED black and white (no colour at all); note results in the reader are told apart by grey
+  levels (played notes fade) and right/wrong by words, inverted labels and haptics. Untested on the phone.
 - Section practice records pitches and their order only (no rhythm); notes struck within 60 ms are one chord.
   Wait mode only: a wrong note restarts the phrase; 3 clean runs in a row pass a phrase; 3 clean play-throughs of
   the whole section in a row mark it as mastered. Untested on the phone.

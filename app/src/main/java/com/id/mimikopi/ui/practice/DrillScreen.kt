@@ -123,7 +123,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         s.feedback?.let { f ->
                             Text(
                                 stringResource(if (f == Feedback.CORRECT) R.string.drill_correct else R.string.drill_wrong),
-                                color = if (f == Feedback.CORRECT) Tokens.Palette.GoodInk else MaterialTheme.colorScheme.error,
+                                color = Tokens.Palette.Ink,
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.align(Alignment.BottomCenter),
                             )
@@ -163,10 +163,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         val parts = s.label.split(" ในคีย์ ", limit = 2)
                         Column(
                             Modifier
-                                .background(Tokens.Palette.MustardSoft, RoundedCornerShape(28.dp))
-                                .padding(bottom = 6.dp)
-                                .background(Tokens.Palette.Card, RoundedCornerShape(28.dp))
-                                .border(Tokens.border, Tokens.Palette.Line, RoundedCornerShape(28.dp))
+                                .border(Tokens.border, Tokens.Palette.Ink, RoundedCornerShape(28.dp))
                                 .padding(horizontal = 36.dp, vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
@@ -178,7 +175,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         s.feedback?.let { f ->
                             Text(
                                 stringResource(if (f == Feedback.CORRECT) R.string.drill_correct else R.string.drill_chord_wrong),
-                                color = if (f == Feedback.CORRECT) Tokens.Palette.GoodInk else MaterialTheme.colorScheme.error,
+                                color = Tokens.Palette.Ink,
                                 style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(top = Tokens.Space.m),
                             )
@@ -262,7 +259,7 @@ private fun TapPad(vm: DrillViewModel, modifier: Modifier) {
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as MimikopiApp
     Box(
         modifier
-            .background(Tokens.Palette.RoseSoft, RoundedCornerShape(Tokens.Radius.card))
+            .border(1.5.dp, Tokens.Palette.Ink, RoundedCornerShape(Tokens.Radius.card))
             .pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown()

@@ -36,7 +36,7 @@ fun KeyHint(marked: Set<Int>, nameStyle: NoteNameStyle, modifier: Modifier = Mod
         Text(
             stringResource(R.string.midi_needed),
             style = MaterialTheme.typography.titleMedium,
-            color = Tokens.Palette.RoseDeep,
+            color = Tokens.Palette.Ink,
             textAlign = TextAlign.Center,
             modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
         )
@@ -44,7 +44,7 @@ fun KeyHint(marked: Set<Int>, nameStyle: NoteNameStyle, modifier: Modifier = Mod
     if (marked.isNotEmpty()) Text(
         marked.sorted().joinToString("  ·  ") { SpelledPitch.fromMidiSharp(it).name(nameStyle, withOctave = true) },
         style = MaterialTheme.typography.headlineSmall,
-        color = Tokens.Palette.RoseDeep,
+        color = Tokens.Palette.Ink,
         textAlign = TextAlign.Center,
         modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
     )

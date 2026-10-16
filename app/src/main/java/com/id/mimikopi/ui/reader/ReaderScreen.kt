@@ -117,7 +117,7 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
 
         ui.message?.let { msg ->
             Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-                Text(msg, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Error, modifier = Modifier.weight(1f))
+                Text(msg, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
                 TextButton(onClick = vm::dismissMessage) { Text(stringResource(R.string.reader_done)) }
             }
         }
@@ -138,7 +138,7 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
 private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Unit) {
     val score = vm.score ?: return
     Column(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.s)) {
-        if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.Error)
+        if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
@@ -193,7 +193,7 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
 @Composable
 private fun FixedControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.s)) {
-        if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.Error)
+        if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
@@ -250,9 +250,9 @@ private fun ResultPanel(r: ResultUi, vm: ReaderViewModel, onBack: () -> Unit) {
             .padding(horizontal = Tokens.Space.m, vertical = Tokens.Space.xs),
         verticalArrangement = Arrangement.spacedBy(Tokens.Space.xs),
     ) {
-        Text(r.headline, style = MaterialTheme.typography.titleMedium, color = if (r.clean == true) Tokens.Palette.Good else MaterialTheme.colorScheme.onSurface)
+        Text(r.headline, style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.Ink)
         if (r.details.isNotEmpty()) Text(r.details, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
-        r.progressLine?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Good) }
+        r.progressLine?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink) }
         for (line in r.coach) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("• " + line.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))

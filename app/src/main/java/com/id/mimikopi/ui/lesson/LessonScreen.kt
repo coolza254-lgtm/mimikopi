@@ -80,11 +80,11 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: Les
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     repeat(lesson.pass.days) { d ->
-                        Box(Modifier.size(28.dp, 8.dp).background(if (d < days) Tokens.Palette.Good else Tokens.Palette.Line, RoundedCornerShape(4.dp)))
+                        Box(Modifier.size(28.dp, 8.dp).background(if (d < days) Tokens.Palette.Ink else Tokens.Palette.Line, RoundedCornerShape(4.dp)))
                     }
                 }
                 Text(statusText(status, days, lesson.pass.days, record?.helperDays?.size ?: 0), style = MaterialTheme.typography.labelMedium,
-                    color = if (status == LessonStatus.PASSED || days > 0) Tokens.Palette.GoodInk else Tokens.Palette.InkMuted)
+                    color = if (status == LessonStatus.PASSED || days > 0) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
             }
             if (status == LessonStatus.LOCKED) Text(stringResource(R.string.lesson_locked, lesson.prerequisites.joinToString()),
                 color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
@@ -158,13 +158,13 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: Les
                         .heightIn(min = Tokens.minTouch)
                         .clip(RoundedCornerShape(16.dp))
                         .background(Tokens.Palette.Paper)
-                        .border(Tokens.border, if (isPass) Tokens.Palette.Rose else Tokens.Palette.Line, RoundedCornerShape(16.dp))
+                        .border(Tokens.border, if (isPass) Tokens.Palette.Ink else Tokens.Palette.Line, RoundedCornerShape(16.dp))
                         .clickable(enabled = enabled) { onOpenDrill(lesson.id, i) }
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    if (isPass) Pill(stringResource(R.string.lesson_counts), Tokens.Palette.RoseSoft, Tokens.Palette.RoseInk)
+                    if (isPass) Pill(stringResource(R.string.lesson_counts))
                     Text(d.title, style = MaterialTheme.typography.bodyLarge, color = if (enabled) Tokens.Palette.Ink else Tokens.Palette.InkMuted, modifier = Modifier.weight(1f))
                     Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.InkMuted, modifier = Modifier.size(18.dp))
                 }

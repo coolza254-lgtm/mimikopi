@@ -272,7 +272,7 @@ private fun NavRow(icon: Int, label: Int, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m),
     ) {
-        Icon(painterResource(icon), contentDescription = null, tint = Tokens.Palette.RoseDeep, modifier = Modifier.size(22.dp))
+        Icon(painterResource(icon), contentDescription = null, tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
         Text(stringResource(label), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.InkMuted, modifier = Modifier.size(18.dp))
     }

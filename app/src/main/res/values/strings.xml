@@ -215,9 +215,10 @@
 สิ่งที่ ミミコピ ปรับ: ใช้ 8 จาก 16 ระดับความแรง ตัดช่วงเงียบก่อนเสียงและหางเสียงที่ต่ำกว่า -60 dB พร้อมเฟดออก ปรับระดับเสียงรวม และแปลงเป็น 16 บิต</string>
     <string name="credit_oboe_title">เครื่องเสียง: Oboe</string>
     <string name="credit_oboe_body">ไลบรารีเสียงหน่วงต่ำของ Google · Apache License 2.0</string>
-    <string name="credit_font_title">ฟอนต์: Zen Maru Gothic และ IBM Plex Sans Thai Looped</string>
-    <string name="credit_font_body">Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.1 (โลโก้แปลงเป็นเส้นเวกเตอร์ และใส่ฟอนต์บางส่วนสำหรับตัวเลขและเลขบท)
-IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื่อฟอนต์สงวน "Plex" (ใช้ตามต้นฉบับ ไม่ได้ดัดแปลง)</string>
+    <string name="credit_font_title">ฟอนต์: Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono และ Zen Maru Gothic (โลโก้)</string>
+    <string name="credit_font_body">Noto Serif Thai: The Noto Project Authors · SIL Open Font License 1.1 (ตัดเป็นน้ำหนัก 500 และ 600 จากไฟล์ variable)
+IBM Plex Sans Thai และ IBM Plex Mono: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื่อฟอนต์สงวน "Plex" (ใช้ตามต้นฉบับ ไม่ได้ดัดแปลง)
+Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.1 (โลโก้แปลงเป็นเส้นเวกเตอร์)</string>
     <string name="credit_logo_title">โลโก้และไอคอน</string>
     <string name="credit_logo_body">สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
     <string name="credit_bravura_title">ฟอนต์ตัวโน้ต: Bravura</string>
@@ -300,7 +301,7 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="about_version">เวอร์ชัน %1$s (%2$d)</string>
     <string name="about_credits_title">เครดิต</string>
     <string name="about_credit_logo">โลโก้และไอคอน: สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
-    <string name="about_credit_font">ฟอนต์ Zen Maru Gothic และ IBM Plex Sans Thai Looped (SIL Open Font License 1.1)</string>
+    <string name="about_credit_font">ฟอนต์ Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono และ Zen Maru Gothic (SIL Open Font License 1.1)</string>
     <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
     <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงที่ยังมีลิขสิทธิ์ เพลงฝึกเป็นเพลงที่หมดลิขสิทธิ์แล้ว (ทำนองเขียนจากความจำ ยังไม่ได้เทียบต้นฉบับ) ท่อนเพลงที่ชอบต้องจดเองในโหมดฝึกท่อน</string>
@@ -635,8 +636,8 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="tab_ear">ฝึกฟัง</string>
     <string name="tab_sections">ฝึกท่อน</string>
     <string name="midi_needed">ต่อคีย์บอร์ด MIDI ก่อน (สาย USB หรือบลูทูธ) แอพรับโน้ตจากคีย์บอร์ดเท่านั้น</string>
-    <string name="midi_ready">MIDI พร้อม</string>
-    <string name="midi_not_ready">ยังไม่ต่อ MIDI</string>
+    <string name="midi_ready">MIDI</string>
+    <string name="midi_not_ready">ไม่มี MIDI</string>
     <string name="skill_reading_goal">เป้าหมาย: เห็นโน้ตแล้วเล่นตามได้</string>
     <string name="skill_ear_goal">เป้าหมาย: ฟังแล้วแกะเพลงเองได้</string>
     <string name="skill_today">วันนี้</string>
@@ -697,4 +698,18 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="sections_full_mistakes">เล่นจบแล้ว แต่มีที่ผิด รอบนี้ไม่นับ เริ่มใหม่ได้เลย</string>
     <string name="sections_mastered_now">เล่นทั้งท่อนไม่ผิด 3 รอบติดกันแล้ว ฝึกต่อได้เรื่อยๆ ให้ติดมือ</string>
     <string name="sections_play_hint">เล่นโน้ตที่กรอบสีชมพู</string>
+    <string name="skill_kind_done">วันนี้</string>
+    <string name="skill_rule_short">ผ่านเกณฑ์วันนี้ แล้วยืนยันอีกครั้งพรุ่งนี้</string>
+    <string name="skill_kind_hint">ทำให้ผ่านเกณฑ์อีกครั้ง เพื่อให้ติดมือ</string>
+    <string name="skill_start_step">เริ่มขั้นนี้</string>
+    <string name="skill_done">เสร็จ</string>
+    <string name="skill_next">ถัดไป</string>
+    <string name="skill_later">รอ</string>
+    <string name="skill_show_ladder">ดูบันได</string>
+    <string name="skill_hide_ladder">ซ่อนบันได</string>
+    <string name="songs_hands">เลือกมือ</string>
+    <string name="songs_count">เพลงหมดลิขสิทธิ์ %1$d เพลง เรียงจากง่ายไปยาก</string>
+    <string name="sections_new_body">เล่นบนคีย์บอร์ด แอพจดโน้ตให้เอง</string>
+    <string name="sections_meta">%1$d โน้ต · %2$d วลี</string>
+    <string name="sections_subtitle">ท่อนที่ชอบ จดด้วยการเล่น ฝึกทีละวลี</string>
 </resources>

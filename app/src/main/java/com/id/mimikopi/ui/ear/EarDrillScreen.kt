@@ -72,7 +72,7 @@ fun EarDrillScreen(onBack: () -> Unit, vm: EarDrillViewModel = viewModel()) {
                 is EarUi.Ready -> Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(Tokens.Space.m)) {
                     PageCard(title = s.title) {
                         Text(stringResource(R.string.ear_ready, s.count, s.levels.joinToString { it.name }), style = MaterialTheme.typography.bodyLarge)
-                        if (s.packMissing) Text(stringResource(R.string.reader_pack_missing), color = Tokens.Palette.Error, style = MaterialTheme.typography.bodyMedium)
+                        if (s.packMissing) Text(stringResource(R.string.reader_pack_missing), color = Tokens.Palette.InkMuted, style = MaterialTheme.typography.bodyMedium)
                         Button(onClick = vm::start, modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.m).heightIn(min = Tokens.minTouch)) {
                             Text(stringResource(R.string.drill_start))
                         }
@@ -102,9 +102,9 @@ fun EarDrillScreen(onBack: () -> Unit, vm: EarDrillViewModel = viewModel()) {
                         if (s.entered.isNotEmpty()) Text(stringResource(R.string.ear_entered, s.entered.size), style = MaterialTheme.typography.bodyMedium)
                         s.correct?.let { ok ->
                             Text(stringResource(if (ok) R.string.drill_correct else R.string.drill_wrong),
-                                color = if (ok) Tokens.Palette.Good else Tokens.Palette.Error, style = MaterialTheme.typography.titleLarge)
+                                color = Tokens.Palette.Ink, style = MaterialTheme.typography.titleLarge)
                         }
-                        s.correction?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = if (s.correct == true) Tokens.Palette.Ink else Tokens.Palette.Error) }
+                        s.correction?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = if (s.correct == true) Tokens.Palette.Ink else Tokens.Palette.InkMuted) }
                         if (s.correct != null) {
                             Text(stringResource(R.string.ear_play_it), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
                             Button(onClick = vm::next, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ear_next)) }

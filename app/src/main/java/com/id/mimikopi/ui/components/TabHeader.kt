@@ -1,19 +1,24 @@
 package com.id.mimikopi.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -22,24 +27,35 @@ import androidx.compose.ui.unit.sp
 import com.id.mimikopi.R
 import com.id.mimikopi.ui.theme.Tokens
 
-/** Top of a tab: its name, whether the MIDI piano is ready (tap: MIDI settings) and the settings gear. */
+/**
+ * Top of a tab: its name in the serif, a one-line purpose under it, whether the MIDI piano is ready (a filled dot;
+ * tap: MIDI settings) and the settings button.
+ */
 @Composable
-fun TabHeader(title: String, onOpenMidi: () -> Unit, onOpenSettings: () -> Unit) {
+fun TabHeader(title: String, subtitle: String?, onOpenMidi: () -> Unit, onOpenSettings: () -> Unit) {
     val ready = midiConnected()
-    Row(
-        Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(title, fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = 26.sp, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
-        Pill(
-            stringResource(if (ready) R.string.midi_ready else R.string.midi_not_ready),
-            if (ready) Tokens.Palette.GoodSoft else Tokens.Palette.MustardSoft,
-            if (ready) Tokens.Palette.GoodInk else Tokens.Palette.MustardInk,
-            modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onOpenMidi),
-        )
-        IconButton(onClick = onOpenSettings) {
-            Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.home_settings_title), tint = Tokens.Palette.Ink, modifier = Modifier.size(24.dp))
+    Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = 20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.SemiBold, fontSize = 30.sp, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
+            Row(
+                Modifier.heightIn(min = 44.dp).clickable(onClick = onOpenMidi).padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                Spacer(
+                    Modifier.size(7.dp).then(
+                        if (ready) Modifier.background(Tokens.Palette.Ink, CircleShape)
+                        else Modifier.border(1.dp, Tokens.Palette.InkMuted, CircleShape),
+                    ),
+                )
+                Text(stringResource(if (ready) R.string.midi_ready else R.string.midi_not_ready), fontFamily = Tokens.Fonts.mono, fontSize = 12.sp,
+                    color = if (ready) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
+            }
+            IconButton(onClick = onOpenSettings) {
+                Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.home_settings_title), tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
+            }
         }
+        if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted)
     }
 }
+

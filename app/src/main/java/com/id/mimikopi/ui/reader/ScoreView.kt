@@ -138,8 +138,8 @@ fun ScoreView(
             val x1 = px(m.x1)
             if (x1 < 0 || x0 > size.width) continue
             val tint = when {
-                loop != null && m.index in loop -> Tokens.Palette.MustardSoft.copy(alpha = 0.55f)
-                m.index in hotMeasures -> Tokens.Palette.RoseSoft.copy(alpha = 0.45f)
+                loop != null && m.index in loop -> Tokens.Palette.Ink.copy(alpha = 0.10f)
+                m.index in hotMeasures -> Tokens.Palette.Ink.copy(alpha = 0.06f)
                 else -> null
             }
             if (tint != null) drawRect(tint, Offset(x0, py(ScoreLayout.TOP_Y - 3)), Size(x1 - x0, py(ScoreLayout.BOTTOM_Y + 3) - py(ScoreLayout.TOP_Y - 3)))
@@ -198,33 +198,33 @@ fun ScoreView(
             drawPath(path, Tokens.Palette.Ink, style = Stroke(space * 0.16f))
         }
 
-        // Wrong keys: hollow red heads where that pitch would sit, at the beat it was played.
+        // Wrong keys: hollow white rings where that pitch would sit, at the beat it was played.
         val now = frame
         for (w in wrongMarks) {
             if (now - w.atNanos > WRONG_MARK_NANOS) continue
             val hand = if (w.midi >= 60) Hand.RIGHT else Hand.LEFT
             val pos = Staff.position(SpelledPitch.fromMidiSharp(w.midi), score.clefFor(hand))
             val cx = px(layout.xAt(w.beat)) + space * 0.6f
-            drawCircle(Tokens.Palette.Error, radius = space * 0.6f, center = Offset(cx, py(ScoreLayout.yOf(hand, pos))), style = Stroke(space * 0.22f))
+            drawCircle(Tokens.Palette.Ink, radius = space * 0.6f, center = Offset(cx, py(ScoreLayout.yOf(hand, pos))), style = Stroke(space * 0.22f))
         }
 
         if (editorCursor != null) {
             val (b, hand) = editorCursor
             val cx = px(layout.xAt(b))
             val cy = py(ScoreLayout.staffY(hand))
-            drawRect(Tokens.Palette.Rose.copy(alpha = 0.25f), Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f))
-            drawRect(Tokens.Palette.Rose, Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f), style = Stroke(space * 0.15f))
+            drawRect(Tokens.Palette.Ink.copy(alpha = 0.15f), Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f))
+            drawRect(Tokens.Palette.Ink, Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f), style = Stroke(space * 0.15f))
         } else if (!cursorOnlyInside || (beat > -1e-6 && beat < score.totalBeats - 1e-6)) {
-            drawLine(Tokens.Palette.Rose, Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.TOP_Y - 2.5)),
+            drawLine(Tokens.Palette.Ink.copy(alpha = 0.6f), Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.TOP_Y - 2.5)),
                 Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.BOTTOM_Y + 2.5)), strokeWidth = space * 0.3f)
         }
     }
 }
 
 private fun colorFor(result: NoteResult?): Color? = when (result) {
-    NoteResult.CORRECT -> Tokens.Palette.Good
-    NoteResult.EARLY, NoteResult.LATE -> Tokens.Palette.Off
-    NoteResult.MISSED, NoteResult.CORRECTED -> Tokens.Palette.Error
+    NoteResult.CORRECT -> Tokens.Palette.Dim // played: fades, like the design
+    NoteResult.EARLY, NoteResult.LATE -> Tokens.Palette.InkMuted
+    NoteResult.MISSED, NoteResult.CORRECTED -> Tokens.Palette.Ink
     else -> null
 }
 

@@ -15,7 +15,7 @@ import com.id.mimikopi.BuildConfig
 import com.id.mimikopi.R
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.ScreenScaffold
-import com.id.mimikopi.ui.components.WavyDivider
+import com.id.mimikopi.ui.components.Hairline
 import com.id.mimikopi.ui.theme.Tokens
 
 @Composable
@@ -31,7 +31,7 @@ fun AboutScreen(onBack: () -> Unit, onOpenCredits: () -> Unit) {
             style = MaterialTheme.typography.bodyLarge,
         )
         Text(stringResource(R.string.about_privacy), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        WavyDivider()
+        Hairline()
         PageCard(title = stringResource(R.string.about_limits_title)) {
             listOf(
                 R.string.about_limit_2, R.string.about_limit_3,

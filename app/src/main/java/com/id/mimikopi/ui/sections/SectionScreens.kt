@@ -43,6 +43,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -73,7 +81,7 @@ import kotlinx.coroutines.launch
 
 // ---------------------------------------------------------------- list (tab)
 
-/** The section practice tab: the user's sections, newest first, and a button to write a new one. */
+/** The section practice tab: a dashed "write a new section" card, then the user's sections, newest first. */
 @Composable
 fun SectionsScreen(
     onPractice: (String) -> Unit,
@@ -88,35 +96,11 @@ fun SectionsScreen(
     var deleting by remember { mutableStateOf<Section?>(null) }
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-        Column(Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
-            TabHeader(stringResource(R.string.tab_sections), onOpenMidi, onOpenSettings)
-            Text(stringResource(R.string.sections_intro), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(horizontal = 20.dp))
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { naming = true }, shape = RoundedCornerShape(Tokens.Radius.button), modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp)) {
-                    Icon(painterResource(R.drawable.ic_plus), contentDescription = null, modifier = Modifier.size(20.dp))
-                    Text("  " + stringResource(R.string.sections_new), style = MaterialTheme.typography.titleMedium)
-                }
-                sections.forEach { s ->
-                    PageCard {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(s.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                            if (s.stats.mastered) Pill(stringResource(R.string.sections_mastered), Tokens.Palette.GoodSoft, Tokens.Palette.GoodInk)
-                        }
-                        Text(stringResource(R.string.sections_summary, s.steps.size, s.phrases.size), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
-                        val acc = s.stats.accuracy
-                        if (acc != null) Text(
-                            stringResource(R.string.sections_stats, s.stats.cleanFullRuns, s.stats.fullRuns, (acc * 100).toInt()),
-                            style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
-                            Button(onClick = { onPractice(s.id) }, enabled = s.steps.isNotEmpty(), modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) {
-                                Text(stringResource(R.string.sections_practice))
-                            }
-                            OutlinedButton(onClick = { onEdit(s.id) }, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.sections_edit)) }
-                            TextButton(onClick = { deleting = s }, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.sections_delete)) }
-                        }
-                    }
-                }
+        Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
+            TabHeader(stringResource(R.string.tab_sections), stringResource(R.string.sections_subtitle), onOpenMidi, onOpenSettings)
+            Column(Modifier.padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                NewSectionCard { naming = true }
+                sections.forEach { s -> SectionCard(s, onPractice = { onPractice(s.id) }, onEdit = { onEdit(s.id) }, onDelete = { deleting = s }) }
             }
         }
     }
@@ -126,6 +110,7 @@ fun SectionsScreen(
         val fallback = stringResource(R.string.sections_default_title, sections.size + 1)
         AlertDialog(
             onDismissRequest = { naming = false },
+            containerColor = Color(0xFF111111),
             title = { Text(stringResource(R.string.sections_name_title)) },
             text = { OutlinedTextField(value = title, onValueChange = { title = it.take(60) }, singleLine = true, placeholder = { Text(fallback) }) },
             confirmButton = {
@@ -140,6 +125,7 @@ fun SectionsScreen(
     deleting?.let { s ->
         AlertDialog(
             onDismissRequest = { deleting = null },
+            containerColor = Color(0xFF111111),
             title = { Text(stringResource(R.string.sections_delete_q, s.title)) },
             confirmButton = { TextButton(onClick = { vm.delete(s.id); deleting = null }) { Text(stringResource(R.string.sections_delete)) } },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.action_cancel)) } },
@@ -147,36 +133,91 @@ fun SectionsScreen(
     }
 }
 
+@Composable
+private fun NewSectionCard(onClick: () -> Unit) {
+    val shape = RoundedCornerShape(Tokens.Radius.card)
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 92.dp).clip(shape)
+            .drawBehind {
+                drawRoundRect(Tokens.Palette.Dim, cornerRadius = CornerRadius(Tokens.Radius.card.toPx()),
+                    style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx()))))
+            }
+            .clickable(onClick = onClick)
+            .padding(horizontal = 22.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Box(Modifier.size(48.dp).background(Tokens.Palette.Ink, CircleShape), contentAlignment = Alignment.Center) {
+            Icon(painterResource(R.drawable.ic_plus), contentDescription = null, tint = Tokens.Palette.OnInk, modifier = Modifier.size(20.dp))
+        }
+        Column {
+            Text(stringResource(R.string.sections_new), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.sections_new_body), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+        }
+    }
+}
+
+@Composable
+private fun SectionCard(s: Section, onPractice: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val shape = RoundedCornerShape(Tokens.Radius.card)
+    Column(
+        Modifier.fillMaxWidth().border(1.dp, Tokens.Palette.Line, shape).padding(start = 20.dp, end = 12.dp, top = 20.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 8.dp)) {
+            Text(s.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), maxLines = 2)
+            if (s.stats.mastered) Pill(stringResource(R.string.sections_mastered))
+        }
+        // The first notes, so a section is recognised at a glance; a bar marks each phrase start.
+        if (s.steps.isNotEmpty()) Text(
+            s.steps.take(14).mapIndexed { i, st -> (if (i > 0 && i in s.breaks) "│ " else "") + st.notes.joinToString("+") { s.name(it) } }
+                .joinToString(" ") + if (s.steps.size > 14) " …" else "",
+            fontFamily = Tokens.Fonts.mono, fontSize = 14.sp, color = Tokens.Palette.InkMuted, maxLines = 1,
+        )
+        // One segment per phrase: white once the phrase has been played cleanly.
+        if (s.phrases.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            s.phrases.indices.forEach { i ->
+                val done = s.stats.mastered || (s.stats.phraseClean[i] ?: 0) >= 3
+                Box(Modifier.weight(1f).height(3.dp).background(if (done) Tokens.Palette.Ink else Tokens.Palette.Line))
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val acc = s.stats.accuracy
+            Text(
+                stringResource(R.string.sections_meta, s.steps.size, s.phrases.size) + (acc?.let { " · ${(it * 100).toInt()}%" } ?: ""),
+                fontFamily = Tokens.Fonts.mono, fontSize = 12.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onDelete, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.sections_delete), color = Tokens.Palette.InkMuted) }
+            TextButton(onClick = onEdit, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.sections_edit), color = Tokens.Palette.InkMuted) }
+            Button(onClick = onPractice, enabled = s.steps.isNotEmpty(), shape = RoundedCornerShape(24.dp), modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.sections_practice) + " →", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+}
+
 // ---------------------------------------------------------------- note tiles
 
-/** One step in large type: a note name ("F♯" with a small octave) or a chord (names stacked). */
+/** One step in large mono type: a note name with a small octave, or a chord (names stacked). */
 @Composable
 private fun StepTile(
     step: Step,
     flats: Boolean,
-    background: Color,
-    border: Color,
-    textColor: Color,
+    color: Color,
     size: TextUnit,
     modifier: Modifier = Modifier,
     pressed: Set<Int> = emptySet(),
 ) {
-    Column(
-        modifier
-            .background(background, RoundedCornerShape(14.dp))
-            .border(2.dp, border, RoundedCornerShape(14.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    Column(modifier.padding(horizontal = 6.dp, vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         step.notes.reversed().forEach { n ->
             val p = Spelling.pitch(n, flats)
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     p.letter.name + com.id.mimikopi.core.music.SpelledPitch.accidentalSymbol(p.accidental),
-                    fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.Black, fontSize = if (step.notes.size > 1) size * 0.7f else size,
-                    color = if (n in pressed) Tokens.Palette.Good else textColor,
+                    fontFamily = Tokens.Fonts.mono, fontWeight = FontWeight.Medium, fontSize = if (step.notes.size > 1) size * 0.7f else size,
+                    color = if (n in pressed) Tokens.Palette.Dim else color,
                 )
-                Text("${p.octave}", fontSize = size * 0.32f, color = textColor.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 4.dp))
+                Text("${p.octave}", fontFamily = Tokens.Fonts.mono, fontSize = size * 0.32f, color = color, modifier = Modifier.padding(bottom = 4.dp))
             }
         }
     }
@@ -199,7 +240,7 @@ fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: Sect
         OutlinedTextField(value = s.title, onValueChange = vm::rename, singleLine = true, label = { Text(stringResource(R.string.sections_name_title)) }, modifier = Modifier.fillMaxWidth())
         KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER)
         Text(stringResource(if (selected == null) R.string.sections_record_help else R.string.sections_replace_help), style = MaterialTheme.typography.bodyMedium,
-            color = if (selected == null) Tokens.Palette.InkMuted else Tokens.Palette.RoseDeep)
+            color = if (selected == null) Tokens.Palette.InkMuted else Tokens.Palette.Ink)
 
         if (s.steps.isEmpty()) PageCard {
             Text(stringResource(R.string.sections_empty), style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.InkMuted)
@@ -209,12 +250,13 @@ fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: Sect
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (i in range) {
                         val isSel = i == selected
+                        val tileShape = RoundedCornerShape(14.dp)
                         StepTile(
                             s.steps[i], s.flats,
-                            background = if (isSel) Tokens.Palette.MustardSoft else Tokens.Palette.Card,
-                            border = if (isSel) Tokens.Palette.Mustard else Tokens.Palette.Line,
-                            textColor = Tokens.Palette.Ink, size = 34.sp,
-                            modifier = Modifier.clickable { vm.select(i) },
+                            color = if (isSel) Tokens.Palette.OnInk else Tokens.Palette.Ink, size = 32.sp,
+                            modifier = Modifier.clip(tileShape)
+                                .then(if (isSel) Modifier.background(Tokens.Palette.Ink) else Modifier.border(1.dp, Tokens.Palette.Line, tileShape))
+                                .clickable { vm.select(i) }.padding(horizontal = 4.dp),
                         )
                     }
                 }
@@ -235,12 +277,13 @@ fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: Sect
             FilterChip(selected = s.flats, onClick = { vm.setFlats(!s.flats) }, label = { Text(stringResource(R.string.sections_flats)) })
             TextButton(onClick = { confirmClear = true }, enabled = s.steps.isNotEmpty(), modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.sections_clear)) }
         }
-        Button(onClick = { onPractice(s.id) }, enabled = s.steps.isNotEmpty(), shape = RoundedCornerShape(Tokens.Radius.button), modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp)) {
+        Button(onClick = { onPractice(s.id) }, enabled = s.steps.isNotEmpty(), shape = RoundedCornerShape(32.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)) {
             Text(stringResource(R.string.sections_start_practice), style = MaterialTheme.typography.titleMedium)
         }
     }
     if (confirmClear) AlertDialog(
         onDismissRequest = { confirmClear = false },
+        containerColor = Color(0xFF111111),
         title = { Text(stringResource(R.string.sections_clear_q)) },
         confirmButton = { TextButton(onClick = { vm.clear(); confirmClear = false }) { Text(stringResource(R.string.sections_clear)) } },
         dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.action_cancel)) } },
@@ -249,7 +292,10 @@ fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: Sect
 
 // ---------------------------------------------------------------- practice
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Practising a section, landscape-first: the note to play very large in the middle with a line under it, the notes
+ * already played small and dark on the left, the next ones fading out on the right. A wrong note restarts the phrase.
+ */
 @Composable
 fun SectionPracticeScreen(onBack: () -> Unit, onEdit: (String) -> Unit, vm: SectionPracticeViewModel = viewModel()) {
     val section by vm.section.collectAsStateWithLifecycle()
@@ -262,75 +308,77 @@ fun SectionPracticeScreen(onBack: () -> Unit, onEdit: (String) -> Unit, vm: Sect
 
     val s = section
     Column(Modifier.fillMaxSize().paper().safeDrawingPadding()) {
-        Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(56.dp).padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back)) }
-            Text(s?.title ?: "", style = MaterialTheme.typography.titleMedium, maxLines = 1, modifier = Modifier.weight(1f))
-            TextButton(onClick = vm::listen) { Text(stringResource(R.string.sections_listen)) }
-            if (s != null) TextButton(onClick = { onEdit(s.id) }) { Text(stringResource(R.string.sections_edit)) }
+            Text(s?.title ?: "", style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+            if (s != null && s.phrases.size > 1) Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()).padding(start = 16.dp)) {
+                s.phrases.indices.forEach { i -> PartTab(stringResource(R.string.sections_phrase, i + 1), ui.mode == SectionTrainer.Mode.Phrase(i)) { vm.select(SectionTrainer.Mode.Phrase(i)) } }
+                PartTab(stringResource(R.string.sections_whole), ui.mode == SectionTrainer.Mode.Full) { vm.select(SectionTrainer.Mode.Full) }
+            } else Spacer(Modifier.weight(1f))
+            if (s != null) TextButton(onClick = { onEdit(s.id) }) { Text(stringResource(R.string.sections_edit), color = Tokens.Palette.InkMuted) }
+            OutlinedButton(onClick = vm::listen, shape = RoundedCornerShape(22.dp), modifier = Modifier.heightIn(min = 44.dp)) { Text(stringResource(R.string.sections_listen)) }
         }
         if (s == null || s.steps.isEmpty()) return@Column
         val phrases = s.phrases
-        // Part chooser: each phrase, then the whole section.
-        if (phrases.size > 1) Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        val range = phrases[phrases.indexOfFirst { ui.position in it }.coerceAtLeast(0)]
+        val before = (range.first until ui.position).toList().takeLast(3)
+        val after = ((ui.position + 1)..range.last).toList().take(3)
+
+        Row(
+            Modifier.weight(1f).fillMaxWidth().padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
         ) {
-            phrases.indices.forEach { i ->
-                FilterChip(selected = ui.mode == SectionTrainer.Mode.Phrase(i), onClick = { vm.select(SectionTrainer.Mode.Phrase(i)) },
-                    label = { Text(stringResource(R.string.sections_phrase, i + 1)) })
+            before.forEach { i -> StepTile(s.steps[i], s.flats, color = Tokens.Palette.Faint, size = 36.sp) }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                StepTile(s.steps[ui.position], s.flats, color = Tokens.Palette.Ink, size = 132.sp, pressed = ui.pressed)
+                Box(Modifier.width(64.dp).height(3.dp).background(Tokens.Palette.Ink))
             }
-            FilterChip(selected = ui.mode == SectionTrainer.Mode.Full, onClick = { vm.select(SectionTrainer.Mode.Full) },
-                label = { Text(stringResource(R.string.sections_whole)) })
+            after.forEachIndexed { k, i ->
+                StepTile(s.steps[i], s.flats, color = listOf(Tokens.Palette.Ink.copy(alpha = 0.8f), Tokens.Palette.InkMuted, Tokens.Palette.Dim)[k], size = 52.sp)
+            }
         }
 
-        // Where you are and how many clean runs in a row (no rewards, just the count toward the goal).
-        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val mode = ui.mode
+        val message = when (ui.last) {
+            Outcome.WRONG -> stringResource(R.string.sections_wrong)
+            Outcome.PHRASE_RUN_DONE -> stringResource(R.string.sections_phrase_run, ui.goal - ui.streak)
+            Outcome.PHRASE_PASSED -> stringResource(R.string.sections_phrase_passed)
+            Outcome.FULL_RUN_DONE -> if (ui.streak > 0) stringResource(R.string.sections_full_clean, ui.goal - ui.streak) else stringResource(R.string.sections_full_mistakes)
+            Outcome.MASTERED -> stringResource(R.string.sections_mastered_now)
+            else -> stringResource(R.string.sections_play_hint)
+        }
+        Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // A wrong note is the one message shown inverted, so it is seen from the piano without colour.
             Text(
-                when (mode) {
-                    is SectionTrainer.Mode.Phrase -> stringResource(R.string.sections_mode_phrase, mode.index + 1, phrases.size)
-                    SectionTrainer.Mode.Full -> stringResource(R.string.sections_mode_full)
-                },
-                style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f),
+                message, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f, fill = false)
+                    .then(if (ui.last == Outcome.WRONG) Modifier.background(Tokens.Palette.Ink, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 2.dp) else Modifier),
+                color = if (ui.last == Outcome.WRONG) Tokens.Palette.OnInk else Tokens.Palette.Ink,
             )
-            repeat(ui.goal) { k ->
-                Spacer(Modifier.size(14.dp).background(if (k < ui.streak) Tokens.Palette.Good else Tokens.Palette.Track, CircleShape))
+            Spacer(Modifier.weight(1f))
+            Text(
+                when (val mode = ui.mode) {
+                    is SectionTrainer.Mode.Phrase -> stringResource(R.string.sections_mode_phrase, mode.index + 1, phrases.size)
+                    SectionTrainer.Mode.Full -> stringResource(R.string.sections_whole)
+                },
+                fontFamily = Tokens.Fonts.mono, fontSize = 12.sp, color = Tokens.Palette.InkMuted,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                repeat(ui.goal) { k -> Box(Modifier.width(26.dp).height(4.dp).background(if (k < ui.streak) Tokens.Palette.Ink else Tokens.Palette.Line)) }
             }
-            Text(stringResource(R.string.sections_streak, ui.streak, ui.goal), style = MaterialTheme.typography.labelMedium, color = Tokens.Palette.InkMuted)
+            Text("${ui.streak}/${ui.goal}", fontFamily = Tokens.Fonts.mono, fontSize = 13.sp)
         }
-
-        // The notes, as large as the screen allows: the phrase being played.
-        val phraseIndex = phrases.indexOfFirst { ui.position in it }.coerceAtLeast(0)
-        val range = phrases[phraseIndex]
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.Center) {
-            if (ui.mode == SectionTrainer.Mode.Full) Text(stringResource(R.string.sections_phrase, phraseIndex + 1), style = MaterialTheme.typography.labelLarge,
-                color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 6.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (i in range) {
-                    val done = i < ui.position
-                    val now = i == ui.position
-                    StepTile(
-                        s.steps[i], s.flats,
-                        background = when { now -> Tokens.Palette.RoseSoft; done -> Tokens.Palette.GoodSoft; else -> Tokens.Palette.Card },
-                        border = when { now -> Tokens.Palette.RoseDeep; done -> Tokens.Palette.GoodSoft; else -> Tokens.Palette.Line },
-                        textColor = if (done) Tokens.Palette.GoodInk else Tokens.Palette.Ink,
-                        size = if (now) 56.sp else 46.sp,
-                        pressed = if (now) ui.pressed else emptySet(),
-                    )
-                }
-            }
-        }
-
-        val (message, color) = when (ui.last) {
-            Outcome.WRONG -> stringResource(R.string.sections_wrong) to Tokens.Palette.Error
-            Outcome.PHRASE_RUN_DONE -> stringResource(R.string.sections_phrase_run, ui.goal - ui.streak) to Tokens.Palette.GoodInk
-            Outcome.PHRASE_PASSED -> stringResource(R.string.sections_phrase_passed) to Tokens.Palette.GoodInk
-            Outcome.FULL_RUN_DONE -> (if (ui.streak > 0) stringResource(R.string.sections_full_clean, ui.goal - ui.streak) else stringResource(R.string.sections_full_mistakes)) to
-                (if (ui.streak > 0) Tokens.Palette.GoodInk else Tokens.Palette.Off)
-            Outcome.MASTERED -> stringResource(R.string.sections_mastered_now) to Tokens.Palette.GoodInk
-            else -> stringResource(R.string.sections_play_hint) to Tokens.Palette.InkMuted
-        }
-        Text(message, style = MaterialTheme.typography.titleMedium, color = color, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp))
         KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER)
+    }
+}
+
+@Composable
+private fun PartTab(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.heightIn(min = 44.dp).clickable(onClick = onClick).padding(horizontal = 10.dp)
+            .drawBehind { if (selected) drawRect(Tokens.Palette.Ink, topLeft = Offset(0f, size.height - 2.dp.toPx()), size = Size(size.width, 2.dp.toPx())) },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
     }
 }

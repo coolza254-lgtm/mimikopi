@@ -47,7 +47,11 @@ import com.id.mimikopi.ui.theme.MimikopiTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Black UI: light status and navigation bar icons on a transparent bar.
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = androidx.activity.SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
         setContent {
             MimikopiTheme { AppNavigation() }
         }

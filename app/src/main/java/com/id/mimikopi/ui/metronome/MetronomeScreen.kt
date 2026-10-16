@@ -155,8 +155,8 @@ fun BeatDots(s: MetronomeSettings, running: Boolean, tickCount: () -> Long, dotS
                     .size(size.dp)
                     .background(
                         when {
-                            on && level == ClickLevel.STRONG -> Tokens.Palette.Rose
-                            on -> Tokens.Palette.Mustard
+                            on && level == ClickLevel.STRONG -> Tokens.Palette.Ink
+                            on -> Tokens.Palette.InkMuted
                             else -> Tokens.Palette.Line
                         },
                         CircleShape,

@@ -56,7 +56,7 @@ fun PieceListScreen(onBack: () -> Unit, onOpenPiece: (String, String?) -> Unit, 
                     color = Tokens.Palette.InkMuted,
                 )
                 val passed = PieceRules.isPassed(p, vm.hand ?: "BOTH")
-                Text(status(p, vm.hand), style = MaterialTheme.typography.bodySmall, color = if (passed) Tokens.Palette.Good else Tokens.Palette.InkMuted)
+                Text(status(p, vm.hand), style = MaterialTheme.typography.bodySmall, color = if (passed) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
             }
         }
         Text(stringResource(R.string.pieces_source_note), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)

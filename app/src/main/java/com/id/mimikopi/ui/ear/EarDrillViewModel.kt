@@ -291,7 +291,7 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
             is EarQuestion.Melody -> {
                 val entered = ui.entered + e.note
                 if (entered.size < q.notes.size - 1) _ui.value = ui.copy(entered = entered)
-                else finishQuestion(EarAnswers.melodyMatches(q.notes, entered), "ทำนองที่ถูกอยู่บนคีย์ที่มีจุด", q.notes.toSet(), entered)
+                else finishQuestion(EarAnswers.melodyMatches(q.notes, entered), "ทำนองที่ถูกอยู่ในแถวเฉลยด้านล่าง", q.notes.toSet(), entered)
             }
             is EarQuestion.BassLine -> {
                 val expected = Math.floorMod(scaleNote(q.key.tonic, q.chords[step].first.step + q.chords[step].second), 12)
@@ -307,7 +307,7 @@ class EarDrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
                         itemResults += "ear:mix:mel" to ok
                         record("ear:mix:mel", ok)
                         _ui.value = ui.copy(entered = entered, correct = ok && stepsAllRight, marked = q.melody.toSet(),
-                            correction = if (ok) null else "ทำนองที่ถูกอยู่บนคีย์ที่มีจุด")
+                            correction = if (ok) null else "ทำนองที่ถูกอยู่ในแถวเฉลยด้านล่าง")
                     }
                 }
             }

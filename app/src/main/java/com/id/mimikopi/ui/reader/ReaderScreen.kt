@@ -1,6 +1,7 @@
 package com.id.mimikopi.ui.reader
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -217,26 +218,26 @@ private fun FixedControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
     }
 }
 
+/** While playing: one small floating pill (status, then a white stop button) so the notes keep the height. */
 @Composable
 private fun RunControls(ui: ReaderUi, vm: ReaderViewModel) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.s),
-        horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Button(onClick = vm::stop) { Text(stringResource(R.string.reader_stop)) }
-        val status = when {
-            ui.phase == Phase.COUNT_IN -> stringResource(R.string.reader_count_in, ui.countIn ?: 0)
-            ui.phase == Phase.LISTENING -> stringResource(R.string.reader_listening, ui.bpm)
-            ui.options.mode == PlayMode.WAIT -> stringResource(R.string.reader_playing_wait)
-            else -> stringResource(R.string.reader_playing_tempo, ui.bpm)
+    Box(Modifier.fillMaxWidth().padding(bottom = Tokens.Space.s), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier
+                .border(1.dp, Tokens.Palette.Line, androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
+                .padding(start = 20.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val status = when {
+                ui.phase == Phase.COUNT_IN -> stringResource(R.string.reader_count_in, ui.countIn ?: 0)
+                ui.phase == Phase.LISTENING -> stringResource(R.string.reader_listening, ui.bpm)
+                ui.options.mode == PlayMode.WAIT -> stringResource(R.string.reader_playing_wait)
+                else -> stringResource(R.string.reader_playing_tempo, ui.bpm)
+            }
+            Text(status, fontFamily = Tokens.Fonts.mono, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, maxLines = 1)
+            Button(onClick = vm::stop, shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)) { Text(stringResource(R.string.reader_stop)) }
         }
-        Text(
-            status,
-            style = if (ui.phase == Phase.COUNT_IN) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyMedium,
-            maxLines = 2,
-            modifier = Modifier.weight(1f),
-        )
     }
 }
 

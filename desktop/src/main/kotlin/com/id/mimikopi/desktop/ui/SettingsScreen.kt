@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.id.mimikopi.desktop.Keys
 import com.id.mimikopi.desktop.Services
 import com.id.mimikopi.desktop.ThemeMode
@@ -37,22 +39,40 @@ import java.time.LocalDate
 /** The app's version (set by the installer), or "dev". */
 val appVersion: String = System.getProperty("jpackage.app-version") ?: "dev"
 
-/** MIDI keyboards: each device's state, a re-check, and what the app can and cannot tell. */
+/** MIDI keyboards: each device's state and what arrives from it, a re-check, and a report for finding problems. */
 @Composable
 fun MidiSection() {
     val devices by Services.midi.devices.collectAsState()
+    var report by remember { mutableStateOf<String?>(null) }
+    var copied by remember { mutableStateOf(false) }
     PageCard(title = "คีย์บอร์ด MIDI") {
-        if (devices.isEmpty()) Text("ยังไม่พบคีย์บอร์ด เสียบสาย USB จากคีย์บอร์ดเข้าคอม แล้วเปิดเครื่อง", style = MaterialTheme.typography.bodyMedium)
+        if (devices.isEmpty()) Text("โปรแกรมยังไม่พบคีย์บอร์ด เสียบสาย USB จากคีย์บอร์ดเข้าคอม เปิดเครื่อง แล้วกดตรวจใหม่", style = MaterialTheme.typography.bodyMedium)
         devices.forEach { d ->
             val status = when {
                 !d.open -> d.error ?: "กำลังเชื่อมต่อ…"
                 d.silent -> "ยังเสียบอยู่แต่ไม่มีสัญญาณ (น่าจะปิดเครื่อง)"
                 d.sendsSensing -> "เชื่อมต่อแล้ว · เปิดเครื่องอยู่"
-                else -> "เชื่อมต่อแล้ว (คีย์บอร์ดนี้ไม่ส่งสัญญาณบอกสถานะ แอพจึงรู้ไม่ได้ว่าปิดเครื่องหรือยัง)"
+                else -> "เชื่อมต่อแล้ว"
             }
             Text("• ${d.name} · $status", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+            if (d.open) Text(
+                if (d.messages == 0L) "   ยังไม่ได้รับโน้ต ลองกดคีย์สักตัว" else "   รับแล้ว ${d.messages} ครั้ง · ล่าสุด: ${d.lastMessage}",
+                fontFamily = Tokens.Fonts.mono, fontSize = 12.sp, color = Tokens.Palette.InkMuted,
+            )
         }
-        OutlinedButton(onClick = { Services.midi.rescan() }, modifier = Modifier.padding(top = 12.dp)) { Text("ตรวจการเชื่อมต่อใหม่") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
+            OutlinedButton(onClick = { Services.midi.rescan() }) { Text("ตรวจการเชื่อมต่อใหม่") }
+            OutlinedButton(onClick = { report = Services.midi.report(); copied = false }) { Text("รายงานการเชื่อมต่อ") }
+        }
+        report?.let { r ->
+            Text(r, fontFamily = Tokens.Fonts.mono, fontSize = 11.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 10.dp))
+            TextButton(onClick = {
+                runCatching {
+                    java.awt.Toolkit.getDefaultToolkit().systemClipboard.setContents(java.awt.datatransfer.StringSelection(r), null)
+                    copied = true
+                }
+            }) { Text(if (copied) "คัดลอกแล้ว" else "คัดลอกรายงาน") }
+        }
         Text("ถ้าเสียบคีย์บอร์ดหลังเปิดโปรแกรมแล้วไม่ขึ้น ให้ปิดโปรแกรมแล้วเปิดใหม่ (Windows บางเครื่องไม่แจ้งอุปกรณ์ใหม่ให้โปรแกรม Java)",
             style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 8.dp))
     }

@@ -505,14 +505,12 @@ IBM Plex Sans Thai Looped: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื
     <string name="home_knowledge_title">คลังความรู้ป็อป</string>
     <string name="home_knowledge_body">คอร์ด คีย์ โปรเกรสชัน โครงเพลง เทคนิคถอดเพลง ค้นหาได้ และกดฟังตัวอย่างได้</string>
     <string name="songs_title">คลังเพลงของฉัน</string>
-    <string name="songs_intro">เรียงตาม Song Ladder: เพลงที่ขาดบทเรียนน้อยที่สุดมาก่อน แล้วตามความยาก ความยากคำนวณจากข้อมูลที่ใส่เท่านั้น ข้อมูลที่ยังไม่ได้ยืนยันจะบอกไว้ แอพไม่มีโน้ตหรือเนื้อร้องของเพลงจริง ต้องถอดเอง</string>
     <string name="songs_add">เพิ่มเพลง</string>
     <string name="songs_create">สร้าง</string>
     <string name="songs_difficulty">ความยากโดยประมาณ %1$d/100</string>
     <string name="songs_ready">ไม่ขาดบทเรียนที่ตรวจได้แล้ว</string>
     <string name="songs_missing">ยังขาด %1$d ข้อ (บท %2$s)</string>
     <string name="songs_pipeline">ขั้นตอนถอดเพลง %1$d/7 วัน</string>
-    <string name="songs_unverified">ยังไม่ได้ยืนยัน: %1$s</string>
     <string name="song_title">ชื่อเพลง</string>
     <string name="song_artist">ศิลปิน</string>
     <string name="song_year">ปี</string>

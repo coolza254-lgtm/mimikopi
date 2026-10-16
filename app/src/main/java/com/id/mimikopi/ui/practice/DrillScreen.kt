@@ -52,6 +52,7 @@ import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.ui.components.PageCard
+import com.id.mimikopi.ui.components.DrillProgress
 import com.id.mimikopi.ui.components.KeyHint
 import com.id.mimikopi.ui.components.StaffView
 import com.id.mimikopi.ui.components.StaffSequenceView
@@ -112,7 +113,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                 }
                 is DrillUi.Question -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-                        com.id.mimikopi.ui.components.DrillProgress(s.index, s.total)
+                        DrillProgress(s.index, s.total)
                         FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
                     }
                     Box(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), contentAlignment = Alignment.Center) {
@@ -133,7 +134,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                 }
                 is DrillUi.Interval -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-                        com.id.mimikopi.ui.components.DrillProgress(s.index, s.total)
+                        DrillProgress(s.index, s.total)
                         FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
                     }
                     Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {

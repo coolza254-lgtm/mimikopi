@@ -145,7 +145,7 @@ private fun App() {
             Spacer(Modifier.weight(1f))
             val ready = midiReady()
             Row(Modifier.heightIn(min = 40.dp).clickable(onClick = openMidi), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(7.dp).background(if (ready) Tokens.Palette.Ink else Tokens.Palette.Faint, CircleShape))
+                Box(Modifier.size(7.dp).background(if (ready) Tokens.Palette.Positive else Tokens.Palette.Faint, CircleShape))
                 Text(if (ready) "  MIDI" else "  ไม่มี MIDI", fontFamily = Tokens.Fonts.mono, fontSize = 12.sp, color = if (ready) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
             }
             RailItem("ตั้งค่า", screen == Screen.Settings) { go(Screen.Settings) }

@@ -2,6 +2,20 @@ package com.id.mimikopi.ui.midi
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -68,24 +82,48 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
 
     ScreenScaffold(title = stringResource(R.string.midi_title), onBack = onBack) {
-        PageCard(title = stringResource(R.string.midi_devices)) {
+        // The connection, told as it really is: confirmed (green tick), linked but unconfirmed, silent or absent.
+        var now by remember { mutableLongStateOf(System.nanoTime()) }
+        LaunchedEffect(Unit) { while (true) { delay(1000); now = System.nanoTime() } }
+        PageCard {
             if (!vm.midiSupported) {
                 Body(stringResource(R.string.midi_unsupported), error = true)
             } else if (devices.isEmpty()) {
-                Body(stringResource(R.string.midi_none_help))
+                StatusHero(ConnState.NONE, title = stringResource(R.string.midi_state_none), body = stringResource(R.string.midi_none_help), device = null, lastNote = null)
             } else {
-                devices.forEach { d ->
-                    val status = when {
-                        !d.open -> d.error ?: stringResource(R.string.midi_connecting)
-                        d.silent -> stringResource(R.string.midi_silent)
-                        d.sendsSensing -> stringResource(R.string.midi_live)
-                        else -> stringResource(R.string.midi_connected_unknown)
-                    }
-                    Body("• ${d.name} · ${d.source.name} · $status", error = d.silent)
+                devices.sortedBy { it.name }.forEachIndexed { i, d ->
+                    if (i > 0) com.id.mimikopi.ui.components.Hairline(Modifier.padding(vertical = Tokens.Space.m))
+                    val state = connState(d, now)
+                    StatusHero(
+                        state,
+                        title = when (state) {
+                            ConnState.CONNECTED -> stringResource(R.string.midi_state_connected)
+                            ConnState.UNCONFIRMED -> stringResource(R.string.midi_state_unconfirmed)
+                            ConnState.SILENT -> stringResource(R.string.midi_state_silent)
+                            ConnState.CONNECTING -> d.error ?: stringResource(R.string.midi_state_connecting)
+                            ConnState.NONE -> stringResource(R.string.midi_state_none)
+                        },
+                        body = when (state) {
+                            ConnState.CONNECTED -> stringResource(if (d.verified) R.string.midi_state_connected_body else R.string.midi_state_connected_by_keys)
+                            ConnState.UNCONFIRMED -> stringResource(R.string.midi_state_unconfirmed_body)
+                            ConnState.SILENT -> stringResource(R.string.midi_state_silent_body)
+                            else -> null
+                        },
+                        device = d.name + " · " + stringResource(if (d.source == InputSource.BLE_MIDI) R.string.midi_bluetooth else R.string.midi_usb),
+                        lastNote = d.lastNote?.let { n ->
+                            val secs = ((now - (d.lastNoteNanos ?: now)) / 1_000_000_000L).toInt()
+                            val name = com.id.mimikopi.core.music.SpelledPitch.fromMidiSharp(n).name(com.id.mimikopi.core.music.NoteNameStyle.BOTH, withOctave = true)
+                            if (secs < 2) stringResource(R.string.midi_last_note_now, name) else if (secs < 3600) stringResource(R.string.midi_last_note, name, secs) else null
+                        },
+                    )
                 }
             }
-            if (vm.midiSupported) TextButton(onClick = vm::recheck, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.midi_recheck)) }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Tokens.Space.s)) {
+            if (vm.midiSupported) OutlinedButton(onClick = vm::recheck, modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.l).heightIn(min = Tokens.minTouch)) {
+                Text(stringResource(R.string.midi_recheck))
+            }
+        }
+        PageCard(title = stringResource(R.string.midi_settings)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.midi_sound_through), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(checked = soundThrough, onCheckedChange = vm::setSoundThrough)
             }
@@ -93,9 +131,24 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
 
         if (vm.bleSupported) {
             PageCard(title = stringResource(R.string.ble_title)) {
-                val bleConnected = devices.any { it.source == InputSource.BLE_MIDI && it.open }
+                val bleDevice = devices.firstOrNull { it.source == InputSource.BLE_MIDI && it.open }
+                val bleConnected = bleDevice != null
                 bleSaved?.let { saved ->
-                    Body(stringResource(if (bleConnected) R.string.ble_saved_connected else R.string.ble_saved_waiting, saved.name))
+                    val state = bleDevice?.let { connState(it, now) }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = Tokens.Space.xs)) {
+                        StatusMark(state ?: ConnState.NONE, small = true)
+                        Text(saved.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Text(
+                            when (state) {
+                                ConnState.CONNECTED -> stringResource(R.string.midi_state_connected)
+                                ConnState.UNCONFIRMED -> stringResource(R.string.midi_state_unconfirmed)
+                                ConnState.SILENT -> stringResource(R.string.midi_state_silent)
+                                else -> stringResource(R.string.midi_state_none)
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (state == ConnState.CONNECTED) Tokens.Palette.Positive else Tokens.Palette.InkMuted,
+                        )
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s), modifier = Modifier.fillMaxWidth()) {
                         if (!bleConnected) {
                             OutlinedButton(onClick = { withPermission(vm::bleReconnect) }, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ble_reconnect)) }
@@ -178,6 +231,60 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
                     FilterChip(selected = false, onClick = { vm.simPedal(false) }, label = { Text(stringResource(R.string.sim_pedal_up)) })
                 }
             }
+        }
+    }
+}
+
+/** What the app can honestly say about one instrument. */
+enum class ConnState { CONNECTED, UNCONFIRMED, SILENT, CONNECTING, NONE }
+
+/**
+ * Confirmed = it sends Active Sensing or answers the identity request (and has not gone quiet), or a key arrived in
+ * the last 10 minutes. Otherwise a listed instrument is only "linked": Android cannot tell whether it is switched on.
+ */
+fun connState(d: com.id.mimikopi.midi.MidiDeviceState, now: Long): ConnState = when {
+    !d.open -> ConnState.CONNECTING
+    d.silent -> ConnState.SILENT
+    d.verified -> ConnState.CONNECTED
+    d.lastNoteNanos != null && now - d.lastNoteNanos < 10 * 60 * 1_000_000_000L -> ConnState.CONNECTED
+    else -> ConnState.UNCONFIRMED
+}
+
+/** The round mark: a green disc with a white tick when connected, an outline otherwise. */
+@Composable
+fun StatusMark(state: ConnState, small: Boolean = false) {
+    val size = if (small) 22.dp else 48.dp
+    Box(
+        Modifier.size(size).then(
+            when (state) {
+                ConnState.CONNECTED -> Modifier.background(Tokens.Palette.Positive, CircleShape)
+                ConnState.UNCONFIRMED -> Modifier.border(2.dp, Tokens.Palette.Ink, CircleShape)
+                else -> Modifier.border(1.5.dp, Tokens.Palette.Dim, CircleShape)
+            },
+        ),
+        contentAlignment = Alignment.Center,
+    ) {
+        when (state) {
+            ConnState.CONNECTED -> Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = Color.White, modifier = Modifier.size(size * 0.6f))
+            ConnState.UNCONFIRMED -> Text("?", fontSize = if (small) 12.sp else 22.sp, color = Tokens.Palette.Ink)
+            ConnState.CONNECTING -> Text("…", fontSize = if (small) 12.sp else 20.sp, color = Tokens.Palette.Dim)
+            else -> Unit
+        }
+    }
+}
+
+@Composable
+private fun StatusHero(state: ConnState, title: String, body: String?, device: String?, lastNote: String?) {
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        StatusMark(state)
+        Column(Modifier.weight(1f)) {
+            Text(
+                title, fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 32.sp,
+                color = if (state == ConnState.CONNECTED) Tokens.Palette.Positive else Tokens.Palette.Ink,
+            )
+            device?.let { Text(it, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 2.dp)) }
+            body?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp)) }
+            lastNote?.let { Text(it, fontFamily = Tokens.Fonts.mono, fontSize = 13.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 8.dp)) }
         }
     }
 }

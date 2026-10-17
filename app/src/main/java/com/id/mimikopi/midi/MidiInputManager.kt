@@ -10,6 +10,8 @@ import android.media.midi.MidiReceiver
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import com.id.mimikopi.core.input.IdentityProbe
+import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.input.MidiLiveness
 import com.id.mimikopi.core.input.MidiParser
@@ -29,9 +31,17 @@ data class MidiDeviceState(
     val error: String? = null,
     /** The instrument sends Active Sensing, so the app can tell when it is switched off. */
     val sendsSensing: Boolean = false,
-    /** Still listed but silent: its Active Sensing stopped (switched off while the cable stays in). */
+    /** Still listed but silent: its Active Sensing or its identity answers stopped (switched off while still linked). */
     val silent: Boolean = false,
+    /** The instrument answers the MIDI identity request, so the app can tell when it is switched off. */
+    val answersProbe: Boolean = false,
+    /** The last key played on it and when (System.nanoTime), to show that notes really arrive. */
+    val lastNote: Int? = null,
+    val lastNoteNanos: Long? = null,
 ) {
+    /** The app can tell whether it is switched on (Active Sensing or identity answers). */
+    val verified: Boolean get() = sendsSensing || answersProbe
+
     /** Connected and, as far as the app can tell, switched on. */
     val ready: Boolean get() = open && !silent
 }
@@ -52,6 +62,12 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
     private val handler = Handler(Looper.getMainLooper())
     private val open = mutableMapOf<Int, Pair<MidiDevice, List<MidiOutputPort>>>()
     private val liveness = java.util.concurrent.ConcurrentHashMap<Int, MidiLiveness>()
+    /** Ports into the instrument (for the identity request), its probe state and the last key played on it. */
+    private val inputs = mutableMapOf<Int, android.media.midi.MidiInputPort>()
+    private val probes = java.util.concurrent.ConcurrentHashMap<Int, IdentityProbe>()
+    private val lastNotes = java.util.concurrent.ConcurrentHashMap<Int, Pair<Int, Long>>()
+    private var ticks = 0
+    private val gattMisses = mutableMapOf<Int, Int>()
 
     private val _devices = MutableStateFlow<List<MidiDeviceState>>(emptyList())
     val devices: StateFlow<List<MidiDeviceState>> = _devices.asStateFlow()
@@ -122,23 +138,63 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
         val source = sourceOf(info)
         val ports = (0 until info.outputPortCount).mapNotNull { i -> device.openOutputPort(i)?.also { port -> port.connect(receiverFor(source, info.id)) } }
         open[info.id] = device to ports
+        openInput(device)
         update(MidiDeviceState(info.id, nameOf(info), source, ports.size, open = ports.isNotEmpty(), error = if (ports.isEmpty()) "no ports" else null))
     }
 
-    /** Checks every 400 ms whether an instrument that sends Active Sensing went quiet (or came back). */
+    /** The port into the instrument, for the identity request (instruments without one are judged by the other signs). */
+    private fun openInput(device: MidiDevice) {
+        val id = device.info.id
+        probes[id] = IdentityProbe()
+        if (device.info.inputPortCount > 0) runCatching { device.openInputPort(0) }.getOrNull()?.let { inputs[id] = it }
+    }
+
+    /**
+     * Every 400 ms: asks instruments that answer whether they are still there, checks Active Sensing and identity
+     * silence, and the real Bluetooth link (Android can keep listing a BLE instrument whose link is gone).
+     */
     private val watchdog = object : Runnable {
         override fun run() {
             val now = System.nanoTime()
+            for ((id, port) in inputs.toMap()) {
+                val p = probes[id] ?: continue
+                val send = synchronized(p) { p.shouldSend(now).also { if (it) p.sent(now) } }
+                if (send) runCatching { port.send(IdentityProbe.REQUEST, 0, IdentityProbe.REQUEST.size) }
+            }
+            if (ticks++ % 3 == 0) checkBluetoothLinks()
             for (state in _devices.value) {
-                val l = liveness[state.id] ?: continue
-                val silent = synchronized(l) { l.silent(now) }
-                val senses = synchronized(l) { l.sendsSensing }
-                if (silent != state.silent || senses != state.sendsSensing) {
-                    update(state.copy(silent = silent, sendsSensing = senses))
-                    if (silent) hub.releaseAll() // keys held when it went off must not ring forever
+                val l = liveness[state.id]
+                val p = probes[state.id]
+                val silent = (l?.let { synchronized(it) { it.silent(now) } } ?: false) || (p?.let { synchronized(it) { it.silent(now) } } ?: false)
+                val senses = l?.let { synchronized(it) { it.sendsSensing } } ?: state.sendsSensing
+                val answers = p?.let { synchronized(it) { it.answers } } ?: state.answersProbe
+                val note = lastNotes[state.id]
+                if (silent != state.silent || senses != state.sendsSensing || answers != state.answersProbe || note?.second != state.lastNoteNanos) {
+                    update(state.copy(silent = silent, sendsSensing = senses, answersProbe = answers, lastNote = note?.first ?: state.lastNote, lastNoteNanos = note?.second ?: state.lastNoteNanos))
+                    if (silent && !state.silent) hub.releaseAll() // keys held when it went off must not ring forever
                 }
             }
             handler.postDelayed(this, 400)
+        }
+    }
+
+    /** A BLE instrument whose GATT link is down (two checks in a row) is closed and reconnected when it comes back. */
+    @android.annotation.SuppressLint("MissingPermission")
+    private fun checkBluetoothLinks() {
+        val bm = context.getSystemService(android.bluetooth.BluetoothManager::class.java) ?: return
+        for ((id, pair) in open.toMap()) {
+            val info = pair.first.info
+            if (info.type != MidiDeviceInfo.TYPE_BLUETOOTH) continue
+            val device = info.properties.getParcelableCompat() ?: continue
+            val state = runCatching { bm.getConnectionState(device, android.bluetooth.BluetoothProfile.GATT) }.getOrNull() ?: continue
+            if (state == android.bluetooth.BluetoothProfile.STATE_CONNECTED) { gattMisses.remove(id); continue }
+            val misses = (gattMisses[id] ?: 0) + 1
+            gattMisses[id] = misses
+            if (misses >= 2) {
+                gattMisses.remove(id)
+                closeDevice(id, removed = true)
+                scheduleReconnect()
+            }
         }
     }
 
@@ -235,6 +291,7 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
                 device.openOutputPort(i)?.also { port -> port.connect(receiverFor(source, info.id)) }
             }
             open[info.id] = device to ports
+            openInput(device)
             update(MidiDeviceState(info.id, nameOf(info), source, ports.size, open = ports.isNotEmpty(), error = if (ports.isEmpty()) "no ports" else null))
         }, handler)
     }
@@ -244,15 +301,23 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
         private val alive = liveness.getOrPut(deviceId) { MidiLiveness() } // one per device, shared by its ports
 
         override fun onSend(msg: ByteArray, offset: Int, count: Int, timestamp: Long) {
-            synchronized(alive) { alive.received(msg, offset, count, System.nanoTime()) }
+            val now = System.nanoTime()
+            synchronized(alive) { alive.received(msg, offset, count, now) }
+            probes[deviceId]?.let { p -> synchronized(p) { p.received(msg, offset, count, now) } }
             // Timestamps are System.nanoTime() based (CLOCK_MONOTONIC), the same clock as audio timestamps.
-            val t = if (timestamp > 0) timestamp else System.nanoTime()
-            parser.parse(msg, offset, count, t) { event -> event.shifted(octaveOffset)?.let(hub::dispatch) }
+            val t = if (timestamp > 0) timestamp else now
+            parser.parse(msg, offset, count, t) { event ->
+                if (event is InputEvent.NoteOn) lastNotes[deviceId] = event.note to now
+                event.shifted(octaveOffset)?.let(hub::dispatch)
+            }
         }
     }
 
     private fun closeDevice(id: Int, removed: Boolean) {
         liveness.remove(id)
+        probes.remove(id)
+        lastNotes.remove(id)
+        inputs.remove(id)?.let { runCatching { it.close() } }
         open.remove(id)?.let { (device, ports) ->
             ports.forEach { runCatching { it.close() } }
             try {
@@ -269,7 +334,9 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
     private fun update(state: MidiDeviceState) {
         val before = _devices.value.firstOrNull { it.id == state.id }
         // Re-opening keeps what is known about the instrument's liveness.
-        val merged = if (before != null && state.open && !state.sendsSensing && before.sendsSensing) state.copy(sendsSensing = true, silent = before.silent) else state
+        val kept = if (before != null && state.open && !state.sendsSensing && before.sendsSensing) state.copy(sendsSensing = true, silent = before.silent) else state
+        // A reopen keeps the last key shown.
+        val merged = if (before != null && kept.lastNote == null) kept.copy(lastNote = before.lastNote, lastNoteNanos = before.lastNoteNanos) else kept
         _devices.value = _devices.value.filterNot { it.id == state.id } + merged
     }
 }

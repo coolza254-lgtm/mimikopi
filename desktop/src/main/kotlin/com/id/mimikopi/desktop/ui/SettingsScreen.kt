@@ -1,6 +1,9 @@
 package com.id.mimikopi.desktop.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -49,13 +52,27 @@ fun MidiSection() {
     PageCard(title = "คีย์บอร์ด MIDI") {
         if (devices.isEmpty()) Text("โปรแกรมยังไม่พบคีย์บอร์ด เสียบสาย USB จากคีย์บอร์ดเข้าคอม เปิดเครื่อง แล้วกดตรวจใหม่", style = MaterialTheme.typography.bodyMedium)
         devices.forEach { d ->
+            // Confirmed only by signs from the keyboard itself (Active Sensing or a key played); a listed device alone is not.
+            val confirmed = d.open && !d.silent && (d.sendsSensing || d.messages > 0)
             val status = when {
                 !d.open -> d.error ?: "กำลังเชื่อมต่อ…"
-                d.silent -> "ยังเสียบอยู่แต่ไม่มีสัญญาณ (น่าจะปิดเครื่อง)"
-                d.sendsSensing -> "เชื่อมต่อแล้ว · เปิดเครื่องอยู่"
-                else -> "เชื่อมต่อแล้ว"
+                d.silent -> "ไม่มีสัญญาณ · คีย์บอร์ดน่าจะปิดอยู่"
+                confirmed -> "เชื่อมต่อแล้ว"
+                else -> "ต่ออยู่ · ยังไม่ยืนยัน กดคีย์สักตัวเพื่อตรวจ"
             }
-            Text("• ${d.name} · $status", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.size(28.dp).then(
+                        if (confirmed) Modifier.background(Tokens.Palette.Positive, androidx.compose.foundation.shape.CircleShape)
+                        else Modifier.border(1.5.dp, if (d.open && !d.silent) Tokens.Palette.Ink else Tokens.Palette.Dim, androidx.compose.foundation.shape.CircleShape),
+                    ),
+                    contentAlignment = Alignment.Center,
+                ) { Text(if (confirmed) "✓" else if (d.open && !d.silent) "?" else "", color = if (confirmed) androidx.compose.ui.graphics.Color.White else Tokens.Palette.Ink, fontSize = 15.sp) }
+                Column(Modifier.weight(1f)) {
+                    if (confirmed) Text("Connected", style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.Positive)
+                    Text("${d.name} · $status", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
             if (d.open) Text(
                 if (d.messages == 0L) "   ยังไม่ได้รับโน้ต ลองกดคีย์สักตัว" else "   รับแล้ว ${d.messages} ครั้ง · ล่าสุด: ${d.lastMessage}",
                 fontFamily = Tokens.Fonts.mono, fontSize = 12.sp, color = Tokens.Palette.InkMuted,

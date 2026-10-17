@@ -46,6 +46,12 @@ class PieceRepository(private val context: Context, private val db: AppDatabase)
     val progress: StateFlow<Map<String, PieceProgress>> = _progress.asStateFlow()
     private var loaded = false
 
+    /** Reads the stored rows again (after a backup restore). */
+    suspend fun reload() {
+        mutex.withLock { loaded = false }
+        load()
+    }
+
     suspend fun load() = mutex.withLock {
         if (loaded) return@withLock
         loaded = true

@@ -100,6 +100,7 @@ fun ToneHomeScreen(
     onEdit: (String?) -> Unit,
     onOpenMidi: () -> Unit,
     onOpenSettings: () -> Unit,
+    onBack: (() -> Unit)? = null,
     vm: ToneHomeViewModel = viewModel(),
 ) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
@@ -110,7 +111,7 @@ fun ToneHomeScreen(
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
-            TabHeader("ฝึกฟัง", "ฟังคอร์ดนำให้รู้คีย์ แล้วบอกว่าโน้ตที่ได้ยินคือตัวไหน", onOpenMidi, onOpenSettings)
+            TabHeader("ฝึกฟัง", "ฟังคอร์ดนำให้รู้คีย์ แล้วบอกว่าโน้ตที่ได้ยินคือตัวไหน", onOpenMidi, onOpenSettings, onBack)
             Column(Modifier.padding(horizontal = 24.dp).padding(top = 24.dp, bottom = 24.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     listOf("เริ่มต้น", "พื้นฐาน", "สร้างเอง").forEachIndexed { i, label ->

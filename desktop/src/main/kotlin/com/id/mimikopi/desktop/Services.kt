@@ -34,6 +34,7 @@ object Keys {
     const val SOUND_THROUGH = "midi.soundThrough"
     const val VELOCITY_MODE = "midi.velocityMode"
     const val NOTE_NAME_STYLE = "notes.nameStyle"
+    const val PIANO_SOUND = "piano.sound"
 }
 
 /**
@@ -48,13 +49,15 @@ class InputHub(private val piano: () -> Piano) {
     @Volatile var soundThrough: Boolean = false
     /** Whether key strength changes the program's sound (off: every note at one level). */
     @Volatile var velocity: com.id.mimikopi.core.input.VelocityMode = com.id.mimikopi.core.input.VelocityMode()
+    /** Semitones added to the program's sound (the piano page only; it resets when the page closes). */
+    val transpose = com.id.mimikopi.core.input.Transposer()
 
     fun dispatch(event: InputEvent) {
         // On-screen keys always sound: they have no speaker of their own.
         val sound = soundThrough || event.source == com.id.mimikopi.core.input.InputSource.TOUCH
         when (event) {
-            is InputEvent.NoteOn -> { if (sound) piano().noteOn(event.note, velocity.sound(event.velocity)); synchronized(this) { _pressed.value = _pressed.value + event.note } }
-            is InputEvent.NoteOff -> { if (sound) piano().noteOff(event.note); synchronized(this) { _pressed.value = _pressed.value - event.note } }
+            is InputEvent.NoteOn -> { if (sound) transpose.press(event.note)?.let { piano().noteOn(it, velocity.sound(event.velocity)) }; synchronized(this) { _pressed.value = _pressed.value + event.note } }
+            is InputEvent.NoteOff -> { transpose.release(event.note)?.let { piano().noteOff(it) }; synchronized(this) { _pressed.value = _pressed.value - event.note } }
             is InputEvent.Sustain -> if (soundThrough) piano().sustain(event.down)
             is InputEvent.Control -> Unit
         }
@@ -63,6 +66,7 @@ class InputHub(private val piano: () -> Piano) {
 
     fun releaseAll() {
         synchronized(this) { _pressed.value = emptySet() }
+        transpose.clear()
         piano().allNotesOff()
     }
 }
@@ -122,6 +126,7 @@ object Services {
     fun loadSampledPiano() {
         val (d, manifest) = pack.installed() ?: return
         val sampler = runCatching { SamplerPiano(d, manifest) }.getOrNull() ?: return
+        sampler.setLevel(pianoController.sound.factor)
         val old = current
         current = sampler
         _sampled.value = true
@@ -143,6 +148,7 @@ object Services {
     fun start() {
         hub.soundThrough = store.get(Keys.SOUND_THROUGH)?.toBooleanStrictOrNull() ?: false
         hub.velocity = com.id.mimikopi.core.input.VelocityMode.parse(store.get(Keys.VELOCITY_MODE))
+        pianoController.sound = com.id.mimikopi.core.piano.PianoSound.parse(store.get(Keys.PIANO_SOUND))
         midi.start()
         Thread { loadSampledPiano() }.apply { isDaemon = true; start() }
         Thread { updater.check(force = false) }.apply { isDaemon = true; start() }

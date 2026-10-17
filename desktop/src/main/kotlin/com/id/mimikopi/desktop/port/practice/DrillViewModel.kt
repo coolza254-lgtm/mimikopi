@@ -128,9 +128,15 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     private val review: Boolean = args.get<String>("review") == "true"
     /** Benchmark part (learning-system.md 12.1): "noteid" or "pulse"; fixed sets, results go to the benchmark record. */
     private val bench: String? = args.get<String>("benchmark")
-    /** Free chord practice from the chord tab. */
-    private val practice: Boolean = args.get<String>("practice") == "chords"
+    /** Free chord practice from the chord tab ("chords"), or the Today plan's chord part ("chords-today"). */
+    private val practice: Boolean = args.get<String>("practice")?.startsWith("chords") == true
+    private val practiceRow: String = if (args.get<String>("practice") == "chords-today") com.id.mimikopi.desktop.port.today.ProgressStore.CHORDS_TODAY else SettingKeys.CHORDS_SETTINGS
     private var chordPractice = ChordPractice()
+    /** A level test ("NOTES:3"): fixed drill, judged by the level's criteria, recorded on the skill page. */
+    private val check: com.id.mimikopi.core.progress.SkillLevel? = com.id.mimikopi.core.progress.SkillBook.parseKey(args.get<String>("check"))
+        ?.takeIf { it.run is com.id.mimikopi.core.progress.CheckRun.DrillRun }
+    /** The practice log kind this run counts as (the Today plan says, e.g. "warmup"); otherwise from the source. */
+    private val via: String? = args.get<String>("via")
 
     private val _ui = MutableStateFlow<DrillUi>(DrillUi.Loading)
     val ui: StateFlow<DrillUi> = _ui.asStateFlow()
@@ -163,8 +169,20 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 keyRange = if (bench == "pulse") 57..64 else 48..84
                 val d = drill!!
                 _ui.value = DrillUi.Ready(d.title, d.type, d.items, if (d.type == ExerciseType.E_PULSE) d.bpmMin else null)
+            } else if (check != null) {
+                val d = (check.run as com.id.mimikopi.core.progress.CheckRun.DrillRun).drill
+                drill = d
+                keyRange = when (d.type) {
+                    ExerciseType.E_KEYFIND -> if (d.exactOctave) 48..83 else 48..71
+                    ExerciseType.E_NOTEID -> 36..84
+                    else -> 48..83
+                }
+                services.progress.load()
+                _ui.value = if (com.id.mimikopi.core.progress.SkillBook.status(check.skill, services.progress.checks.value, java.time.LocalDate.now()).lockedToday)
+                    DrillUi.Result("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว", null, false, listOf("ฝึกเรื่องนี้ต่อในวันนี้ แล้วลองใหม่วันอื่น"))
+                else DrillUi.Ready(d.title, d.type, d.items, null)
             } else if (practice) {
-                chordPractice = ChordPractice.parse(services.database.settingsDao().get(SettingKeys.CHORDS_SETTINGS))
+                chordPractice = ChordPractice.parse(services.database.settingsDao().get(practiceRow))
                 val d = chordPractice.drill()
                 drill = d
                 // Room for a left-hand bass under right-hand chords.
@@ -270,7 +288,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 return@launch
             }
             val l = lesson
-            if (l != null) repo.enrol(l.srsItems) else if (!practice) return@launch
+            if (l != null) repo.enrol(l.srsItems) else if (!practice && check == null) return@launch
             when (d.type) {
                 ExerciseType.E_KEYFIND -> queue += Generators.keyFind(d, seed).map { Prompt.Key(it) }
                 ExerciseType.E_NOTEID -> queue += Generators.noteId(d, seed, repo.dueItems("note:")).map { Prompt.Note(it) }
@@ -334,6 +352,12 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         if (bench == "noteid") { finishNoteBenchmark(); return }
         val l = lesson
         val acc = Scoring.accuracy(answers)
+        if (check != null) {
+            val times = answers.filter { it.firstTry }.map { it.responseMs }.sorted()
+            finishCheck(com.id.mimikopi.core.progress.CheckMetrics(accuracy = acc, medianSec = times.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] / 1000.0 }))
+            return
+        }
+        logRun()
         val slow = if (d.type == ExerciseType.E_INTERVAL_READ || d.type == ExerciseType.E_CHORD_BUILD) 0 else answers.count { it.correct && it.responseMs > 3000 }
         val isPassDrill = l != null && drillIndex in l.pass.requiredDrills
         val met: Boolean? = if (!isPassDrill || l == null) null else when (d.type) {
@@ -437,6 +461,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         }
         val isPassDrill = drillIndex in l.pass.requiredDrills
         val met = if (isPassDrill) Scoring.pulsePassed(stats, l.pass, d.beats) else null
+        logRun()
 
         repo.saveAttempt(
             exerciseId = "${l.id}:${d.type}:$drillIndex",
@@ -657,6 +682,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
 
     private suspend fun finishChordChange(l: Lesson?, d: Drill, seconds: Int) {
         val summary = "เปลี่ยนคอร์ดถูก $changeCount ครั้งใน $seconds วินาที"
+        if (check != null) { finishCheck(com.id.mimikopi.core.progress.CheckMetrics(count = changeCount)); return }
+        logRun()
         if (l == null) {
             // Free practice: the count is the result, kept in the chord tab's list.
             saveChordRun(summary)
@@ -683,6 +710,44 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         _ui.value = DrillUi.Result(summary, met, passedNow, coach)
     }
 
+    /** Counts the run's time in the practice log (Today plan and minutes per day). */
+    private fun logRun() {
+        val kind = via ?: when {
+            review -> "review"
+            practice -> "chords"
+            bench != null -> "check"
+            else -> "ladder"
+        }
+        val seconds = (System.currentTimeMillis() - startedAt) / 1000
+        services.appScope.launch { services.progress.log(kind, seconds) }
+    }
+
+    /**
+     * A level test ended: judged by the level's criteria only (note names shown = not counted), recorded, and told
+     * plainly with the numbers reached and needed.
+     */
+    private fun finishCheck(m: com.id.mimikopi.core.progress.CheckMetrics) {
+        val level = check ?: return
+        val verdict = level.judge(m)
+        val passed = verdict.passed && helperUses == 0
+        val seconds = (System.currentTimeMillis() - startedAt) / 1000
+        viewModelScope.launch {
+            val p = services.progress
+            p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, java.time.LocalDate.now().toString(), passed, m))
+            p.log("check", seconds)
+            val status = com.id.mimikopi.core.progress.SkillBook.status(level.skill, p.checks.value, java.time.LocalDate.now())
+            val lines = verdict.lines.toMutableList()
+            if (helperUses > 0) lines += "เปิดชื่อโน้ตระหว่างทดสอบ ผลนี้จึงไม่นับ"
+            lines += if (passed) "ระดับ${level.skill.title}ตอนนี้: ${status.level} จาก ${status.maxLevel}"
+            else if (status.lockedToday) "ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น"
+            else "ยังลองได้อีกครั้งวันนี้ หรือฝึกก่อนแล้วค่อยลอง"
+            _ui.value = DrillUi.Result(
+                if (passed) "ผ่านระดับ ${level.level}: ${level.canDo}" else "ยังไม่ผ่านระดับ ${level.level}",
+                passed, false, lines,
+            )
+        }
+    }
+
     /** Free chord practice: the run goes to the chord tab's list of recent results. */
     private fun saveChordRun(result: String) {
         if (!practice) return
@@ -695,6 +760,15 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
 
     fun again() {
         val d = drill ?: return
+        if (check != null) {
+            // A test is tried at most twice a day when it fails (luck should not decide a level).
+            viewModelScope.launch {
+                if (com.id.mimikopi.core.progress.SkillBook.status(check.skill, services.progress.checks.value, java.time.LocalDate.now()).lockedToday)
+                    _ui.value = DrillUi.Result("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว", null, false, listOf("ฝึกเรื่องนี้ต่อในวันนี้ แล้วลองใหม่วันอื่น"))
+                else _ui.value = DrillUi.Ready(d.title, d.type, d.items, null)
+            }
+            return
+        }
         _ui.value = DrillUi.Ready(d.title, d.type, d.items, if (d.type == ExerciseType.E_PULSE) d.bpmMin else null)
     }
 

@@ -25,7 +25,7 @@ class PortTest {
 
     @Test
     fun stringsComeFromTheAndroidResources() {
-        assertEquals("อ่านโน้ต", stringResource(R.string.tab_reading))
+        assertEquals("ทักษะ", stringResource(R.string.tab_skills))
         // Formatted as Resources.getString(id, args).
         assertEquals("ล่าสุดถูก 80%", stringResource(R.string.ear_accuracy, 80))
     }
@@ -79,6 +79,7 @@ class PortTest {
         override fun close() = Unit
         override fun click(level: Int, volume: Float) { clicks++ }
         override val latencyNanos: Long = 30_000_000L
+        override fun setLevel(factor: Float) = Unit
     }
 
     @Test

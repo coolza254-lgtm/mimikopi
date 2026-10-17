@@ -2,6 +2,7 @@ package com.id.mimikopi.piano
 
 import com.id.mimikopi.audio.EngineMetrics
 import com.id.mimikopi.audio.PianoEngine
+import com.id.mimikopi.core.piano.PianoSound
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,6 +12,11 @@ import kotlinx.coroutines.flow.asStateFlow
  * stream is open only while something can play, and the pack is loaded once per process.
  */
 class PianoController(private val engineFactory: () -> PianoEngine, private val packs: SamplePackManager) {
+    companion object {
+        /** The engine's own master gain, heard at the usual volume. */
+        const val ENGINE_GAIN = 0.35f
+    }
+
     private var engine: PianoEngine? = null
     private var users = 0
     /** Called when the last user releases the engine (the metronome stops with it). */
@@ -37,6 +43,7 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
         }
         e.start()?.let { _lastError.value = it; users--; return false }
         _lastError.value = null
+        applySound()
         return true
     }
 
@@ -86,8 +93,18 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
 
     /** True while the native output stream is open (it can close by itself on a route change). */
     fun streamAlive(): Boolean = engine?.let { it.isRunning && it.metrics().sampleRate > 0 } ?: false
-    fun setGain(gain: Float) = engine?.setMasterGain(gain) ?: Unit
-    fun setTone(reverb: Float, warmth: Float) = engine?.setTone(reverb, warmth) ?: Unit
+
+    /** Volume, room and warmth from the piano page; kept here so a new engine gets them too. */
+    @Volatile var sound: PianoSound = PianoSound()
+        set(value) { field = value; applySound() }
+    /** The phone's engine has room and warmth controls (the desktop's does not). */
+    val supportsTone: Boolean = true
+
+    private fun applySound() {
+        val e = engine ?: return
+        e.setMasterGain(ENGINE_GAIN * sound.factor)
+        e.setTone(sound.reverb, sound.warmth)
+    }
 
     /**
      * Measures the output stream for Diagnostics. If nothing is playing, opens the stream briefly

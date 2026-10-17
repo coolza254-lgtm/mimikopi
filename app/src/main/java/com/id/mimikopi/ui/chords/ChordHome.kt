@@ -113,7 +113,7 @@ class ChordHomeViewModel(app: Application) : AndroidViewModel(app) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ChordHomeScreen(onStart: () -> Unit, onOpenMidi: () -> Unit, onOpenSettings: () -> Unit, vm: ChordHomeViewModel = viewModel()) {
+fun ChordHomeScreen(onStart: () -> Unit, onOpenMidi: () -> Unit, onOpenSettings: () -> Unit, onBack: (() -> Unit)? = null, vm: ChordHomeViewModel = viewModel()) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     val p by vm.practice.collectAsStateWithLifecycle()
     val runs by vm.runs.collectAsStateWithLifecycle()
@@ -121,7 +121,7 @@ fun ChordHomeScreen(onStart: () -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
-            TabHeader("คอร์ด", "ฝึกกดคอร์ดให้คล่อง: เห็นชื่อแล้วกดได้ทันที และเปลี่ยนคอร์ดได้ทันจังหวะ", onOpenMidi, onOpenSettings)
+            TabHeader("คอร์ด", "ฝึกกดคอร์ดให้คล่อง: เห็นชื่อแล้วกดได้ทันที และเปลี่ยนคอร์ดได้ทันจังหวะ", onOpenMidi, onOpenSettings, onBack)
             Column(Modifier.padding(horizontal = 24.dp).padding(top = 24.dp, bottom = 32.dp)) {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     listOf(ChordPractice.Mode.NAME to "ชื่อคอร์ด", ChordPractice.Mode.NUMERAL to "ตัวเลขโรมัน", ChordPractice.Mode.CHANGE to "เปลี่ยนคอร์ด").forEach { (mode, label) ->

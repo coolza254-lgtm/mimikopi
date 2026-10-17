@@ -2,6 +2,7 @@ package com.id.mimikopi.input
 
 import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
+import com.id.mimikopi.core.input.Transposer
 import com.id.mimikopi.core.input.VelocityMode
 import com.id.mimikopi.piano.PianoController
 import kotlinx.coroutines.channels.BufferOverflow
@@ -31,16 +32,19 @@ class InputHub(private val piano: PianoController) {
     /** Whether key strength changes the app's sound (off: every note at one level). */
     @Volatile var velocity: VelocityMode = VelocityMode()
 
+    /** Semitones added to the app's sound (the piano page only; it resets when the page closes). */
+    val transpose = Transposer()
+
     fun dispatch(event: InputEvent) {
         // On-screen keys always sound: they have no speaker of their own.
         val sound = soundThrough || event.source == InputSource.TOUCH
         when (event) {
             is InputEvent.NoteOn -> {
-                if (sound) piano.noteOn(event.note, velocity.sound(event.velocity))
+                if (sound) transpose.press(event.note)?.let { piano.noteOn(it, velocity.sound(event.velocity)) }
                 synchronized(this) { _pressed.value = _pressed.value + event.note }
             }
             is InputEvent.NoteOff -> {
-                if (sound) piano.noteOff(event.note)
+                transpose.release(event.note)?.let { piano.noteOff(it) }
                 synchronized(this) { _pressed.value = _pressed.value - event.note }
             }
             is InputEvent.Sustain -> if (soundThrough) piano.sustain(event.down)
@@ -52,7 +56,7 @@ class InputHub(private val piano: PianoController) {
     /** Clears highlights and silences notes (e.g. when a screen closes or a device disconnects). */
     fun releaseAll() {
         synchronized(this) {
-            _pressed.value.forEach { piano.noteOff(it) }
+            transpose.clear().forEach { piano.noteOff(it) }
             _pressed.value = emptySet()
         }
         piano.sustain(false)

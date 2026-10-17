@@ -324,8 +324,6 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="reader_back_to_setup">ปรับการฝึก</string>
     <string name="reader_mode_wait">รอ</string>
     <string name="reader_falling">โน้ตตก</string>
-    <string name="sections_falling">โน้ตตก</string>
-    <string name="sections_big">ตัวใหญ่</string>
     <string name="reader_mode_tempo">ตามจังหวะ</string>
     <string name="reader_hand_right">มือขวา</string>
     <string name="reader_hand_left">มือซ้าย</string>
@@ -486,7 +484,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="reader_playing_wait">โหมดรอ: กดโน้ตที่เคอร์เซอร์ แอพจะรอจนกดถูก</string>
     <string name="reader_playing_tempo">โหมดตามจังหวะ · %1$d bpm</string>
     <string name="reader_listening">กำลังเล่นตัวอย่าง · %1$d bpm</string>
-    <string name="reader_pack_missing">ยังไม่ได้ติดตั้งเสียงเปียโน แอพจะเล่นมืออื่นและตัวอย่างไม่ได้ (ติดตั้งได้ที่หน้า "เปียโน")</string>
+    <string name="reader_pack_missing">ยังไม่ได้ติดตั้งเสียงเปียโน แอพจะเล่นมืออื่นและตัวอย่างไม่ได้ (ติดตั้งได้ที่แท็บ "เปียโน")</string>
     <string name="reader_legend">สี: เขียว = ถูก · ส้ม ← เร็วไป / → ช้าไป · แดง × = ไม่ได้เล่น · แดง ! = แก้หลังกดผิด · วงแดง = คีย์ที่กดผิด</string>
     <string name="drill_ready_chord_build">%1$d คอร์ด: กดโน้ตของคอร์ดที่แอพบอกพร้อมกัน กลับเสียงหรืออ็อกเทฟไหนก็ได้ แต่ห้ามมีโน้ตเกิน (สแลชคอร์ดต้องให้เบสอยู่ล่างสุด)</string>
     <string name="drill_ready_chord_change">เปลี่ยนคอร์ดตามโปรเกรสชันวนไปเรื่อยๆ จนหมดเวลา แอพนับจำนวนครั้งที่กดคอร์ดถูก ค้างโน้ตที่เหมือนกันไว้ได้</string>
@@ -521,8 +519,6 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="song_notes">หมายเหตุ / แหล่งข้อมูล</string>
     <string name="song_verified">ยืนยันด้วยหูแล้ว</string>
     <string name="song_unverified">ยังไม่ได้ยืนยัน (ติ๊กเมื่อตรวจด้วยหูแล้ว)</string>
-    <string name="song_sections">ท่อนเพลงและคอร์ด</string>
-    <string name="song_sections_help">พิมพ์คอร์ดที่ถอดได้ เช่น | C | G/B | Am7 | F | แอพแปลงเป็นเลขโรมันตามคีย์ ถ้าท่อนไหนเปลี่ยนคีย์ เลือกคีย์ของท่อนนั้น</string>
     <string name="song_add_section">เพิ่มท่อน</string>
     <string name="song_section_name">ชื่อท่อน</string>
     <string name="song_section_chords">คอร์ด</string>
@@ -569,11 +565,10 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="diag_section_crash">ข้อผิดพลาดล่าสุด</string>
     <string name="diag_crash_none">ยังไม่เคยมีการปิดตัวเพราะข้อผิดพลาด</string>
     <string name="diag_crash_help">แอพเคยปิดตัวเพราะข้อผิดพลาด รายละเอียดอยู่ในไฟล์ Diagnostics (ปุ่มคัดลอก/แชร์ด้านบน) เก็บในเครื่องนี้เท่านั้น</string>
-    <string name="tab_home">หน้าแรก</string>
     <string name="tab_today">วันนี้</string>
+    <string name="tab_skills">ทักษะ</string>
     <string name="tab_piano">เปียโน</string>
     <string name="tab_songs">เพลง</string>
-    <string name="tab_me">ฉัน</string>
     <string name="home_due">ทวน %1$d</string>
     <string name="home_today_minutes">วันนี้ · %1$d นาที</string>
     <string name="home_week_minutes">สัปดาห์นี้ %1$d นาที</string>
@@ -630,13 +625,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="lesson_start_step">เริ่มฝึกขั้นนี้</string>
 
     <!-- M15: four tabs, section practice -->
-    <string name="tab_reading">อ่านโน้ต</string>
-    <string name="tab_ear">ฝึกฟัง</string>
-    <string name="tab_sections">จดเพลง</string>
-    <string name="tab_chords">คอร์ด</string>
     <string name="midi_needed">ยังไม่ได้ต่อคีย์บอร์ด MIDI · กดแป้นบนจอเพื่อลองเล่นตามได้ (ต่อเปียโนแล้วแป้นบนจอจะหายไป)</string>
-    <string name="midi_ready">MIDI</string>
-    <string name="midi_not_ready">ไม่มี MIDI</string>
     <string name="skill_reading_goal">เป้าหมาย: เห็นโน้ตแล้วเล่นตามได้</string>
     <string name="skill_ear_goal">เป้าหมาย: ฟังแล้วแกะเพลงเองได้</string>
     <string name="skill_today">วันนี้</string>
@@ -659,44 +648,6 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="songs_level">ระดับ %1$s</string>
     <string name="songs_passed">ผ่านแล้ว: %1$s</string>
     <string name="songs_unverified">ทำนองเขียนจากความจำ ยังไม่ได้เทียบกับโน้ตต้นฉบับ อาจต่างจากที่เคยได้ยินบ้าง</string>
-    <string name="sections_intro">เพลงที่ชอบ: ดูคลิปแล้วเล่นตามทีละโน้ตให้แอพจด แล้วฝึกทีละท่อนจนเล่นได้ทั้งเพลง</string>
-    <string name="sections_new">เพลงใหม่</string>
-    <string name="sections_mastered">เล่นได้แล้ว</string>
-    <string name="sections_summary">%1$d โน้ต · %2$d ท่อน</string>
-    <string name="sections_stats">เล่นจบไม่ผิด %1$d จาก %2$d รอบ · แม่นยำ %3$d%%</string>
-    <string name="sections_practice">ฝึก</string>
-    <string name="sections_edit">แก้โน้ต</string>
-    <string name="sections_delete">ลบ</string>
-    <string name="sections_default_title">เพลงที่ %1$d</string>
-    <string name="sections_name_title">ชื่อเพลง</string>
-    <string name="sections_create">เริ่มจดโน้ต</string>
-    <string name="sections_delete_q">ลบ \"%1$s\" ?</string>
-    <string name="sections_edit_title">จดโน้ตเพลง</string>
-    <string name="sections_record_help">เปิดคลิปดู แล้วเล่นตามทีละโน้ตบนคีย์บอร์ดหรือแป้นบนจอ แอพจดให้เอง กดพร้อมกันจะเป็นคอร์ด ไม่ต้องตรงจังหวะ แตะโน้ตเพื่อแก้</string>
-    <string name="sections_replace_help">เล่นโน้ตใหม่บนคีย์บอร์ดเพื่อแทนตัวที่เลือก</string>
-    <string name="sections_empty">ยังไม่มีโน้ต เริ่มเล่นได้เลย</string>
-    <string name="sections_phrase">ท่อน %1$d</string>
-    <string name="sections_delete_note">ลบตัวนี้</string>
-    <string name="sections_split_here">เริ่มท่อนใหม่ตรงนี้</string>
-    <string name="sections_join_phrase">รวมกับท่อนก่อนหน้า</string>
-    <string name="sections_undo">ลบตัวล่าสุด</string>
-    <string name="sections_listen">ฟัง</string>
-    <string name="sections_auto_phrases">แบ่งท่อนอัตโนมัติ</string>
-    <string name="sections_flats">แสดงเป็น ♭</string>
-    <string name="sections_clear">ล้างทั้งหมด</string>
-    <string name="sections_clear_q">ล้างโน้ตทั้งหมดของเพลงนี้?</string>
-    <string name="sections_start_practice">เริ่มฝึกเพลงนี้</string>
-    <string name="sections_whole">ทั้งเพลง</string>
-    <string name="sections_mode_phrase">ท่อน %1$d จาก %2$d</string>
-    <string name="sections_mode_full">ทั้งเพลง (ผิดตรงไหน เริ่มท่อนนั้นใหม่)</string>
-    <string name="sections_streak">ไม่ผิดติดกัน %1$d/%2$d</string>
-    <string name="sections_wrong">ผิด เริ่มท่อนนี้ใหม่จากโน้ตแรก</string>
-    <string name="sections_phrase_run">ไม่ผิดเลย อีก %1$d รอบติดกันจะไปท่อนถัดไป</string>
-    <string name="sections_phrase_passed">ผ่านท่อนนี้แล้ว ต่อท่อนถัดไป</string>
-    <string name="sections_full_clean">เล่นจบไม่ผิดเลย อีก %1$d รอบติดกัน</string>
-    <string name="sections_full_mistakes">เล่นจบแล้ว แต่มีที่ผิด รอบนี้ไม่นับ เริ่มใหม่ได้เลย</string>
-    <string name="sections_mastered_now">เล่นทั้งเพลงไม่ผิด 3 รอบติดกันแล้ว ฝึกต่อได้เรื่อยๆ ให้ติดมือ</string>
-    <string name="sections_play_hint">เล่นโน้ตที่กรอบสีชมพู</string>
     <string name="skill_kind_done">วันนี้</string>
     <string name="skill_rule_short">ผ่านเกณฑ์วันนี้ แล้วยืนยันอีกครั้งพรุ่งนี้</string>
     <string name="skill_kind_hint">ทำให้ผ่านเกณฑ์อีกครั้ง เพื่อให้ติดมือ</string>
@@ -708,9 +659,6 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="skill_hide_ladder">ซ่อนบันได</string>
     <string name="songs_hands">เลือกมือ</string>
     <string name="songs_count">เพลงหมดลิขสิทธิ์ %1$d เพลง เรียงจากง่ายไปยาก</string>
-    <string name="sections_new_body">ดูคลิปแล้วเล่นตาม แอพจดโน้ตให้เอง</string>
-    <string name="sections_meta">%1$d โน้ต · %2$d ท่อน</string>
-    <string name="sections_subtitle">เพลงที่ชอบ ดูคลิปแล้วจดด้วยการเล่น เก็บไว้ฝึก</string>
     <string name="ear_answer_row">เฉลย</string>
     <string name="theme_title">หน้าตา</string>
     <string name="theme_dark">มืด (OLED)</string>
@@ -746,24 +694,5 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="midi_velocity_soft">เบา</string>
     <string name="midi_velocity_medium">กลาง</string>
     <string name="midi_velocity_loud">ดัง</string>
-    <string name="midi_banner">ยังไม่ได้ต่อคีย์บอร์ด (หรือปิดเครื่องอยู่)</string>
-    <string name="midi_banner_action">ต่อ →</string>
-    <string name="sections_hand_both">สองมือ</string>
-    <string name="sections_hand_right">มือขวา</string>
-    <string name="sections_hand_left">มือซ้าย</string>
-    <string name="sections_video">ลิงก์คลิป YouTube (ถ้ามี)</string>
-    <string name="sections_video_open">เปิดคลิป</string>
-    <string name="sections_video_at">▶ คลิปที่ %1$s</string>
-    <string name="sections_insert_help">เล่นโน้ตที่จะแทรกก่อนตัวที่เลือก แทรกต่อได้หลายตัว</string>
-    <string name="sections_new_part_help">โน้ตถัดไปที่เล่นจะเริ่มท่อนใหม่</string>
-    <string name="sections_part_edit">ชื่อ/เวลา</string>
-    <string name="sections_insert_before">แทรกก่อนตัวนี้</string>
-    <string name="sections_new_part">+ ท่อนใหม่</string>
-    <string name="sections_split">มือซ้าย = โน้ตต่ำกว่า %1$s</string>
-    <string name="sections_part_name">ชื่อท่อน</string>
-    <string name="sections_part_name_hint">อินโทร, ท่อน A, ฮุก …</string>
-    <string name="sections_part_time">เริ่มที่นาทีไหนในคลิป</string>
-    <string name="sections_part_save">บันทึก</string>
-    <string name="sections_empty_list">ยังไม่มีเพลง เริ่มจากท่อนสั้นๆ ที่ชอบก่อน เช่นท่อนฮุก แล้วค่อยจดท่อนอื่นต่อในเพลงเดียวกัน</string>
     <string name="songs_passed_count">ผ่านแล้ว %1$d จาก %2$d เพลง (สองมือ)</string>
 </resources>

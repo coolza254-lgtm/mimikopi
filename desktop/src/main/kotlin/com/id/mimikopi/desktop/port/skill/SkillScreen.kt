@@ -64,6 +64,7 @@ fun SkillScreen(
     onReview: () -> Unit,
     onOpenMidi: () -> Unit,
     onOpenSettings: () -> Unit,
+    onBack: (() -> Unit)? = null,
     vm: SkillViewModel,
 ) {
     LaunchedEffect(skill) { vm.bind(skill) }
@@ -82,11 +83,7 @@ fun SkillScreen(
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
-            TabHeader(
-                stringResource(R.string.tab_reading),
-                stringResource(R.string.skill_reading_goal),
-                onOpenMidi, onOpenSettings,
-            )
+            TabHeader("ขั้นหลัก", stringResource(R.string.skill_reading_goal), onOpenMidi, onOpenSettings, onBack)
             Column(Modifier.padding(horizontal = 24.dp)) {
                 Spacer(Modifier.height(40.dp))
                 if (ui.loaded) Hero(ui, open)

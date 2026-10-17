@@ -35,7 +35,6 @@ import com.id.mimikopi.desktop.port.ear.ToneHomeScreen
 import com.id.mimikopi.desktop.port.ear.ToneHomeViewModel
 import com.id.mimikopi.desktop.port.ear.ToneSessionScreen
 import com.id.mimikopi.desktop.port.ear.ToneSessionViewModel
-import com.id.mimikopi.desktop.ui.sections.SectionsHome
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -53,7 +52,6 @@ class RenderTest {
     @Test
     fun screensRenderInBothLooks() {
         for (dark in listOf(true, false)) {
-            render(dark) { SectionsHome(onPractice = {}, onEdit = {}, onOpenMidi = {}) }
             render(dark) { SettingsScreen(onBack = {}) }
         }
     }
@@ -77,6 +75,31 @@ class RenderTest {
     }
 
     private fun args(vararg pairs: Pair<String, String?>) = SavedStateHandle(mapOf(*pairs))
+
+    @Test
+    fun todaySkillsAndPianoRenderInBothLooks() {
+        val app = MimikopiApp
+        for (dark in listOf(true, false)) {
+            render(dark) { com.id.mimikopi.desktop.port.today.TodayScreen({}, {}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.today.TodayViewModel(app) }) }
+            render(dark) { com.id.mimikopi.desktop.port.skills.SkillsScreen({}, {}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.skills.SkillsViewModel(app) }) }
+            for (skill in com.id.mimikopi.core.progress.SkillId.entries) render(dark) {
+                com.id.mimikopi.desktop.port.skills.SkillDetailScreen(skill, {}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.skills.SkillsViewModel(app) })
+            }
+            render(dark) { com.id.mimikopi.desktop.port.piano.FreePianoScreen({}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.piano.FreePianoViewModel(app) }) }
+        }
+    }
+
+    @Test
+    fun levelTestsAndNewReadingRender() {
+        val app = MimikopiApp
+        render(true) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("check" to "KEYS:1")) }) }
+        render(true) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("check" to "CHORDS:4")) }) }
+        render(true) { ReaderScreen(onBack = {}, vm = rememberViewModel { ReaderViewModel(app, args("check" to "RHYTHM:1")) }) }
+        render(true) { ReaderScreen(onBack = {}, vm = rememberViewModel { ReaderViewModel(app, args("check" to "SIGHT:2")) }) }
+        render(true) { ToneSessionScreen(onBack = {}, vm = rememberViewModel { ToneSessionViewModel(app, args("check" to "EAR:1")) }) }
+        render(true) { ReaderScreen(onBack = {}, vm = rememberViewModel { ReaderViewModel(app, args("newread" to "1")) }) }
+        render(true) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("practice" to "chords-today")) }) }
+    }
 
     @Test
     fun readingAndSongScreensRenderInBothLooks() {

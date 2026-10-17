@@ -211,13 +211,16 @@ fun SettingsScreen(onBack: () -> Unit, onOpenMetronome: () -> Unit = {}) {
             }
         }
         PageCard(title = "ย้ายข้อมูลกับมือถือ") {
-            Text("ใช้ไฟล์สำรองแบบเดียวกับแอพมือถือ: ในมือถือไปที่ ตั้งค่า → สำรองข้อมูล → ส่งออก แล้วนำไฟล์มาเปิดที่นี่ (ความคืบหน้าฝึกฟังและท่อนที่จดไว้จะตามมาด้วย)",
+            Text("ใช้ไฟล์สำรองแบบเดียวกับแอพมือถือ: ในมือถือไปที่ ตั้งค่า → สำรองข้อมูล → ส่งออก แล้วนำไฟล์มาเปิดที่นี่ (ระดับทักษะ เวลาฝึก และความคืบหน้าทั้งหมดจะตามมาด้วย)",
                 style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
                 OutlinedButton(onClick = {
                     val f = pickFile(load = true, "mimikopi-backup.json") ?: return@OutlinedButton
                     val error = runCatching { Services.store.importBackup(f.readText()) }.getOrElse { it.message }
-                    if (error == null) { Services.learning.reload(); Services.pieces.reload() }
+                    if (error == null) {
+                        Services.learning.reload(); Services.pieces.reload()
+                        Services.scope.launch { com.id.mimikopi.desktop.port.MimikopiApp.progress.reload() }
+                    }
                     backupMessage = error?.let { "นำเข้าไม่ได้: $it" } ?: "นำเข้าแล้ว"
                 }) { Text("นำเข้าไฟล์สำรอง") }
                 OutlinedButton(onClick = {

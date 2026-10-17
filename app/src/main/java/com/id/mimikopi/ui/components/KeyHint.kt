@@ -147,7 +147,7 @@ fun Modifier.touchKeys(key: Any, hit: (x: Float, y: Float, width: Float, height:
  * grey, [marked] keys outlined, Middle C with a small dot.
  */
 @Composable
-private fun TouchKeyboard(range: IntRange, marked: Set<Int>, showNames: Boolean, nameStyle: NoteNameStyle, modifier: Modifier) {
+fun TouchKeyboard(range: IntRange, marked: Set<Int>, showNames: Boolean, nameStyle: NoteNameStyle, modifier: Modifier) {
     val app = LocalContext.current.applicationContext as MimikopiApp
     val pressed by app.inputHub.pressed.collectAsState()
     val play = rememberTouchPlayer()

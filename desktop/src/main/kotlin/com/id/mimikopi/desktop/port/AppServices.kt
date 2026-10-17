@@ -19,6 +19,8 @@ object MimikopiApp : Application() {
     val session = SessionTracker
     val samplePacks = SamplePacks
     val metronome: MetronomeController by lazy { MetronomeController(piano, SettingsDao) }
+    /** Work that must finish after a page closes (saving a run, releasing the output). */
+    val appScope get() = Services.scope
     /** Practice minutes and level tests, in the same settings rows as on the phone. */
     val progress: com.id.mimikopi.desktop.port.today.ProgressStore by lazy {
         com.id.mimikopi.desktop.port.today.ProgressStore({ Services.store.get(it) }, { k, v -> Services.store.put(k, v) })
@@ -88,9 +90,10 @@ object SettingKeys {
     const val KEYBOARD_KEYS = "piano.keyCount"
     const val TIMING_MODE = "timing.mode"
     const val PATH_VERSION = "path.version"
-    const val SECTIONS = "sections"
     const val METRONOME_SETTINGS = "metronome.settings"
     const val METRONOME_SELF_TEST = "metronome.lastSelfTest"
     const val CHORDS_SETTINGS = "chords.settings"
     const val CHORDS_RUNS = "chords.runs"
+    const val VELOCITY_MODE = "midi.velocityMode"
+    const val PIANO_SOUND = "piano.sound"
 }

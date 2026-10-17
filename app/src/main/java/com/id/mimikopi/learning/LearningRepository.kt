@@ -99,6 +99,12 @@ class LearningRepository(private val context: Context, private val db: AppDataba
     val records: StateFlow<Map<String, LessonRecord>> = _records.asStateFlow()
     private var loaded = false
 
+    /** Reads the stored rows again (after a backup restore). */
+    suspend fun reload() {
+        mutex.withLock { loaded = false }
+        load()
+    }
+
     suspend fun load() = mutex.withLock {
         if (loaded) return@withLock
         loaded = true

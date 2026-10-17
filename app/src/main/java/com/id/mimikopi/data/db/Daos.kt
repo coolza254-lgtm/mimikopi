@@ -103,9 +103,8 @@ object SettingKeys {
     const val PIANO_LOW_NOTE = "piano.lowNote"
     const val PIANO_KEY_WIDTH = "piano.whiteKeyDp"
     const val PIANO_VELOCITY = "piano.velocity"
-    const val PIANO_GAIN = "piano.volume"
-    const val PIANO_REVERB = "piano.reverb"
-    const val PIANO_WARMTH = "piano.warmth"
+    /** The app piano's volume, room and warmth (PianoSound: "volume|reverb|warmth"). */
+    const val PIANO_SOUND = "piano.sound"
     const val PIANO_TOUCH_VELOCITY = "piano.touchVelocity"
     const val NOTE_NAME_STYLE = "notes.nameStyle"
     const val HELPER_NOTE_NAMES_COUNT = "helper.noteNames.count"

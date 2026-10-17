@@ -203,6 +203,10 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
             _backup.value = BackupUi.Working
             _backup.value = try {
                 withContext(Dispatchers.IO) { backups.restore(backup) }
+                // Pages read these from memory: take the restored rows now, not at the next start.
+                services.learning.reload()
+                services.pieces.reload()
+                services.progress.reload()
                 BackupUi.Restored(backup.data.totalRows)
             } catch (e: Exception) {
                 BackupUi.Error(e.message ?: e.javaClass.simpleName)

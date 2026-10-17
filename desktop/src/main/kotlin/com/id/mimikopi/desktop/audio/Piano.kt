@@ -25,6 +25,8 @@ interface Piano {
     fun click(level: Int, volume: Float)
     /** About how long after a call the sound is heard (the output buffer). */
     val latencyNanos: Long
+    /** Loudness against the usual level (PianoSound.factor: 1 = usual). */
+    fun setLevel(factor: Float)
 }
 
 /**
@@ -48,6 +50,9 @@ class GervillPiano : Piano {
         drums?.noteOn(if (level == 0) 76 else 77, v)
     }
     override val latencyNanos: Long = (synth?.latency ?: 0L) * 1000L
+
+    /** Channel volume (General MIDI's usual 100); it cannot go much above the usual level. */
+    override fun setLevel(factor: Float) { channel?.controlChange(7, (100 * factor).toInt().coerceIn(0, 127)) }
 }
 
 /**
@@ -80,6 +85,7 @@ class SamplerPiano(private val dir: File, private val manifest: PackManifest) : 
     private val clicks = ArrayList<Click>()
     private val clickFrames = (0.05f * manifest.sampleRate).toInt()
     private val lock = Any()
+    @Volatile private var level = 1f
     private var sustainDown = false
     @Volatile private var running = true
     private val line: SourceDataLine
@@ -129,6 +135,8 @@ class SamplerPiano(private val dir: File, private val manifest: PackManifest) : 
 
     override val latencyNanos: Long get() = (line.bufferSize / 4).toLong() * 1_000_000_000L / rate.toLong() + 10_000_000L
 
+    override fun setLevel(factor: Float) { level = factor.coerceIn(0f, 4f) }
+
     override fun close() {
         running = false
         thread.join(500)
@@ -172,8 +180,9 @@ class SamplerPiano(private val dir: File, private val manifest: PackManifest) : 
                     if (k.n >= clickFrames) c.remove()
                 }
             }
+            val gain = level
             for (k in mix.indices) {
-                val s = mix[k].coerceIn(-32768f, 32767f).toInt()
+                val s = limit(mix[k] * gain).toInt()
                 out[k * 2] = (s and 0xFF).toByte()
                 out[k * 2 + 1] = (s shr 8 and 0xFF).toByte()
             }
@@ -183,6 +192,15 @@ class SamplerPiano(private val dir: File, private val manifest: PackManifest) : 
 
     companion object {
         const val BLOCK = 256
+        private const val KNEE = 24000f
+
+        /** Linear up to the knee, then a soft curve that never passes full scale (loud volumes stay clean). */
+        fun limit(x: Float): Float {
+            val a = kotlin.math.abs(x)
+            if (a <= KNEE) return x
+            val over = KNEE + (32767f - KNEE) * kotlin.math.tanh((a - KNEE) / (32767f - KNEE))
+            return if (x < 0) -over else over
+        }
         const val MAX_VOICES = 64
         fun pcmName(flac: String) = flac.removeSuffix(".flac") + ".pcm"
     }

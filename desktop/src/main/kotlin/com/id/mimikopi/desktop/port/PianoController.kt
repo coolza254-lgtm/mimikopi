@@ -1,6 +1,7 @@
 package com.id.mimikopi.desktop.port
 
 import com.id.mimikopi.desktop.audio.Metronome
+import com.id.mimikopi.core.piano.PianoSound
 import com.id.mimikopi.desktop.audio.Piano
 
 /**
@@ -14,6 +15,11 @@ class PianoController(private val piano: () -> Piano) {
     var onStopped: (() -> Unit)? = null
 
     fun acquire(@Suppress("UNUSED_PARAMETER") needPack: Boolean = true): Boolean = true
+
+    /** The piano page's sound; only the volume applies on the desktop (no room or warmth controls here). */
+    @Volatile var sound: PianoSound = PianoSound()
+        set(value) { field = value; piano().setLevel(value.factor) }
+    val supportsTone: Boolean = false
 
     fun release() {
         metronome.set(false, 60.0, 1, intArrayOf(0), 0f)

@@ -92,6 +92,8 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _soundThrough = MutableStateFlow(hub.soundThrough)
     val soundThrough: StateFlow<Boolean> = _soundThrough.asStateFlow()
+    private val _velocity = MutableStateFlow(hub.velocity)
+    val velocity: StateFlow<com.id.mimikopi.core.input.VelocityMode> = _velocity.asStateFlow()
 
     private val _probe = MutableStateFlow<ProbeUi>(ProbeUi.Idle)
     val probe: StateFlow<ProbeUi> = _probe.asStateFlow()
@@ -184,6 +186,13 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
         hub.soundThrough = on
         _soundThrough.value = on
         viewModelScope.launch { settings.put(SettingEntity(SettingKeys.MIDI_SOUND_THROUGH, on.toString())) }
+    }
+
+    /** Key strength on or off (and the one level when off) for the app's sound. */
+    fun setVelocity(mode: com.id.mimikopi.core.input.VelocityMode) {
+        hub.velocity = mode
+        _velocity.value = mode
+        viewModelScope.launch { settings.put(SettingEntity(SettingKeys.VELOCITY_MODE, mode.encode())) }
     }
 
     private fun onEvent(e: InputEvent) {

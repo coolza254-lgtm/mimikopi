@@ -113,6 +113,8 @@ object SettingKeys {
     const val METRONOME_SELF_TEST = "metronome.lastSelfTest"
     const val INPUT_CONFIG = "input.config"
     const val MIDI_SOUND_THROUGH = "midi.soundThrough"
+    /** Key strength on or off for the app's sound (VelocityMode: "on" or "off:<level>"). */
+    const val VELOCITY_MODE = "midi.velocityMode"
     /** Look: DARK, LIGHT or SYSTEM (ThemeMode). */
     const val THEME_MODE = "ui.theme"
     /** Remembered Bluetooth MIDI instrument: "<address>|<name>". */

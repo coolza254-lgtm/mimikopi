@@ -26,6 +26,15 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Velocity switch and Windows input (v0.22.0)
+- Key strength (VelocityMode, row "midi.velocityMode") starts off: the app's piano plays every key at one level
+  (50 / 80 / 105). It changes only the app's sound; nothing is judged by velocity, recorded attempts keep the real
+  velocity, and a piano's own speaker follows the piano's touch setting.
+- Windows: on the user's PC the keyboard opened but delivered nothing when it was plugged in before the program
+  started; plugging it in with the program open worked. This matches reports about Windows 11's new MIDI service
+  and WinMM programs (Java uses WinMM). Not fixed in the app; the settings page explains it, and the report now
+  shows raw message counts and the Windows build.
+
 ## Chord tab (v0.21.0)
 - A fifth tab runs the existing chord drills (E_CHORD_BUILD by name or roman numeral, E_CHORD_CHANGE through a
   progression) with the user's own choices (ChordPractice, settings row "chords.settings"). Runs are free practice:

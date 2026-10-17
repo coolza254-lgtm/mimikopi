@@ -2,6 +2,7 @@ package com.id.mimikopi.input
 
 import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
+import com.id.mimikopi.core.input.VelocityMode
 import com.id.mimikopi.piano.PianoController
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -27,12 +28,15 @@ class InputHub(private val piano: PianoController) {
     /** Play incoming notes with the app's piano (off when the real piano's own speaker is enough). */
     @Volatile var soundThrough: Boolean = true
 
+    /** Whether key strength changes the app's sound (off: every note at one level). */
+    @Volatile var velocity: VelocityMode = VelocityMode()
+
     fun dispatch(event: InputEvent) {
         // On-screen keys always sound: they have no speaker of their own.
         val sound = soundThrough || event.source == InputSource.TOUCH
         when (event) {
             is InputEvent.NoteOn -> {
-                if (sound) piano.noteOn(event.note, event.velocity)
+                if (sound) piano.noteOn(event.note, velocity.sound(event.velocity))
                 synchronized(this) { _pressed.value = _pressed.value + event.note }
             }
             is InputEvent.NoteOff -> {

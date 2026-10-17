@@ -59,6 +59,7 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
     val devices by vm.devices.collectAsStateWithLifecycle()
     val monitor by vm.monitor.collectAsStateWithLifecycle()
     val soundThrough by vm.soundThrough.collectAsStateWithLifecycle()
+    val velocity by vm.velocity.collectAsStateWithLifecycle()
     val config by vm.config.collectAsStateWithLifecycle()
     val probe by vm.probe.collectAsStateWithLifecycle()
     val octave by vm.octave.collectAsStateWithLifecycle()
@@ -144,6 +145,20 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.midi_sound_through), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(checked = soundThrough, onCheckedChange = vm::setSoundThrough)
+            }
+            // Key strength: off at the start (every note at one level), on later to practise touch.
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Tokens.Space.m)) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.midi_velocity), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(if (velocity.on) R.string.midi_velocity_on else R.string.midi_velocity_off), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+                }
+                Switch(checked = velocity.on, onCheckedChange = { vm.setVelocity(velocity.copy(on = it)) })
+            }
+            if (!velocity.on) Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s), modifier = Modifier.padding(top = Tokens.Space.xs)) {
+                listOf(com.id.mimikopi.core.input.VelocityMode.SOFT to R.string.midi_velocity_soft, com.id.mimikopi.core.input.VelocityMode.MEDIUM to R.string.midi_velocity_medium,
+                    com.id.mimikopi.core.input.VelocityMode.LOUD to R.string.midi_velocity_loud).forEach { (level, label) ->
+                    FilterChip(selected = velocity.fixed == level, onClick = { vm.setVelocity(velocity.copy(fixed = level)) }, label = { Text(stringResource(label)) })
+                }
             }
         }
 

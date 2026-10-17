@@ -61,7 +61,7 @@ fun MidiSection() {
                     gone?.let { Text(it.name, style = MaterialTheme.typography.bodyMedium) }
                 }
             }
-            Text("เสียบสาย USB จากคีย์บอร์ดเข้าคอมแล้วเปิดเครื่อง โปรแกรมจะขึ้นว่าเชื่อมต่อภายในวินาทีเดียว",
+            Text("เปิดโปรแกรมนี้ก่อน แล้วค่อยเสียบสาย USB จากคีย์บอร์ดเข้าคอมและเปิดเครื่อง โปรแกรมจะขึ้นว่าเชื่อมต่อภายในวินาทีเดียว",
                 style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 8.dp))
         }
         devices.forEach { d ->
@@ -93,7 +93,7 @@ fun MidiSection() {
         // Open but silent: Windows 11's new MIDI service can stop passing input to older programs (Java uses WinMM).
         if (devices.any { it.open && it.messages == 0L }) Text(
             "ถ้ากดคีย์แล้วตัวเลขด้านบนไม่ขึ้นเลย แปลว่า Windows ให้เปิดคีย์บอร์ดได้แต่ไม่ส่งโน้ตมา (Windows 11 รุ่นใหม่มีปัญหานี้กับบริการ MIDI): " +
-                "1) ปิดเว็บหรือโปรแกรมอื่นที่ใช้ MIDI  2) รีสตาร์ทคอม  3) เปิดโปรแกรมนี้แล้วกดคีย์อีกครั้ง  " +
+                "1) ถอดสายคีย์บอร์ด แล้วเสียบใหม่ตอนโปรแกรมนี้เปิดอยู่ (ได้ผลกับหลายเครื่อง)  2) ปิดเว็บหรือโปรแกรมอื่นที่ใช้ MIDI  3) รีสตาร์ทคอม  " +
                 "ถ้ายังไม่ได้ ให้ทำ Windows Update แล้วกดรายงานการเชื่อมต่อส่งมา",
             style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp),
         )
@@ -121,6 +121,12 @@ fun SettingsScreen(onBack: () -> Unit, onOpenMetronome: () -> Unit = {}) {
     val mode by Services.themeMode.collectAsState()
     val sampled by Services.sampled.collectAsState()
     var soundThrough by remember { mutableStateOf(Services.hub.soundThrough) }
+    var velocity by remember { mutableStateOf(Services.hub.velocity) }
+    fun setVelocity(m: com.id.mimikopi.core.input.VelocityMode) {
+        velocity = m
+        Services.hub.velocity = m
+        Services.store.put(Keys.VELOCITY_MODE, m.encode())
+    }
     var packState by remember { mutableStateOf<String?>(null) }
     var installing by remember { mutableStateOf(false) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
@@ -188,6 +194,20 @@ fun SettingsScreen(onBack: () -> Unit, onOpenMetronome: () -> Unit = {}) {
                     Services.hub.soundThrough = it
                     Services.store.put(Keys.SOUND_THROUGH, it.toString())
                 })
+            }
+            // Key strength: off at the start (every note at one level), on later to practise touch.
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("น้ำหนักคีย์ (Velocity)", style = MaterialTheme.typography.bodyMedium)
+                    Text(if (velocity.on) "เปิดอยู่: กดแรงเสียงดัง กดเบาเสียงเบา ใช้ตอนฝึกน้ำหนักมือ" else "ปิดอยู่: ทุกโน้ตดังเท่ากัน กดเบาหรือแรงก็เหมือนกัน เหมาะกับช่วงแรก",
+                        style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+                }
+                Switch(checked = velocity.on, onCheckedChange = { setVelocity(velocity.copy(on = it)) })
+            }
+            if (!velocity.on) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 6.dp)) {
+                listOf(com.id.mimikopi.core.input.VelocityMode.SOFT to "เบา", com.id.mimikopi.core.input.VelocityMode.MEDIUM to "กลาง", com.id.mimikopi.core.input.VelocityMode.LOUD to "ดัง").forEach { (level, label) ->
+                    FilterChip(selected = velocity.fixed == level, onClick = { setVelocity(velocity.copy(fixed = level)) }, label = { Text(label) })
+                }
             }
         }
         PageCard(title = "ย้ายข้อมูลกับมือถือ") {

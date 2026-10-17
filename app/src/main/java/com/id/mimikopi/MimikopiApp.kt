@@ -54,6 +54,7 @@ class MimikopiApp : Application() {
                 ?.let { runCatching { com.id.mimikopi.ui.theme.ThemeMode.valueOf(it) }.getOrNull() }?.let { themeMode.value = it }
             midiInput.octaveOffset = inputConfig.load().octaveOffset
             inputHub.soundThrough = database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_SOUND_THROUGH)?.toBooleanStrictOrNull() ?: true
+            inputHub.velocity = com.id.mimikopi.core.input.VelocityMode.parse(database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.VELOCITY_MODE))
             // A Bluetooth piano is connected only when the user asks, on the MIDI screen.
         }
     }

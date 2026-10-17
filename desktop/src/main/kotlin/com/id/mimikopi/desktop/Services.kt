@@ -34,6 +34,7 @@ object Keys {
     const val SECTIONS = "sections"
     const val THEME_MODE = "ui.theme"
     const val SOUND_THROUGH = "midi.soundThrough"
+    const val VELOCITY_MODE = "midi.velocityMode"
     const val NOTE_NAME_STYLE = "notes.nameStyle"
 }
 
@@ -47,12 +48,14 @@ class InputHub(private val piano: () -> Piano) {
     private val _pressed = MutableStateFlow<Set<Int>>(emptySet())
     val pressed: StateFlow<Set<Int>> = _pressed.asStateFlow()
     @Volatile var soundThrough: Boolean = false
+    /** Whether key strength changes the program's sound (off: every note at one level). */
+    @Volatile var velocity: com.id.mimikopi.core.input.VelocityMode = com.id.mimikopi.core.input.VelocityMode()
 
     fun dispatch(event: InputEvent) {
         // On-screen keys always sound: they have no speaker of their own.
         val sound = soundThrough || event.source == com.id.mimikopi.core.input.InputSource.TOUCH
         when (event) {
-            is InputEvent.NoteOn -> { if (sound) piano().noteOn(event.note, event.velocity); synchronized(this) { _pressed.value = _pressed.value + event.note } }
+            is InputEvent.NoteOn -> { if (sound) piano().noteOn(event.note, velocity.sound(event.velocity)); synchronized(this) { _pressed.value = _pressed.value + event.note } }
             is InputEvent.NoteOff -> { if (sound) piano().noteOff(event.note); synchronized(this) { _pressed.value = _pressed.value - event.note } }
             is InputEvent.Sustain -> if (soundThrough) piano().sustain(event.down)
             is InputEvent.Control -> Unit
@@ -142,6 +145,7 @@ object Services {
 
     fun start() {
         hub.soundThrough = store.get(Keys.SOUND_THROUGH)?.toBooleanStrictOrNull() ?: false
+        hub.velocity = com.id.mimikopi.core.input.VelocityMode.parse(store.get(Keys.VELOCITY_MODE))
         midi.start()
         Thread { loadSampledPiano() }.apply { isDaemon = true; start() }
         Thread { updater.check(force = false) }.apply { isDaemon = true; start() }

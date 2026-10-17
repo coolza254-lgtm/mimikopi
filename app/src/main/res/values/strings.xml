@@ -738,6 +738,12 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="midi_last_note">เสียงล่าสุด %1$s · %2$d วินาทีที่แล้ว</string>
     <string name="midi_last_note_now">เสียงล่าสุด %1$s · เมื่อกี้</string>
     <string name="midi_settings">การตั้งค่า</string>
+    <string name="midi_velocity">น้ำหนักคีย์ (Velocity)</string>
+    <string name="midi_velocity_off">ปิดอยู่: ทุกโน้ตดังเท่ากัน กดเบาหรือแรงก็เหมือนกัน เหมาะกับช่วงแรก (มีผลกับเสียงของแอพ ถ้าใช้ลำโพงเปียโน ให้ปิด Touch ที่ตัวเปียโน)</string>
+    <string name="midi_velocity_on">เปิดอยู่: กดแรงเสียงดัง กดเบาเสียงเบา ใช้ตอนฝึกน้ำหนักมือ</string>
+    <string name="midi_velocity_soft">เบา</string>
+    <string name="midi_velocity_medium">กลาง</string>
+    <string name="midi_velocity_loud">ดัง</string>
     <string name="midi_banner">ยังไม่ได้ต่อคีย์บอร์ด (หรือปิดเครื่องอยู่)</string>
     <string name="midi_banner_action">ต่อ →</string>
     <string name="sections_empty_list">ยังไม่มีท่อน ลองเลือกท่อนสั้นๆ ที่ชอบ 4–8 โน้ตก่อน เช่นท่อนฮุก แล้วค่อยต่อท่อนยาวขึ้น</string>

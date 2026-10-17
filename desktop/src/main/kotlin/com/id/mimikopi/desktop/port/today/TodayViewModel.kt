@@ -158,7 +158,9 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun detail(b: PlanBlock): String = when (b.kind) {
-        BlockKind.WARMUP -> b.target?.substringBefore('/')?.let { learning.lesson(it) }?.let { l -> l.drills.getOrNull(b.target.substringAfter('/').toIntOrNull() ?: 0)?.title ?: l.title } ?: ""
+        BlockKind.WARMUP -> b.target?.let { t ->
+            learning.lesson(t.substringBefore('/'))?.let { l -> l.drills.getOrNull(t.substringAfter('/').toIntOrNull() ?: 0)?.title ?: l.title }
+        } ?: ""
         BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { "${it.skill.title} ระดับ ${it.level}" } ?: ""
         BlockKind.REVIEW -> "โน้ตและคีย์ที่ถึงกำหนดทวน"
         BlockKind.LADDER -> ProgressRules.nextToLearn(learning.lessons, learning.records.value)?.let { "ขั้น ${it.id} · ${it.title}" } ?: "ยืนยันขั้นที่ผ่านแล้ว"

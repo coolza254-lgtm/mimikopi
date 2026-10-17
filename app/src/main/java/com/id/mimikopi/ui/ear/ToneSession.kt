@@ -86,6 +86,10 @@ data class ToneUi(
     val revealed: Boolean = false,
     /** Per place: asked, right at the first try. */
     val perPlace: Map<Int, Pair<Int, Int>> = emptyMap(),
+    /** A level test: the verdict once done (null otherwise), its lines, and whether another try is allowed today. */
+    val passed: Boolean? = null,
+    val verdict: List<String> = emptyList(),
+    val canRetry: Boolean = true,
 )
 
 /**
@@ -99,7 +103,11 @@ class ToneSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVi
     private val piano = services.piano
     private val hub = services.inputHub
     private val scheduler = NoteScheduler(piano)
-    private val levelId: String = args.get<String>("levelId").orEmpty()
+    /** A level test of the skill page ("EAR:3"): its ear level is played and judged by the level's criterion. */
+    private val check: com.id.mimikopi.core.progress.SkillLevel? = com.id.mimikopi.core.progress.SkillBook.parseKey(args.get<String>("check"))
+        ?.takeIf { it.run is com.id.mimikopi.core.progress.CheckRun.EarRun }
+    private val levelId: String = (check?.run as? com.id.mimikopi.core.progress.CheckRun.EarRun)?.levelId ?: args.get<String>("levelId").orEmpty()
+    private var runStartedAt = 0L
     private val random = Random(System.nanoTime())
 
     private val _ui = MutableStateFlow(ToneUi())
@@ -140,6 +148,7 @@ class ToneSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVi
         val level = _ui.value.level ?: return
         val tonic = level.tonic ?: random.nextInt(12)
         base = FunctionalEar.base(tonic)
+        runStartedAt = System.currentTimeMillis()
         _ui.value = ToneUi(level = level, tonic = tonic, total = level.questions, index = 1)
         ask(cadence = true, previous = null)
     }
@@ -253,6 +262,23 @@ class ToneSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVi
             val stats = store.stats()
             val run = ToneRun(LocalDate.now().toString(), u.total, u.right)
             store.saveStats(stats + (levelId to (stats[levelId] ?: com.id.mimikopi.core.ear.ToneStats()).plus(run)))
+            val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
+            val p = services.progress
+            val level = check
+            if (level == null) { p.log("ear", seconds); return@launch }
+            val m = com.id.mimikopi.core.progress.CheckMetrics(accuracy = if (u.total == 0) 0.0 else u.right.toDouble() / u.total)
+            val verdict = level.judge(m)
+            p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, LocalDate.now().toString(), verdict.passed, m))
+            p.log("check", seconds)
+            val status = com.id.mimikopi.core.progress.SkillBook.status(level.skill, p.checks.value, LocalDate.now())
+            _ui.update {
+                it.copy(
+                    passed = verdict.passed,
+                    verdict = listOf(if (verdict.passed) "ผ่านระดับ ${level.level}: ${level.canDo}" else "ยังไม่ผ่านระดับ ${level.level}") + verdict.lines +
+                        if (verdict.passed) "หูตอนนี้ระดับ ${status.level} จาก ${status.maxLevel}" else if (status.lockedToday) "ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น" else "ยังลองได้อีกครั้งวันนี้",
+                    canRetry = !verdict.passed && !status.lockedToday,
+                )
+            }
         }
     }
 
@@ -361,6 +387,12 @@ private fun AnswerButtons(places: List<Int>, ui: ToneUi, onAnswer: (Int) -> Unit
 private fun ToneResult(ui: ToneUi, onAgain: () -> Unit, onDone: () -> Unit) {
     val pct = if (ui.total == 0) 0 else ui.right * 100 / ui.total
     Column(Modifier.fillMaxWidth().padding(top = 28.dp)) {
+        // A level test: the verdict first, with the numbers.
+        if (ui.verdict.isNotEmpty()) {
+            Text(ui.verdict.first(), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 6.dp))
+            ui.verdict.drop(1).forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted) }
+            Spacer(Modifier.height(20.dp))
+        }
         Text("$pct%", fontFamily = Tokens.Fonts.mono, fontWeight = FontWeight.Light, fontSize = 96.sp, lineHeight = 100.sp)
         Text("ถูกตั้งแต่ครั้งแรก ${ui.right} จาก ${ui.total} ข้อ", style = MaterialTheme.typography.bodyLarge, color = Tokens.Palette.InkMuted)
         Spacer(Modifier.height(24.dp))
@@ -380,7 +412,7 @@ private fun ToneResult(ui: ToneUi, onAgain: () -> Unit, onDone: () -> Unit) {
             style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 14.dp),
         )
         Row(Modifier.padding(top = 28.dp, bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = onAgain, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) { Text("อีกรอบ") }
+            if (ui.canRetry) OutlinedButton(onClick = onAgain, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) { Text("อีกรอบ") }
             Button(onClick = onDone, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) { Text("เสร็จ") }
         }
     }

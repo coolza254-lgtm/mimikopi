@@ -36,6 +36,7 @@ object Tokens {
         val Line: Color get() = if (dark) Color(0xFF2B2B2B) else Color(0xFFDDDDDD)
         val Hair: Color get() = if (dark) Color(0xFF1F1F1F) else Color(0xFFEDEDED)
         val OnInk: Color get() = Paper
+        val Group: Color get() = if (dark) Color(0xFF151515) else Color(0xFFF2F2F2)
         val Raised: Color get() = if (dark) Color(0xFF111111) else Color(0xFFF5F5F5)
         /** The one colour in the app: a confirmed connection (asked for by the user). */
         val Positive: Color get() = if (dark) Color(0xFF3DD68C) else Color(0xFF1E8E4E)

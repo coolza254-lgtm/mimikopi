@@ -24,17 +24,17 @@ class StoreTest {
     @Test
     fun backupsRoundTripInTheAndroidFormat() {
         val a = tempStore()
-        a.put(Keys.SECTIONS, "[]")
+        a.put(Keys.THEME_MODE, "[]")
         a.put(Keys.LESSON_RECORDS, "{}")
         a.putItemStat(ItemStatRow("ear:int:7", 3, 9L, "111", null))
         val text = a.exportBackup("0.17.0")
         val b = tempStore()
         assertNull(b.importBackup(text))
-        assertEquals("[]", b.get(Keys.SECTIONS))
+        assertEquals("[]", b.get(Keys.THEME_MODE))
         assertEquals(3, b.itemStats()["ear:int:7"]?.box)
         // Not a backup: refused, nothing changed.
         assertNotNull(b.importBackup("{\"hello\": 1}"))
-        assertEquals("[]", b.get(Keys.SECTIONS))
+        assertEquals("[]", b.get(Keys.THEME_MODE))
     }
 
     @Test

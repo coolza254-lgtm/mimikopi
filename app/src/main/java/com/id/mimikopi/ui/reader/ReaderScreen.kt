@@ -269,7 +269,7 @@ private fun FixedControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Button(onClick = vm::start) { Text(stringResource(if (vm.nextLabelIsNew()) R.string.reader_new_piece else R.string.reader_start)) }
-            if (vm.source !is ReaderViewModel.Source.Benchmark) OutlinedButton(onClick = vm::listen) { Text(stringResource(R.string.reader_listen)) }
+            if (vm.source !is ReaderViewModel.Source.Benchmark && vm.source !is ReaderViewModel.Source.Check) OutlinedButton(onClick = vm::listen) { Text(stringResource(R.string.reader_listen)) }
             val handLabel = when (ui.options.hands) {
                 HandChoice.RIGHT -> R.string.reader_hand_right
                 HandChoice.LEFT -> R.string.reader_hand_left

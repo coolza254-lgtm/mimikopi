@@ -19,6 +19,10 @@ object MimikopiApp : Application() {
     val session = SessionTracker
     val samplePacks = SamplePacks
     val metronome: MetronomeController by lazy { MetronomeController(piano, SettingsDao) }
+    /** Practice minutes and level tests, in the same settings rows as on the phone. */
+    val progress: com.id.mimikopi.desktop.port.today.ProgressStore by lazy {
+        com.id.mimikopi.desktop.port.today.ProgressStore({ Services.store.get(it) }, { k, v -> Services.store.put(k, v) })
+    }
 }
 
 /** One row of the settings table (the desktop keeps the same rows in its JSON file). */

@@ -135,7 +135,14 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         data class LessonDrill(val lesson: Lesson, val index: Int) : Source { val drill: Drill get() = lesson.drills[index] }
         data class NewReading(val level: Int) : Source
         data class Benchmark(val level: Int) : Source
+        /** A level test of the skill page (rhythm, sight-reading, technique). */
+        data class Check(val level: com.id.mimikopi.core.progress.SkillLevel) : Source {
+            val drill: Drill get() = (level.run as com.id.mimikopi.core.progress.CheckRun.ScoreRun).drill
+        }
     }
+
+    /** The practice log kind of this sitting's runs, when the Today plan says (e.g. "warmup"). */
+    private val via: String? = args.get<String>("via")
 
     data class LoadedPiece(val score: Score, val layout: ScoreLayout, val keyRange: IntRange)
 
@@ -144,6 +151,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         args.get<String>("lessonId") != null -> learning.lesson(args.get<String>("lessonId")!!)
             ?.let { l -> args.get<String>("drill")?.toIntOrNull()?.takeIf { it in l.drills.indices }?.let { Source.LessonDrill(l, it) } }
             ?: Source.Piece("", null)
+        args.get<String>("check") != null -> com.id.mimikopi.core.progress.SkillBook.parseKey(args.get<String>("check"))
+            ?.takeIf { it.run is com.id.mimikopi.core.progress.CheckRun.ScoreRun }?.let { Source.Check(it) } ?: Source.Piece("", null)
         args.get<String>("newread") != null -> Source.NewReading(args.get<String>("newread")!!.toIntOrNull()?.coerceIn(1, 5) ?: 1)
         else -> Source.Benchmark(args.get<String>("bench")?.toIntOrNull()?.coerceIn(1, Benchmarks.MAX_LEVEL) ?: 1)
     }
@@ -188,30 +197,31 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         transposeKey = null
         when (val src = source) {
             is Source.Piece -> pieces.pieceOrExercise(src.id)
-            is Source.LessonDrill -> {
-                val d = src.drill
-                when (d.type) {
-                    ExerciseType.E_FINGER_PATTERN -> Score.from(ScoreGenerators.fingerPatterns(d, seed))
-                    ExerciseType.E_RHYTHM_TAP -> Score.from(ScoreGenerators.rhythm(d, seed))
-                    ExerciseType.E_READ_PIECE -> Score.from(ScoreGenerators.read(d, seed))
-                    ExerciseType.E_COMP_PATTERN -> Score.from(ScoreGenerators.comp(d, seed))
-                    ExerciseType.E_TRANSPOSE -> {
-                        val from = d.keys.firstOrNull() ?: 0
-                        val targets = d.targetKeys.ifEmpty { listOf(1) }
-                        val to = targets[kotlin.random.Random(seed).nextInt(targets.size)]
-                        val (original, moved) = com.id.mimikopi.core.theory.StageGenerators.transposePair(from, to, seed)
-                        playScore = Score.from(moved)
-                        transposeKey = to
-                        Score.from(original)
-                    }
-                    ExerciseType.E_PIECE -> pieces.pieceOrExercise(d.pieces.first())
-                    else -> null
-                }
-            }
+            is Source.Check -> scoreFor(src.drill)
+            is Source.LessonDrill -> scoreFor(src.drill)
             is Source.NewReading -> Score.from(ScoreGenerators.sightReading(newReadingDrill(src.level), seed))
             is Source.Benchmark -> Score.from(ScoreGenerators.sightReading(Benchmarks.sightReadingDrill(benchLevel), Benchmarks.sightReadingSeed(benchLevel)))
         }
     }.getOrNull()
+
+    /** A drill's score: generated for exercises, the piece or exercise file for E_PIECE. */
+    private fun scoreFor(d: Drill): Score? = when (d.type) {
+        ExerciseType.E_FINGER_PATTERN -> Score.from(ScoreGenerators.fingerPatterns(d, seed))
+        ExerciseType.E_RHYTHM_TAP -> Score.from(ScoreGenerators.rhythm(d, seed))
+        ExerciseType.E_READ_PIECE -> Score.from(ScoreGenerators.read(d, seed))
+        ExerciseType.E_COMP_PATTERN -> Score.from(ScoreGenerators.comp(d, seed))
+        ExerciseType.E_TRANSPOSE -> {
+            val from = d.keys.firstOrNull() ?: 0
+            val targets = d.targetKeys.ifEmpty { listOf(1) }
+            val to = targets[kotlin.random.Random(seed).nextInt(targets.size)]
+            val (original, moved) = com.id.mimikopi.core.theory.StageGenerators.transposePair(from, to, seed)
+            playScore = Score.from(moved)
+            transposeKey = to
+            Score.from(original)
+        }
+        ExerciseType.E_PIECE -> pieces.pieceOrExercise(d.pieces.first())
+        else -> null
+    }
 
     private fun newReadingDrill(level: Int) = Drill(ExerciseType.E_READ_PIECE, "new", level = "L$level", bpm = 60, mode = "TEMPO",
         hand = if (level == 2) "LEFT" else "RIGHT")
@@ -224,6 +234,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         newPieceNext = false
         val bpm = when (val src = source) {
             is Source.LessonDrill -> src.drill.bpm
+            is Source.Check -> src.drill.bpm
             is Source.NewReading, is Source.Benchmark -> 60
             is Source.Piece -> s.tempo
         }
@@ -232,8 +243,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     /** Options a fixed source dictates (mode, hands, no ramp); the keyboard choice stays the user's. */
     private fun fixedOptions(saved: ReaderOptions): ReaderOptions = when (val src = source) {
-        is Source.LessonDrill -> {
-            val d = src.drill
+        is Source.LessonDrill, is Source.Check -> {
+            val d = if (src is Source.Check) src.drill else (src as Source.LessonDrill).drill
             ReaderOptions(
                 mode = if (d.mode == "WAIT") PlayMode.WAIT else PlayMode.TEMPO,
                 hands = runCatching { HandChoice.valueOf(d.hand) }.getOrDefault(HandChoice.RIGHT),
@@ -255,6 +266,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             (transposeKey?.let { " · เล่นในคีย์ ${com.id.mimikopi.core.theory.Keys.name(it)}" } ?: "")
         is Source.NewReading -> "อ่านโน้ตใหม่ (ระดับ L${src.level})"
         is Source.Benchmark -> "วัดผล: อ่านโน้ตระดับ L$benchLevel"
+        is Source.Check -> "ทดสอบวัดระดับ · ${src.level.skill.title} ระดับ ${src.level.level}"
     }
 
     private var holding = false
@@ -440,7 +452,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             fromMeasure = u.section.first,
             toMeasure = u.section.last,
             bpm = u.bpm.toDouble(),
-            toleranceMs = learning.toleranceMs((source as? Source.LessonDrill)?.lesson?.stage ?: stageOf(s), u.bpm.toDouble(), benchmark = source is Source.Benchmark),
+            toleranceMs = learning.toleranceMs((source as? Source.LessonDrill)?.lesson?.stage ?: stageOf(s), u.bpm.toDouble(), benchmark = source is Source.Benchmark || source is Source.Check),
             latencyMs = 0, // compensated per event and source in onInput
             anyKey = (source as? Source.LessonDrill)?.drill?.type == ExerciseType.E_RHYTHM_TAP,
         )
@@ -674,6 +686,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         if (fixed) { finishFixed(j); return }
         val s = score ?: return
         val result = j.result()
+        val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
+        services.appScope.launch { services.progress.log(via ?: "song", seconds) }
         val u = _ui.value
         val helper = helperUsedThisRun
         viewModelScope.launch {
@@ -720,14 +734,40 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         if (clean) { cleanCount++; cleanStreak++ } else cleanStreak = 0
         val generated = when (val src = source) {
             is Source.LessonDrill -> src.drill.type != ExerciseType.E_PIECE
+            is Source.Check -> src.drill.type != ExerciseType.E_PIECE
             else -> true
         }
         // A clean run, or three runs of the same piece (learning-system.md 1.4), brings a new one.
         newPieceNext = generated && (clean || runsOnPiece >= 3) && source !is Source.Benchmark
+        val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
+        if (source !is Source.Check) services.appScope.launch {
+            services.progress.log(via ?: when (source) { is Source.NewReading -> "sight"; is Source.Benchmark -> "check"; else -> "ladder" }, seconds)
+        }
         viewModelScope.launch {
             val lines = mutableListOf<CoachLine>()
             var progressLine: String? = null
             when (val src = source) {
+                is Source.Check -> {
+                    val level = src.level
+                    val m = com.id.mimikopi.core.progress.CheckMetrics(
+                        accuracy = result.summary?.noteAccuracy ?: 0.0,
+                        timing = if (result.timingJudged) result.summary?.fractionWithinTiming ?: 0.0 else 0.0,
+                    )
+                    val verdict = level.judge(m)
+                    val passed = verdict.passed && !helper
+                    val p = services.progress
+                    p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, java.time.LocalDate.now().toString(), passed, m))
+                    p.log("check", seconds)
+                    val status = com.id.mimikopi.core.progress.SkillBook.status(level.skill, p.checks.value, java.time.LocalDate.now())
+                    verdict.lines.forEach { lines += CoachLine(it) }
+                    if (helper) lines += CoachLine("เปิดตัวช่วยระหว่างทดสอบ ผลนี้จึงไม่นับ")
+                    progressLine = if (passed) "ผ่านระดับ ${level.level}: ${level.canDo} · ${level.skill.title}ตอนนี้ระดับ ${status.level} จาก ${status.maxLevel}"
+                    else if (status.lockedToday) "ยังไม่ผ่านระดับ ${level.level} · ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น"
+                    else "ยังไม่ผ่านระดับ ${level.level} · ยังลองได้อีกครั้งวันนี้ (โน้ตใหม่)"
+                    benchDone = passed || status.lockedToday
+                    _ui.update { it.copy(phase = Phase.RESULT, result = resultUi(result, lines.distinct(), progressLine), countIn = null) }
+                    return@launch
+                }
                 is Source.LessonDrill -> {
                     val l = src.lesson
                     val need = l.pass.cleanRuns

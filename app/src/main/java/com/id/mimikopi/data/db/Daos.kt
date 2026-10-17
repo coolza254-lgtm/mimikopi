@@ -132,10 +132,6 @@ object SettingKeys {
     /** "3" once the M15 reading and ear ladders started fresh; the records before are kept under [LESSON_RECORDS_V2]. */
     const val PATH_VERSION = "path.version"
     const val LESSON_RECORDS_V2 = "lesson.records.v2"
-    /** Section practice: all sections as one JSON list (backups include them). */
-    const val SECTIONS = "sections"
-    /** Section practice shown as falling notes ("true") or the big note (default). */
-    const val SECTIONS_FALLING = "sections.falling"
     /** Chord tab: the last chosen practice (ChordPractice JSON) and the recent runs (ChordRun list). */
     const val CHORDS_SETTINGS = "chords.settings"
     const val CHORDS_RUNS = "chords.runs"

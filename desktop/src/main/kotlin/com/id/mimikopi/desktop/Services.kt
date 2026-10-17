@@ -8,7 +8,6 @@ import com.id.mimikopi.desktop.audio.SamplerPiano
 import com.id.mimikopi.desktop.data.Store
 import com.id.mimikopi.desktop.learning.LearningRepository
 import com.id.mimikopi.desktop.learning.PieceRepository
-import com.id.mimikopi.desktop.learning.SectionStore
 import com.id.mimikopi.desktop.midi.DesktopMidi
 import com.id.mimikopi.desktop.port.PianoController
 import com.id.mimikopi.desktop.update.DesktopUpdater
@@ -31,7 +30,6 @@ enum class ThemeMode { DARK, LIGHT, SYSTEM }
 /** Setting keys shared with the Android app (same rows, so backups move both ways). */
 object Keys {
     const val LESSON_RECORDS = "lesson.records"
-    const val SECTIONS = "sections"
     const val THEME_MODE = "ui.theme"
     const val SOUND_THROUGH = "midi.soundThrough"
     const val VELOCITY_MODE = "midi.velocityMode"
@@ -138,7 +136,6 @@ object Services {
     /** The reading drills and the score reader drive the piano and the metronome through this (as on Android). */
     val pianoController = PianoController(::piano)
     val updater = DesktopUpdater(dir, store, System.getProperty("jpackage.app-version") ?: "dev")
-    val sections = SectionStore(store)
 
     val themeMode = MutableStateFlow(store.get(Keys.THEME_MODE)?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.DARK)
     fun setThemeMode(mode: ThemeMode) { themeMode.value = mode; store.put(Keys.THEME_MODE, mode.name) }

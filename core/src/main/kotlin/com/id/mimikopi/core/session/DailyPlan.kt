@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.session
 
+import com.id.mimikopi.core.exercise.ChordPractice
 import com.id.mimikopi.core.progress.SkillId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -152,5 +153,65 @@ object DailyPlan {
         BlockKind.CHECK -> checkTakenToday
         BlockKind.REVIEW -> reviewDue == 0 || (today.seconds[block.kind.log] ?: 0) >= block.minutes * 36
         else -> (today.seconds[block.kind.log] ?: 0) >= block.minutes * 36
+    }
+}
+
+/** What each part of the plan opens, from the ladder records and the skill levels. */
+object PlanContent {
+    private fun readLevel(l: com.id.mimikopi.core.lesson.Lesson): Int? =
+        l.drills.filter { it.type == com.id.mimikopi.core.lesson.ExerciseType.E_READ_PIECE }.maxOfOrNull { it.level.removePrefix("L").toInt() }
+
+    /**
+     * Warm-up: the five-finger or scale drill of the latest step reached that has one ("lessonId/drillIndex"), or the
+     * first step's own when nothing is reached yet.
+     */
+    fun warmup(lessons: List<com.id.mimikopi.core.lesson.Lesson>, records: Map<String, com.id.mimikopi.core.lesson.LessonRecord>): String? {
+        val current = com.id.mimikopi.core.lesson.ProgressRules.current(lessons, records)
+        val reached = lessons.filter { (records[it.id]?.attempts ?: 0) > 0 || it == current }
+        fun find(from: List<com.id.mimikopi.core.lesson.Lesson>): String? {
+            for (l in from.reversed()) {
+                val i = l.drills.indexOfLast {
+                    it.type == com.id.mimikopi.core.lesson.ExerciseType.E_FINGER_PATTERN ||
+                        (it.type == com.id.mimikopi.core.lesson.ExerciseType.E_PIECE && it.pieces.all { p -> p.startsWith("ex-") })
+                }
+                if (i >= 0) return "${l.id}/$i"
+            }
+            return null
+        }
+        return find(reached) ?: find(lessons.take(8))
+    }
+
+    /** New reading one level below the highest reading level reached on the ladder (L1 at least), or the sight level held. */
+    fun sightLevel(lessons: List<com.id.mimikopi.core.lesson.Lesson>, records: Map<String, com.id.mimikopi.core.lesson.LessonRecord>, sightHeld: Int): Int? {
+        if (sightHeld > 0) return sightHeld.coerceAtMost(5)
+        val current = com.id.mimikopi.core.lesson.ProgressRules.current(lessons, records)
+        val reached = lessons.filter { com.id.mimikopi.core.lesson.ProgressRules.isPassed(records[it.id], it) || it == current }
+            .mapNotNull { readLevel(it) }.maxOrNull() ?: return null
+        val passedAtReached = lessons.any { readLevel(it) == reached && com.id.mimikopi.core.lesson.ProgressRules.isPassed(records[it.id], it) }
+        return (if (passedAtReached) reached else maxOf(1, reached - 1)).coerceAtMost(5)
+    }
+
+    /** Chord practice for the level held: the material of the next level's test, as practice. */
+    fun chords(levelHeld: Int): ChordPractice = when (levelHeld) {
+        0 -> ChordPractice(ChordPractice.Mode.NAME, listOf(0), listOf("triads"), items = 10)
+        1 -> ChordPractice(ChordPractice.Mode.NAME, listOf(0, 1, -1), listOf("triads"), items = 12)
+        2 -> ChordPractice(ChordPractice.Mode.NUMERAL, listOf(0, 1, -1), numeralSets = listOf("diatonic"), items = 12)
+        3 -> ChordPractice(ChordPractice.Mode.CHANGE, listOf(0), progression = "Axis", seconds = 60)
+        4 -> ChordPractice(ChordPractice.Mode.NAME, listOf(0, 1, -1, 2, -2), listOf("sevenths"), items = 12)
+        5 -> ChordPractice(ChordPractice.Mode.CHANGE, listOf(1), progression = "Canon", seconds = 60)
+        else -> ChordPractice(ChordPractice.Mode.CHANGE, listOf(-1), progression = "ii–V–I", seconds = 60)
+    }
+
+    /**
+     * Ear practice: the level the next ear test uses; before the first level, the getting-started steps in order,
+     * the first one not yet answered 90% right at the first try in its latest run.
+     */
+    fun ear(levelHeld: Int, lastAccuracy: Map<String, Double>): String {
+        if (levelHeld == 0) {
+            val intro = com.id.mimikopi.core.ear.FunctionalEar.intro.take(3)
+            return intro.firstOrNull { (lastAccuracy[it.id] ?: 0.0) < 0.9 }?.id ?: "intro3"
+        }
+        val next = com.id.mimikopi.core.progress.SkillBook.level(SkillId.EAR, levelHeld + 1) ?: com.id.mimikopi.core.progress.SkillBook.level(SkillId.EAR, levelHeld)
+        return (next?.run as? com.id.mimikopi.core.progress.CheckRun.EarRun)?.levelId ?: "c-major-1"
     }
 }

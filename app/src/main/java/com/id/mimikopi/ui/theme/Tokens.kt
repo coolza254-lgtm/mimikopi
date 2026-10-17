@@ -27,6 +27,8 @@ object Tokens {
         val Hair: Color get() = if (dark) Color(0xFF1F1F1F) else Color(0xFFEDEDED) // list dividers
         /** Text and icons on an [Ink] fill. */
         val OnInk: Color get() = Paper
+        /** Grouped lists (rounded blocks of rows on the page), like the system settings. */
+        val Group: Color get() = if (dark) Color(0xFF151515) else Color(0xFFF2F2F2)
         /** Dialogs and menus: one step off the background. */
         val Raised: Color get() = if (dark) Color(0xFF111111) else Color(0xFFF5F5F5)
         /** The one colour in the app: a confirmed connection (asked for by the user). */

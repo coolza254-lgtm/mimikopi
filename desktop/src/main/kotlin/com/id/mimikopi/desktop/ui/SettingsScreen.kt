@@ -90,6 +90,13 @@ fun MidiSection() {
                 fontFamily = Tokens.Fonts.mono, fontSize = 12.sp, color = Tokens.Palette.InkMuted,
             )
         }
+        // Open but silent: Windows 11's new MIDI service can stop passing input to older programs (Java uses WinMM).
+        if (devices.any { it.open && it.messages == 0L }) Text(
+            "ถ้ากดคีย์แล้วตัวเลขด้านบนไม่ขึ้นเลย แปลว่า Windows ให้เปิดคีย์บอร์ดได้แต่ไม่ส่งโน้ตมา (Windows 11 รุ่นใหม่มีปัญหานี้กับบริการ MIDI): " +
+                "1) ปิดเว็บหรือโปรแกรมอื่นที่ใช้ MIDI  2) รีสตาร์ทคอม  3) เปิดโปรแกรมนี้แล้วกดคีย์อีกครั้ง  " +
+                "ถ้ายังไม่ได้ ให้ทำ Windows Update แล้วกดรายงานการเชื่อมต่อส่งมา",
+            style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp),
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
             OutlinedButton(onClick = { Services.midi.rescan(force = true) }) { Text("ตรวจการเชื่อมต่อใหม่") }
             OutlinedButton(onClick = { report = Services.midi.report(); copied = false }) { Text("รายงานการเชื่อมต่อ") }

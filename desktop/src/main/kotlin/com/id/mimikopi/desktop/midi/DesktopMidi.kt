@@ -47,6 +47,10 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
     private class Open(val device: MidiDevice, val liveness: MidiLiveness) {
         @Volatile var messages = 0L
         @Volatile var last: String? = null
+        /** Everything Java delivered (Active Sensing and SysEx included): 0 means nothing arrives at all. */
+        @Volatile var raw = 0L
+        val openedAt = System.nanoTime()
+        @Volatile var probesSent = 0
         val probe = IdentityProbe()
         /** The same keyboard's output port (Java lists it as a separate device), for the identity request. */
         var out: MidiDevice? = null
@@ -140,6 +144,7 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
                         val now = System.nanoTime()
                         val bytes = message.message
                         val len = message.length
+                        o.raw++
                         synchronized(liveness) { liveness.received(bytes, 0, len, now) }
                         synchronized(o.probe) { o.probe.received(bytes, 0, len, now) }
                         if (len > 0 && (bytes[0].toInt() and 0xFF).let { it != MidiLiveness.ACTIVE_SENSING && it != 0xF0 }) {
@@ -153,8 +158,11 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
                 open[k] = o
                 // The keyboard's output port, matched by name, receives the identity request.
                 runCatching {
-                    val outInfo = infos.firstOrNull { it.name == info.name && it.description == info.description && it !== info &&
+                    // Windows gives the two halves different descriptions ("External MIDI Port" / "No details available"),
+                    // so the name decides; the same description is preferred when there are several.
+                    val outs = infos.filter { it.name == info.name && it !== info &&
                         runCatching { MidiSystem.getMidiDevice(it) }.getOrNull()?.let { d -> d !is Synthesizer && d !is Sequencer && d.maxReceivers != 0 } == true }
+                    val outInfo = outs.firstOrNull { it.description == info.description } ?: outs.singleOrNull()
                     if (outInfo != null) {
                         val outDevice = MidiSystem.getMidiDevice(outInfo)
                         if (!outDevice.isOpen) outDevice.open()
@@ -180,7 +188,7 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
         for (o in open.values) {
             val rx = o.receiver ?: continue
             val send = synchronized(o.probe) { o.probe.shouldSend(now).also { if (it) o.probe.sent(now) } }
-            if (send) runCatching { rx.send(javax.sound.midi.SysexMessage(IdentityProbe.REQUEST, IdentityProbe.REQUEST.size), -1) }
+            if (send) runCatching { rx.send(javax.sound.midi.SysexMessage(IdentityProbe.REQUEST, IdentityProbe.REQUEST.size), -1); o.probesSent++ }
         }
     }
 
@@ -221,6 +229,15 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
 
     private fun noteName(n: Int) = listOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")[n % 12] + (n / 12 - 1)
 
+    /** "Microsoft Windows [Version 10.0.26200.xxxx]": the build tells which MIDI stack Windows runs. */
+    private fun windowsBuild(): String? = runCatching {
+        if (!System.getProperty("os.name").orEmpty().startsWith("Windows")) return null
+        val p = ProcessBuilder("cmd", "/c", "ver").redirectErrorStream(true).start()
+        val out = p.inputStream.bufferedReader().readText()
+        p.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
+        Regex("\\[(?:Version )?([0-9.]+)]").find(out)?.groupValues?.get(1)?.let { "build $it" }
+    }.getOrNull()
+
     /** Windows' MIDI errors in Thai where the cause is known. */
     private fun explain(e: Throwable): String {
         val m = e.message.orEmpty()
@@ -237,7 +254,7 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
      */
     fun report(): String = buildString {
         appendLine("Mimikopi MIDI report")
-        appendLine("Java ${System.getProperty("java.version")} · ${System.getProperty("os.name")} ${System.getProperty("os.version")}")
+        appendLine("Java ${System.getProperty("java.version")} · ${System.getProperty("os.name")} ${System.getProperty("os.version")} · ${windowsBuild() ?: "build ?"}")
         val infos = runCatching { MidiSystem.getMidiDeviceInfo().toList() }
         infos.exceptionOrNull()?.let { appendLine("getMidiDeviceInfo failed: ${it::class.simpleName}: ${it.message}") }
         val list = infos.getOrDefault(emptyList())
@@ -262,6 +279,10 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
         if (_devices.value.isEmpty()) appendLine("  (none)")
         for (s in _devices.value) {
             appendLine("  ${s.name}: open=${s.open} error=${s.error} sensing=${s.sendsSensing} silent=${s.silent} messages=${s.messages} last=${s.lastMessage}")
+            open[s.key]?.let { o ->
+                val secs = (System.nanoTime() - o.openedAt) / 1_000_000_000L
+                appendLine("    raw=${o.raw} (all messages, sensing and SysEx too) · open ${secs}s · output port=${o.out?.deviceInfo?.let { "${it.name} | ${it.description}" } ?: "none"} · identity requests sent=${o.probesSent} answered=${s.answersProbe}")
+            }
         }
         if (failed.isNotEmpty()) appendLine("Not retried until replugged or re-checked: ${failed.keys.joinToString()}")
         lastFailure?.let { appendLine("Last failure: $it") }

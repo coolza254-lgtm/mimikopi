@@ -73,8 +73,10 @@ data class ReaderOptions(
     val hideNotes: Boolean = false,
     /** "Listen" repeats the section until stopped. */
     val loopListen: Boolean = false,
-    /** Page view: the score wrapped into lines that scroll down, instead of one long strip. */
-    val pageView: Boolean = false,
+    /** Page view (the default): the score wrapped into lines like a printed sheet, instead of one long strip. */
+    val pageView: Boolean = true,
+    /** Page view at the size of printed music (several lines on screen); off = large lines for a phone on the stand. */
+    val paperSize: Boolean = true,
     /** Falling notes over a keyboard instead of the score (songs only); a run with it does not count toward passing. */
     val falling: Boolean = false,
 )
@@ -315,18 +317,19 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     fun setHideNotes(on: Boolean) = updateOptions { it.copy(hideNotes = on) }
     fun setLoopListen(on: Boolean) = updateOptions { it.copy(loopListen = on) }
     fun setPageView(on: Boolean) = updateOptions { it.copy(pageView = on) }
+    fun setPaperSize(on: Boolean) = updateOptions { it.copy(paperSize = on) }
     fun setFalling(on: Boolean) = updateOptions { it.copy(falling = on) }
 
     private fun updateOptions(change: (ReaderOptions) -> ReaderOptions) {
         if (!editable()) return
         val before = _ui.value.options
         var next = change(before)
-        if (fixed) next = before.copy(showKeyboard = next.showKeyboard, playOtherHand = next.playOtherHand, pageView = next.pageView)
+        if (fixed) next = before.copy(showKeyboard = next.showKeyboard, playOtherHand = next.playOtherHand, pageView = next.pageView, paperSize = next.paperSize)
         _ui.update { it.copy(options = next) }
         viewModelScope.launch {
             val dao = services.database.settingsDao()
             val stored = if (fixed) (dao.get(SettingKeys.READER_OPTIONS)?.let { runCatching { json.decodeFromString(ReaderOptions.serializer(), it) }.getOrNull() }
-                ?: ReaderOptions()).copy(showKeyboard = next.showKeyboard, pageView = next.pageView) else next
+                ?: ReaderOptions()).copy(showKeyboard = next.showKeyboard, pageView = next.pageView, paperSize = next.paperSize) else next
             dao.put(SettingEntity(SettingKeys.READER_OPTIONS, json.encodeToString(ReaderOptions.serializer(), stored)))
         }
         applyRampTempo()

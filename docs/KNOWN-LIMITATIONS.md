@@ -26,6 +26,11 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Full-sheet reading (v0.23.0)
+- The reader opens in page view at printed size by default (grand-staff systems 170 dp tall, the page at most
+  1000 dp wide, centred). The page turns when the cursor reaches the last fully visible line. "Paper size" is my
+  estimate of printed music on screen, not a measured match to a real page; the large size and the strip remain.
+
 ## Song notebook (v0.22.0)
 - The section tab became "จดเพลง": a section is now a whole song with an optional video link, part names and part
   start times (seconds, shown as m:ss), and a hand split (notes below it are the left hand, Middle C by default).

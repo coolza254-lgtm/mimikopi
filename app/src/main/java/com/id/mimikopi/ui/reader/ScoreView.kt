@@ -215,8 +215,9 @@ fun ScoreView(
             drawRect(Tokens.Palette.Ink.copy(alpha = 0.15f), Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f))
             drawRect(Tokens.Palette.Ink, Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f), style = Stroke(space * 0.15f))
         } else if (!cursorOnlyInside || (beat > -1e-6 && beat < score.totalBeats - 1e-6)) {
-            drawLine(Tokens.Palette.Ink.copy(alpha = 0.6f), Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.TOP_Y - 2.5)),
-                Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.BOTTOM_Y + 2.5)), strokeWidth = space * 0.3f)
+            // The play position: a thin line through both staves, like a finger following the page.
+            drawLine(Tokens.Palette.Ink, Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.TOP_Y - 2.5)),
+                Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.BOTTOM_Y + 2.5)), strokeWidth = (space * 0.14f).coerceAtLeast(1.5f))
         }
     }
 }

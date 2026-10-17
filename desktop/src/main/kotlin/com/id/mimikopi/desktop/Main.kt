@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.font.FontWeight
@@ -167,7 +168,8 @@ private fun App() {
             }
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(Tokens.Palette.Hair))
-        Box(Modifier.weight(1f).fillMaxHeight()) {
+        // Clipped: a score strip draws past its edges and must not cover the rail.
+        Box(Modifier.weight(1f).fillMaxHeight().clipToBounds()) {
         if (!screen.scrollsInPage) Box(Modifier.fillMaxSize()) {
             PortedPage(screen, go = ::go, back = ::back, openMidi = openMidi)
         } else Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {

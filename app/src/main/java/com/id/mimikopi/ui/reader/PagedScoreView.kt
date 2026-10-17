@@ -1,8 +1,8 @@
 package com.id.mimikopi.ui.reader
 
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -22,9 +22,11 @@ import com.id.mimikopi.core.score.ScoreLayout
 private class PageSystem(val bars: IntRange, val score: Score, val layout: ScoreLayout, val startBeat: Double, val endBeat: Double)
 
 /**
- * The score wrapped into systems that fit the width (same line breaking as the PDF), stacked vertically. While
- * playing, the list scrolls so the system holding the cursor stays in view. Each system is a [ScoreView] of the
- * slice; note ids are kept by slicing, so results and taps map back to the whole piece.
+ * The score wrapped into systems that fit the width (same line breaking as the PDF), stacked vertically like a
+ * printed sheet. [paper]: the size of printed music, the page no wider than a sheet, several lines on screen;
+ * otherwise large lines for a phone on the music stand. While playing, the page turns (the current line goes to the
+ * top) when the cursor reaches the last line that is fully on screen, so the lines ahead can be read in advance.
+ * Each system is a [ScoreView] of the slice; note ids are kept by slicing, so results and taps map back to the piece.
  */
 @Composable
 fun PagedScoreView(
@@ -40,12 +42,14 @@ fun PagedScoreView(
     onMeasureTap: (Int) -> Unit,
     modifier: Modifier = Modifier,
     hideNotes: Boolean = false,
+    paper: Boolean = true,
 ) {
     BoxWithConstraints(modifier) {
-        // Large type for a phone on the music stand: about one and a half systems on screen.
-        val systemHeight = (maxHeight / 1.5f).coerceIn(160.dp, 320.dp)
+        // Printed size: a grand staff about as tall as on paper; large: about one and a half systems on screen.
+        val systemHeight = if (paper) 170.dp else (maxHeight / 1.5f).coerceIn(160.dp, 320.dp)
+        val pageWidth = if (paper) minOf(maxWidth, 1000.dp) else maxWidth
         val density = LocalDensity.current
-        val widthSpaces = with(density) { maxWidth.toPx() / (systemHeight.toPx() / 24f) } - 3f
+        val widthSpaces = with(density) { pageWidth.toPx() / (systemHeight.toPx() / 24f) } - 3f
         val systems = remember(score, widthSpaces.toInt()) {
             ScoreLayout.systems(score, widthSpaces.toDouble()).map { r ->
                 val slice = score.slice(r.first, r.last)
@@ -61,11 +65,14 @@ fun PagedScoreView(
                 val i = systems.indexOfLast { it.startBeat <= beat + 1e-6 }.coerceAtLeast(0)
                 if (i != shown) {
                     shown = i
-                    list.animateScrollToItem(i)
+                    // Turn the page only when the cursor is off screen or on the last line fully shown.
+                    val info = list.layoutInfo
+                    val fully = info.visibleItemsInfo.filter { it.offset >= info.viewportStartOffset && it.offset + it.size <= info.viewportEndOffset }.map { it.index }
+                    if (i !in fully || i == fully.lastOrNull() && i < systems.size - 1 && fully.size > 1) list.animateScrollToItem(i)
                 }
             }
         }
-        LazyColumn(state = list) {
+        LazyColumn(state = list, horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
             items(systems.size) { i ->
                 val sys = systems[i]
                 val shift = sys.startBeat
@@ -82,7 +89,7 @@ fun PagedScoreView(
                     showNames = showNames,
                     nameStyle = nameStyle,
                     onMeasureTap = { onMeasureTap(it + sys.bars.first) },
-                    modifier = Modifier.fillMaxWidth().height(systemHeight),
+                    modifier = Modifier.width(pageWidth).height(systemHeight),
                     hideNotes = hideNotes,
                     animate = playing,
                     firstBarNumber = sys.bars.first + 1,

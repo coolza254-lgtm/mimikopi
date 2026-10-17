@@ -560,8 +560,10 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="timing_strict">เข้ม (±%1$d ms)</string>
     <string name="timing_normal">ปกติ (±%1$d ms)</string>
     <string name="timing_forgiving">ผ่อน (±%1$d ms)</string>
-    <string name="reader_opt_page">แสดงแบบหน้า (ตัดบรรทัด)</string>
-    <string name="reader_opt_page_body">โน้ตเรียงเป็นบรรทัดลงมาเหมือนหนังสือ ระหว่างเล่นจะเลื่อนลงตามเคอร์เซอร์ ปิด = แถบยาวแถบเดียวที่เลื่อนไปทางขวา</string>
+    <string name="reader_opt_page">ชีตเต็มแผ่น</string>
+    <string name="reader_opt_page_body">โน้ตเรียงเป็นบรรทัดลงมาเหมือนชีตบนกระดาษ มีเส้นบอกว่าเล่นถึงไหน พอถึงบรรทัดสุดท้ายของจอจะพลิกหน้าให้ ปิด = แถบยาวแถบเดียวที่เลื่อนไปทางขวา</string>
+    <string name="reader_opt_paper">ขนาดเหมือนกระดาษ</string>
+    <string name="reader_opt_paper_body">ตัวโน้ตขนาดเท่าชีตที่พิมพ์ เห็นหลายบรรทัดพร้อมกัน ฝึกอ่านล่วงหน้าเหมือนอ่านจากกระดาษ ปิด = บรรทัดใหญ่ (เหมาะกับจอเล็กที่วางไกล)</string>
     <string name="block_song_project">โปรเจกต์ถอดเพลง: %1$s · วันที่ %2$d: %3$s</string>
     <string name="block_open_song">เปิดเพลงนี้</string>
     <string name="diag_section_crash">ข้อผิดพลาดล่าสุด</string>

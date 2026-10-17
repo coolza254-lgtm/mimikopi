@@ -47,6 +47,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.id.mimikopi.R
 import com.id.mimikopi.core.input.InputSource
+import com.id.mimikopi.core.input.MidiNotice
+import com.id.mimikopi.midi.BleLink
 import com.id.mimikopi.midi.BleMidiScanner
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.ScreenScaffold
@@ -66,6 +68,9 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
     val bleScanning by vm.bleScanning.collectAsStateWithLifecycle()
     val bleSaved by vm.bleSaved.collectAsStateWithLifecycle()
     val bleProblem by vm.bleProblem.collectAsStateWithLifecycle()
+    val bleScanFinished by vm.bleScanFinished.collectAsStateWithLifecycle()
+    val bleLink by vm.bleLink.collectAsStateWithLifecycle()
+    val notice by vm.notice.collectAsStateWithLifecycle()
     // The scan or reconnect continues once the user answers the "nearby devices" dialog.
     var afterPermission by remember { mutableStateOf<(() -> Unit)?>(null) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -82,31 +87,44 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
 
     ScreenScaffold(title = stringResource(R.string.midi_title), onBack = onBack) {
-        // The connection, told as it really is: confirmed (green tick), linked but unconfirmed, silent or absent.
+        // The connection, told as it really is: connected (green tick), silent, unplugged or absent.
         var now by remember { mutableLongStateOf(System.nanoTime()) }
         LaunchedEffect(Unit) { while (true) { delay(1000); now = System.nanoTime() } }
         PageCard {
             if (!vm.midiSupported) {
                 Body(stringResource(R.string.midi_unsupported), error = true)
             } else if (devices.isEmpty()) {
-                StatusHero(ConnState.NONE, title = stringResource(R.string.midi_state_none), body = stringResource(R.string.midi_none_help), device = null, lastNote = null)
+                // Just pulled out (or the Bluetooth link lost): say so, with which instrument.
+                val gone = notice?.takeIf { it.kind == MidiNotice.Kind.UNPLUGGED || it.kind == MidiNotice.Kind.BLE_LOST }
+                StatusHero(
+                    ConnState.NONE,
+                    title = stringResource(
+                        when (gone?.kind) {
+                            MidiNotice.Kind.UNPLUGGED -> R.string.midi_state_unplugged
+                            MidiNotice.Kind.BLE_LOST -> R.string.midi_state_ble_lost
+                            else -> R.string.midi_state_none
+                        },
+                    ),
+                    body = stringResource(R.string.midi_none_help),
+                    device = gone?.name,
+                    lastNote = null,
+                )
             } else {
                 devices.sortedBy { it.name }.forEachIndexed { i, d ->
                     if (i > 0) com.id.mimikopi.ui.components.Hairline(Modifier.padding(vertical = Tokens.Space.m))
-                    val state = connState(d, now)
+                    val state = connState(d)
                     StatusHero(
                         state,
                         title = when (state) {
                             ConnState.CONNECTED -> stringResource(R.string.midi_state_connected)
-                            ConnState.UNCONFIRMED -> stringResource(R.string.midi_state_unconfirmed)
                             ConnState.SILENT -> stringResource(R.string.midi_state_silent)
-                            ConnState.CONNECTING -> d.error ?: stringResource(R.string.midi_state_connecting)
+                            ConnState.CONNECTING -> d.error?.let { stringResource(R.string.midi_state_open_failed) } ?: stringResource(R.string.midi_state_connecting)
                             ConnState.NONE -> stringResource(R.string.midi_state_none)
                         },
                         body = when (state) {
-                            ConnState.CONNECTED -> stringResource(if (d.verified) R.string.midi_state_connected_body else R.string.midi_state_connected_by_keys)
-                            ConnState.UNCONFIRMED -> stringResource(R.string.midi_state_unconfirmed_body)
+                            ConnState.CONNECTED -> stringResource(if (d.verified) R.string.midi_state_connected_body else R.string.midi_state_connected_plain)
                             ConnState.SILENT -> stringResource(R.string.midi_state_silent_body)
+                            ConnState.CONNECTING -> d.error?.let { stringResource(R.string.midi_state_open_failed_body) }
                             else -> null
                         },
                         device = d.name + " · " + stringResource(if (d.source == InputSource.BLE_MIDI) R.string.midi_bluetooth else R.string.midi_usb),
@@ -133,41 +151,50 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
             PageCard(title = stringResource(R.string.ble_title)) {
                 val bleDevice = devices.firstOrNull { it.source == InputSource.BLE_MIDI && it.open }
                 val bleConnected = bleDevice != null
+                val connecting = bleLink as? BleLink.Connecting
                 bleSaved?.let { saved ->
-                    val state = bleDevice?.let { connState(it, now) }
+                    val state = when {
+                        bleDevice != null -> connState(bleDevice)
+                        connecting?.address == saved.address -> ConnState.CONNECTING
+                        else -> ConnState.NONE
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = Tokens.Space.xs)) {
-                        StatusMark(state ?: ConnState.NONE, small = true)
+                        StatusMark(state, small = true)
                         Text(saved.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                         Text(
                             when (state) {
                                 ConnState.CONNECTED -> stringResource(R.string.midi_state_connected)
-                                ConnState.UNCONFIRMED -> stringResource(R.string.midi_state_unconfirmed)
                                 ConnState.SILENT -> stringResource(R.string.midi_state_silent)
-                                else -> stringResource(R.string.midi_state_none)
+                                ConnState.CONNECTING -> stringResource(R.string.midi_state_connecting)
+                                ConnState.NONE -> stringResource(R.string.ble_not_connected)
                             },
                             style = MaterialTheme.typography.labelMedium,
                             color = if (state == ConnState.CONNECTED) Tokens.Palette.Positive else Tokens.Palette.InkMuted,
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s), modifier = Modifier.fillMaxWidth()) {
-                        if (!bleConnected) {
-                            OutlinedButton(onClick = { withPermission(vm::bleReconnect) }, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ble_reconnect)) }
+                        when {
+                            bleConnected -> OutlinedButton(onClick = vm::bleDisconnect, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ble_disconnect)) }
+                            connecting != null -> OutlinedButton(onClick = vm::bleDisconnect, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ble_cancel)) }
+                            else -> Button(onClick = { withPermission(vm::bleConnectSaved) }, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ble_connect)) }
                         }
                         OutlinedButton(onClick = vm::bleForget, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.ble_forget)) }
                     }
                 } ?: Body(stringResource(R.string.ble_help), muted = true)
-                when (bleProblem) {
-                    BleProblem.PERMISSION -> Body(stringResource(R.string.ble_need_permission), error = true)
-                    BleProblem.OFF -> Body(stringResource(R.string.ble_off), error = true)
-                    null -> Unit
+                when {
+                    bleProblem == BleProblem.PERMISSION -> Body(stringResource(R.string.ble_need_permission), error = true)
+                    bleProblem == BleProblem.OFF -> Body(stringResource(R.string.ble_off), error = true)
+                    connecting != null -> Body(stringResource(R.string.ble_connecting_to, connecting.name, (com.id.mimikopi.midi.MidiInputManager.CONNECT_TIMEOUT_MS / 1000).toInt()), muted = true)
+                    bleLink is BleLink.Failed && !bleConnected -> Body(stringResource(R.string.ble_failed, (bleLink as BleLink.Failed).name), error = true)
+                    bleScanFinished && !bleScanning && bleFound.isEmpty() && !bleConnected -> Body(stringResource(R.string.ble_not_found), error = true)
                 }
-                Button(
+                if (!bleConnected && connecting == null) Button(
                     onClick = { withPermission(vm::bleScan) },
                     enabled = !bleScanning,
                     modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch).padding(top = Tokens.Space.s),
                 ) { Text(stringResource(if (bleScanning) R.string.ble_scanning else R.string.ble_scan)) }
-                bleFound.filter { it.address != bleSaved?.address || !bleConnected }.forEach { d ->
-                    OutlinedButton(onClick = { vm.bleConnect(d) }, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
+                if (!bleConnected && connecting == null) bleFound.forEach { d ->
+                    OutlinedButton(onClick = { withPermission { vm.bleConnect(d) } }, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
                         Text(stringResource(R.string.ble_connect_to, d.name))
                     }
                 }
@@ -236,18 +263,13 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
 }
 
 /** What the app can honestly say about one instrument. */
-enum class ConnState { CONNECTED, UNCONFIRMED, SILENT, CONNECTING, NONE }
+enum class ConnState { CONNECTED, SILENT, CONNECTING, NONE }
 
-/**
- * Confirmed = it sends Active Sensing or answers the identity request (and has not gone quiet), or a key arrived in
- * the last 10 minutes. Otherwise a listed instrument is only "linked": Android cannot tell whether it is switched on.
- */
-fun connState(d: com.id.mimikopi.midi.MidiDeviceState, now: Long): ConnState = when {
+/** Listed and open = connected, unless its Active Sensing or identity answers stopped (switched off while linked). */
+fun connState(d: com.id.mimikopi.midi.MidiDeviceState): ConnState = when {
     !d.open -> ConnState.CONNECTING
     d.silent -> ConnState.SILENT
-    d.verified -> ConnState.CONNECTED
-    d.lastNoteNanos != null && now - d.lastNoteNanos < 10 * 60 * 1_000_000_000L -> ConnState.CONNECTED
-    else -> ConnState.UNCONFIRMED
+    else -> ConnState.CONNECTED
 }
 
 /** The round mark: a green disc with a white tick when connected, an outline otherwise. */
@@ -258,7 +280,6 @@ fun StatusMark(state: ConnState, small: Boolean = false) {
         Modifier.size(size).then(
             when (state) {
                 ConnState.CONNECTED -> Modifier.background(Tokens.Palette.Positive, CircleShape)
-                ConnState.UNCONFIRMED -> Modifier.border(2.dp, Tokens.Palette.Ink, CircleShape)
                 else -> Modifier.border(1.5.dp, Tokens.Palette.Dim, CircleShape)
             },
         ),
@@ -266,7 +287,6 @@ fun StatusMark(state: ConnState, small: Boolean = false) {
     ) {
         when (state) {
             ConnState.CONNECTED -> Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = Color.White, modifier = Modifier.size(size * 0.6f))
-            ConnState.UNCONFIRMED -> Text("?", fontSize = if (small) 12.sp else 22.sp, color = Tokens.Palette.Ink)
             ConnState.CONNECTING -> Text("…", fontSize = if (small) 12.sp else 20.sp, color = Tokens.Palette.Dim)
             else -> Unit
         }

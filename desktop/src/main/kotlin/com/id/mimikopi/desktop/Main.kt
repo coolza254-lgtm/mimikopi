@@ -70,6 +70,7 @@ import com.id.mimikopi.desktop.port.ear.ToneHomeViewModel
 import com.id.mimikopi.desktop.port.ear.ToneSessionScreen
 import com.id.mimikopi.desktop.port.ear.ToneSessionViewModel
 import com.id.mimikopi.desktop.ui.midiReady
+import com.id.mimikopi.desktop.port.components.MidiNoticeBar
 import com.id.mimikopi.desktop.ui.sections.SectionEditScreen
 import com.id.mimikopi.desktop.ui.sections.SectionPracticeScreen
 import com.id.mimikopi.desktop.ui.sections.SectionsHome
@@ -161,9 +162,10 @@ private fun App() {
             }
         }
         Box(Modifier.width(1.dp).fillMaxHeight().background(Tokens.Palette.Hair))
-        if (!screen.scrollsInPage) Box(Modifier.weight(1f).fillMaxHeight()) {
+        Box(Modifier.weight(1f).fillMaxHeight()) {
+        if (!screen.scrollsInPage) Box(Modifier.fillMaxSize()) {
             PortedPage(screen, go = ::go, back = ::back, openMidi = openMidi)
-        } else Box(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
+        } else Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().padding(horizontal = 48.dp, vertical = 40.dp)) {
                 when (screen) {
                     Screen.Sections -> SectionsHome(onPractice = { go(Screen.SectionPractice(it)) }, onEdit = { go(Screen.SectionEdit(it)) }, onOpenMidi = openMidi)
@@ -173,6 +175,9 @@ private fun App() {
                     else -> Unit
                 }
             }
+        }
+        // Plugged in or pulled out: told on whatever page is open.
+        MidiNoticeBar(Services.midi.notice, onOpen = { if (screen != Screen.Settings) openMidi() }, modifier = Modifier.align(Alignment.TopCenter))
         }
     }
 }

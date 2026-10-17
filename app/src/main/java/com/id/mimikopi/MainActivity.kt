@@ -9,11 +9,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
@@ -27,6 +31,7 @@ import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.ui.about.AboutScreen
 import com.id.mimikopi.ui.about.CreditsScreen
 import com.id.mimikopi.ui.components.BottomNav
+import com.id.mimikopi.ui.components.MidiNoticeBar
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
 import com.id.mimikopi.ui.ear.ToneEditScreen
 import com.id.mimikopi.ui.ear.ToneHomeScreen
@@ -148,6 +153,7 @@ private fun AppNavigation() {
         containerColor = com.id.mimikopi.ui.theme.Tokens.Palette.Paper,
         bottomBar = { if (showBar) BottomNav(route, selectTab) },
     ) { inner ->
+    Box(Modifier.fillMaxSize()) {
     // Screens arrive with a short fade and a small slide, and leave with a fade (quiet, not flashy).
     NavHost(
         navController = nav,
@@ -221,6 +227,9 @@ private fun AppNavigation() {
                 onOpenDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },
             )
         }
+    }
+    // Plugged in, pulled out, Bluetooth connected or lost: told on whatever screen is open.
+    MidiNoticeBar(app.midiInput.notice, onOpen = { if (route != Routes.MIDI) openMidi() }, modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding())
     }
     }
 }

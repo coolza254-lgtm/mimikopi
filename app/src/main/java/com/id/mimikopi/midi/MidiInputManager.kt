@@ -14,6 +14,7 @@ import com.id.mimikopi.core.input.IdentityProbe
 import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.input.MidiLiveness
+import com.id.mimikopi.core.input.MidiNotice
 import com.id.mimikopi.core.input.MidiParser
 import com.id.mimikopi.core.input.shifted
 import com.id.mimikopi.input.InputHub
@@ -46,15 +47,23 @@ data class MidiDeviceState(
     val ready: Boolean get() = open && !silent
 }
 
+/** Where a Bluetooth connection the user asked for stands (a connected instrument is in the device list). */
+sealed interface BleLink {
+    data object Idle : BleLink
+    data class Connecting(val address: String, val name: String) : BleLink
+    data class Failed(val address: String, val name: String) : BleLink
+}
+
 /**
- * Listens for MIDI devices and feeds every output port into the [InputHub]. USB devices are opened when they
- * are plugged in and closed when removed. Bluetooth LE MIDI devices are connected on request
- * ([connectBluetooth]) and remembered, so the app reconnects to them by itself when it starts or when the
- * connection drops. Several devices can play at once.
+ * Listens for MIDI devices and feeds every output port into the [InputHub]. USB devices are opened the moment
+ * they are plugged in and closed when the cable is pulled out, each time with a [notice]. Bluetooth LE MIDI
+ * instruments are connected only when the user asks ([connectBluetooth]): the app never searches or reconnects
+ * by itself, and a connection attempt ends after [CONNECT_TIMEOUT_MS] with an answer. Several devices can play
+ * at once.
  *
- * "Connected" is checked three ways, because Android alone can keep listing an instrument that is off: Active
- * Sensing silence ([MidiLiveness], for instruments that send it), the Bluetooth link dropping (ACL disconnect, at
- * once instead of after the BLE timeout), and a re-check of the system's device list when the app comes back.
+ * A listed, open device is connected. Android can keep listing an instrument that is off, so silence is also
+ * watched: Active Sensing ([MidiLiveness]) and identity answers ([IdentityProbe]) that stop, and a Bluetooth
+ * link that is gone (ACL disconnect, GATT state).
  */
 class MidiInputManager(private val context: Context, private val hub: InputHub) {
     private val midi: MidiManager? =
@@ -74,56 +83,84 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
 
     val supported: Boolean get() = midi != null
 
+    private val _notice = MutableStateFlow<MidiNotice?>(null)
+    /** The latest plug, unplug or Bluetooth change, for the short notice shown on every screen. */
+    val notice: StateFlow<MidiNotice?> = _notice.asStateFlow()
+
+    private val _bleLink = MutableStateFlow<BleLink>(BleLink.Idle)
+    val bleLink: StateFlow<BleLink> = _bleLink.asStateFlow()
+
+    private fun tell(kind: MidiNotice.Kind, name: String) {
+        _notice.value = MidiNotice(kind, name)
+    }
+
     /** Semitones added to incoming notes (octave calibration). */
     @Volatile var octaveOffset: Int = 0
 
     private val callback = object : MidiManager.DeviceCallback() {
-        override fun onDeviceAdded(device: MidiDeviceInfo) = openDevice(device)
-        override fun onDeviceRemoved(device: MidiDeviceInfo) {
-            val wasBle = open[device.id]?.first?.info?.type == MidiDeviceInfo.TYPE_BLUETOOTH
-            closeDevice(device.id, removed = true)
-            if (wasBle) scheduleReconnect()
-        }
+        override fun onDeviceAdded(device: MidiDeviceInfo) = openDevice(device, announce = true)
+        override fun onDeviceRemoved(device: MidiDeviceInfo) = drop(device.id)
+    }
+
+    /** Closes a device that went away and says so (cable out, or the Bluetooth link lost). */
+    private fun drop(id: Int) {
+        val state = _devices.value.firstOrNull { it.id == id }
+        closeDevice(id, removed = true)
+        if (state != null) tell(if (state.source == InputSource.BLE_MIDI) MidiNotice.Kind.BLE_LOST else MidiNotice.Kind.UNPLUGGED, state.name)
     }
 
     // ---------------- Bluetooth LE MIDI ----------------
 
-    /** Address of the remembered Bluetooth MIDI instrument (set by the MIDI screen, kept in settings). */
-    @Volatile var bleAddress: String? = null
-    private var reconnectTries = 0
-    private val RECONNECT = Any()
+    private val CONNECT_TIMEOUT = Any()
+    /** A connection the user stopped: if it still completes, it is closed at once. */
+    private var cancelled: String? = null
 
-    /** Opens a Bluetooth LE MIDI instrument by address (needs the Bluetooth connect permission). */
+    /**
+     * Opens a Bluetooth LE MIDI instrument by address, once (needs the Bluetooth connect permission). Answers within
+     * [CONNECT_TIMEOUT_MS]: connected (it appears in [devices]) or [BleLink.Failed]. Nothing is retried by itself.
+     */
     @android.annotation.SuppressLint("MissingPermission")
-    fun connectBluetooth(address: String) {
+    fun connectBluetooth(address: String, name: String) {
         val m = midi ?: return
         val adapter = context.getSystemService(android.bluetooth.BluetoothManager::class.java)?.adapter ?: return
-        if (!adapter.isEnabled) return
+        if (!adapter.isEnabled || _bleLink.value is BleLink.Connecting) return
         if (open.values.any { (d, _) -> d.info.type == MidiDeviceInfo.TYPE_BLUETOOTH && d.info.properties.getParcelableCompat()?.address == address }) return
-        val device = runCatching { adapter.getRemoteDevice(address) }.getOrNull() ?: return
-        bleAddress = address
-        runCatching {
+        val device = runCatching { adapter.getRemoteDevice(address) }.getOrNull() ?: return fail(address, name)
+        cancelled = null
+        _bleLink.value = BleLink.Connecting(address, name)
+        handler.postAtTime({ if ((_bleLink.value as? BleLink.Connecting)?.address == address) fail(address, name) },
+            CONNECT_TIMEOUT, android.os.SystemClock.uptimeMillis() + CONNECT_TIMEOUT_MS)
+        val started = runCatching {
             m.openBluetoothDevice(device, { midiDevice ->
-                if (midiDevice == null) { scheduleReconnect(); return@openBluetoothDevice }
-                reconnectTries = 0
-                attach(midiDevice)
+                handler.removeCallbacksAndMessages(CONNECT_TIMEOUT)
+                when {
+                    midiDevice == null -> if (_bleLink.value == BleLink.Connecting(address, name)) fail(address, name)
+                    address == cancelled -> runCatching { midiDevice.close() }
+                    // Connected, even if later than the time limit.
+                    else -> { _bleLink.value = BleLink.Idle; attach(midiDevice, announce = true) }
+                }
             }, handler)
         }
+        if (started.isFailure) fail(address, name)
     }
 
-    /** Disconnects and forgets the Bluetooth instrument. */
-    fun forgetBluetooth() {
-        bleAddress = null
-        handler.removeCallbacksAndMessages(RECONNECT)
+    private fun fail(address: String, name: String) {
+        handler.removeCallbacksAndMessages(CONNECT_TIMEOUT)
+        _bleLink.value = BleLink.Failed(address, name)
+        tell(MidiNotice.Kind.BLE_FAILED, name)
+    }
+
+    /** A new search starts from a clean slate (the last failure is no longer the news). */
+    fun clearBluetoothFailure() {
+        if (_bleLink.value is BleLink.Failed) _bleLink.value = BleLink.Idle
+    }
+
+    /** Disconnects the Bluetooth instrument (and stops a connection attempt). */
+    fun disconnectBluetooth() {
+        handler.removeCallbacksAndMessages(CONNECT_TIMEOUT)
+        (_bleLink.value as? BleLink.Connecting)?.let { cancelled = it.address }
+        _bleLink.value = BleLink.Idle
         open.filterValues { (d, _) -> d.info.type == MidiDeviceInfo.TYPE_BLUETOOTH }.keys.toList().forEach { closeDevice(it, removed = true) }
-    }
-
-    /** A dropped Bluetooth link is retried a few times (the piano may have been switched off or moved away). */
-    private fun scheduleReconnect() {
-        val address = bleAddress ?: return
-        if (reconnectTries >= 6) return
-        reconnectTries++
-        handler.postAtTime({ connectBluetooth(address) }, RECONNECT, android.os.SystemClock.uptimeMillis() + 5_000L * reconnectTries)
     }
 
     @Suppress("DEPRECATION")
@@ -132,7 +169,7 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
         else getParcelable(MidiDeviceInfo.PROPERTY_BLUETOOTH_DEVICE)
 
     /** Opens the output ports of an already opened device (Bluetooth path). */
-    private fun attach(device: MidiDevice) {
+    private fun attach(device: MidiDevice, announce: Boolean) {
         val info = device.info
         if (open.containsKey(info.id)) { runCatching { device.close() }; return }
         val source = sourceOf(info)
@@ -140,6 +177,7 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
         open[info.id] = device to ports
         openInput(device)
         update(MidiDeviceState(info.id, nameOf(info), source, ports.size, open = ports.isNotEmpty(), error = if (ports.isEmpty()) "no ports" else null))
+        if (announce && ports.isNotEmpty()) tell(MidiNotice.Kind.BLE_CONNECTED, nameOf(info))
     }
 
     /** The port into the instrument, for the identity request (instruments without one are judged by the other signs). */
@@ -178,7 +216,7 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
         }
     }
 
-    /** A BLE instrument whose GATT link is down (two checks in a row) is closed and reconnected when it comes back. */
+    /** A BLE instrument whose GATT link is down (two checks in a row) is closed; the user connects it again when they want. */
     @android.annotation.SuppressLint("MissingPermission")
     private fun checkBluetoothLinks() {
         val bm = context.getSystemService(android.bluetooth.BluetoothManager::class.java) ?: return
@@ -192,8 +230,7 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
             gattMisses[id] = misses
             if (misses >= 2) {
                 gattMisses.remove(id)
-                closeDevice(id, removed = true)
-                scheduleReconnect()
+                drop(id)
             }
         }
     }
@@ -205,17 +242,13 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
                 android.bluetooth.BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                     val gone = intent.getDeviceCompat()?.address ?: return
                     val ids = open.filterValues { (d, _) -> d.info.type == MidiDeviceInfo.TYPE_BLUETOOTH && d.info.properties.getParcelableCompat()?.address == gone }.keys.toList()
-                    if (ids.isEmpty()) return
-                    ids.forEach { closeDevice(it, removed = true) }
-                    scheduleReconnect()
+                    ids.forEach(::drop)
                 }
                 android.bluetooth.BluetoothAdapter.ACTION_STATE_CHANGED -> {
                     val state = intent.getIntExtra(android.bluetooth.BluetoothAdapter.EXTRA_STATE, -1)
                     if (state == android.bluetooth.BluetoothAdapter.STATE_TURNING_OFF || state == android.bluetooth.BluetoothAdapter.STATE_OFF) {
-                        open.filterValues { (d, _) -> d.info.type == MidiDeviceInfo.TYPE_BLUETOOTH }.keys.toList().forEach { closeDevice(it, removed = true) }
-                    } else if (state == android.bluetooth.BluetoothAdapter.STATE_ON) {
-                        reconnectTries = 0
-                        scheduleReconnect()
+                        open.filterValues { (d, _) -> d.info.type == MidiDeviceInfo.TYPE_BLUETOOTH }.keys.toList().forEach(::drop)
+                        (_bleLink.value as? BleLink.Connecting)?.let { fail(it.address, it.name) }
                     }
                 }
             }
@@ -228,21 +261,18 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
         else getParcelableExtra(android.bluetooth.BluetoothDevice.EXTRA_DEVICE)
 
     /**
-     * Re-checks the system's device list (when the app comes back to the screen): devices that are gone are closed,
-     * new ones opened. Callbacks can be missed while the app is in the background.
+     * Re-checks the system's device list (when the app comes back, or the user asks): devices that are gone are
+     * closed, new ones opened, each with a notice. Callbacks can be missed while the app is in the background.
      */
     @Suppress("DEPRECATION")
     fun resync() {
         val m = midi ?: return
         val listed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) m.getDevicesForTransport(MidiManager.TRANSPORT_MIDI_BYTE_STREAM) else m.devices.toSet()
         val ids = listed.map { it.id }.toSet()
-        (open.keys - ids).toList().forEach { id ->
-            val wasBle = open[id]?.first?.info?.type == MidiDeviceInfo.TYPE_BLUETOOTH
-            closeDevice(id, removed = true)
-            if (wasBle) scheduleReconnect()
-        }
-        _devices.value.filter { it.id !in ids && it.id !in open }.forEach { closeDevice(it.id, removed = true) }
-        listed.forEach(::openDevice)
+        // Bluetooth instruments are watched by their link (GATT, ACL) instead: the list can lag behind them.
+        val usb = _devices.value.filter { it.source != InputSource.BLE_MIDI }.map { it.id }
+        (usb - ids).forEach(::drop)
+        listed.forEach { openDevice(it, announce = true) }
     }
 
     @Suppress("DEPRECATION")
@@ -257,10 +287,10 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
         runCatching { androidx.core.content.ContextCompat.registerReceiver(context, bluetoothReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             m.registerDeviceCallback(MidiManager.TRANSPORT_MIDI_BYTE_STREAM, { handler.post(it) }, callback)
-            m.getDevicesForTransport(MidiManager.TRANSPORT_MIDI_BYTE_STREAM).forEach(::openDevice)
+            m.getDevicesForTransport(MidiManager.TRANSPORT_MIDI_BYTE_STREAM).forEach { openDevice(it, announce = false) }
         } else {
             m.registerDeviceCallback(callback, handler)
-            m.devices.forEach(::openDevice)
+            m.devices.forEach { openDevice(it, announce = false) }
         }
     }
 
@@ -274,7 +304,8 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
         info.properties.getString(MidiDeviceInfo.PROPERTY_NAME)
             ?: listOfNotNull(info.properties.getString(MidiDeviceInfo.PROPERTY_MANUFACTURER), info.properties.getString(MidiDeviceInfo.PROPERTY_PRODUCT)).joinToString(" ").ifBlank { "MIDI ${info.id}" }
 
-    private fun openDevice(info: MidiDeviceInfo) {
+    /** Opens a USB instrument; [announce] tells the user (not for the ones already there when the app starts). */
+    private fun openDevice(info: MidiDeviceInfo, announce: Boolean) {
         val m = midi ?: return
         if (info.outputPortCount == 0 || open.containsKey(info.id)) return
         val source = sourceOf(info)
@@ -293,6 +324,7 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
             open[info.id] = device to ports
             openInput(device)
             update(MidiDeviceState(info.id, nameOf(info), source, ports.size, open = ports.isNotEmpty(), error = if (ports.isEmpty()) "no ports" else null))
+            if (announce && ports.isNotEmpty()) tell(MidiNotice.Kind.PLUGGED, nameOf(info))
         }, handler)
     }
 
@@ -329,6 +361,11 @@ class MidiInputManager(private val context: Context, private val hub: InputHub) 
             _devices.value = _devices.value.filterNot { it.id == id }
             hub.releaseAll() // a key held while unplugging must not ring forever
         }
+    }
+
+    companion object {
+        /** How long one Bluetooth connection attempt may take before the user is told it failed. */
+        const val CONNECT_TIMEOUT_MS = 15_000L
     }
 
     private fun update(state: MidiDeviceState) {

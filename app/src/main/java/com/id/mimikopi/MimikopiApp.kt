@@ -54,11 +54,7 @@ class MimikopiApp : Application() {
                 ?.let { runCatching { com.id.mimikopi.ui.theme.ThemeMode.valueOf(it) }.getOrNull() }?.let { themeMode.value = it }
             midiInput.octaveOffset = inputConfig.load().octaveOffset
             inputHub.soundThrough = database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_SOUND_THROUGH)?.toBooleanStrictOrNull() ?: true
-            // Reconnect the remembered Bluetooth piano (only if the user already allowed nearby devices).
-            database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_BLE_DEVICE)?.substringBefore('|')?.takeIf { it.isNotBlank() }?.let { address ->
-                midiInput.bleAddress = address
-                if (bleScanner.hasPermissions()) midiInput.connectBluetooth(address)
-            }
+            // A Bluetooth piano is connected only when the user asks, on the MIDI screen.
         }
     }
 }

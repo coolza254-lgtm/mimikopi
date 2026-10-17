@@ -25,15 +25,29 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## MIDI connection, reworked (v0.20.2)
+- Bluetooth MIDI is connected only when the user asks: no connection at app start and no reconnect loop. A search
+  lasts at most 10 s and ends with the instruments found or "not found"; a found remembered instrument is connected
+  at once. One connection attempt ends after 15 s with "failed". A lost link is told, not retried.
+- USB (phone and Windows): plugging in shows the keyboard at once (Windows reads the list every second) and pulling
+  it out says "unplugged" with its name, in a short notice on every screen. Keyboards already there when the app
+  starts are not announced.
+- "Connected" now means listed and open, unless Active Sensing or identity answers stop (then "no signal"). The
+  earlier "linked but unconfirmed" state is gone: the user found it confusing. A USB keyboard that is switched off
+  but still plugged in and sends neither signal still reads Connected; this cannot be told apart on USB.
+- Windows: a port that fails to open (another program holds it) is not retried every poll; it is retried when it is
+  plugged in again or when "ตรวจการเชื่อมต่อใหม่" is pressed. Whether Java sees a keyboard plugged in after start is
+  a Windows check (the JDK re-reads the system list when its device count changes).
+
 ## Ear training and MIDI status (v0.20.0)
 - Ear training is functional (scale-degree) training: a cadence, one note, the answer by key (any octave) or button,
   then the note resolves stepwise to do. The earlier 36-rung ear ladder, its content and generators were removed
   (v0.20.1); old ear records stay in backups, unused.
 - Custom levels and results live in the settings rows "ear.tone.levels" and "ear.tone.stats". Results are the last
   20 runs per level (first-try accuracy); there is no spacing or unlocking.
-- MIDI "Connected" (green tick, the one colour in the app, asked for by the user) is shown only when the instrument
-  sends Active Sensing, answers the MIDI identity request (asked every 2 s; silence for 4.5 s = off), or a key arrived
-  in the last 10 minutes. An instrument that does none of these is shown as linked but unconfirmed. BLE instruments
+- MIDI "Connected" (green tick, the one colour in the app, asked for by the user) was shown only when the instrument
+  sent Active Sensing, answered the MIDI identity request (asked every 2 s; silence for 4.5 s = off), or a key arrived
+  in the last 10 minutes (changed in v0.20.2, above). BLE instruments
   are closed when their GATT link reads disconnected twice in a row (about 2.4 s). Whether the user's piano answers
   the identity request is a phone check. The desktop sends the same request (v0.20.1) to the keyboard's output port,
   matched by name; a keyboard without a matching output port is judged by Active Sensing and keys only.

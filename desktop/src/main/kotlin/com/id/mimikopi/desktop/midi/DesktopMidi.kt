@@ -4,6 +4,7 @@ import com.id.mimikopi.core.input.IdentityProbe
 import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.input.MidiLiveness
+import com.id.mimikopi.core.input.MidiNotice
 import com.id.mimikopi.core.input.MidiParser
 import com.id.mimikopi.core.input.shifted
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,8 +38,10 @@ data class MidiDeviceState(
 
 /**
  * MIDI input on the desktop (javax.sound.midi): every input device is opened and fed into [onEvent]. Java Sound has
- * no plug/unplug events, so the device list is polled every two seconds; Active Sensing silence marks an instrument
- * as switched off (same rule as on Android, [MidiLiveness]).
+ * no plug/unplug events, so the device list is read every second: a keyboard plugged in is opened at once and
+ * one pulled out is closed, each with a [notice]. A port that fails to open (another program holds it) is not tried
+ * again until it is plugged in again or the user asks ([rescan] with force). Active Sensing or identity answers that
+ * stop mark an instrument as switched off (same rules as on Android).
  */
 class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilent: () -> Unit) {
     private class Open(val device: MidiDevice, val liveness: MidiLiveness) {
@@ -54,6 +57,13 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
     private val _devices = MutableStateFlow<List<MidiDeviceState>>(emptyList())
     val devices: StateFlow<List<MidiDeviceState>> = _devices.asStateFlow()
     private var timer: Timer? = null
+    private val _notice = MutableStateFlow<MidiNotice?>(null)
+    /** The latest plug or unplug, for the short notice shown on every page. */
+    val notice: StateFlow<MidiNotice?> = _notice.asStateFlow()
+    /** Ports that failed to open, with the reason; tried again only on a replug or when the user asks. */
+    private val failed = ConcurrentHashMap<String, String>()
+    /** Keys and names seen on the last read of the list (null before the first: keyboards already there are not announced). */
+    private var listed: Map<String, String>? = null
 
     /** Semitones added to incoming notes (octave calibration). */
     @Volatile var octaveOffset: Int = 0
@@ -75,7 +85,7 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
     private fun tick() {
         // An exception escaping a TimerTask stops the Timer for good: the keyboard would never be found again.
         runCatching {
-            if (polls++ % 4 == 0) rescan()
+            if (polls++ % 2 == 0) rescan()
             askIdentity()
             refreshLiveness()
         }.onFailure { lastFailure = "${it::class.simpleName}: ${it.message}" }
@@ -83,9 +93,10 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
 
     @Volatile private var lastFailure: String? = null
 
-    /** Opens new input devices and forgets ones that disappeared. */
+    /** Opens new input devices and forgets ones that disappeared; [force] also retries ports that failed to open. */
     @Synchronized
-    fun rescan() {
+    fun rescan(force: Boolean = false) {
+        if (force) failed.clear()
         val infos = runCatching { MidiSystem.getMidiDeviceInfo().toList() }
             .onFailure { lastFailure = "getMidiDeviceInfo: ${it.message}" }.getOrDefault(emptyList())
         // Ports with the same name (some keyboards, or Windows' own MIDI service) are numbered, so none hides another.
@@ -98,14 +109,23 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
             seen[base] = n
             (if (n == 1) base else "$base#$n") to (info to d)
         }.toMap()
-        // Gone: close.
+        // Gone: close, and say so.
         (open.keys - inputs.keys).forEach { k -> open.remove(k)?.let { o -> runCatching { o.device.close() }; runCatching { o.out?.close() } } }
+        val before = listed
+        val names = inputs.mapValues { (_, p) -> p.first.name }
+        before?.let { (it.keys - names.keys).forEach { k -> _notice.value = MidiNotice(MidiNotice.Kind.UNPLUGGED, it.getValue(k)) } }
+        (failed.keys - names.keys).forEach { failed.remove(it) }
+        listed = names
         val states = mutableListOf<MidiDeviceState>()
         for ((k, pair) in inputs) {
             val (info, d) = pair
             val existing = open[k]
             if (existing != null) {
                 states += current(k) ?: MidiDeviceState(k, info.name, open = true)
+                continue
+            }
+            failed[k]?.let { reason ->
+                states += MidiDeviceState(k, info.name, open = false, error = reason)
                 continue
             }
             val result = runCatching {
@@ -142,7 +162,10 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
                 }
             }
             if (result.isFailure) runCatching { d.close() }
-            states += MidiDeviceState(k, info.name, open = result.isSuccess, error = result.exceptionOrNull()?.let { explain(it) })
+            val error = result.exceptionOrNull()?.let { explain(it) }
+            if (error != null) failed[k] = error
+            else if (before != null && k !in before) _notice.value = MidiNotice(MidiNotice.Kind.PLUGGED, info.name)
+            states += MidiDeviceState(k, info.name, open = result.isSuccess, error = error)
         }
         _devices.value = states.sortedBy { it.name }
     }
@@ -201,8 +224,8 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
         val m = e.message.orEmpty()
         return when {
             "already in use" in m || "allocated" in m.lowercase() ->
-                "โปรแกรมอื่นกำลังใช้คีย์บอร์ดนี้อยู่ (Windows ให้ใช้ได้ทีละโปรแกรม) ปิดโปรแกรมนั้นแล้วกดตรวจใหม่"
-            else -> "เปิดไม่ได้: $m"
+                "โปรแกรมอื่นกำลังใช้คีย์บอร์ดนี้อยู่ (Windows ให้ใช้ได้ทีละโปรแกรม) ปิดโปรแกรมนั้นแล้วกดตรวจการเชื่อมต่อใหม่"
+            else -> "เปิดไม่ได้: $m · ถอดสายแล้วเสียบใหม่ หรือกดตรวจการเชื่อมต่อใหม่"
         }
     }
 
@@ -238,6 +261,7 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
         for (s in _devices.value) {
             appendLine("  ${s.name}: open=${s.open} error=${s.error} sensing=${s.sendsSensing} silent=${s.silent} messages=${s.messages} last=${s.lastMessage}")
         }
+        if (failed.isNotEmpty()) appendLine("Not retried until replugged or re-checked: ${failed.keys.joinToString()}")
         lastFailure?.let { appendLine("Last failure: $it") }
         appendLine("Polling: ${if (timer != null) "on" else "off"}")
     }

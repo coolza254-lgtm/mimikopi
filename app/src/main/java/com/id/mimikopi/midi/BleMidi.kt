@@ -21,8 +21,8 @@ import kotlinx.coroutines.flow.asStateFlow
 data class BleMidiDevice(val address: String, val name: String)
 
 /**
- * Finds Bluetooth LE MIDI instruments (the standard BLE-MIDI service). Scanning runs for a few seconds only
- * and needs the "nearby devices" permission (Android 12+) or location (older Android). Nothing is sent
+ * Finds Bluetooth LE MIDI instruments (the standard BLE-MIDI service). A scan runs only when the user presses
+ * search, ends after [scan]'s seconds (or earlier when stopped) and then says what it found, if anything. It needs the "nearby devices" permission (Android 12+) or location (older Android). Nothing is sent
  * anywhere: the scan only lists instruments in range.
  */
 class BleMidiScanner(private val context: Context) {
@@ -33,6 +33,10 @@ class BleMidiScanner(private val context: Context) {
     val found: StateFlow<List<BleMidiDevice>> = _found.asStateFlow()
     private val _scanning = MutableStateFlow(false)
     val scanning: StateFlow<Boolean> = _scanning.asStateFlow()
+    private val _finished = MutableStateFlow(false)
+    /** A scan ran to its end (or failed): with nothing in [found], nothing was found. */
+    val finished: StateFlow<Boolean> = _finished.asStateFlow()
+    private val STOP = Any()
 
     val supported: Boolean get() = context.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) && adapter != null
     val enabled: Boolean get() = adapter?.isEnabled == true
@@ -48,7 +52,9 @@ class BleMidiScanner(private val context: Context) {
         }
 
         override fun onScanFailed(errorCode: Int) {
+            handler.removeCallbacksAndMessages(STOP)
             _scanning.value = false
+            _finished.value = true
         }
     }
 
@@ -57,18 +63,21 @@ class BleMidiScanner(private val context: Context) {
         if (!hasPermissions() || !enabled || _scanning.value) return
         val scanner = adapter?.bluetoothLeScanner ?: return
         _found.value = emptyList()
+        _finished.value = false
         _scanning.value = true
         val filter = ScanFilter.Builder().setServiceUuid(ParcelUuid(MIDI_SERVICE)).build()
         val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
-        runCatching { scanner.startScan(listOf(filter), settings, callback) }.onFailure { _scanning.value = false; return }
-        handler.postDelayed({ stop() }, seconds * 1000)
+        runCatching { scanner.startScan(listOf(filter), settings, callback) }.onFailure { _scanning.value = false; _finished.value = true; return }
+        handler.postAtTime({ stop() }, STOP, android.os.SystemClock.uptimeMillis() + seconds * 1000)
     }
 
     @SuppressLint("MissingPermission")
     fun stop() {
+        handler.removeCallbacksAndMessages(STOP)
         if (!_scanning.value) return
         runCatching { adapter?.bluetoothLeScanner?.stopScan(callback) }
         _scanning.value = false
+        _finished.value = true
     }
 
     companion object {

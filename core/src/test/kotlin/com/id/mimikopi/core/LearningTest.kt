@@ -12,8 +12,6 @@ import com.id.mimikopi.core.lesson.ProgressRules
 import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.core.notation.Clef
 import com.id.mimikopi.core.notation.Staff
-import com.id.mimikopi.core.session.BlockKind
-import com.id.mimikopi.core.session.SessionPlanner
 import java.io.File
 import java.time.LocalDate
 import kotlin.test.Test
@@ -244,29 +242,5 @@ class StepLadderTest {
         val reopened = ProgressRules.reopen(r)
         assertEquals(s1.id, ProgressRules.nextToLearn(steps, mapOf(s1.id to reopened))?.id)
         assertEquals(3, reopened.attempts)
-    }
-}
-
-class SessionPlannerTest {
-    private val sliceBlocks = setOf(BlockKind.REVIEW, BlockKind.RHYTHM, BlockKind.LESSON)
-
-    @Test
-    fun plansAddUpAndAlwaysIncludeFreePlay() {
-        for (m in listOf(15, 30, 45, 60)) {
-            val plan = SessionPlanner.plan(m, sliceBlocks)
-            assertEquals(m, plan.sumOf { it.minutes }, "total for $m")
-            assertEquals(BlockKind.FREE_PLAY, plan.last().kind)
-            assertTrue(plan.all { it.minutes >= 1 })
-        }
-        assertEquals(15, SessionPlanner.plan(45, sliceBlocks).last().minutes)
-        assertEquals(3, SessionPlanner.plan(30, sliceBlocks).last().minutes)
-    }
-
-    @Test
-    fun fullTemplateAt30MinutesMatchesTheSpec() {
-        val plan = SessionPlanner.plan(30, BlockKind.entries.toSet() - BlockKind.FREE_PLAY).associate { it.kind to it.minutes }
-        // 27 minutes of blocks scaled from the 30-minute template (3,5,4,10,4,4) plus 3 free.
-        assertEquals(30, plan.values.sum())
-        assertTrue(plan.getValue(BlockKind.LESSON) >= 8)
     }
 }

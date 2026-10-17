@@ -84,6 +84,8 @@ import com.id.mimikopi.ui.components.TabHeader
 import com.id.mimikopi.ui.components.paper
 import com.id.mimikopi.ui.theme.Tokens
 import com.id.mimikopi.core.music.NoteNameStyle
+import com.id.mimikopi.core.section.Hand
+import androidx.compose.ui.platform.LocalUriHandler
 import kotlinx.coroutines.launch
 
 // ---------------------------------------------------------------- list (tab)
@@ -239,7 +241,11 @@ private fun StepTile(
 fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: SectionEditViewModel = viewModel()) {
     val section by vm.section.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
+    val inserting by vm.inserting.collectAsStateWithLifecycle()
+    val newPartNext by vm.newPartNext.collectAsStateWithLifecycle()
     var confirmClear by remember { mutableStateOf(false) }
+    var editingPart by remember { mutableStateOf<Int?>(null) }
+    val uriHandler = LocalUriHandler.current
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
@@ -247,17 +253,44 @@ fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: Sect
     ScreenScaffold(title = stringResource(R.string.sections_edit_title), onBack = onBack) {
         val s = section ?: return@ScreenScaffold
         OutlinedTextField(value = s.title, onValueChange = vm::rename, singleLine = true, label = { Text(stringResource(R.string.sections_name_title)) }, modifier = Modifier.fillMaxWidth())
+        // The video it is written from: open it here, and each part can open it at its own time.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(value = s.video, onValueChange = vm::setVideo, singleLine = true, label = { Text(stringResource(R.string.sections_video)) },
+                placeholder = { Text("https://youtu.be/…") }, modifier = Modifier.weight(1f))
+            val link = com.id.mimikopi.core.section.VideoTime.link(s.video)
+            OutlinedButton(onClick = { link?.let { l -> runCatching { uriHandler.openUri(l) } } }, enabled = link != null, modifier = Modifier.heightIn(min = Tokens.minTouch)) {
+                Text(stringResource(R.string.sections_video_open))
+            }
+        }
         // Without a piano the section can be recorded from the on-screen keys (C3 to C6, wider if it already goes beyond).
         val recordRange = remember(s.steps) { (s.steps.flatMap { it.notes } + listOf(48, 84)).let { all -> fallingKeyRange(all.min(), all.max()) } }
         KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER, range = recordRange)
-        Text(stringResource(if (selected == null) R.string.sections_record_help else R.string.sections_replace_help), style = MaterialTheme.typography.bodyMedium,
-            color = if (selected == null) Tokens.Palette.InkMuted else Tokens.Palette.Ink)
+        Text(
+            stringResource(when {
+                selected != null && inserting -> R.string.sections_insert_help
+                selected != null -> R.string.sections_replace_help
+                newPartNext -> R.string.sections_new_part_help
+                else -> R.string.sections_record_help
+            }),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (selected == null && !newPartNext) Tokens.Palette.InkMuted else Tokens.Palette.Ink,
+        )
 
         if (s.steps.isEmpty()) PageCard {
             Text(stringResource(R.string.sections_empty), style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.InkMuted)
         }
         s.phrases.forEachIndexed { pi, range ->
-            PageCard(title = stringResource(R.string.sections_phrase, pi + 1)) {
+            PageCard(title = s.phraseName(pi) ?: stringResource(R.string.sections_phrase, pi + 1)) {
+                // The part's time in the video (opens it there) and its name/time editor.
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 6.dp)) {
+                    val time = s.phraseTime(pi)
+                    val link = com.id.mimikopi.core.section.VideoTime.link(s.video)
+                    if (time != null && link != null) TextButton(onClick = { runCatching { uriHandler.openUri(com.id.mimikopi.core.section.VideoTime.at(link, time)) } }) {
+                        Text(stringResource(R.string.sections_video_at, com.id.mimikopi.core.section.VideoTime.format(time)))
+                    } else if (time != null) Text(com.id.mimikopi.core.section.VideoTime.format(time), fontFamily = Tokens.Fonts.mono, color = Tokens.Palette.InkMuted)
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { editingPart = pi }) { Text(stringResource(R.string.sections_part_edit), color = Tokens.Palette.InkMuted) }
+                }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (i in range) {
                         val isSel = i == selected
@@ -276,20 +309,50 @@ fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: Sect
         val sel = selected
         if (sel != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
             OutlinedButton(onClick = vm::deleteSelected, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.sections_delete_note)) }
+            FilterChip(selected = inserting, onClick = { vm.setInserting(!inserting) }, label = { Text(stringResource(R.string.sections_insert_before)) })
             if (sel != 0) OutlinedButton(onClick = vm::togglePhraseStart, modifier = Modifier.heightIn(min = Tokens.minTouch)) {
                 Text(stringResource(if (sel in s.breaks) R.string.sections_join_phrase else R.string.sections_split_here))
             }
             TextButton(onClick = { vm.select(sel) }, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.action_cancel)) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            FilterChip(selected = newPartNext, onClick = vm::toggleNewPart, enabled = s.steps.isNotEmpty(), label = { Text(stringResource(R.string.sections_new_part)) })
             OutlinedButton(onClick = vm::undo, enabled = s.steps.isNotEmpty(), modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.sections_undo)) }
             OutlinedButton(onClick = vm::listen, enabled = s.steps.isNotEmpty(), modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.sections_listen)) }
             OutlinedButton(onClick = vm::autoPhrases, enabled = s.steps.size > 6, modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.sections_auto_phrases)) }
             FilterChip(selected = s.flats, onClick = { vm.setFlats(!s.flats) }, label = { Text(stringResource(R.string.sections_flats)) })
             TextButton(onClick = { confirmClear = true }, enabled = s.steps.isNotEmpty(), modifier = Modifier.heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.sections_clear)) }
         }
+        // Where the left hand ends (for practising one hand).
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.sections_split, s.name(s.split)), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = { vm.moveSplit(-1) }) { Text("−") }
+            TextButton(onClick = { vm.moveSplit(1) }) { Text("+") }
+        }
         Button(onClick = { onPractice(s.id) }, enabled = s.steps.isNotEmpty(), shape = RoundedCornerShape(32.dp), modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp)) {
             Text(stringResource(R.string.sections_start_practice), style = MaterialTheme.typography.titleMedium)
+        }
+    }
+    editingPart?.let { pi ->
+        val sec = section
+        if (sec != null) {
+            var name by remember(pi) { mutableStateOf(sec.phraseName(pi).orEmpty()) }
+            var time by remember(pi) { mutableStateOf(sec.phraseTime(pi)?.let { com.id.mimikopi.core.section.VideoTime.format(it) }.orEmpty()) }
+            AlertDialog(
+                onDismissRequest = { editingPart = null },
+                containerColor = Tokens.Palette.Raised,
+                title = { Text(stringResource(R.string.sections_phrase, pi + 1)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(value = name, onValueChange = { name = it.take(40) }, singleLine = true, label = { Text(stringResource(R.string.sections_part_name)) },
+                            placeholder = { Text(stringResource(R.string.sections_part_name_hint)) })
+                        OutlinedTextField(value = time, onValueChange = { time = it.take(8) }, singleLine = true, label = { Text(stringResource(R.string.sections_part_time)) },
+                            placeholder = { Text("1:23") }, isError = time.isNotBlank() && com.id.mimikopi.core.section.VideoTime.parse(time) == null)
+                    }
+                },
+                confirmButton = { TextButton(onClick = { vm.setPart(pi, name, time); editingPart = null }) { Text(stringResource(R.string.sections_part_save)) } },
+                dismissButton = { TextButton(onClick = { editingPart = null }) { Text(stringResource(R.string.action_cancel)) } },
+            )
         }
     }
     if (confirmClear) AlertDialog(
@@ -319,21 +382,43 @@ fun SectionPracticeScreen(onBack: () -> Unit, onEdit: (String) -> Unit, vm: Sect
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
     LaunchedEffect(ui.wrongCount) { if (ui.wrongCount > 0) haptics.performHapticFeedback(HapticFeedbackType.LongPress) }
 
-    val s = section
+    val song = section
+    // The hand being practised, as a section of its own (one hand's notes and parts).
+    val s = song?.let { if (ui.steps.isEmpty()) it else it.copy(steps = ui.steps, breaks = ui.phrases.drop(1).map { r -> r.first }) }
+    val uriHandler = LocalUriHandler.current
+    @Composable
+    fun partName(i: Int): String = song?.phraseName(ui.sourcePhrase.getOrElse(i) { i }) ?: stringResource(R.string.sections_phrase, i + 1)
     Column(Modifier.fillMaxSize().paper().safeDrawingPadding()) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back)) }
             Text(s?.title ?: "", style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
             if (s != null && s.phrases.size > 1) Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()).padding(start = 16.dp)) {
-                s.phrases.indices.forEach { i -> PartTab(stringResource(R.string.sections_phrase, i + 1), ui.mode == SectionTrainer.Mode.Phrase(i)) { vm.select(SectionTrainer.Mode.Phrase(i)) } }
+                s.phrases.indices.forEach { i -> PartTab(partName(i), ui.mode == SectionTrainer.Mode.Phrase(i)) { vm.select(SectionTrainer.Mode.Phrase(i)) } }
                 PartTab(stringResource(R.string.sections_whole), ui.mode == SectionTrainer.Mode.Full) { vm.select(SectionTrainer.Mode.Full) }
             } else Spacer(Modifier.weight(1f))
             TextButton(onClick = { vm.setFalling(!falling) }) { Text(stringResource(if (falling) R.string.sections_big else R.string.sections_falling), color = Tokens.Palette.InkMuted) }
             if (s != null) TextButton(onClick = { onEdit(s.id) }) { Text(stringResource(R.string.sections_edit), color = Tokens.Palette.InkMuted) }
             OutlinedButton(onClick = vm::listen, shape = RoundedCornerShape(22.dp), modifier = Modifier.heightIn(min = 44.dp)) { Text(stringResource(R.string.sections_listen)) }
         }
-        if (s == null || s.steps.isEmpty()) return@Column
+        if (s == null || song == null || s.steps.isEmpty()) return@Column
         val phrases = s.phrases
+        // Hands (when the song has notes for both) and the video at the part being practised.
+        val link = com.id.mimikopi.core.section.VideoTime.link(song.video)
+        if (song.bothHands || link != null) Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp).horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (song.bothHands) listOf(Hand.BOTH to R.string.sections_hand_both, Hand.RIGHT to R.string.sections_hand_right, Hand.LEFT to R.string.sections_hand_left).forEach { (h, label) ->
+                FilterChip(selected = ui.hand == h, onClick = { vm.setHand(h) }, label = { Text(stringResource(label)) })
+            }
+            if (link != null) {
+                val part = (ui.mode as? SectionTrainer.Mode.Phrase)?.index ?: phrases.indexOfFirst { ui.position in it }.coerceAtLeast(0)
+                val time = song.phraseTime(ui.sourcePhrase.getOrElse(part) { part })
+                TextButton(onClick = { runCatching { uriHandler.openUri(com.id.mimikopi.core.section.VideoTime.at(link, time)) } }) {
+                    Text(if (time != null) stringResource(R.string.sections_video_at, com.id.mimikopi.core.section.VideoTime.format(time)) else stringResource(R.string.sections_video_open))
+                }
+            }
+        }
         val range = phrases[phrases.indexOfFirst { ui.position in it }.coerceAtLeast(0)]
         val before = (range.first until ui.position).toList().takeLast(3)
         val after = ((ui.position + 1)..range.last).toList().take(3)
@@ -372,7 +457,7 @@ fun SectionPracticeScreen(onBack: () -> Unit, onEdit: (String) -> Unit, vm: Sect
             Spacer(Modifier.weight(1f))
             Text(
                 when (val mode = ui.mode) {
-                    is SectionTrainer.Mode.Phrase -> stringResource(R.string.sections_mode_phrase, mode.index + 1, phrases.size)
+                    is SectionTrainer.Mode.Phrase -> partName(mode.index) + " · " + stringResource(R.string.sections_mode_phrase, mode.index + 1, phrases.size)
                     SectionTrainer.Mode.Full -> stringResource(R.string.sections_whole)
                 },
                 fontFamily = Tokens.Fonts.mono, fontSize = 12.sp, color = Tokens.Palette.InkMuted,

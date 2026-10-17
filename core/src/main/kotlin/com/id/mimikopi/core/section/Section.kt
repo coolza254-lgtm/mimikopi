@@ -7,9 +7,10 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 /**
- * Section practice (M15): a short part of a song the user likes, written down by playing it on the MIDI piano, then
- * practised phrase by phrase until it can be played through without a wrong note. Only pitches and their order are
- * kept: the user knows the rhythm from the song.
+ * A song (or part of one) the user writes down, usually while watching a video of it: played note by note on the
+ * MIDI piano or the on-screen keys, then practised part by part until it can be played through without a wrong note.
+ * Only pitches and their order are kept: the user knows the rhythm from the song. Parts (phrases) can be named and
+ * tied to a time in the video, and notes below [split] count as the left hand.
  */
 @Serializable
 data class Section(
@@ -23,9 +24,61 @@ data class Section(
     val flats: Boolean = false,
     val stats: SectionStats = SectionStats(),
     val createdAtMillis: Long = 0,
+    /** The video the song is written from (a YouTube link), or empty. */
+    val video: String = "",
+    /** Part names ("อินโทร", "ฮุก"), by the step index where the part starts. */
+    val phraseNames: Map<Int, String> = emptyMap(),
+    /** Where each part starts in the video, in seconds, by the step index where the part starts. */
+    val phraseTimes: Map<Int, Int> = emptyMap(),
+    /** Notes below this MIDI note are the left hand (Middle C by default). */
+    val split: Int = 60,
 ) {
     /** Phrases as step ranges, in order. */
     val phrases: List<IntRange> get() = Phrases.ranges(steps.size, breaks)
+
+    fun phraseName(index: Int): String? = phrases.getOrNull(index)?.let { phraseNames[it.first] }?.takeIf { it.isNotBlank() }
+    fun phraseTime(index: Int): Int? = phrases.getOrNull(index)?.let { phraseTimes[it.first] }
+
+    /** True when some notes are for each hand (so practising one hand makes sense). */
+    val bothHands: Boolean get() = steps.any { st -> st.notes.any { it < split } } && steps.any { st -> st.notes.any { it >= split } }
+
+    /** A step added before [at] (at the end when [at] is the size): later part starts, names and times move along. */
+    fun withStepInserted(at: Int, step: Step): Section {
+        val i = at.coerceIn(0, steps.size)
+        fun shift(k: Int) = if (k > i) k + 1 else k
+        return copy(
+            steps = steps.toMutableList().apply { add(i, step) },
+            breaks = breaks.map(::shift),
+            phraseNames = phraseNames.mapKeys { (k, _) -> shift(k) },
+            phraseTimes = phraseTimes.mapKeys { (k, _) -> shift(k) },
+        )
+    }
+
+    /** Step [at] removed: later part starts, names and times move back; a part left empty goes. */
+    fun withStepDeleted(at: Int): Section {
+        if (at !in steps.indices) return this
+        val nextSize = steps.size - 1
+        val newBreaks = Phrases.afterDelete(breaks, at)
+        val starts = (listOf(0) + newBreaks).toSet()
+        fun <V> remap(m: Map<Int, V>): Map<Int, V> =
+            m.entries.mapNotNull { (k, v) -> val nk = if (k > at) k - 1 else k; if (nk in starts && nk < nextSize) nk to v else null }.toMap()
+        return copy(steps = steps.filterIndexed { k, _ -> k != at }, breaks = newBreaks, phraseNames = remap(phraseNames), phraseTimes = remap(phraseTimes))
+    }
+
+    /** The notes one hand plays (steps left empty are dropped), with the parts that still have notes. */
+    fun forHand(hand: Hand): HandPart {
+        if (hand == Hand.BOTH) return HandPart(steps, phrases, phrases.indices.toList())
+        val keepNote = { n: Int -> if (hand == Hand.LEFT) n < split else n >= split }
+        val newSteps = mutableListOf<Step>()
+        val ranges = mutableListOf<IntRange>()
+        val sources = mutableListOf<Int>()
+        phrases.forEachIndexed { pi, r ->
+            val start = newSteps.size
+            for (i in r) steps[i].notes.filter(keepNote).takeIf { it.isNotEmpty() }?.let { newSteps += Step(it) }
+            if (newSteps.size > start) { ranges += start until newSteps.size; sources += pi }
+        }
+        return HandPart(newSteps, ranges, sources)
+    }
 
     fun name(midi: Int): String = Spelling.name(midi, flats)
 
@@ -34,6 +87,43 @@ data class Section(
         private val listSerializer = ListSerializer(serializer())
         fun parseList(text: String): List<Section> = json.decodeFromString(listSerializer, text)
         fun toJson(list: List<Section>): String = json.encodeToString(listSerializer, list)
+    }
+}
+
+enum class Hand { BOTH, RIGHT, LEFT }
+
+/** One hand's notes of a song: steps, parts, and for each part the song's part it came from. */
+data class HandPart(val steps: List<Step>, val phrases: List<IntRange>, val sourcePhrase: List<Int>)
+
+/** Video links: a time like "1:23" and a link that opens at it. */
+object VideoTime {
+    /** "1:23", "01:02:03" or "83" in seconds; null when it cannot be read. */
+    fun parse(text: String): Int? {
+        val parts = text.trim().split(':').map { it.trim() }
+        if (parts.isEmpty() || parts.size > 3 || parts.any { it.isEmpty() || !it.all(Char::isDigit) }) return null
+        return parts.fold(0) { acc, p -> acc * 60 + p.toInt() }
+    }
+
+    fun format(seconds: Int): String {
+        val h = seconds / 3600
+        val m = seconds % 3600 / 60
+        val s = seconds % 60
+        return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+    }
+
+    /** A web link (http or https) or null; a bare "youtu.be/..." gets https in front. */
+    fun link(text: String): String? {
+        val t = text.trim()
+        if (t.isEmpty()) return null
+        val withScheme = if (t.startsWith("http://") || t.startsWith("https://")) t else "https://$t"
+        return withScheme.takeIf { Regex("""^https?://[^\s/]+\.[^\s]+$""").matches(it) }
+    }
+
+    /** The link opening at [seconds] (YouTube's "t" parameter; an old one is replaced). */
+    fun at(link: String, seconds: Int?): String {
+        if (seconds == null) return link
+        val base = link.replace(Regex("""([?&])t=[0-9hms]+&?"""), "$1").trimEnd('?', '&')
+        return base + (if ('?' in base) "&" else "?") + "t=${seconds}s"
     }
 }
 

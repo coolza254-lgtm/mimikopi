@@ -26,6 +26,15 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Song notebook (v0.22.0)
+- The section tab became "จดเพลง": a section is now a whole song with an optional video link, part names and part
+  start times (seconds, shown as m:ss), and a hand split (notes below it are the left hand, Middle C by default).
+  Editing rules live in core (SongEditor) for both platforms. Rhythm is still not written: the user asked for
+  pitches only.
+- The video is opened in the YouTube app or the browser when the user taps it (the link with "t=…s"); the app itself
+  sends nothing. One-hand practice drops steps with no notes for that hand; one-hand runs add to the note counts but
+  not to part progress or "mastered".
+
 ## Velocity switch and Windows input (v0.22.0)
 - Key strength (VelocityMode, row "midi.velocityMode") starts off: the app's piano plays every key at one level
   (50 / 80 / 105). It changes only the app's sound; nothing is judged by velocity, recorded attempts keep the real

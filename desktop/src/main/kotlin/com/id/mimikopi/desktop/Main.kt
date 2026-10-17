@@ -40,7 +40,6 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.id.mimikopi.core.lesson.ExerciseType
-import com.id.mimikopi.core.lesson.Lesson
 import com.id.mimikopi.desktop.port.MimikopiApp
 import com.id.mimikopi.desktop.port.R
 import com.id.mimikopi.desktop.port.SavedStateHandle
@@ -62,8 +61,12 @@ import com.id.mimikopi.desktop.port.stringResource
 import com.id.mimikopi.desktop.ui.MimikopiTheme
 import com.id.mimikopi.desktop.ui.SettingsScreen
 import com.id.mimikopi.desktop.ui.Tokens
-import com.id.mimikopi.desktop.ui.ear.EarDrillScreen
-import com.id.mimikopi.desktop.ui.ear.EarHome
+import com.id.mimikopi.desktop.port.ear.ToneEditScreen
+import com.id.mimikopi.desktop.port.ear.ToneEditViewModel
+import com.id.mimikopi.desktop.port.ear.ToneHomeScreen
+import com.id.mimikopi.desktop.port.ear.ToneHomeViewModel
+import com.id.mimikopi.desktop.port.ear.ToneSessionScreen
+import com.id.mimikopi.desktop.port.ear.ToneSessionViewModel
 import com.id.mimikopi.desktop.ui.midiReady
 import com.id.mimikopi.desktop.ui.sections.SectionEditScreen
 import com.id.mimikopi.desktop.ui.sections.SectionPracticeScreen
@@ -76,7 +79,8 @@ sealed interface Screen {
     data object Songs : Screen
     data object Sections : Screen
     data object Settings : Screen
-    data class EarDrill(val lesson: Lesson) : Screen
+    data class ToneSession(val levelId: String) : Screen
+    data class ToneEdit(val id: String?) : Screen
     data class SectionEdit(val id: String) : Screen
     data class SectionPractice(val id: String) : Screen
     // Reading and songs (the screens ported from the Android app).
@@ -96,7 +100,7 @@ private fun lessonDrill(lessonId: String, index: Int): Screen? {
         d.type == ExerciseType.E_PIECE && d.pieces.size > 1 -> Screen.Pieces(lessonId, index)
         // A piece the step counts by the piece rule: practised in the reader with its own progress.
         d.type == ExerciseType.E_PIECE && lesson.pass.piecesPassed != null -> Screen.Reader(d.pieces.first(), d.hand)
-        d.type == ExerciseType.E_EAR -> Screen.EarDrill(lesson)
+        d.type == ExerciseType.E_EAR -> null // ear training is its own tab since M19
         d.type.isScore -> Screen.ScoreDrill(lessonId, index)
         else -> Screen.Drill(lessonId, index)
     }
@@ -104,8 +108,7 @@ private fun lessonDrill(lessonId: String, index: Int): Screen? {
 
 /** Phase 1 screens are laid out as one scrolling column; the ported ones manage their own height. */
 private val Screen.scrollsInPage: Boolean
-    get() = this is Screen.Ear || this is Screen.Sections || this is Screen.Settings || this is Screen.EarDrill ||
-        this is Screen.SectionEdit || this is Screen.SectionPractice
+    get() = this is Screen.Sections || this is Screen.Settings || this is Screen.SectionEdit || this is Screen.SectionPractice
 
 /** The window icon (the same art as the Android launcher icon). */
 private val appIcon by lazy {
@@ -161,10 +164,8 @@ private fun App() {
         } else Box(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().padding(horizontal = 48.dp, vertical = 40.dp)) {
                 when (screen) {
-                    Screen.Ear -> EarHome(onOpen = { go(Screen.EarDrill(it)) }, onOpenMidi = openMidi)
                     Screen.Sections -> SectionsHome(onPractice = { go(Screen.SectionPractice(it)) }, onEdit = { go(Screen.SectionEdit(it)) }, onOpenMidi = openMidi)
                     Screen.Settings -> SettingsScreen(onBack = ::back)
-                    is Screen.EarDrill -> EarDrillScreen(screen.lesson, onBack = ::back, onOpenMidi = openMidi)
                     is Screen.SectionEdit -> SectionEditScreen(screen.id, onBack = ::back, onPractice = { stack = stack.dropLast(1) + Screen.SectionPractice(it) }, onOpenMidi = openMidi)
                     is Screen.SectionPractice -> SectionPracticeScreen(screen.id, onBack = ::back, onEdit = { stack = stack.dropLast(1) + Screen.SectionEdit(it) }, onOpenMidi = openMidi)
                     else -> Unit
@@ -191,6 +192,15 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
             onOpenSettings = openSettings,
             vm = rememberViewModel(screen) { SkillViewModel(app) },
         )
+        Screen.Ear -> ToneHomeScreen(
+            onOpen = { go(Screen.ToneSession(it)) },
+            onEdit = { go(Screen.ToneEdit(it)) },
+            onOpenMidi = openMidi,
+            onOpenSettings = openSettings,
+            vm = rememberViewModel(screen) { ToneHomeViewModel(app) },
+        )
+        is Screen.ToneSession -> ToneSessionScreen(onBack = back, vm = rememberViewModel(screen) { ToneSessionViewModel(app, args("levelId" to screen.levelId)) })
+        is Screen.ToneEdit -> ToneEditScreen(onBack = back, vm = rememberViewModel(screen) { ToneEditViewModel(app, args("id" to screen.id)) })
         Screen.Songs -> SongsScreen(
             onPlay = { id, hand -> go(Screen.Reader(id, hand)) },
             onOpenMidi = openMidi,

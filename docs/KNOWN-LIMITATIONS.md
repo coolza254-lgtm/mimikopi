@@ -25,6 +25,19 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Ear training and MIDI status (v0.20.0)
+- Ear training is functional (scale-degree) training: a cadence, one note, the answer by key (any octave) or button,
+  then the note resolves stepwise to do. The earlier 36-rung ear ladder is gone from both apps; its content
+  (content/ear) and core generators stay in the repository, unused by the UI, and old ear records stay in backups.
+- Custom levels and results live in the settings rows "ear.tone.levels" and "ear.tone.stats". Results are the last
+  20 runs per level (first-try accuracy); there is no spacing or unlocking.
+- MIDI "Connected" (green tick, the one colour in the app, asked for by the user) is shown only when the instrument
+  sends Active Sensing, answers the MIDI identity request (asked every 2 s; silence for 4.5 s = off), or a key arrived
+  in the last 10 minutes. An instrument that does none of these is shown as linked but unconfirmed. BLE instruments
+  are closed when their GATT link reads disconnected twice in a row (about 2.4 s). Whether the user's piano answers
+  the identity request is a phone check. The desktop has no identity request yet (Active Sensing and keys only).
+- Songs: the app's own pieces were removed; steps 3.15 and 4.19 use public-domain pieces instead.
+
 ## Falling notes (v0.19.0)
 - Songs: a "falling notes" chip in the reader (library pieces only, not lesson drills). The bars come from the score
   (ties merged) and move with the same cursor as the score view, so wait mode, tempo mode, listen and the judge are

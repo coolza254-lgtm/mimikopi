@@ -29,8 +29,12 @@ import com.id.mimikopi.desktop.port.songs.SongsScreen
 import com.id.mimikopi.desktop.port.songs.SongsViewModel
 import com.id.mimikopi.desktop.ui.MimikopiTheme
 import com.id.mimikopi.desktop.ui.SettingsScreen
-import com.id.mimikopi.desktop.ui.ear.EarDrillScreen
-import com.id.mimikopi.desktop.ui.ear.EarHome
+import com.id.mimikopi.desktop.port.ear.ToneEditScreen
+import com.id.mimikopi.desktop.port.ear.ToneEditViewModel
+import com.id.mimikopi.desktop.port.ear.ToneHomeScreen
+import com.id.mimikopi.desktop.port.ear.ToneHomeViewModel
+import com.id.mimikopi.desktop.port.ear.ToneSessionScreen
+import com.id.mimikopi.desktop.port.ear.ToneSessionViewModel
 import com.id.mimikopi.desktop.ui.sections.SectionsHome
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -49,10 +53,8 @@ class RenderTest {
     @Test
     fun screensRenderInBothLooks() {
         for (dark in listOf(true, false)) {
-            render(dark) { EarHome(onOpen = {}, onOpenMidi = {}) }
             render(dark) { SectionsHome(onPractice = {}, onEdit = {}, onOpenMidi = {}) }
             render(dark) { SettingsScreen(onBack = {}) }
-            render(dark) { EarDrillScreen(Services.learning.rungs.first(), onBack = {}, onOpenMidi = {}) }
         }
     }
 
@@ -81,6 +83,9 @@ class RenderTest {
         val app = MimikopiApp
         for (dark in listOf(true, false)) {
             render(dark) { SkillScreen(Skill.READING, {}, {}, {}, {}, {}, vm = rememberViewModel { SkillViewModel(app) }) }
+            render(dark) { ToneHomeScreen(onOpen = {}, onEdit = {}, onOpenMidi = {}, onOpenSettings = {}, vm = rememberViewModel { ToneHomeViewModel(app) }) }
+            render(dark) { ToneSessionScreen(onBack = {}, vm = rememberViewModel { ToneSessionViewModel(app, args("levelId" to "intro1")) }) }
+            render(dark) { ToneEditScreen(onBack = {}, vm = rememberViewModel { ToneEditViewModel(app, args("id" to null)) }) }
             render(dark) { SongsScreen(onPlay = { _, _ -> }, onOpenMidi = {}, onOpenSettings = {}, vm = rememberViewModel { SongsViewModel(app) }) }
             render(dark) { LessonScreen(onBack = {}, onOpenDrill = { _, _ -> }, vm = rememberViewModel { LessonViewModel(app, args("lessonId" to "1.1")) }) }
             render(dark) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("lessonId" to "1.14", "drill" to "0")) }) }

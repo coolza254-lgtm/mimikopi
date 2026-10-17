@@ -28,7 +28,9 @@ import com.id.mimikopi.ui.about.AboutScreen
 import com.id.mimikopi.ui.about.CreditsScreen
 import com.id.mimikopi.ui.components.BottomNav
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
-import com.id.mimikopi.ui.ear.EarDrillScreen
+import com.id.mimikopi.ui.ear.ToneEditScreen
+import com.id.mimikopi.ui.ear.ToneHomeScreen
+import com.id.mimikopi.ui.ear.ToneSessionScreen
 import com.id.mimikopi.ui.lesson.LessonScreen
 import com.id.mimikopi.ui.metronome.MetronomeScreen
 import com.id.mimikopi.ui.midi.MidiScreen
@@ -102,14 +104,13 @@ private object Routes {
     const val READER = "reader/{pieceId}?hand={hand}"
     fun reader(id: String, hand: String?) = if (hand == null) "reader/$id" else "reader/$id?hand=$hand"
     const val SCORE_DRILL = "scoredrill/{lessonId}/{drill}"
-    const val EAR_DRILL = "eardrill/{level}?bench={bench}"
-    const val LESSON_EAR = "lessonear/{lessonId}/{drill}"
+    const val TONE = "tone/{levelId}"
+    const val TONE_EDIT = "toneedit?id={id}"
     const val SECTION_EDIT = "section/{sectionId}/edit"
     const val SECTION_PRACTICE = "section/{sectionId}/practice"
     fun lesson(id: String) = "lesson/$id"
     fun drill(id: String, index: Int) = "drill/$id/$index"
     const val REVIEW_NOW = "review/true"
-    const val EAR_REVIEW = "eardrill/mix"
 }
 
 /** Opens a lesson drill in the runner that fits its type. */
@@ -120,7 +121,7 @@ private fun openLessonDrill(nav: NavController, app: MimikopiApp, lessonId: Stri
         d.type == ExerciseType.E_PIECE && d.pieces.size > 1 -> nav.navigate(Routes.piecesFor(lessonId, index))
         // A piece the lesson counts by the piece rule: practise it in the reader with its own progress.
         d.type == ExerciseType.E_PIECE && lesson.pass.piecesPassed != null -> nav.navigate(Routes.reader(d.pieces.first(), d.hand))
-        d.type == ExerciseType.E_EAR -> nav.navigate("lessonear/$lessonId/$index")
+        d.type == ExerciseType.E_EAR -> Unit // ear training is its own tab since M19; no reading step uses it
         d.type.isScore -> nav.navigate("scoredrill/$lessonId/$index")
         else -> nav.navigate(Routes.drill(lessonId, index))
     }
@@ -169,15 +170,15 @@ private fun AppNavigation() {
             )
         }
         composable(Routes.EAR) {
-            SkillScreen(
-                skill = Skill.EAR,
-                onOpenStep = { openDrill(it, 0) },
-                onOpenDrill = { openDrill(it, 0) },
-                onReview = { nav.navigate(Routes.EAR_REVIEW) },
+            ToneHomeScreen(
+                onOpen = { nav.navigate("tone/$it") },
+                onEdit = { id -> nav.navigate(if (id == null) "toneedit" else "toneedit?id=$id") },
                 onOpenMidi = openMidi,
                 onOpenSettings = openSettings,
             )
         }
+        composable(Routes.TONE) { ToneSessionScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.TONE_EDIT, arguments = listOf(optional("id"))) { ToneEditScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SONGS) {
             SongsScreen(onPlay = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onOpenMidi = openMidi, onOpenSettings = openSettings)
         }
@@ -212,8 +213,6 @@ private fun AppNavigation() {
         }
         composable(Routes.READER, arguments = listOf(optional("hand"))) { ReaderScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SCORE_DRILL) { ReaderScreen(onBack = { nav.popBackStack() }) }
-        composable(Routes.EAR_DRILL, arguments = listOf(optional("bench"))) { EarDrillScreen(onBack = { nav.popBackStack() }) }
-        composable(Routes.LESSON_EAR) { EarDrillScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SETTINGS) {
             SettingsScreen(
                 onBack = { nav.popBackStack() },

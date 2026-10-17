@@ -10,12 +10,15 @@ import com.id.mimikopi.desktop.audio.Piano
  */
 class PianoController(private val piano: () -> Piano) {
     private val metronome = Metronome(piano)
+    /** Called when the last user releases the output (the metronome stops with it), as on Android. */
+    var onStopped: (() -> Unit)? = null
 
     fun acquire(@Suppress("UNUSED_PARAMETER") needPack: Boolean = true): Boolean = true
 
     fun release() {
         metronome.set(false, 60.0, 1, intArrayOf(0), 0f)
         piano().allNotesOff()
+        onStopped?.invoke()
     }
 
     fun noteOn(note: Int, velocity: Int) = piano().noteOn(note, velocity)
@@ -25,6 +28,9 @@ class PianoController(private val piano: () -> Piano) {
 
     fun setMetronome(on: Boolean, bpm: Double, ticksPerBeat: Int, levels: IntArray, volume: Float) = metronome.set(on, bpm, ticksPerBeat, levels, volume)
     fun drainMetronomeTicks(): LongArray = metronome.drain()
+    fun metronomeTickCount(): Long = metronome.count()
+    /** Output underruns are not reported by Java Sound. */
+    fun xRuns(): Int? = null
 
     /** [frame position, time in nanos]: frame 0 is the epoch. */
     fun timestamp(): LongArray? = longArrayOf(0L, metronome.epoch)

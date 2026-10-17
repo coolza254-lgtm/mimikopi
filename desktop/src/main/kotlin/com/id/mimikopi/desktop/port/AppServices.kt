@@ -18,6 +18,7 @@ object MimikopiApp : Application() {
     val database = AppDatabase
     val session = SessionTracker
     val samplePacks = SamplePacks
+    val metronome: MetronomeController by lazy { MetronomeController(piano, SettingsDao) }
 }
 
 /** One row of the settings table (the desktop keeps the same rows in its JSON file). */
@@ -84,4 +85,6 @@ object SettingKeys {
     const val TIMING_MODE = "timing.mode"
     const val PATH_VERSION = "path.version"
     const val SECTIONS = "sections"
+    const val METRONOME_SETTINGS = "metronome.settings"
+    const val METRONOME_SELF_TEST = "metronome.lastSelfTest"
 }

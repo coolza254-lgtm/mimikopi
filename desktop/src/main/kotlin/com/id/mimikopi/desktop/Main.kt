@@ -44,6 +44,8 @@ import com.id.mimikopi.desktop.port.MimikopiApp
 import com.id.mimikopi.desktop.port.R
 import com.id.mimikopi.desktop.port.SavedStateHandle
 import com.id.mimikopi.desktop.port.lesson.LessonScreen
+import com.id.mimikopi.desktop.port.metronome.MetronomeScreen
+import com.id.mimikopi.desktop.port.metronome.MetronomeViewModel
 import com.id.mimikopi.desktop.port.lesson.LessonViewModel
 import com.id.mimikopi.desktop.port.practice.DrillScreen
 import com.id.mimikopi.desktop.port.practice.DrillViewModel
@@ -79,6 +81,7 @@ sealed interface Screen {
     data object Songs : Screen
     data object Sections : Screen
     data object Settings : Screen
+    data object Metronome : Screen
     data class ToneSession(val levelId: String) : Screen
     data class ToneEdit(val id: String?) : Screen
     data class SectionEdit(val id: String) : Screen
@@ -164,7 +167,7 @@ private fun App() {
             Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().padding(horizontal = 48.dp, vertical = 40.dp)) {
                 when (screen) {
                     Screen.Sections -> SectionsHome(onPractice = { go(Screen.SectionPractice(it)) }, onEdit = { go(Screen.SectionEdit(it)) }, onOpenMidi = openMidi)
-                    Screen.Settings -> SettingsScreen(onBack = ::back)
+                    Screen.Settings -> SettingsScreen(onBack = ::back, onOpenMetronome = { go(Screen.Metronome) })
                     is Screen.SectionEdit -> SectionEditScreen(screen.id, onBack = ::back, onPractice = { stack = stack.dropLast(1) + Screen.SectionPractice(it) }, onOpenMidi = openMidi)
                     is Screen.SectionPractice -> SectionPracticeScreen(screen.id, onBack = ::back, onEdit = { stack = stack.dropLast(1) + Screen.SectionEdit(it) }, onOpenMidi = openMidi)
                     else -> Unit
@@ -200,6 +203,7 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
         )
         is Screen.ToneSession -> ToneSessionScreen(onBack = back, vm = rememberViewModel(screen) { ToneSessionViewModel(app, args("levelId" to screen.levelId)) })
         is Screen.ToneEdit -> ToneEditScreen(onBack = back, vm = rememberViewModel(screen) { ToneEditViewModel(app, args("id" to screen.id)) })
+        Screen.Metronome -> MetronomeScreen(onBack = back, vm = rememberViewModel(screen) { MetronomeViewModel(app) })
         Screen.Songs -> SongsScreen(
             onPlay = { id, hand -> go(Screen.Reader(id, hand)) },
             onOpenMidi = openMidi,

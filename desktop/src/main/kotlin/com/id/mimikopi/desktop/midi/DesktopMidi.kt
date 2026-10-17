@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.midi
 
+import com.id.mimikopi.core.input.IdentityProbe
 import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.input.MidiLiveness
@@ -28,6 +29,8 @@ data class MidiDeviceState(
     val silent: Boolean = false,
     val messages: Long = 0,
     val lastMessage: String? = null,
+    /** It answers the MIDI identity request, so switching it off is noticed. */
+    val answersProbe: Boolean = false,
 ) {
     val ready: Boolean get() = open && !silent
 }
@@ -41,6 +44,10 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
     private class Open(val device: MidiDevice, val liveness: MidiLiveness) {
         @Volatile var messages = 0L
         @Volatile var last: String? = null
+        val probe = IdentityProbe()
+        /** The same keyboard's output port (Java lists it as a separate device), for the identity request. */
+        var out: MidiDevice? = null
+        var receiver: Receiver? = null
     }
 
     private val open = ConcurrentHashMap<String, Open>()
@@ -59,7 +66,7 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
     fun stop() {
         timer?.cancel()
         timer = null
-        open.values.forEach { runCatching { it.device.close() } }
+        open.values.forEach { runCatching { it.device.close() }; runCatching { it.out?.close() } }
         open.clear()
     }
 
@@ -69,6 +76,7 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
         // An exception escaping a TimerTask stops the Timer for good: the keyboard would never be found again.
         runCatching {
             if (polls++ % 4 == 0) rescan()
+            askIdentity()
             refreshLiveness()
         }.onFailure { lastFailure = "${it::class.simpleName}: ${it.message}" }
     }
@@ -91,7 +99,7 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
             (if (n == 1) base else "$base#$n") to (info to d)
         }.toMap()
         // Gone: close.
-        (open.keys - inputs.keys).forEach { k -> open.remove(k)?.let { runCatching { it.device.close() } } }
+        (open.keys - inputs.keys).forEach { k -> open.remove(k)?.let { o -> runCatching { o.device.close() }; runCatching { o.out?.close() } } }
         val states = mutableListOf<MidiDeviceState>()
         for ((k, pair) in inputs) {
             val (info, d) = pair
@@ -111,7 +119,8 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
                         val bytes = message.message
                         val len = message.length
                         synchronized(liveness) { liveness.received(bytes, 0, len, now) }
-                        if (len > 0 && bytes[0].toInt() and 0xFF != MidiLiveness.ACTIVE_SENSING) {
+                        synchronized(o.probe) { o.probe.received(bytes, 0, len, now) }
+                        if (len > 0 && (bytes[0].toInt() and 0xFF).let { it != MidiLiveness.ACTIVE_SENSING && it != 0xF0 }) {
                             o.messages++
                             o.last = describe(bytes, len)
                         }
@@ -120,6 +129,17 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
                     override fun close() = Unit
                 }
                 open[k] = o
+                // The keyboard's output port, matched by name, receives the identity request.
+                runCatching {
+                    val outInfo = infos.firstOrNull { it.name == info.name && it.description == info.description && it !== info &&
+                        runCatching { MidiSystem.getMidiDevice(it) }.getOrNull()?.let { d -> d !is Synthesizer && d !is Sequencer && d.maxReceivers != 0 } == true }
+                    if (outInfo != null) {
+                        val outDevice = MidiSystem.getMidiDevice(outInfo)
+                        if (!outDevice.isOpen) outDevice.open()
+                        o.out = outDevice
+                        o.receiver = outDevice.receiver
+                    }
+                }
             }
             if (result.isFailure) runCatching { d.close() }
             states += MidiDeviceState(k, info.name, open = result.isSuccess, error = result.exceptionOrNull()?.let { explain(it) })
@@ -129,6 +149,16 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
 
     private fun current(k: String) = _devices.value.firstOrNull { it.key == k }
 
+    /** Sends the identity request to keyboards that answer it (and a few times to find out). */
+    private fun askIdentity() {
+        val now = System.nanoTime()
+        for (o in open.values) {
+            val rx = o.receiver ?: continue
+            val send = synchronized(o.probe) { o.probe.shouldSend(now).also { if (it) o.probe.sent(now) } }
+            if (send) runCatching { rx.send(javax.sound.midi.SysexMessage(IdentityProbe.REQUEST, IdentityProbe.REQUEST.size), -1) }
+        }
+    }
+
     @Synchronized
     private fun refreshLiveness() {
         val now = System.nanoTime()
@@ -136,12 +166,13 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
         var wentSilent = false
         val next = _devices.value.map { s ->
             val o = open[s.key] ?: return@map s
-            val silent = synchronized(o.liveness) { o.liveness.silent(now) }
+            val silent = synchronized(o.liveness) { o.liveness.silent(now) } || synchronized(o.probe) { o.probe.silent(now) }
             val senses = synchronized(o.liveness) { o.liveness.sendsSensing }
-            if (silent != s.silent || senses != s.sendsSensing || o.messages != s.messages) {
+            val answers = synchronized(o.probe) { o.probe.answers }
+            if (silent != s.silent || senses != s.sendsSensing || o.messages != s.messages || answers != s.answersProbe) {
                 changed = true
                 if (silent && !s.silent) wentSilent = true
-                s.copy(silent = silent, sendsSensing = senses, messages = o.messages, lastMessage = o.last)
+                s.copy(silent = silent, sendsSensing = senses, messages = o.messages, lastMessage = o.last, answersProbe = answers)
             } else s
         }
         if (changed) _devices.value = next

@@ -86,6 +86,11 @@ private fun androidColor(s: String): Color? {
     return Color(argb.toInt())
 }
 
+/** android.os.SystemClock: only uptimeMillis is used (tap tempo). */
+object SystemClock {
+    fun uptimeMillis(): Long = System.nanoTime() / 1_000_000
+}
+
 // ---------------- view models ----------------
 
 open class Application

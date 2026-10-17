@@ -86,6 +86,7 @@ class RenderTest {
             render(dark) { ToneHomeScreen(onOpen = {}, onEdit = {}, onOpenMidi = {}, onOpenSettings = {}, vm = rememberViewModel { ToneHomeViewModel(app) }) }
             render(dark) { ToneSessionScreen(onBack = {}, vm = rememberViewModel { ToneSessionViewModel(app, args("levelId" to "intro1")) }) }
             render(dark) { ToneEditScreen(onBack = {}, vm = rememberViewModel { ToneEditViewModel(app, args("id" to null)) }) }
+            render(dark) { com.id.mimikopi.desktop.port.metronome.MetronomeScreen(onBack = {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.metronome.MetronomeViewModel(app) }) }
             render(dark) { SongsScreen(onPlay = { _, _ -> }, onOpenMidi = {}, onOpenSettings = {}, vm = rememberViewModel { SongsViewModel(app) }) }
             render(dark) { LessonScreen(onBack = {}, onOpenDrill = { _, _ -> }, vm = rememberViewModel { LessonViewModel(app, args("lessonId" to "1.1")) }) }
             render(dark) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("lessonId" to "1.14", "drill" to "0")) }) }

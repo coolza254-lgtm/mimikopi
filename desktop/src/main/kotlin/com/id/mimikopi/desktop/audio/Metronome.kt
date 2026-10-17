@@ -31,6 +31,9 @@ class Metronome(private val piano: () -> Piano) {
         }
     }
 
+    /** Clicks played since the metronome was last started (for the beat dots). */
+    fun count(): Long = synchronized(lock) { run?.index ?: 0L }
+
     /** Clicks heard since the last call, in nanoseconds since [epoch]. */
     fun drain(): LongArray = synchronized(lock) { heard.toLongArray().also { heard.clear() } }
 

@@ -35,7 +35,10 @@ What the app does not do, or does only partly, as of the last milestone. Details
   sends Active Sensing, answers the MIDI identity request (asked every 2 s; silence for 4.5 s = off), or a key arrived
   in the last 10 minutes. An instrument that does none of these is shown as linked but unconfirmed. BLE instruments
   are closed when their GATT link reads disconnected twice in a row (about 2.4 s). Whether the user's piano answers
-  the identity request is a phone check. The desktop has no identity request yet (Active Sensing and keys only).
+  the identity request is a phone check. The desktop sends the same request (v0.20.1) to the keyboard's output port,
+  matched by name; a keyboard without a matching output port is judged by Active Sensing and keys only.
+- Desktop metronome (v0.20.1): the Android screen ported, without the self-test (desktop click times are scheduled,
+  not measured from the audio output, so a self-test would always look perfect).
 - Songs: the app's own pieces were removed; steps 3.15 and 4.19 use public-domain pieces instead.
 
 ## Falling notes (v0.19.0)

@@ -69,6 +69,15 @@ class LearningRepository(private val store: Store) {
     private fun loadTimingMode(): TimingMode =
         store.get(SettingKeys.TIMING_MODE)?.let { runCatching { TimingMode.valueOf(it) }.getOrNull() } ?: TimingMode.NORMAL
 
+    /** The user's timing strictness, kept in the same row as on the phone. */
+    fun setTimingMode(mode: TimingMode) {
+        _timingMode.value = mode
+        store.put(SettingKeys.TIMING_MODE, mode.name)
+    }
+
+    /** The tolerance a mode allows at a slow tempo, to show what it means. */
+    fun exampleMs(mode: TimingMode): Int = TimingRules(config.timing).toleranceMs(1, 60.0, mode)
+
     /** Everything is read when the app starts; kept so the ported code reads like the Android code. */
     fun load() = Unit
 

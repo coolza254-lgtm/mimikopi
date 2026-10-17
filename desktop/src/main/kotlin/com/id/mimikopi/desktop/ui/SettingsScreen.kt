@@ -53,7 +53,7 @@ fun MidiSection() {
         if (devices.isEmpty()) Text("โปรแกรมยังไม่พบคีย์บอร์ด เสียบสาย USB จากคีย์บอร์ดเข้าคอม เปิดเครื่อง แล้วกดตรวจใหม่", style = MaterialTheme.typography.bodyMedium)
         devices.forEach { d ->
             // Confirmed only by signs from the keyboard itself (Active Sensing or a key played); a listed device alone is not.
-            val confirmed = d.open && !d.silent && (d.sendsSensing || d.messages > 0)
+            val confirmed = d.open && !d.silent && (d.sendsSensing || d.answersProbe || d.messages > 0)
             val status = when {
                 !d.open -> d.error ?: "กำลังเชื่อมต่อ…"
                 d.silent -> "ไม่มีสัญญาณ · คีย์บอร์ดน่าจะปิดอยู่"
@@ -97,7 +97,7 @@ fun MidiSection() {
 }
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onOpenMetronome: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val mode by Services.themeMode.collectAsState()
     val sampled by Services.sampled.collectAsState()
@@ -108,6 +108,24 @@ fun SettingsScreen(onBack: () -> Unit) {
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         BackHeader("ตั้งค่า", onBack)
+        PageCard(title = "เมโทรนอม") {
+            Text("เมโทรนอมสำหรับซ้อมเอง: ความเร็ว จังหวะ เน้นจังหวะแรก และเสียงย่อย", style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(onClick = onOpenMetronome, modifier = Modifier.padding(top = 12.dp)) { Text("เปิดเมโทรนอม") }
+        }
+        val timing by Services.learning.timingMode.collectAsState()
+        PageCard(title = "ความเข้มงวดของจังหวะ") {
+            Text("ช่วงที่ยอมให้คลาดจากจังหวะในโหมดตามจังหวะ (การวัดผลใช้แบบปกติเสมอ)", style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
+                listOf(
+                    com.id.mimikopi.core.practice.TimingMode.STRICT to "เข้ม",
+                    com.id.mimikopi.core.practice.TimingMode.NORMAL to "ปกติ",
+                    com.id.mimikopi.core.practice.TimingMode.FORGIVING to "ผ่อน",
+                ).forEach { (mode, label) ->
+                    FilterChip(selected = timing == mode, onClick = { Services.learning.setTimingMode(mode) },
+                        label = { Text("$label (±${Services.learning.exampleMs(mode)} ms)") })
+                }
+            }
+        }
         PageCard(title = "หน้าตา") {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(ThemeMode.DARK to "มืด (OLED)", ThemeMode.LIGHT to "สว่าง", ThemeMode.SYSTEM to "ตามเครื่อง").forEach { (m, label) ->

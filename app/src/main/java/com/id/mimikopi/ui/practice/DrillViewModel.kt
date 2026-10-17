@@ -6,6 +6,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.id.mimikopi.MimikopiApp
 import com.id.mimikopi.core.exercise.Answer
+import com.id.mimikopi.core.exercise.ChordPractice
+import com.id.mimikopi.core.exercise.ChordRun
 import com.id.mimikopi.core.exercise.Generators
 import com.id.mimikopi.core.exercise.KeyFindItem
 import com.id.mimikopi.core.exercise.NoteIdItem
@@ -109,7 +111,8 @@ enum class Feedback { CORRECT, WRONG }
 /**
  * Runs one drill (from a lesson, or the SRS review) against the shared input stream: on-screen keys
  * and a MIDI piano answer the same way. Saves the attempt, SRS reviews and lesson progress.
- * Nav args: "lessonId" + "drill" (index), or "review" = true for the due-items review.
+ * Nav args: "lessonId" + "drill" (index), "review" = true for the due-items review, or "practice" = "chords" for the
+ * chord tab's free practice (its settings are read from [SettingKeys.CHORDS_SETTINGS]; no lesson progress).
  */
 class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewModel(app) {
     private val services = app as MimikopiApp
@@ -123,6 +126,9 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     private val review: Boolean = args.get<String>("review") == "true"
     /** Benchmark part (learning-system.md 12.1): "noteid" or "pulse"; fixed sets, results go to the benchmark record. */
     private val bench: String? = args.get<String>("benchmark")
+    /** Free chord practice from the chord tab. */
+    private val practice: Boolean = args.get<String>("practice") == "chords"
+    private var chordPractice = ChordPractice()
 
     private val _ui = MutableStateFlow<DrillUi>(DrillUi.Loading)
     val ui: StateFlow<DrillUi> = _ui.asStateFlow()
@@ -155,6 +161,13 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 keyRange = if (bench == "pulse") 57..64 else 48..84
                 val d = drill!!
                 _ui.value = DrillUi.Ready(d.title, d.type, d.items, if (d.type == ExerciseType.E_PULSE) d.bpmMin else null)
+            } else if (practice) {
+                chordPractice = ChordPractice.parse(services.database.settingsDao().get(SettingKeys.CHORDS_SETTINGS))
+                val d = chordPractice.drill()
+                drill = d
+                // Room for a left-hand bass under right-hand chords.
+                keyRange = 48..83
+                _ui.value = DrillUi.Ready(d.title, d.type, d.items, null)
             } else if (review) {
                 val due = repo.readingDueItems()
                 drill = Drill(ExerciseType.E_NOTEID, "ทบทวน", items = due.size.coerceAtLeast(1))
@@ -254,8 +267,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 next()
                 return@launch
             }
-            val l = lesson ?: return@launch
-            repo.enrol(l.srsItems)
+            val l = lesson
+            if (l != null) repo.enrol(l.srsItems) else if (!practice) return@launch
             when (d.type) {
                 ExerciseType.E_KEYFIND -> queue += Generators.keyFind(d, seed).map { Prompt.Key(it) }
                 ExerciseType.E_NOTEID -> queue += Generators.noteId(d, seed, repo.dueItems("note:")).map { Prompt.Note(it) }
@@ -330,7 +343,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         }
         viewModelScope.launch {
             repo.saveAttempt(
-                exerciseId = if (review) "REVIEW" else "${l?.id}:${d.type}:$drillIndex",
+                exerciseId = if (review) "REVIEW" else if (practice) "CHORDS:${d.type}" else "${l?.id}:${d.type}:$drillIndex",
                 paramsJson = """{"seed":$seed,"drill":$drillIndex,"lesson":"${l?.id ?: "review"}"}""",
                 startedAt = startedAt, tempoBpm = null, noteAccuracy = acc, timingWithinTol = null,
                 clean = met, helperUses = helperUses, events = events.toList(), sessionId = services.session.currentId(),
@@ -338,14 +351,16 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             val passedNow = if (l != null) repo.recordDrill(l, drillIndex, met == true, helperUses > 0) else false
             val coach = mutableListOf<String>()
             misses.entries.filter { it.value >= 2 }.maxByOrNull { it.value }?.let { (id, _) ->
-                coach += "${describe(id)} พลาดบ่อย รอบหน้าระบบทบทวนจะถามรายการนี้บ่อยขึ้น"
+                coach += if (practice) "${describe(id)} พลาดบ่อย ลองกดช้าๆ ทีละตัวแล้วฟังเสียงคอร์ด" else "${describe(id)} พลาดบ่อย รอบหน้าระบบทบทวนจะถามรายการนี้บ่อยขึ้น"
             }
             if (slow > 0) coach += "ถูก แต่มี $slow ข้อที่ใช้เวลาเกิน 3 วินาที ลองมองหากลุ่มคีย์ดำ (หรือจุดอ้างอิง) ก่อน แล้วค่อยหา"
             if (helperUses > 0 && met == true) coach += "ผ่านเกณฑ์ แต่ใช้ปุ่มแสดงชื่อโน้ต จึงยังไม่นับเป็นการผ่านเต็ม ลองอีกครั้งโดยไม่ใช้ตัวช่วย"
             if (met == true && !passedNow && helperUses == 0) coach += if (l != null && l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อให้ผ่านบทนี้ (ช่วยให้จำได้นาน)"
             if (passedNow) coach += "ผ่านบทนี้แล้ว บทถัดไปปลดล็อก"
             val pct = (acc * 100).toInt()
-            _ui.value = DrillUi.Result("ถูกตั้งแต่ครั้งแรก $pct% (${answers.count { it.correct }}/${answers.size})", met, passedNow, coach)
+            val summary = "ถูกตั้งแต่ครั้งแรก $pct% (${answers.count { it.correct }}/${answers.size})"
+            saveChordRun(summary)
+            _ui.value = DrillUi.Result(summary, met, passedNow, coach)
         }
     }
 
@@ -605,7 +620,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         }
     }
 
-    private suspend fun runChordChange(l: Lesson, d: Drill) {
+    private suspend fun runChordChange(l: Lesson?, d: Drill) {
         changeItems = com.id.mimikopi.core.exercise.ChordDrills.changes(d)
         if (changeItems.isEmpty()) return
         changeIndex = 0; changeCount = 0; struckSinceAdvance = false
@@ -638,7 +653,15 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         showChange(q.secondsLeft ?: 0)
     }
 
-    private suspend fun finishChordChange(l: Lesson, d: Drill, seconds: Int) {
+    private suspend fun finishChordChange(l: Lesson?, d: Drill, seconds: Int) {
+        val summary = "เปลี่ยนคอร์ดถูก $changeCount ครั้งใน $seconds วินาที"
+        if (l == null) {
+            // Free practice: the count is the result, kept in the chord tab's list.
+            saveChordRun(summary)
+            _ui.value = DrillUi.Result(summary, null, false,
+                if (changeCount == 0) listOf("ยังไม่มีครั้งที่ถูก ลองเริ่มจากเวลานานขึ้น หรือฝึกแต่ละคอร์ดในแบบชื่อคอร์ดก่อน") else emptyList())
+            return
+        }
         val isPassDrill = drillIndex in l.pass.requiredDrills
         val met = if (isPassDrill) Scoring.chordChangePassed(changeCount, l.pass) else null
         repo.saveAttempt(
@@ -655,7 +678,17 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         if (met == true && !passedNow && helperUses == 0) coach += if (l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่น"
         if (passedNow) coach += "ผ่านบทนี้แล้ว บทถัดไปปลดล็อก"
         if (coach.isEmpty()) l.tips.firstOrNull()?.let { coach += it }
-        _ui.value = DrillUi.Result("เปลี่ยนคอร์ดถูก $changeCount ครั้งใน $seconds วินาที", met, passedNow, coach)
+        _ui.value = DrillUi.Result(summary, met, passedNow, coach)
+    }
+
+    /** Free chord practice: the run goes to the chord tab's list of recent results. */
+    private fun saveChordRun(result: String) {
+        if (!practice) return
+        viewModelScope.launch {
+            val dao = services.database.settingsDao()
+            val runs = ChordRun.add(ChordRun.parse(dao.get(SettingKeys.CHORDS_RUNS)), ChordRun(java.time.LocalDate.now().toString(), chordPractice.summary(), result))
+            dao.put(SettingEntity(SettingKeys.CHORDS_RUNS, ChordRun.encode(runs)))
+        }
     }
 
     fun again() {

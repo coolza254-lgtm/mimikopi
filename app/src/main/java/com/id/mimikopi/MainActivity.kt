@@ -30,6 +30,7 @@ import androidx.navigation.navArgument
 import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.ui.about.AboutScreen
 import com.id.mimikopi.ui.about.CreditsScreen
+import com.id.mimikopi.ui.chords.ChordHomeScreen
 import com.id.mimikopi.ui.components.BottomNav
 import com.id.mimikopi.ui.components.MidiNoticeBar
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
@@ -89,11 +90,13 @@ class MainActivity : ComponentActivity() {
 }
 
 private object Routes {
-    // The four tabs (M15).
+    // The five tabs (four from M15, chords in v0.21).
     const val READING = "reading"
     const val EAR = "ear"
     const val SONGS = "songs"
     const val SECTIONS = "sections"
+    const val CHORDS = "chords"
+    const val CHORD_DRILL = "chorddrill/{practice}"
 
     const val DIAGNOSTICS = "diagnostics"
     const val ABOUT = "about"
@@ -139,7 +142,7 @@ private fun AppNavigation() {
     val optional = { name: String -> navArgument(name) { type = NavType.StringType; nullable = true; defaultValue = null } }
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
-    val showBar = route in setOf(Routes.READING, Routes.EAR, Routes.SONGS, Routes.SECTIONS)
+    val showBar = route in setOf(Routes.READING, Routes.EAR, Routes.SONGS, Routes.SECTIONS, Routes.CHORDS)
     val selectTab: (String) -> Unit = { target ->
         nav.navigate(target) {
             popUpTo(Routes.READING) { saveState = true }
@@ -183,6 +186,8 @@ private fun AppNavigation() {
             )
         }
         composable(Routes.TONE) { ToneSessionScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.CHORDS) { ChordHomeScreen(onStart = { nav.navigate("chorddrill/chords") }, onOpenMidi = openMidi, onOpenSettings = openSettings) }
+        composable(Routes.CHORD_DRILL) { DrillScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.TONE_EDIT, arguments = listOf(optional("id"))) { ToneEditScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SONGS) {
             SongsScreen(onPlay = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onOpenMidi = openMidi, onOpenSettings = openSettings)

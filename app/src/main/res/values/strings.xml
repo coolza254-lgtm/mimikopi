@@ -632,6 +632,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="tab_reading">อ่านโน้ต</string>
     <string name="tab_ear">ฝึกฟัง</string>
     <string name="tab_sections">ฝึกท่อน</string>
+    <string name="tab_chords">คอร์ด</string>
     <string name="midi_needed">ยังไม่ได้ต่อคีย์บอร์ด MIDI · กดแป้นบนจอเพื่อลองเล่นตามได้ (ต่อเปียโนแล้วแป้นบนจอจะหายไป)</string>
     <string name="midi_ready">MIDI</string>
     <string name="midi_not_ready">ไม่มี MIDI</string>

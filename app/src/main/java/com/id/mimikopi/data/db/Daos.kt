@@ -134,6 +134,9 @@ object SettingKeys {
     const val SECTIONS = "sections"
     /** Section practice shown as falling notes ("true") or the big note (default). */
     const val SECTIONS_FALLING = "sections.falling"
+    /** Chord tab: the last chosen practice (ChordPractice JSON) and the recent runs (ChordRun list). */
+    const val CHORDS_SETTINGS = "chords.settings"
+    const val CHORDS_RUNS = "chords.runs"
     /** Today's session: item keys opened, by date ("flow:2026-10-14"). */
     const val FLOW_PREFIX = "flow:"
 }

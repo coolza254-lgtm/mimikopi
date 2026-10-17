@@ -26,6 +26,14 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Chord tab (v0.21.0)
+- A fifth tab runs the existing chord drills (E_CHORD_BUILD by name or roman numeral, E_CHORD_CHANGE through a
+  progression) with the user's own choices (ChordPractice, settings row "chords.settings"). Runs are free practice:
+  no pass rule, no SRS items, no lesson progress; the last 20 results are kept in "chords.runs" and 10 are shown.
+- Judging is the lesson rule: the held notes must be exactly the chord's notes (any inversion or octave, slash bass
+  lowest); extensions above the 9th may drop the 5th. Voicing quality and timing of changes are not judged.
+- Which chord sets and progressions are offered are my choices (from learning-system.md 8.1 and the chord table).
+
 ## MIDI connection, reworked (v0.20.2)
 - Bluetooth MIDI is connected only when the user asks: no connection at app start and no reconnect loop. A search
   lasts at most 10 s and ends with the instruments found or "not found"; a found remembered instrument is connected

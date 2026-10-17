@@ -87,4 +87,6 @@ object SettingKeys {
     const val SECTIONS = "sections"
     const val METRONOME_SETTINGS = "metronome.settings"
     const val METRONOME_SELF_TEST = "metronome.lastSelfTest"
+    const val CHORDS_SETTINGS = "chords.settings"
+    const val CHORDS_RUNS = "chords.runs"
 }

@@ -33,9 +33,10 @@ val TABS = listOf(
     Tab("ear", R.string.tab_ear),
     Tab("songs", R.string.tab_songs),
     Tab("sections", R.string.tab_sections),
+    Tab("chords", R.string.tab_chords),
 )
 
-/** The bottom bar (M15): four words, no icons; the current tab is white with a small dot above it. */
+/** The bottom bar (M15): five words, no icons; the current tab is white with a small dot above it. */
 @Composable
 fun BottomNav(current: String?, onSelect: (String) -> Unit) {
     Column(Modifier.fillMaxWidth().background(Tokens.Palette.Paper).navigationBarsPadding()) {

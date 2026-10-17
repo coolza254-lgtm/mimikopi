@@ -91,6 +91,8 @@ class RenderTest {
             render(dark) { LessonScreen(onBack = {}, onOpenDrill = { _, _ -> }, vm = rememberViewModel { LessonViewModel(app, args("lessonId" to "1.1")) }) }
             render(dark) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("lessonId" to "1.14", "drill" to "0")) }) }
             render(dark) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("review" to "true")) }) }
+            render(dark) { com.id.mimikopi.desktop.port.chords.ChordHomeScreen(onStart = {}, onOpenMidi = {}, onOpenSettings = {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.chords.ChordHomeViewModel(app) }) }
+            render(dark) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("practice" to "chords")) }) }
             render(dark) { PieceListScreen(onBack = {}, onOpenPiece = { _, _ -> }, vm = rememberViewModel { PieceListViewModel(app, args("lesson" to "2.23", "drill" to "0")) }) }
             render(dark) { ReaderScreen(onBack = {}, vm = rememberViewModel { ReaderViewModel(app, args("pieceId" to "ode-to-joy", "hand" to "RIGHT")) }) }
             render(dark) { ReaderScreen(onBack = {}, vm = rememberViewModel { ReaderViewModel(app, args("lessonId" to "1.18", "drill" to "0")) }) }

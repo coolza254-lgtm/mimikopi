@@ -71,6 +71,8 @@ import com.id.mimikopi.desktop.port.ear.ToneSessionScreen
 import com.id.mimikopi.desktop.port.ear.ToneSessionViewModel
 import com.id.mimikopi.desktop.ui.midiReady
 import com.id.mimikopi.desktop.port.components.MidiNoticeBar
+import com.id.mimikopi.desktop.port.chords.ChordHomeScreen
+import com.id.mimikopi.desktop.port.chords.ChordHomeViewModel
 import com.id.mimikopi.desktop.ui.sections.SectionEditScreen
 import com.id.mimikopi.desktop.ui.sections.SectionPracticeScreen
 import com.id.mimikopi.desktop.ui.sections.SectionsHome
@@ -81,6 +83,8 @@ sealed interface Screen {
     data object Ear : Screen
     data object Songs : Screen
     data object Sections : Screen
+    data object Chords : Screen
+    data object ChordDrill : Screen
     data object Settings : Screen
     data object Metronome : Screen
     data class ToneSession(val levelId: String) : Screen
@@ -130,7 +134,7 @@ fun main() {
     }
 }
 
-/** The window: a left rail (four tabs, MIDI state, settings) and the page, centred and width-limited for reading. */
+/** The window: a left rail (five tabs, MIDI state, settings) and the page, centred and width-limited for reading. */
 @Composable
 private fun App() {
     var stack by remember { mutableStateOf(listOf<Screen>(Screen.Reading)) }
@@ -148,6 +152,7 @@ private fun App() {
             RailItem(stringResource(R.string.tab_ear), stack.first() == Screen.Ear) { tab(Screen.Ear) }
             RailItem(stringResource(R.string.tab_songs), stack.first() == Screen.Songs) { tab(Screen.Songs) }
             RailItem(stringResource(R.string.tab_sections), stack.first() == Screen.Sections) { tab(Screen.Sections) }
+            RailItem(stringResource(R.string.tab_chords), stack.first() == Screen.Chords) { tab(Screen.Chords) }
             Spacer(Modifier.weight(1f))
             val ready = midiReady()
             Row(Modifier.heightIn(min = 40.dp).clickable(onClick = openMidi), verticalAlignment = Alignment.CenterVertically) {
@@ -220,6 +225,9 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
         is Screen.Drill -> DrillScreen(onBack = back,
             vm = rememberViewModel(screen) { DrillViewModel(app, args("lessonId" to screen.lessonId, "drill" to screen.index.toString())) })
         Screen.Review -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("review" to "true")) })
+        Screen.Chords -> ChordHomeScreen(onStart = { go(Screen.ChordDrill) }, onOpenMidi = openMidi, onOpenSettings = openSettings,
+            vm = rememberViewModel(screen) { ChordHomeViewModel(app) })
+        Screen.ChordDrill -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("practice" to "chords")) })
         is Screen.Pieces -> PieceListScreen(onBack = back, onOpenPiece = { id, hand -> go(Screen.Reader(id, hand)) },
             vm = rememberViewModel(screen) { PieceListViewModel(app, args("lesson" to screen.lessonId, "drill" to screen.index.toString())) })
         is Screen.Reader -> ReaderScreen(onBack = back,

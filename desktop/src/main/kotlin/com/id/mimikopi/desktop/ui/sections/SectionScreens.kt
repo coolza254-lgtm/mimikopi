@@ -108,8 +108,7 @@ fun SectionsHome(onPractice: (String) -> Unit, onEdit: (String) -> Unit, onOpenM
                     Text("${s.steps.size} โน้ต · ${s.phrases.size} วลี" + (s.stats.accuracy?.let { " · ${(it * 100).toInt()}%" } ?: ""), fontFamily = Tokens.Fonts.mono, fontSize = 12.sp,
                         color = Tokens.Palette.InkMuted, modifier = Modifier.weight(1f))
                     TextButton(onClick = { deleting = s }) { Text("ลบ", color = Tokens.Palette.InkMuted) }
-                    TextButton(onClick = { model.setFalling(!falling) }) { Text(if (falling) "ตัวใหญ่" else "โน้ตตก", color = Tokens.Palette.InkMuted) }
-            TextButton(onClick = { onEdit(s.id) }) { Text("แก้โน้ต", color = Tokens.Palette.InkMuted) }
+                    TextButton(onClick = { onEdit(s.id) }) { Text("แก้โน้ต", color = Tokens.Palette.InkMuted) }
                     Button(onClick = { onPractice(s.id) }, enabled = s.steps.isNotEmpty()) { Text("ฝึก →") }
                 }
             }
@@ -204,6 +203,7 @@ fun SectionPracticeScreen(id: String, onBack: () -> Unit, onEdit: (String) -> Un
     val s = section ?: return
     Column(Modifier.fillMaxWidth()) {
         BackHeader(s.title, onBack) {
+            TextButton(onClick = { model.setFalling(!falling) }) { Text(if (falling) "ตัวใหญ่" else "โน้ตตก", color = Tokens.Palette.InkMuted) }
             TextButton(onClick = { onEdit(s.id) }) { Text("แก้โน้ต", color = Tokens.Palette.InkMuted) }
             OutlinedButton(onClick = model::listen) { Text("ฟัง") }
         }

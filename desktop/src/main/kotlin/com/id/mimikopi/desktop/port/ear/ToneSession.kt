@@ -377,7 +377,7 @@ private fun ToneResult(ui: ToneUi, onAgain: () -> Unit, onDone: () -> Unit) {
         }
         val weakest = ui.perPlace.filter { it.value.first > 0 }.minByOrNull { it.value.second.toDouble() / it.value.first }
         if (weakest != null && weakest.value.second < weakest.value.first) Text(
-            "พลาดบ่อยที่สุด: ${FunctionalEar.solfege(weakest.key)} ลองฟังว่ามันอยากเดินกลับไปหาโดทางไหน",
+            "พลาดบ่อยที่สุด: ${FunctionalEar.solfege(weakest.key)} ลองฟังว่ามันอยากเดินกลับไปหา ド ทางไหน",
             style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 14.dp),
         )
         Row(Modifier.padding(top = 28.dp, bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -46,7 +46,7 @@ class LessonViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     /** Keys highlighted by a demonstration step. */
     private val _marked = MutableStateFlow<Set<Int>>(emptySet())
     val marked: StateFlow<Set<Int>> = _marked.asStateFlow()
-    /** Letter whose names appear when pressed during a try-it step (C / โด). */
+    /** Letter whose names appear when pressed during a try-it step (C / ド). */
     private val _namedLetter = MutableStateFlow<Letter?>(null)
     val namedLetter: StateFlow<Letter?> = _namedLetter.asStateFlow()
 
@@ -79,7 +79,7 @@ class LessonViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     /**
      * "highlight:C": plays and highlights every C in the on-screen range one after another, then keeps
-     * them marked; pressing one shows its name (C / โด).
+     * them marked; pressing one shows its name (C / ド).
      */
     fun runAction(action: String?, range: IntRange) {
         val (kind, arg) = action?.split(":", limit = 2)?.let { it[0] to it.getOrNull(1) } ?: return

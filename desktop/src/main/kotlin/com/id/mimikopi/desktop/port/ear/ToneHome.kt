@@ -129,8 +129,8 @@ fun ToneHomeScreen(
                         Text(if (howTo) "ซ่อนวิธีฝึก" else "วิธีฝึก", style = MaterialTheme.typography.labelLarge, color = Tokens.Palette.InkMuted,
                             modifier = Modifier.clickable { howTo = !howTo }.padding(vertical = 6.dp))
                         if (howTo) Text(
-                            "แอพเล่นคอร์ด 4 ตัว (I–IV–V–I) ให้หูจับคีย์ได้ก่อน แล้วเล่นโน้ตหนึ่งตัว ตอบว่าเป็นตัวไหนของคีย์ (โด เร มี …) " +
-                                "โดยกดโน้ตนั้นบนคีย์บอร์ด (อ็อกเทฟไหนก็ได้) หรือแตะปุ่มบนจอ พอตอบถูก แอพจะเล่นโน้ตไล่กลับไปหาโด " +
+                            "แอพเล่นคอร์ด 4 ตัว (I–IV–V–I) ให้หูจับคีย์ได้ก่อน แล้วเล่นโน้ตหนึ่งตัว ตอบว่าเป็นตัวไหนของคีย์ (ド レ ミ …) " +
+                                "โดยกดโน้ตนั้นบนคีย์บอร์ด (อ็อกเทฟไหนก็ได้) หรือแตะปุ่มบนจอ พอตอบถูก แอพจะเล่นโน้ตไล่กลับไปหา ド " +
                                 "แต่ละตัวมี \"ความรู้สึก\" ต่างกันเมื่ออยู่ในคีย์ ฝึกจนจำความรู้สึกนั้นได้ ก็จะแกะทำนองเพลงได้",
                             style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 12.dp),
                         )

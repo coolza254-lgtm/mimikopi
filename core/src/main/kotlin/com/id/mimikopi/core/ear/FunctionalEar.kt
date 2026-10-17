@@ -60,15 +60,15 @@ object FunctionalEar {
 
     fun scaleTones(scale: EarScale) = if (scale == EarScale.MAJOR) MAJOR else MINOR
 
-    /** Movable-do names (Thai) of the 12 places from do; flats for the notes between. */
-    private val SOLFEGE = listOf("โด", "เร♭", "เร", "มี♭", "มี", "ฟา", "ฟา♯", "ซอล", "ลา♭", "ลา", "ที♭", "ที")
+    /** Movable-do names (katakana) of the 12 places from do; flats for the notes between. */
+    private val SOLFEGE = listOf("ド", "レ♭", "レ", "ミ♭", "ミ", "ファ", "ファ♯", "ソ", "ラ♭", "ラ", "シ♭", "シ")
     private val DEGREE = listOf("1", "♭2", "2", "♭3", "3", "4", "♯4", "5", "♭6", "6", "♭7", "7")
     private val LETTERS_SHARP = listOf("C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B")
     private val LETTERS_FLAT = listOf("C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B")
     /** Keys usually written with flats. */
     private val FLAT_KEYS = setOf(5, 10, 3, 8, 1)
 
-    /** "เร" for place 2. */
+    /** "レ" for place 2. */
     fun solfege(place: Int): String = SOLFEGE[Math.floorMod(place, 12)]
 
     /** "2", "♭3" ... */
@@ -109,12 +109,12 @@ object FunctionalEar {
 
     /** Getting started: two notes, then three, four; the top of the octave; the whole octave; another octave; two. */
     val intro: List<ToneLevel> = listOf(
-        intro(1, "โด เร", listOf(0, 2)),
-        intro(2, "โด เร มี", listOf(0, 2, 4)),
-        intro(3, "โด เร มี ฟา", listOf(0, 2, 4, 5)),
-        intro(4, "ที โด", listOf(11, 12)),
-        intro(5, "ลา ที โด", listOf(9, 11, 12)),
-        intro(6, "ซอล ลา ที โด", listOf(7, 9, 11, 12)),
+        intro(1, "ド レ", listOf(0, 2)),
+        intro(2, "ド レ ミ", listOf(0, 2, 4)),
+        intro(3, "ド レ ミ ファ", listOf(0, 2, 4, 5)),
+        intro(4, "シ ド", listOf(11, 12)),
+        intro(5, "ラ シ ド", listOf(9, 11, 12)),
+        intro(6, "ソ ラ シ ド", listOf(7, 9, 11, 12)),
         intro(7, "ทั้งอ็อกเทฟ", range(0, 12, MAJOR)),
         intro(8, "อีกอ็อกเทฟ (ต่ำลง)", range(-12, 0, MAJOR)),
         intro(9, "สองอ็อกเทฟรวมกัน", range(-12, 12, MAJOR)),

@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.sp
 
 /**
  * Design tokens, the same as the Android app's (ui/theme/Tokens.kt): black and white only, OLED black by default or
- * the light palette; Noto Serif Thai for headings, IBM Plex Sans Thai for text, IBM Plex Mono for numbers and notes.
+ * the light palette; the system font for all text.
  */
 object Tokens {
     var dark: Boolean by mutableStateOf(true)
@@ -42,13 +42,10 @@ object Tokens {
     }
 
     object Fonts {
-        /** A bundled font file (the Android app's res/font is on the classpath). */
-        private fun f(file: String, weight: FontWeight) =
-            Font(identity = "$file-${weight.weight}", data = Thread.currentThread().contextClassLoader.getResourceAsStream(file)!!.use { it.readBytes() }, weight = weight)
-
-        val body = FontFamily(f("sans_regular.ttf", FontWeight.Normal), f("sans_medium.ttf", FontWeight.Medium), f("sans_semibold.ttf", FontWeight.SemiBold), f("sans_semibold.ttf", FontWeight.Bold))
-        val display = FontFamily(f("serif_medium.ttf", FontWeight.Medium), f("serif_semibold.ttf", FontWeight.SemiBold), f("serif_semibold.ttf", FontWeight.Bold))
-        val mono = FontFamily(f("mono_light.ttf", FontWeight.Light), f("mono_regular.ttf", FontWeight.Normal), f("mono_medium.ttf", FontWeight.Medium), f("mono_medium.ttf", FontWeight.SemiBold))
+        /** Windows' own standard font everywhere (Segoe UI, with the system's Thai and Japanese fonts), as on the phone. */
+        val body: FontFamily = FontFamily.Default
+        val display: FontFamily = FontFamily.Default
+        val mono: FontFamily = FontFamily.Default
     }
 
     val cardRadius = 22.dp

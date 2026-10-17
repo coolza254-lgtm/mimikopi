@@ -205,7 +205,7 @@ fun SettingsScreen(onBack: () -> Unit, onOpenMetronome: () -> Unit = {}) {
             Text("ミミコピ สำหรับ Windows รุ่น $appVersion", style = MaterialTheme.typography.bodyMedium)
             Text("ข้อมูลทั้งหมดอยู่ในเครื่องนี้ (โฟลเดอร์ ${Services.dir.path}) โปรแกรมใช้อินเทอร์เน็ตเฉพาะตอนตรวจรุ่นใหม่ (วันละครั้ง) และตอนดาวน์โหลดเสียงเปียโน",
                 style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 4.dp))
-            Text("เสียงเปียโน: Salamander Grand Piano V3 (Alexander Holm, CC BY 3.0) · ฟอนต์ Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono, Bravura (SIL OFL 1.1)",
+            Text("เสียงเปียโน: Salamander Grand Piano V3 (Alexander Holm, CC BY 3.0) · ฟอนต์ตัวโน้ต Bravura (SIL OFL 1.1) · ตัวหนังสือใช้ฟอนต์ของ Windows",
                 style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 4.dp).width(640.dp))
         }
     }

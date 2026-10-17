@@ -289,7 +289,7 @@ private fun dispatchTouch(vm: DrillViewModel, note: Int, down: Boolean) {
 
 /** Thai prompt for a key-finding item; exact-octave items are described relative to Middle C. */
 private fun keyPrompt(item: KeyFindItem): String {
-    val name = "${item.letter.name} (${item.letter.thaiSolfege})"
+    val name = "${item.letter.name} (${item.letter.solfege})"
     val t = item.target ?: return "หา $name"
     return when {
         t.midi == 60 -> "หา Middle C (โดกลาง)"

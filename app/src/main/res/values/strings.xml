@@ -35,7 +35,7 @@
     <string name="piano_sound_retry">เปิดเสียงอีกครั้ง</string>
     <string name="piano_engine_error">เปิดเสียงไม่ได้: %1$s</string>
     <string name="names_letter">C D E</string>
-    <string name="names_solfege">โด เร มี</string>
+    <string name="names_solfege">ド レ ミ</string>
     <string name="names_both">ทั้งสองแบบ</string>
     <string name="pack_title">ดาวน์โหลดเสียงเปียโน</string>
     <string name="pack_body">เสียงแกรนด์เปียโนจริง (Salamander Grand Piano, Yamaha C5) ดาวน์โหลดครั้งเดียว แนะนำให้ใช้ Wi-Fi หลังดาวน์โหลด แอพจะแตกไฟล์เสียงเก็บในเครื่อง (อัปเดตแอพครั้งต่อไปไม่ต้องโหลดใหม่)</string>
@@ -209,9 +209,8 @@
 สิ่งที่ ミミコピ ปรับ: ใช้ 8 จาก 16 ระดับความแรง ตัดช่วงเงียบก่อนเสียงและหางเสียงที่ต่ำกว่า -60 dB พร้อมเฟดออก ปรับระดับเสียงรวม และแปลงเป็น 16 บิต</string>
     <string name="credit_oboe_title">เครื่องเสียง: Oboe</string>
     <string name="credit_oboe_body">ไลบรารีเสียงหน่วงต่ำของ Google · Apache License 2.0</string>
-    <string name="credit_font_title">ฟอนต์: Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono และ Zen Maru Gothic (โลโก้)</string>
-    <string name="credit_font_body">Noto Serif Thai: The Noto Project Authors · SIL Open Font License 1.1 (ตัดเป็นน้ำหนัก 500 และ 600 จากไฟล์ variable)
-IBM Plex Sans Thai และ IBM Plex Mono: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื่อฟอนต์สงวน "Plex" (ใช้ตามต้นฉบับ ไม่ได้ดัดแปลง)
+    <string name="credit_font_title">ฟอนต์: ตัวหนังสือใช้ฟอนต์มาตรฐานของเครื่อง · Zen Maru Gothic (โลโก้)</string>
+    <string name="credit_font_body">ตัวหนังสือในแอพใช้ฟอนต์ของระบบ (ไม่ได้ฝังฟอนต์ไว้ในแอพ)
 Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.1 (โลโก้แปลงเป็นเส้นเวกเตอร์)</string>
     <string name="credit_logo_title">โลโก้และไอคอน</string>
     <string name="credit_logo_body">สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
@@ -295,7 +294,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="about_version">เวอร์ชัน %1$s (%2$d)</string>
     <string name="about_credits_title">เครดิต</string>
     <string name="about_credit_logo">โลโก้และไอคอน: สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
-    <string name="about_credit_font">ฟอนต์ Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono และ Bravura (SIL Open Font License 1.1)</string>
+    <string name="about_credit_font">ฟอนต์ตัวโน้ต Bravura (SIL Open Font License 1.1) ตัวหนังสือใช้ฟอนต์มาตรฐานของเครื่อง</string>
     <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
     <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงที่ยังมีลิขสิทธิ์ เพลงฝึกเป็นเพลงที่หมดลิขสิทธิ์แล้ว (ทำนองเขียนจากความจำ ยังไม่ได้เทียบต้นฉบับ) ท่อนเพลงที่ชอบต้องจดเองในโหมดฝึกท่อน</string>

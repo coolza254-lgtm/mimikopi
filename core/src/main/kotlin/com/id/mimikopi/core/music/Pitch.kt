@@ -4,10 +4,10 @@ package com.id.mimikopi.core.music
 enum class Letter(val semitonesFromC: Int) {
     C(0), D(2), E(4), F(5), G(7), A(9), B(11);
 
-    /** Thai solfège syllable (fixed do), as used in the lessons: โด เร มี ฟา ซอล ลา ที. */
-    val thaiSolfege: String
+    /** Solfège syllable (fixed do) in katakana, as the user learnt it: ド レ ミ ファ ソ ラ シ. */
+    val solfege: String
         get() = when (this) {
-            C -> "โด"; D -> "เร"; E -> "มี"; F -> "ฟา"; G -> "ซอล"; A -> "ลา"; B -> "ที"
+            C -> "ド"; D -> "レ"; E -> "ミ"; F -> "ファ"; G -> "ソ"; A -> "ラ"; B -> "シ"
         }
 }
 
@@ -32,7 +32,7 @@ data class SpelledPitch(val letter: Letter, val accidental: Int, val octave: Int
     fun name(style: NoteNameStyle, withOctave: Boolean = false): String {
         val acc = accidentalSymbol(accidental)
         val letterName = letter.name + acc + if (withOctave) octave.toString() else ""
-        val solfege = letter.thaiSolfege + acc
+        val solfege = letter.solfege + acc
         return when (style) {
             NoteNameStyle.LETTER -> letterName
             NoteNameStyle.SOLFEGE -> solfege

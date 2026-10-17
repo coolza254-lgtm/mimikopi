@@ -33,6 +33,9 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Judging is the lesson rule: the held notes must be exactly the chord's notes (any inversion or octave, slash bass
   lowest); extensions above the 9th may drop the 5th. Voicing quality and timing of changes are not judged.
 - Which chord sets and progressions are offered are my choices (from learning-system.md 8.1 and the chord table).
+- Solfège is shown in katakana (ド レ ミ ファ ソ ラ シ, fixed do; movable do in ear training), as the user asked;
+  Thai clef names (กุญแจซอล, กุญแจฟา) stay Thai. All text uses the system font (bundled Thai/Latin fonts removed);
+  how it looks depends on the phone's or Windows' fonts. Bravura is still bundled for notation.
 
 ## MIDI connection, reworked (v0.20.2)
 - Bluetooth MIDI is connected only when the user asks: no connection at app start and no reconnect loop. A search

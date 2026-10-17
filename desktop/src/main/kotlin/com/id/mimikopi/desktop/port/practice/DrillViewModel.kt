@@ -368,7 +368,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
 
     private fun describe(srsId: String): String = when {
         srsId.startsWith("chord:") -> "คอร์ด ${srsId.removePrefix("chord:")}"
-        srsId.startsWith("key:") -> "คีย์ ${Letter.valueOf(srsId.removePrefix("key:")).let { "${it.name} (${it.thaiSolfege})" }}"
+        srsId.startsWith("key:") -> "คีย์ ${Letter.valueOf(srsId.removePrefix("key:")).let { "${it.name} (${it.solfege})" }}"
         else -> NoteIdItem.parse(srsId).let { "โน้ต ${it.pitch.name(NoteNameStyle.BOTH, withOctave = true)}" }
     }
 

@@ -74,6 +74,8 @@ import com.id.mimikopi.ui.components.FallingNote
 import com.id.mimikopi.ui.components.FallingNotesView
 import com.id.mimikopi.ui.components.FallingState
 import com.id.mimikopi.ui.components.KeyHint
+import com.id.mimikopi.ui.components.midiConnected
+import com.id.mimikopi.ui.components.rememberTouchPlayer
 import com.id.mimikopi.ui.components.fallingKeyRange
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.Pill
@@ -245,7 +247,9 @@ fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: Sect
     ScreenScaffold(title = stringResource(R.string.sections_edit_title), onBack = onBack) {
         val s = section ?: return@ScreenScaffold
         OutlinedTextField(value = s.title, onValueChange = vm::rename, singleLine = true, label = { Text(stringResource(R.string.sections_name_title)) }, modifier = Modifier.fillMaxWidth())
-        KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER)
+        // Without a piano the section can be recorded from the on-screen keys (C3 to C6, wider if it already goes beyond).
+        val recordRange = remember(s.steps) { (s.steps.flatMap { it.notes } + listOf(48, 84)).let { all -> fallingKeyRange(all.min(), all.max()) } }
+        KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER, range = recordRange)
         Text(stringResource(if (selected == null) R.string.sections_record_help else R.string.sections_replace_help), style = MaterialTheme.typography.bodyMedium,
             color = if (selected == null) Tokens.Palette.InkMuted else Tokens.Palette.Ink)
 
@@ -378,7 +382,8 @@ fun SectionPracticeScreen(onBack: () -> Unit, onEdit: (String) -> Unit, vm: Sect
             }
             Text("${ui.streak}/${ui.goal}", fontFamily = Tokens.Fonts.mono, fontSize = 13.sp)
         }
-        KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER)
+        // Falling notes draw their own keys (playable without a piano); low keys leave room in landscape.
+        KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER, range = sectionKeyRange(s), keyboard = !falling, keysHeight = 110.dp)
     }
 }
 
@@ -405,8 +410,10 @@ fun SectionFalling(s: Section, mode: SectionTrainer.Mode, position: Int, stepPre
             )
         }
     }
-    val keyRange = remember(s.steps) { s.steps.flatMap { it.notes }.let { all -> fallingKeyRange(all.min(), all.max()) } }
+    val keyRange = remember(s.steps) { sectionKeyRange(s) }
     val at by androidx.compose.runtime.rememberUpdatedState(position.toDouble())
+    val touch = rememberTouchPlayer()
+    val connected = midiConnected()
     FallingNotesView(
         notes = notes,
         cursor = { at },
@@ -418,8 +425,12 @@ fun SectionFalling(s: Section, mode: SectionTrainer.Mode, position: Int, stepPre
         window = 6.0,
         smooth = true,
         lines = s.phrases.map { it.first - 0.09 },
+        onKey = if (connected) null else touch,
     )
 }
+
+/** The keys a section uses, in whole octaves (two at least). */
+private fun sectionKeyRange(s: Section): IntRange = s.steps.flatMap { it.notes }.let { all -> fallingKeyRange(all.min(), all.max()) }
 
 @Composable
 private fun PartTab(label: String, selected: Boolean, onClick: () -> Unit) {

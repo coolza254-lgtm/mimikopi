@@ -56,6 +56,10 @@ import com.id.mimikopi.desktop.port.components.FallingNote
 import com.id.mimikopi.desktop.port.components.FallingNotesView
 import com.id.mimikopi.desktop.port.components.FallingState
 import com.id.mimikopi.desktop.port.components.fallingKeyRange
+import com.id.mimikopi.desktop.port.components.KeyHint
+import com.id.mimikopi.core.music.NoteNameStyle
+import com.id.mimikopi.desktop.port.components.midiConnected
+import com.id.mimikopi.desktop.port.components.rememberTouchPlayer
 import androidx.compose.runtime.rememberUpdatedState
 import com.id.mimikopi.desktop.ui.BackHeader
 import com.id.mimikopi.desktop.ui.NoKeyboardBanner
@@ -151,6 +155,9 @@ fun SectionEditScreen(id: String, onBack: () -> Unit, onPractice: (String) -> Un
         BackHeader("จดโน้ต", onBack)
         OutlinedTextField(value = s.title, onValueChange = model::rename, singleLine = true, label = { Text("ชื่อท่อน") }, modifier = Modifier.width(420.dp))
         NoKeyboardBanner(onOpenMidi)
+        // Without a keyboard the section can be recorded from the on-screen keys (C3 to C6, wider if it goes beyond).
+        val recordRange = remember(s.steps) { (s.steps.flatMap { it.notes } + listOf(48, 84)).let { all -> fallingKeyRange(all.min(), all.max()) } }
+        KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER, range = recordRange, keysHeight = 130.dp)
         Text(if (selected == null) "เล่นบนคีย์บอร์ดทีละโน้ต แอพจดให้เอง กดพร้อมกันจะเป็นคอร์ด ไม่ต้องตรงจังหวะ คลิกโน้ตเพื่อแก้" else "เล่นโน้ตใหม่บนคีย์บอร์ดเพื่อแทนตัวที่เลือก",
             style = MaterialTheme.typography.bodyMedium, color = if (selected == null) Tokens.Palette.InkMuted else Tokens.Palette.Ink)
         if (s.steps.isEmpty()) Text("ยังไม่มีโน้ต เริ่มเล่นได้เลย", style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.InkMuted)
@@ -244,6 +251,8 @@ fun SectionPracticeScreen(id: String, onBack: () -> Unit, onEdit: (String) -> Un
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) { repeat(ui.goal) { k -> Box(Modifier.width(26.dp).height(4.dp).background(if (k < ui.streak) Tokens.Palette.Ink else Tokens.Palette.Line)) } }
             Text("${ui.streak}/${ui.goal}", fontFamily = Tokens.Fonts.mono, fontSize = 13.sp)
         }
+        // Falling notes draw their own keys (playable with the mouse without a keyboard).
+        KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER, range = sectionKeyRange(s), keyboard = !falling, modifier = Modifier.padding(top = 12.dp))
     }
 }
 
@@ -266,13 +275,19 @@ private fun SectionFalling(s: Section, mode: SectionTrainer.Mode, position: Int,
             )
         }
     }
-    val keyRange = remember(s.steps) { s.steps.flatMap { it.notes }.let { all -> fallingKeyRange(all.min(), all.max()) } }
+    val keyRange = remember(s.steps) { sectionKeyRange(s) }
     val at by rememberUpdatedState(position.toDouble())
+    val touch = rememberTouchPlayer()
+    val connected = midiConnected()
     FallingNotesView(
         notes = notes, cursor = { at }, animate = true, keyRange = keyRange, pressed = keys, keyLabel = { m -> s.name(m) },
         modifier = modifier, window = 6.0, smooth = true, lines = s.phrases.map { it.first - 0.09 },
+        onKey = if (connected) null else touch,
     )
 }
+
+/** The keys a section uses, in whole octaves (two at least). */
+private fun sectionKeyRange(s: Section): IntRange = s.steps.flatMap { it.notes }.let { all -> fallingKeyRange(all.min(), all.max()) }
 
 @Composable
 private fun PartTab(label: String, selected: Boolean, onClick: () -> Unit) {

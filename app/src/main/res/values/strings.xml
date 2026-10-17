@@ -302,7 +302,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="about_limit_2">เสียงปล่อยคีย์และเสียงสะท้อนสายของเปียโน</string>
     <string name="about_limit_3">โหมดฝึกท่อนจดเฉพาะโน้ตและลำดับ ยังไม่จดจังหวะ (โน้ตตกในฝึกท่อนจึงตกทีละโน้ต ไม่ตามจังหวะ)</string>
     <string name="about_limit_4">Bluetooth MIDI หน่วงกว่าสาย USB เล็กน้อย ควรปรับเทียบความหน่วงใหม่ตอนต่อบลูทูธ และเปียโนที่ไม่ส่งสัญญาณบอกสถานะ แอพจะยืนยันการเชื่อมต่อได้จากเสียงที่กดเท่านั้น</string>
-    <string name="about_limit_6">ภาษาอังกฤษ และระบบเตือน (ผู้ใช้ยังไม่ต้องการ) แอพไม่มีคีย์บอร์ดบนจอ ต้องต่อคีย์บอร์ด MIDI (ปุ่มตอบในฝึกฟังใช้ได้โดยไม่ต้องต่อ)</string>
+    <string name="about_limit_6">ภาษาอังกฤษ และระบบเตือน (ผู้ใช้ยังไม่ต้องการ) แป้นบนจอมีไว้ลองเล่นเมื่อยังไม่ได้ต่อคีย์บอร์ด MIDI เท่านั้น แตะได้ทีละแรงเดียว และจังหวะไม่แม่นเท่าเปียโนจริง</string>
     <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (ไปที่หน้า release สาธารณะบน GitHub) และไม่ส่งข้อมูลของคุณออกไป</string>
 
     <!-- M7: reader and play-along -->
@@ -632,7 +632,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="tab_reading">อ่านโน้ต</string>
     <string name="tab_ear">ฝึกฟัง</string>
     <string name="tab_sections">ฝึกท่อน</string>
-    <string name="midi_needed">ต่อคีย์บอร์ด MIDI ก่อน (สาย USB หรือบลูทูธ) แอพรับโน้ตจากคีย์บอร์ดเท่านั้น</string>
+    <string name="midi_needed">ยังไม่ได้ต่อคีย์บอร์ด MIDI · กดแป้นบนจอเพื่อลองเล่นตามได้ (ต่อเปียโนแล้วแป้นบนจอจะหายไป)</string>
     <string name="midi_ready">MIDI</string>
     <string name="midi_not_ready">ไม่มี MIDI</string>
     <string name="skill_reading_goal">เป้าหมาย: เห็นโน้ตแล้วเล่นตามได้</string>

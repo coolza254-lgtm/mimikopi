@@ -8,7 +8,8 @@ What the app does not do, or does only partly, as of the last milestone. Details
 **Not built**
 - English UI, reminders (the user does not want them now), audio-file import for transcription. (Dark theme came in
   M15, the Windows version in v0.17-0.18, the falling-notes view in v0.19.)
-- On-screen keyboard: removed on purpose in M15; every exercise is played on a MIDI keyboard.
+- On-screen keyboard: removed in M15, back in v0.20.2 only while no MIDI keyboard is connected (to try things
+  out); it hides itself when one connects. Touches have one fixed strength (80) and no latency calibration.
 - Release ("damper") noise and sympathetic resonance samples; velocity layers are switched, not cross-faded.
 - Section practice: rhythm is not recorded or judged; no tempo mode for sections.
 - Measuring legato/staccato, dynamics and fingering (the app sees notes and timing only).
@@ -35,6 +36,10 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - "Connected" now means listed and open, unless Active Sensing or identity answers stop (then "no signal"). The
   earlier "linked but unconfirmed" state is gone: the user found it confusing. A USB keyboard that is switched off
   but still plugged in and sends neither signal still reads Connected; this cannot be told apart on USB.
+- On-screen keys (v0.20.2): shown at the bottom of drills, the score reader, lessons and sections only while no MIDI
+  keyboard is connected; in falling-notes mode the falling keyboard itself is playable. They feed the same input
+  stream as MIDI (source TOUCH) and always sound, even with "sound through" off. Range: the drill's or piece's keys,
+  two octaves from C3 elsewhere, C3-C6 when recording a section.
 - Windows: a port that fails to open (another program holds it) is not retried every poll; it is retried when it is
   plugged in again or when "ตรวจการเชื่อมต่อใหม่" is pressed. Whether Java sees a keyboard plugged in after start is
   a Windows check (the JDK re-reads the system list when its device count changes).

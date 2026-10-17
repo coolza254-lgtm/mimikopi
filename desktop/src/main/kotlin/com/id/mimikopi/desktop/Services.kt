@@ -49,9 +49,11 @@ class InputHub(private val piano: () -> Piano) {
     @Volatile var soundThrough: Boolean = false
 
     fun dispatch(event: InputEvent) {
+        // On-screen keys always sound: they have no speaker of their own.
+        val sound = soundThrough || event.source == com.id.mimikopi.core.input.InputSource.TOUCH
         when (event) {
-            is InputEvent.NoteOn -> { if (soundThrough) piano().noteOn(event.note, event.velocity); synchronized(this) { _pressed.value = _pressed.value + event.note } }
-            is InputEvent.NoteOff -> { if (soundThrough) piano().noteOff(event.note); synchronized(this) { _pressed.value = _pressed.value - event.note } }
+            is InputEvent.NoteOn -> { if (sound) piano().noteOn(event.note, event.velocity); synchronized(this) { _pressed.value = _pressed.value + event.note } }
+            is InputEvent.NoteOff -> { if (sound) piano().noteOff(event.note); synchronized(this) { _pressed.value = _pressed.value - event.note } }
             is InputEvent.Sustain -> if (soundThrough) piano().sustain(event.down)
             is InputEvent.Control -> Unit
         }

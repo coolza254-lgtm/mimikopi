@@ -1,6 +1,7 @@
 package com.id.mimikopi.input
 
 import com.id.mimikopi.core.input.InputEvent
+import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.piano.PianoController
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -27,13 +28,15 @@ class InputHub(private val piano: PianoController) {
     @Volatile var soundThrough: Boolean = true
 
     fun dispatch(event: InputEvent) {
+        // On-screen keys always sound: they have no speaker of their own.
+        val sound = soundThrough || event.source == InputSource.TOUCH
         when (event) {
             is InputEvent.NoteOn -> {
-                if (soundThrough) piano.noteOn(event.note, event.velocity)
+                if (sound) piano.noteOn(event.note, event.velocity)
                 synchronized(this) { _pressed.value = _pressed.value + event.note }
             }
             is InputEvent.NoteOff -> {
-                if (soundThrough) piano.noteOff(event.note)
+                if (sound) piano.noteOff(event.note)
                 synchronized(this) { _pressed.value = _pressed.value - event.note }
             }
             is InputEvent.Sustain -> if (soundThrough) piano.sustain(event.down)

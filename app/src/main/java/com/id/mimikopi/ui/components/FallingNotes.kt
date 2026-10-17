@@ -71,6 +71,8 @@ fun FallingNotesView(
     smooth: Boolean = false,
     lines: List<Double> = emptyList(),
     marks: List<Pair<Int, Long>> = emptyList(),
+    /** Without a MIDI piano the keys can be tapped (note, down); null = display only. */
+    onKey: ((Int, Boolean) -> Unit)? = null,
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 128)
     var frame by remember { mutableLongStateOf(System.nanoTime()) }
@@ -81,7 +83,8 @@ fun FallingNotesView(
     }
     val whites = remember(keyRange) { keyRange.filter { !isBlack(it) } }
 
-    Canvas(modifier) {
+    val touch = if (onKey == null) Modifier else Modifier.touchKeys(keyRange, { x, y, w, h -> fallingKeyAt(x, y, w, h, keyRange, whites) }, onKey)
+    Canvas(modifier.then(touch)) {
         val target = cursor(frame)
         val dt = ((frame - shown[1]) / 1e9).coerceIn(0.0, 0.1)
         shown[1] = frame.toDouble()
@@ -163,6 +166,25 @@ fun FallingNotesView(
             if (m in marked) drawCircle(Color(0xFFFFFFFF), w * 0.32f, Offset(x + w / 2, hitY + keysH * 0.38f), style = Stroke(w * 0.1f))
         }
     }
+}
+
+/** The key under a point, with the same geometry as the keyboard drawn by [FallingNotesView]. */
+private fun fallingKeyAt(x: Float, y: Float, width: Float, height: Float, keyRange: IntRange, whites: List<Int>): Int? {
+    if (whites.isEmpty()) return null
+    val whiteW = width / whites.size
+    val blackW = whiteW * 0.62f
+    val keysH = (height * 0.26f).coerceAtMost(whiteW * 6f)
+    val hitY = height - keysH
+    if (y < hitY || y > height) return null
+    if (y < hitY + keysH * 0.62f) {
+        for (m in keyRange) {
+            if (!isBlack(m)) continue
+            val below = whites.indexOfLast { it < m }.coerceAtLeast(0)
+            val left = (below + 1) * whiteW - blackW / 2
+            if (x >= left && x < left + blackW) return m
+        }
+    }
+    return whites.getOrNull((x / whiteW).toInt().coerceIn(0, whites.lastIndex))
 }
 
 private fun DrawScope.label(measurer: TextMeasurer, text: String, centerX: Float, bottom: Float, sizePx: Float, color: Color) {

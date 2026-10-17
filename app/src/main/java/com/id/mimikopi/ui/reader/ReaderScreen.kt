@@ -53,7 +53,10 @@ import com.id.mimikopi.core.score.NoteKey
 import com.id.mimikopi.ui.components.FallingNote
 import com.id.mimikopi.ui.components.FallingNotesView
 import com.id.mimikopi.ui.components.FallingState
+import com.id.mimikopi.ui.components.DEFAULT_KEY_RANGE
 import com.id.mimikopi.ui.components.KeyHint
+import com.id.mimikopi.ui.components.midiConnected
+import com.id.mimikopi.ui.components.rememberTouchPlayer
 import com.id.mimikopi.ui.theme.Tokens
 
 /**
@@ -143,7 +146,11 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             Phase.RESULT -> ui.result?.let { ResultPanel(it, vm, onBack) }
         }
 
-        if (ui.phase != Phase.RESULT) KeyHint(marked = emptySet(), nameStyle = vm.nameStyle)
+        // Falling notes draw their own keys (playable without a piano).
+        if (ui.phase != Phase.RESULT) KeyHint(
+            marked = emptySet(), nameStyle = vm.nameStyle, range = piece?.keyRange ?: DEFAULT_KEY_RANGE, showNames = ui.showNames,
+            keyboard = !(ui.options.falling && !vm.fixed),
+        )
     }
 
     if (showOptions) OptionsDialog(ui.options, vm, onDismiss = { showOptions = false })
@@ -175,6 +182,8 @@ private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: R
         )
     }
     val bars = remember(score) { (0..score.measures).map { score.measureStart(it) } }
+    val touch = rememberTouchPlayer()
+    val connected = midiConnected()
     FallingNotesView(
         notes = notes,
         cursor = vm::cursorAt,
@@ -187,6 +196,7 @@ private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: R
         smooth = ui.options.mode == PlayMode.WAIT,
         lines = bars,
         marks = ui.wrongMarks.map { it.midi to it.atNanos },
+        onKey = if (connected) null else touch,
     )
 }
 

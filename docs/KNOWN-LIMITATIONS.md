@@ -26,6 +26,23 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Today, skills and the free piano (v0.24.0)
+- Four tabs: Today, Skills, Piano, Songs. The song notebook ("จดเพลง") is gone; notebook data left in settings is
+  no longer read. The ladder, ear training and chords open from Today and Skills instead of their own tabs.
+- Skill levels come only from the level tests in core (SkillBook). Every level's test content and threshold is my
+  own choice from learning-system.md, not a validated assessment; the "overall" phrase is an average inside this
+  app, not a music exam grade. The tests reuse the drill, reader and ear runners in a fixed mode, so their feel
+  (judging, timing tolerance) is the same as practice, and the timing tolerance for score tests is the benchmark one.
+- Today's plan is made once a day from the minutes chosen; the split between parts (weights, the 1.6× extra for
+  the weakest skill, 60% of a part's minutes to tick it) is my estimate, to be tuned from real use.
+- Practice minutes are logged per finished run (capped at 20 minutes a run); a run left unfinished adds nothing.
+  Free playing counts the time between notes less than 10 s apart.
+- The free piano's room and warmth exist only on the phone; the Windows version has volume only (the built-in
+  Java synth tops out a little above the usual level). The keyboard shows 2-4 octaves by width; touches have one
+  strength. Transpose changes the app's sound only and resets when the page closes.
+- The phone can install the piano sound again from the Piano tab (79 MB download when the button is tapped,
+  about 440 MB stored); it had no install button since M15.
+
 ## Full-sheet reading (v0.23.0)
 - The reader opens in page view at printed size by default (grand-staff systems 170 dp tall, the page at most
   1000 dp wide, centred). The page turns when the cursor reaches the last fully visible line. "Paper size" is my

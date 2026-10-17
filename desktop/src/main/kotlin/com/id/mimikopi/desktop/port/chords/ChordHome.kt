@@ -5,6 +5,7 @@ package com.id.mimikopi.desktop.port.chords
 import com.id.mimikopi.desktop.port.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -26,6 +27,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -76,6 +80,25 @@ class ChordHomeViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { dao.put(SettingEntity(SettingKeys.CHORDS_SETTINGS, ChordPractice.encode(next))) }
     }
 
+    private val piano = (app as MimikopiApp).piano
+    private var playing: kotlinx.coroutines.Job? = null
+
+    /** Sounds a chord from the chord book (held a little over a second). */
+    fun play(notes: List<Int>) {
+        playing?.cancel()
+        playing = viewModelScope.launch {
+            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { piano.acquire(needPack = false) }
+            if (!ok) return@launch
+            try {
+                notes.forEach { piano.noteOn(it, 80) }
+                kotlinx.coroutines.delay(1400)
+            } finally {
+                notes.forEach { piano.noteOff(it) }
+                kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable + kotlinx.coroutines.Dispatchers.IO) { piano.release() }
+            }
+        }
+    }
+
     /** Saves the choices before the drill opens (it reads them from settings). */
     fun start(open: () -> Unit) {
         viewModelScope.launch {
@@ -95,22 +118,20 @@ fun ChordHomeScreen(onStart: () -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     val p by vm.practice.collectAsStateWithLifecycle()
     val runs by vm.runs.collectAsStateWithLifecycle()
+    var book by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
             TabHeader("คอร์ด", "ฝึกกดคอร์ดให้คล่อง: เห็นชื่อแล้วกดได้ทันที และเปลี่ยนคอร์ดได้ทันจังหวะ", onOpenMidi, onOpenSettings)
             Column(Modifier.padding(horizontal = 24.dp).padding(top = 24.dp, bottom = 32.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     listOf(ChordPractice.Mode.NAME to "ชื่อคอร์ด", ChordPractice.Mode.NUMERAL to "ตัวเลขโรมัน", ChordPractice.Mode.CHANGE to "เปลี่ยนคอร์ด").forEach { (mode, label) ->
-                        val selected = p.mode == mode
-                        Column(Modifier.clickable { vm.change(p.copy(mode = mode)) }.padding(vertical = 6.dp)) {
-                            Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (selected) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
-                            Spacer(Modifier.height(4.dp))
-                            Spacer(Modifier.width(28.dp).height(2.dp).background(if (selected) Tokens.Palette.Ink else Color.Transparent))
-                        }
+                        TabLabel(label, !book && p.mode == mode) { book = false; vm.change(p.copy(mode = mode)) }
                     }
+                    TabLabel("วิธีจับคอร์ด", book) { book = true }
                 }
+                // The chord book: how to hold each chord with each hand, with pictures.
+                if (book) ChordBook(onPlay = vm::play) else {
                 Text(
                     when (p.mode) {
                         ChordPractice.Mode.NAME -> "แอพบอกชื่อคอร์ด (เช่น Am, G7) ให้กดโน้ตของคอร์ดนั้นพร้อมกัน กลับเสียงหรืออ็อกเทฟไหนก็ได้ ถ้าผิดแอพจะชี้ตำแหน่งให้แล้วถามซ้ำท้ายรอบ"
@@ -182,8 +203,19 @@ fun ChordHomeScreen(onStart: () -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
                         Hairline()
                     }
                 }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun TabLabel(label: String, selected: Boolean, onClick: () -> Unit) {
+    Column(Modifier.clickable(onClick = onClick).padding(vertical = 6.dp)) {
+        Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
+        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.width(28.dp).height(2.dp).background(if (selected) Tokens.Palette.Ink else Color.Transparent))
     }
 }
 

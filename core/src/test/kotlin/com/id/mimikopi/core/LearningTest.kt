@@ -101,8 +101,6 @@ class LessonContentTest {
                     com.id.mimikopi.core.score.ScoreLayout.of(com.id.mimikopi.core.score.Score.from(b))
                     assertEquals(com.id.mimikopi.core.score.Score.from(a).events.size, com.id.mimikopi.core.score.Score.from(b).events.size)
                 }
-                com.id.mimikopi.core.lesson.ExerciseType.E_EAR ->
-                    com.id.mimikopi.core.ear.EarLevel.valueOf(d.level)
                 com.id.mimikopi.core.lesson.ExerciseType.E_INTERVAL_READ ->
                     assertEquals(d.items, com.id.mimikopi.core.exercise.ScoreGenerators.intervalSets(d, seed).size)
                 com.id.mimikopi.core.lesson.ExerciseType.E_PIECE ->

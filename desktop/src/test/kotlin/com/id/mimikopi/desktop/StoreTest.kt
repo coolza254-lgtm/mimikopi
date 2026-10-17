@@ -38,12 +38,13 @@ class StoreTest {
     }
 
     @Test
-    fun earLadderLoadsFromTheSharedContent() {
-        val l = LearningRepository(tempStore())
-        assertTrue(l.rungs.size >= 30)
-        assertEquals("e1", l.rungs.first().id)
-        val r = l.rungs.first()
-        assertTrue(!l.recordDrill(r, 0, met = true))
-        assertEquals(1, l.records.value[r.id]?.passDays?.size)
+    fun stepRecordsAreKeptInTheSharedRow() {
+        val store = tempStore()
+        val l = LearningRepository(store)
+        val step = l.lessons.first()
+        l.recordDrill(step, step.pass.requiredDrills.first(), met = true)
+        assertEquals(1, l.records.value[step.id]?.passDays?.size)
+        // Read back from the same row.
+        assertEquals(l.records.value, LearningRepository(store).records.value)
     }
 }

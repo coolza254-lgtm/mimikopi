@@ -27,8 +27,8 @@ What the app does not do, or does only partly, as of the last milestone. Details
 
 ## Ear training and MIDI status (v0.20.0)
 - Ear training is functional (scale-degree) training: a cadence, one note, the answer by key (any octave) or button,
-  then the note resolves stepwise to do. The earlier 36-rung ear ladder is gone from both apps; its content
-  (content/ear) and core generators stay in the repository, unused by the UI, and old ear records stay in backups.
+  then the note resolves stepwise to do. The earlier 36-rung ear ladder, its content and generators were removed
+  (v0.20.1); old ear records stay in backups, unused.
 - Custom levels and results live in the settings rows "ear.tone.levels" and "ear.tone.stats". Results are the last
   20 runs per level (first-try accuracy); there is no spacing or unlocking.
 - MIDI "Connected" (green tick, the one colour in the app, asked for by the user) is shown only when the instrument

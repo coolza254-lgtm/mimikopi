@@ -121,7 +121,6 @@ private fun openLessonDrill(nav: NavController, app: MimikopiApp, lessonId: Stri
         d.type == ExerciseType.E_PIECE && d.pieces.size > 1 -> nav.navigate(Routes.piecesFor(lessonId, index))
         // A piece the lesson counts by the piece rule: practise it in the reader with its own progress.
         d.type == ExerciseType.E_PIECE && lesson.pass.piecesPassed != null -> nav.navigate(Routes.reader(d.pieces.first(), d.hand))
-        d.type == ExerciseType.E_EAR -> Unit // ear training is its own tab since M19; no reading step uses it
         d.type.isScore -> nav.navigate("scoredrill/$lessonId/$index")
         else -> nav.navigate(Routes.drill(lessonId, index))
     }

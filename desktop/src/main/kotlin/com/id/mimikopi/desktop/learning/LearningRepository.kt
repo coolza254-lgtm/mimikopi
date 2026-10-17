@@ -2,7 +2,6 @@ package com.id.mimikopi.desktop.learning
 
 import com.id.mimikopi.core.backup.ItemStatRow
 import com.id.mimikopi.core.config.LearningConfig
-import com.id.mimikopi.core.ear.EarStats
 import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.core.lesson.Lesson
 import com.id.mimikopi.core.lesson.LessonRecord
@@ -33,7 +32,7 @@ fun resourceText(path: String): String? = Thread.currentThread().contextClassLoa
 fun contentFiles(folder: String): List<String> = CONTENT_FILES.filter { it.startsWith("$folder/") && it.count { c -> c == '/' } == 1 }
 
 /**
- * The reading steps (content/lessons) and the ear ladder (content/ear) on the desktop, their records (the same
+ * The reading steps (content/lessons) on the desktop, their records (the same
  * "lesson.records" row as the Android app, so progress moves with a backup) and the spaced-repetition items. The
  * same calls as the Android LearningRepository, so the ported screens use it unchanged; attempts and practice
  * sessions are not kept on the desktop.
@@ -50,12 +49,7 @@ class LearningRepository(private val store: Store) {
     val lessons: List<Lesson> = contentFiles("lessons").mapNotNull { resourceText(it) }.map { Lesson.parse(it) }
         .sortedWith(compareBy({ it.id.substringBefore('.').toInt() }, { it.id.substringAfter('.').toInt() }))
 
-    /** e1, e2 ... */
-    val rungs: List<Lesson> = contentFiles("ear").mapNotNull { resourceText(it) }.map { Lesson.parse(it) }.sortedBy { it.id.removePrefix("e").toInt() }
-    val earRungs: List<Lesson> get() = rungs
-
-    fun rung(id: String): Lesson? = rungs.firstOrNull { it.id == id }
-    fun lesson(id: String): Lesson? = lessons.firstOrNull { it.id == id } ?: rung(id)
+    fun lesson(id: String): Lesson? = lessons.firstOrNull { it.id == id }
 
     private val _records = MutableStateFlow(loadRecords())
     val records: StateFlow<Map<String, LessonRecord>> = _records.asStateFlow()
@@ -93,7 +87,7 @@ class LearningRepository(private val store: Store) {
     fun reopenFailedConfirmations(today: LocalDate = LocalDate.now()) {
         val next = _records.value.toMutableMap()
         var changed = false
-        for (l in lessons + rungs) {
+        for (l in lessons) {
             val r = next[l.id] ?: continue
             if (ProgressRules.failedConfirmation(l, r, today)) { next[l.id] = ProgressRules.reopen(r); changed = true }
         }
@@ -150,11 +144,6 @@ class LearningRepository(private val store: Store) {
     fun readingDueItems(now: Long = System.currentTimeMillis()): List<String> =
         leitner.selectDue(itemStates().values.filter { isReading(it.itemId) }, now).map { it.itemId }
 
-    fun earDueItems(now: Long = System.currentTimeMillis()): List<String> =
-        leitner.selectDue(itemStates().values.filter { it.itemId.startsWith("ear:") }, now).map { it.itemId }
-
-    fun earDueCount(now: Long = System.currentTimeMillis()): Int = earDueItems(now).size
-
     /** Adds items not seen before (box 1, due now). */
     fun enrol(itemIds: List<String>, now: Long = System.currentTimeMillis()) {
         val existing = itemStates()
@@ -169,9 +158,6 @@ class LearningRepository(private val store: Store) {
     private fun put(state: ItemState, responseMs: Long?) {
         store.putItemStat(ItemStatRow(state.itemId, state.box, state.dueAtMillis, state.lastResults.joinToString("") { if (it) "1" else "0" }, responseMs))
     }
-
-    fun earStats(): List<EarStats.ItemStat> = store.itemStats().values.filter { it.itemId.startsWith("ear:") }
-        .map { EarStats.ItemStat(it.itemId, it.lastResults.count { c -> c == '1' }, it.lastResults.length, it.medianResponseMs) }
 
     /** The desktop keeps no attempt history (the phone's statistics stay on the phone). */
     @Suppress("UNUSED_PARAMETER")

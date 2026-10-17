@@ -301,14 +301,14 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="about_version">เวอร์ชัน %1$s (%2$d)</string>
     <string name="about_credits_title">เครดิต</string>
     <string name="about_credit_logo">โลโก้และไอคอน: สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
-    <string name="about_credit_font">ฟอนต์ Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono และ Zen Maru Gothic (SIL Open Font License 1.1)</string>
+    <string name="about_credit_font">ฟอนต์ Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono และ Bravura (SIL Open Font License 1.1)</string>
     <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
     <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงที่ยังมีลิขสิทธิ์ เพลงฝึกเป็นเพลงที่หมดลิขสิทธิ์แล้ว (ทำนองเขียนจากความจำ ยังไม่ได้เทียบต้นฉบับ) ท่อนเพลงที่ชอบต้องจดเองในโหมดฝึกท่อน</string>
     <string name="about_limit_2">เสียงปล่อยคีย์และเสียงสะท้อนสายของเปียโน</string>
-    <string name="about_limit_3">โหมดฝึกท่อนจดเฉพาะโน้ตและลำดับ ยังไม่จดจังหวะ และยังไม่มีมุมมองโน้ตตก (falling notes)</string>
-    <string name="about_limit_4">Bluetooth MIDI ยังไม่ได้ทดสอบกับเปียโนจริง และหน่วงกว่าสาย USB ควรปรับเทียบความหน่วงใหม่ตอนต่อบลูทูธ</string>
-    <string name="about_limit_6">ธีมมืด ภาษาอังกฤษ ระบบเตือน (ผู้ใช้ยังไม่ต้องการ) และรุ่น Windows (ทำเมื่อผู้ใช้อนุมัติเท่านั้น) แอพไม่มีคีย์บอร์ดบนจอแล้ว ต้องต่อคีย์บอร์ด MIDI</string>
+    <string name="about_limit_3">โหมดฝึกท่อนจดเฉพาะโน้ตและลำดับ ยังไม่จดจังหวะ (โน้ตตกในฝึกท่อนจึงตกทีละโน้ต ไม่ตามจังหวะ)</string>
+    <string name="about_limit_4">Bluetooth MIDI หน่วงกว่าสาย USB เล็กน้อย ควรปรับเทียบความหน่วงใหม่ตอนต่อบลูทูธ และเปียโนที่ไม่ส่งสัญญาณบอกสถานะ แอพจะยืนยันการเชื่อมต่อได้จากเสียงที่กดเท่านั้น</string>
+    <string name="about_limit_6">ภาษาอังกฤษ และระบบเตือน (ผู้ใช้ยังไม่ต้องการ) แอพไม่มีคีย์บอร์ดบนจอ ต้องต่อคีย์บอร์ด MIDI (ปุ่มตอบในฝึกฟังใช้ได้โดยไม่ต้องต่อ)</string>
     <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (ไปที่หน้า release สาธารณะบน GitHub) และไม่ส่งข้อมูลของคุณออกไป</string>
 
     <!-- M7: reader and play-along -->

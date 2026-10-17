@@ -100,7 +100,6 @@ private fun lessonDrill(lessonId: String, index: Int): Screen? {
         d.type == ExerciseType.E_PIECE && d.pieces.size > 1 -> Screen.Pieces(lessonId, index)
         // A piece the step counts by the piece rule: practised in the reader with its own progress.
         d.type == ExerciseType.E_PIECE && lesson.pass.piecesPassed != null -> Screen.Reader(d.pieces.first(), d.hand)
-        d.type == ExerciseType.E_EAR -> null // ear training is its own tab since M19
         d.type.isScore -> Screen.ScoreDrill(lessonId, index)
         else -> Screen.Drill(lessonId, index)
     }

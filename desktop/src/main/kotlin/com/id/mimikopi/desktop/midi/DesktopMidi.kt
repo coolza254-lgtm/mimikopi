@@ -110,7 +110,9 @@ class DesktopMidi(private val onEvent: (InputEvent) -> Unit, private val onSilen
             (if (n == 1) base else "$base#$n") to (info to d)
         }.toMap()
         // Gone: close, and say so.
-        (open.keys - inputs.keys).forEach { k -> open.remove(k)?.let { o -> runCatching { o.device.close() }; runCatching { o.out?.close() } } }
+        val gone = open.keys - inputs.keys
+        gone.forEach { k -> open.remove(k)?.let { o -> runCatching { o.device.close() }; runCatching { o.out?.close() } } }
+        if (gone.isNotEmpty()) onSilent() // a key held while unplugging must not ring forever
         val before = listed
         val names = inputs.mapValues { (_, p) -> p.first.name }
         before?.let { (it.keys - names.keys).forEach { k -> _notice.value = MidiNotice(MidiNotice.Kind.UNPLUGGED, it.getValue(k)) } }

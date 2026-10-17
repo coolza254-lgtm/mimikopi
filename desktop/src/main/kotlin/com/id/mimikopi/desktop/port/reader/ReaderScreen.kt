@@ -46,6 +46,14 @@ import com.id.mimikopi.desktop.port.LifecycleEventEffect
 import com.id.mimikopi.desktop.port.collectAsStateWithLifecycle
 import com.id.mimikopi.desktop.port.R
 import com.id.mimikopi.core.playalong.PlayMode
+import com.id.mimikopi.core.music.NoteNameStyle
+import com.id.mimikopi.core.music.SpelledPitch
+import com.id.mimikopi.core.playalong.NoteResult
+import com.id.mimikopi.core.score.Hand
+import com.id.mimikopi.core.score.NoteKey
+import com.id.mimikopi.desktop.port.components.FallingNote
+import com.id.mimikopi.desktop.port.components.FallingNotesView
+import com.id.mimikopi.desktop.port.components.FallingState
 import com.id.mimikopi.desktop.port.components.KeyHint
 import com.id.mimikopi.desktop.ui.Tokens
 
@@ -90,7 +98,13 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel) {
         }
         if (score == null || layout == null) return@Column
 
-        if (ui.options.pageView) PagedScoreView(
+        if (ui.options.falling && !vm.fixed) FallingScore(
+            piece = piece!!,
+            ui = ui,
+            vm = vm,
+            playing = playing,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) else if (ui.options.pageView) PagedScoreView(
             score = score,
             cursorBeat = vm::cursorAt,
             playing = playing,
@@ -136,6 +150,47 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel) {
     if (showOptions) OptionsDialog(ui.options, vm, onDismiss = { showOptions = false })
 }
 
+/** The song as falling notes over a keyboard (the piece's range), names on the bars and on the white keys. */
+@Composable
+private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: ReaderViewModel, playing: Boolean, modifier: Modifier) {
+    val score = piece.score
+    val pressed by vm.pressed.collectAsStateWithLifecycle()
+    val barStyle = if (vm.nameStyle == NoteNameStyle.SOLFEGE) NoteNameStyle.SOLFEGE else NoteNameStyle.LETTER
+    // Each heard note (ties merged) with its key in the judge's results.
+    val base = remember(score) {
+        val events = score.events.associateBy { it.id }
+        score.sounding().map { n ->
+            val ev = events.getValue(n.eventId)
+            val i = ev.pitches.indexOfFirst { it.midi == n.midi }.coerceAtLeast(0)
+            Triple(NoteKey(n.eventId, i), n, ev.pitches.getOrNull(i) ?: SpelledPitch.fromMidiSharp(n.midi))
+        }
+    }
+    val notes = base.map { (key, n, p) ->
+        FallingNote(
+            n.midi, n.onset, n.duration, left = n.hand == Hand.LEFT, label = p.name(barStyle),
+            state = when (ui.results[key]) {
+                NoteResult.CORRECT, NoteResult.EARLY, NoteResult.LATE, NoteResult.CORRECTED -> FallingState.DONE
+                NoteResult.MISSED -> FallingState.MISSED
+                else -> if (n.hand in ui.options.hands.hands) FallingState.WAITING else FallingState.BACKGROUND
+            },
+        )
+    }
+    val bars = remember(score) { (0..score.measures).map { score.measureStart(it) } }
+    FallingNotesView(
+        notes = notes,
+        cursor = vm::cursorAt,
+        animate = playing,
+        keyRange = piece.keyRange,
+        pressed = pressed,
+        keyLabel = { m -> SpelledPitch.fromMidiSharp(m).name(barStyle) },
+        modifier = modifier,
+        window = (score.beatsPerMeasure * 2.0).coerceAtLeast(6.0),
+        smooth = ui.options.mode == PlayMode.WAIT,
+        lines = bars,
+        marks = ui.wrongMarks.map { it.midi to it.atNanos },
+    )
+}
+
 @Composable
 private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Unit) {
     val score = vm.score ?: return
@@ -150,6 +205,8 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
             OutlinedButton(onClick = vm::listen) { Text(stringResource(R.string.reader_listen)) }
             FilterChip(selected = ui.options.mode == PlayMode.WAIT, onClick = { vm.setMode(PlayMode.WAIT) }, label = { Text(stringResource(R.string.reader_mode_wait)) })
             FilterChip(selected = ui.options.mode == PlayMode.TEMPO, onClick = { vm.setMode(PlayMode.TEMPO) }, label = { Text(stringResource(R.string.reader_mode_tempo)) })
+            Spacer(Modifier.width(Tokens.Space.xs))
+            FilterChip(selected = ui.options.falling, onClick = { vm.setFalling(!ui.options.falling) }, label = { Text(stringResource(R.string.reader_falling)) })
             Spacer(Modifier.width(Tokens.Space.xs))
             for ((choice, label) in listOf(HandChoice.RIGHT to R.string.reader_hand_right, HandChoice.LEFT to R.string.reader_hand_left, HandChoice.BOTH to R.string.reader_hand_both)) {
                 FilterChip(selected = ui.options.hands == choice, onClick = { vm.setHands(choice) }, label = { Text(stringResource(label)) })

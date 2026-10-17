@@ -70,7 +70,11 @@ import com.id.mimikopi.core.section.SectionTrainer
 import com.id.mimikopi.core.section.SectionTrainer.Outcome
 import com.id.mimikopi.core.section.Spelling
 import com.id.mimikopi.core.section.Step
+import com.id.mimikopi.ui.components.FallingNote
+import com.id.mimikopi.ui.components.FallingNotesView
+import com.id.mimikopi.ui.components.FallingState
 import com.id.mimikopi.ui.components.KeyHint
+import com.id.mimikopi.ui.components.fallingKeyRange
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.Pill
 import com.id.mimikopi.ui.components.ScreenScaffold
@@ -303,6 +307,8 @@ fun SectionEditScreen(onBack: () -> Unit, onPractice: (String) -> Unit, vm: Sect
 fun SectionPracticeScreen(onBack: () -> Unit, onEdit: (String) -> Unit, vm: SectionPracticeViewModel = viewModel()) {
     val section by vm.section.collectAsStateWithLifecycle()
     val ui by vm.ui.collectAsStateWithLifecycle()
+    val falling by vm.falling.collectAsStateWithLifecycle()
+    val keys by vm.keys.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
@@ -318,6 +324,7 @@ fun SectionPracticeScreen(onBack: () -> Unit, onEdit: (String) -> Unit, vm: Sect
                 s.phrases.indices.forEach { i -> PartTab(stringResource(R.string.sections_phrase, i + 1), ui.mode == SectionTrainer.Mode.Phrase(i)) { vm.select(SectionTrainer.Mode.Phrase(i)) } }
                 PartTab(stringResource(R.string.sections_whole), ui.mode == SectionTrainer.Mode.Full) { vm.select(SectionTrainer.Mode.Full) }
             } else Spacer(Modifier.weight(1f))
+            TextButton(onClick = { vm.setFalling(!falling) }) { Text(stringResource(if (falling) R.string.sections_big else R.string.sections_falling), color = Tokens.Palette.InkMuted) }
             if (s != null) TextButton(onClick = { onEdit(s.id) }) { Text(stringResource(R.string.sections_edit), color = Tokens.Palette.InkMuted) }
             OutlinedButton(onClick = vm::listen, shape = RoundedCornerShape(22.dp), modifier = Modifier.heightIn(min = 44.dp)) { Text(stringResource(R.string.sections_listen)) }
         }
@@ -327,7 +334,8 @@ fun SectionPracticeScreen(onBack: () -> Unit, onEdit: (String) -> Unit, vm: Sect
         val before = (range.first until ui.position).toList().takeLast(3)
         val after = ((ui.position + 1)..range.last).toList().take(3)
 
-        Row(
+        if (falling) SectionFalling(s, ui.mode, ui.position, ui.pressed, keys, Modifier.weight(1f).fillMaxWidth())
+        else Row(
             Modifier.weight(1f).fillMaxWidth().padding(horizontal = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
@@ -372,6 +380,45 @@ fun SectionPracticeScreen(onBack: () -> Unit, onEdit: (String) -> Unit, vm: Sect
         }
         KeyHint(marked = emptySet(), nameStyle = NoteNameStyle.LETTER)
     }
+}
+
+/**
+ * The section as falling notes: one step per row, the step being waited for on the line above the keyboard; it moves
+ * on when the step is played (a wrong note scrolls back to the phrase start). Steps outside the part being practised
+ * are outlines; lines mark where phrases start.
+ */
+@Composable
+fun SectionFalling(s: Section, mode: SectionTrainer.Mode, position: Int, stepPressed: Set<Int>, keys: Set<Int>, modifier: Modifier) {
+    val range = when (mode) {
+        is SectionTrainer.Mode.Phrase -> s.phrases.getOrElse(mode.index) { s.steps.indices }
+        SectionTrainer.Mode.Full -> s.steps.indices
+    }
+    val notes = s.steps.flatMapIndexed { i, step ->
+        step.notes.map { m ->
+            FallingNote(
+                m, i.toDouble(), 0.82, left = false, label = s.name(m),
+                state = when {
+                    i !in range -> FallingState.BACKGROUND
+                    i < position || (i == position && m in stepPressed) -> FallingState.DONE
+                    else -> FallingState.WAITING
+                },
+            )
+        }
+    }
+    val keyRange = remember(s.steps) { s.steps.flatMap { it.notes }.let { all -> fallingKeyRange(all.min(), all.max()) } }
+    val at by androidx.compose.runtime.rememberUpdatedState(position.toDouble())
+    FallingNotesView(
+        notes = notes,
+        cursor = { at },
+        animate = true,
+        keyRange = keyRange,
+        pressed = keys,
+        keyLabel = { m -> s.name(m) },
+        modifier = modifier,
+        window = 6.0,
+        smooth = true,
+        lines = s.phrases.map { it.first - 0.09 },
+    )
 }
 
 @Composable

@@ -52,6 +52,11 @@ import com.id.mimikopi.core.section.SectionTrainer.Outcome
 import com.id.mimikopi.core.section.Spelling
 import com.id.mimikopi.core.section.Step
 import com.id.mimikopi.desktop.Services
+import com.id.mimikopi.desktop.port.components.FallingNote
+import com.id.mimikopi.desktop.port.components.FallingNotesView
+import com.id.mimikopi.desktop.port.components.FallingState
+import com.id.mimikopi.desktop.port.components.fallingKeyRange
+import androidx.compose.runtime.rememberUpdatedState
 import com.id.mimikopi.desktop.ui.BackHeader
 import com.id.mimikopi.desktop.ui.NoKeyboardBanner
 import com.id.mimikopi.desktop.ui.Pill
@@ -103,7 +108,8 @@ fun SectionsHome(onPractice: (String) -> Unit, onEdit: (String) -> Unit, onOpenM
                     Text("${s.steps.size} โน้ต · ${s.phrases.size} วลี" + (s.stats.accuracy?.let { " · ${(it * 100).toInt()}%" } ?: ""), fontFamily = Tokens.Fonts.mono, fontSize = 12.sp,
                         color = Tokens.Palette.InkMuted, modifier = Modifier.weight(1f))
                     TextButton(onClick = { deleting = s }) { Text("ลบ", color = Tokens.Palette.InkMuted) }
-                    TextButton(onClick = { onEdit(s.id) }) { Text("แก้โน้ต", color = Tokens.Palette.InkMuted) }
+                    TextButton(onClick = { model.setFalling(!falling) }) { Text(if (falling) "ตัวใหญ่" else "โน้ตตก", color = Tokens.Palette.InkMuted) }
+            TextButton(onClick = { onEdit(s.id) }) { Text("แก้โน้ต", color = Tokens.Palette.InkMuted) }
                     Button(onClick = { onPractice(s.id) }, enabled = s.steps.isNotEmpty()) { Text("ฝึก →") }
                 }
             }
@@ -193,6 +199,8 @@ fun SectionPracticeScreen(id: String, onBack: () -> Unit, onEdit: (String) -> Un
     DisposableEffect(model) { onDispose { model.dispose() } }
     val section by model.section.collectAsState()
     val ui by model.ui.collectAsState()
+    val falling by model.falling.collectAsState()
+    val keys by Services.hub.pressed.collectAsState()
     val s = section ?: return
     Column(Modifier.fillMaxWidth()) {
         BackHeader(s.title, onBack) {
@@ -209,7 +217,8 @@ fun SectionPracticeScreen(id: String, onBack: () -> Unit, onEdit: (String) -> Un
         val range = phrases[phrases.indexOfFirst { ui.position in it }.coerceAtLeast(0)]
         val before = (range.first until ui.position).toList().takeLast(3)
         val after = ((ui.position + 1)..range.last).toList().take(3)
-        Row(Modifier.fillMaxWidth().heightIn(min = 320.dp), verticalAlignment = Alignment.CenterVertically,
+        if (falling) SectionFalling(s, ui.mode, ui.position, ui.pressed, keys, Modifier.fillMaxWidth().padding(vertical = 12.dp).height(480.dp))
+        else Row(Modifier.fillMaxWidth().heightIn(min = 320.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterHorizontally)) {
             before.forEach { i -> StepTile(s.steps[i], s.flats, Tokens.Palette.Faint, 40.sp) }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -236,6 +245,33 @@ fun SectionPracticeScreen(id: String, onBack: () -> Unit, onEdit: (String) -> Un
             Text("${ui.streak}/${ui.goal}", fontFamily = Tokens.Fonts.mono, fontSize = 13.sp)
         }
     }
+}
+
+/** The section as falling notes (as on the phone): the step being waited for sits on the line above the keyboard. */
+@Composable
+private fun SectionFalling(s: Section, mode: SectionTrainer.Mode, position: Int, stepPressed: Set<Int>, keys: Set<Int>, modifier: Modifier) {
+    val range = when (mode) {
+        is SectionTrainer.Mode.Phrase -> s.phrases.getOrElse(mode.index) { s.steps.indices }
+        SectionTrainer.Mode.Full -> s.steps.indices
+    }
+    val notes = s.steps.flatMapIndexed { i, step ->
+        step.notes.map { m ->
+            FallingNote(
+                m, i.toDouble(), 0.82, left = false, label = s.name(m),
+                state = when {
+                    i !in range -> FallingState.BACKGROUND
+                    i < position || (i == position && m in stepPressed) -> FallingState.DONE
+                    else -> FallingState.WAITING
+                },
+            )
+        }
+    }
+    val keyRange = remember(s.steps) { s.steps.flatMap { it.notes }.let { all -> fallingKeyRange(all.min(), all.max()) } }
+    val at by rememberUpdatedState(position.toDouble())
+    FallingNotesView(
+        notes = notes, cursor = { at }, animate = true, keyRange = keyRange, pressed = keys, keyLabel = { m -> s.name(m) },
+        modifier = modifier, window = 6.0, smooth = true, lines = s.phrases.map { it.first - 0.09 },
+    )
 }
 
 @Composable

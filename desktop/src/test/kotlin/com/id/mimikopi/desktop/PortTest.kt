@@ -52,6 +52,17 @@ class PortTest {
     }
 
     @Test
+    fun fallingKeyboardStartsAndEndsOnCAndCoversTheNotes() {
+        for ((lo, hi) in listOf(60 to 64, 47 to 79, 21 to 108, 66 to 66)) {
+            val r = com.id.mimikopi.desktop.port.components.fallingKeyRange(lo, hi)
+            assertEquals(0, r.first % 12, "$r")
+            assertEquals(0, r.last % 12, "$r")
+            assertTrue(lo in r && hi in r, "$r")
+            assertTrue(r.last - r.first >= 24, "$r")
+        }
+    }
+
+    @Test
     fun desktopRecordsCarryTheLadderMarker() {
         val store = tempStore()
         LearningRepository(store)

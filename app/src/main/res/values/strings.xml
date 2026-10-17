@@ -330,6 +330,9 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="reader_again">เล่นอีกครั้ง</string>
     <string name="reader_back_to_setup">ปรับการฝึก</string>
     <string name="reader_mode_wait">รอ</string>
+    <string name="reader_falling">โน้ตตก</string>
+    <string name="sections_falling">โน้ตตก</string>
+    <string name="sections_big">ตัวใหญ่</string>
     <string name="reader_mode_tempo">ตามจังหวะ</string>
     <string name="reader_hand_right">มือขวา</string>
     <string name="reader_hand_left">มือซ้าย</string>

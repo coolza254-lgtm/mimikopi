@@ -3,7 +3,15 @@ package com.id.mimikopi.desktop
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.use
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.id.mimikopi.desktop.port.MimikopiApp
+import com.id.mimikopi.desktop.port.components.FallingNote
+import com.id.mimikopi.desktop.port.components.FallingNotesView
+import com.id.mimikopi.desktop.port.components.FallingState
+import com.id.mimikopi.desktop.port.components.fallingKeyRange
 import com.id.mimikopi.desktop.port.SavedStateHandle
 import com.id.mimikopi.desktop.port.lesson.LessonScreen
 import com.id.mimikopi.desktop.port.lesson.LessonViewModel
@@ -45,6 +53,24 @@ class RenderTest {
             render(dark) { SectionsHome(onPractice = {}, onEdit = {}, onOpenMidi = {}) }
             render(dark) { SettingsScreen(onBack = {}) }
             render(dark) { EarDrillScreen(Services.learning.rungs.first(), onBack = {}, onOpenMidi = {}) }
+        }
+    }
+
+    @Test
+    fun fallingNotesRenderInBothLooks() {
+        val notes = listOf(
+            FallingNote(60, 0.0, 1.0, left = false, label = "C"),
+            FallingNote(48, 1.0, 2.0, left = true, label = "C", state = FallingState.DONE),
+            FallingNote(61, 2.0, 1.0, left = false, label = "C#", state = FallingState.MISSED),
+            FallingNote(64, 3.0, 1.0, left = false, label = "E", state = FallingState.BACKGROUND),
+            FallingNote(67, 20.0, 1.0, left = false, label = "G"), // far above: not drawn
+        )
+        for (dark in listOf(true, false)) render(dark) {
+            FallingNotesView(
+                notes = notes, cursor = { 0.5 }, animate = false, keyRange = fallingKeyRange(48, 72), pressed = setOf(60, 61),
+                keyLabel = { "C" }, modifier = Modifier.fillMaxWidth().height(500.dp), lines = listOf(0.0, 4.0),
+                marks = listOf(62 to System.nanoTime()),
+            )
         }
     }
 

@@ -132,6 +132,8 @@ object SettingKeys {
     const val LESSON_RECORDS_V2 = "lesson.records.v2"
     /** Section practice: all sections as one JSON list (backups include them). */
     const val SECTIONS = "sections"
+    /** Section practice shown as falling notes ("true") or the big note (default). */
+    const val SECTIONS_FALLING = "sections.falling"
     /** Today's session: item keys opened, by date ("flow:2026-10-14"). */
     const val FLOW_PREFIX = "flow:"
 }

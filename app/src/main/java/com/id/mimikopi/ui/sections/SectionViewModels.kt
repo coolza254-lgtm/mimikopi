@@ -216,8 +216,20 @@ class SectionPracticeViewModel(app: Application, args: SavedStateHandle) : Piano
     private var trainer: SectionTrainer? = null
     private val _ui = MutableStateFlow(PracticeUi())
     val ui: StateFlow<PracticeUi> = _ui.asStateFlow()
+    /** Keys held on the MIDI keyboard (for the falling-notes keyboard). */
+    val keys = hub.pressed
+    private val _falling = MutableStateFlow(false)
+    val falling: StateFlow<Boolean> = _falling.asStateFlow()
+
+    fun setFalling(on: Boolean) {
+        _falling.value = on
+        viewModelScope.launch { services.database.settingsDao().put(com.id.mimikopi.data.db.SettingEntity(com.id.mimikopi.data.db.SettingKeys.SECTIONS_FALLING, on.toString())) }
+    }
 
     init {
+        viewModelScope.launch {
+            _falling.value = services.database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.SECTIONS_FALLING) == "true"
+        }
         viewModelScope.launch {
             repo.load()
             val s = repo.section(id) ?: return@launch

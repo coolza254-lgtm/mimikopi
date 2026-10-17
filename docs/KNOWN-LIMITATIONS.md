@@ -6,8 +6,8 @@ Updated each milestone. Mirrors the "ยังไม่มีในรุ่น�
 What the app does not do, or does only partly, as of the last milestone. Details per milestone follow below.
 
 **Not built**
-- Falling-notes view, dark theme, English UI, reminders (the user does not want them now), Windows desktop
-  (only on the user's approval), audio-file import for transcription.
+- English UI, reminders (the user does not want them now), audio-file import for transcription. (Dark theme came in
+  M15, the Windows version in v0.17-0.18, the falling-notes view in v0.19.)
 - On-screen keyboard: removed on purpose in M15; every exercise is played on a MIDI keyboard.
 - Release ("damper") noise and sympathetic resonance samples; velocity layers are switched, not cross-faded.
 - Section practice: rhythm is not recorded or judged; no tempo mode for sections.
@@ -24,6 +24,14 @@ What the app does not do, or does only partly, as of the last milestone. Details
 **Only verifiable on the phone (never confirmed by CI)**
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
+
+## Falling notes (v0.19.0)
+- Songs: a "falling notes" chip in the reader (library pieces only, not lesson drills). The bars come from the score
+  (ties merged) and move with the same cursor as the score view, so wait mode, tempo mode, listen and the judge are
+  unchanged. A run in this view counts as a helper (like note names): it does not count toward passing the piece.
+- Sections: "falling notes" / "big note" switch on the practice page (remembered); one step per row, no rhythm (the
+  recorded sections keep note order only). Black and white: right hand white bars, left hand grey; the keyboard is
+  always light keys / dark keys. Hand split in sections is not known, so all bars are one colour.
 
 ## Windows version, v0.18.1
 - In-program update: reads `windows.json` from the latest release (attached by the release workflow's Windows job a

@@ -73,6 +73,8 @@ data class ReaderOptions(
     val loopListen: Boolean = false,
     /** Page view: the score wrapped into lines that scroll down, instead of one long strip. */
     val pageView: Boolean = false,
+    /** Falling notes over a keyboard instead of the score (songs only); a run with it does not count toward passing. */
+    val falling: Boolean = false,
 )
 
 sealed interface ResultAction {
@@ -311,6 +313,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     fun setHideNotes(on: Boolean) = updateOptions { it.copy(hideNotes = on) }
     fun setLoopListen(on: Boolean) = updateOptions { it.copy(loopListen = on) }
     fun setPageView(on: Boolean) = updateOptions { it.copy(pageView = on) }
+    fun setFalling(on: Boolean) = updateOptions { it.copy(falling = on) }
 
     private fun updateOptions(change: (ReaderOptions) -> ReaderOptions) {
         if (!editable()) return
@@ -448,7 +451,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         pedalEvents.clear()
         chordHits.clear()
         chordBeats = j.expected.groupBy { it.beat }.filterValues { it.size >= 3 }.keys
-        helperUsedThisRun = u.showNames
+        // Falling notes are played without reading the score: like note names, the run does not count toward passing.
+        helperUsedThisRun = u.showNames || (u.options.falling && !fixed)
         runStartedAt = System.currentTimeMillis()
         _ui.update { it.copy(results = emptyMap(), wrongMarks = emptyList(), result = null, pendingSectionStart = null, message = null) }
         runJob?.cancel()
@@ -855,7 +859,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         if (newBpm != null) {
             out += CoachLine(if (newBpm > r.setup.bpm) "เล่นสะอาด 3 รอบติด เพิ่มความเร็วเป็น $newBpm bpm" else "พลาด 2 รอบติด ลดความเร็วกลับเป็น $newBpm bpm")
         }
-        if (helper) out += CoachLine("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่านเพลง")
+        if (helper) out += CoachLine(
+            if (_ui.value.options.falling && !fixed) "รอบนี้เล่นแบบโน้ตตก (ไม่ได้อ่านโน้ตดนตรี) จึงไม่นับเป็นการผ่านเพลง สลับกลับเป็นโน้ตดนตรีเมื่อพร้อม"
+            else "รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่านเพลง",
+        )
         if (!r.timingJudged && (r.summary?.noteAccuracy ?: 0.0) >= 0.95) {
             out += CoachLine("อ่านโน้ตได้แม่นแล้ว ลองโหมด \"ตามจังหวะ\" ดู")
         }

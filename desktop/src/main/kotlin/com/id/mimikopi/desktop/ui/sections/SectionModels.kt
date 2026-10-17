@@ -125,6 +125,18 @@ class SectionPracticeModel(id: String) {
     }
     private val _ui = MutableStateFlow(PracticeUi())
     val ui: StateFlow<PracticeUi> = _ui.asStateFlow()
+    /** Falling notes instead of the big note (remembered, the same setting row as on the phone). */
+    private val _falling = MutableStateFlow(Services.store.get(FALLING_KEY) == "true")
+    val falling: StateFlow<Boolean> = _falling.asStateFlow()
+
+    fun setFalling(on: Boolean) {
+        _falling.value = on
+        Services.store.put(FALLING_KEY, on.toString())
+    }
+
+    private companion object {
+        const val FALLING_KEY = "sections.falling"
+    }
 
     init {
         publish(null)

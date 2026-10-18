@@ -99,7 +99,11 @@ class ExamTest {
         Exams.GRADES.forEach { g ->
             val asked = Exams.askedScales(g, 7L)
             assertEquals(g.ask, asked.size)
-            assertTrue(asked.any { it.kind == ScaleKind.ARP_MAJOR || it.kind == ScaleKind.ARP_MINOR } || g.scales.none { it.kind.name.startsWith("ARP") })
+            for (seed in 1L..300L) {
+                val a = Exams.askedScales(g, seed)
+                assertTrue(a.any { it.kind.name.startsWith("ARP") } || g.scales.none { it.kind.name.startsWith("ARP") }, "grade ${g.n} seed $seed: an arpeggio")
+                assertTrue(a.any { !it.kind.name.startsWith("ARP") }, "grade ${g.n} seed $seed: a scale")
+            }
             assertEquals(asked, Exams.askedScales(g, 7L))
             val piece = Exams.scalesPiece(g, 7L)
             val score = Score.from(piece)
@@ -122,13 +126,32 @@ class ExamTest {
             val lh = score.events.filter { it.hand == Hand.LEFT && !it.isRest }
             assertTrue(lh.isNotEmpty())
             assertEquals(Keys.tonic(g.pop.key).pc, rh.last().pitches.single().midi % 12)
-            // The left hand never needs a key the right hand is holding.
+            // The left hand stays below the right hand: never the same key, never above it.
             lh.forEach { l ->
                 rh.filter { it.onset < l.end - 1e-9 && l.onset < it.end - 1e-9 }.forEach { r ->
-                    assertTrue(l.pitches.none { lp -> r.pitches.any { it.midi == lp.midi } }, "grade ${g.n} m${l.measure + 1}: hands share a key")
+                    assertTrue(l.pitches.maxOf { it.midi } < r.pitches.minOf { it.midi }, "grade ${g.n} m${l.measure + 1}: left hand reaches the right hand")
                 }
             }
             assertTrue(p.chords.isNotEmpty(), "chord symbols over the pop piece")
+        }
+    }
+
+    /** Pairs of the two hands sounding the same key at one moment (the judge can only match one of them). */
+    private fun sharedKeys(score: Score): Int {
+        val rh = score.events.filter { it.hand == Hand.RIGHT && !it.isRest }
+        return score.events.filter { it.hand == Hand.LEFT && !it.isRest }.sumOf { l ->
+            rh.count { r -> r.onset < l.end - 1e-9 && l.onset < r.end - 1e-9 && r.pitches.any { p -> l.pitches.any { it.midi == p.midi } } }
+        }
+    }
+
+    @Test
+    fun twoHandReadingNeverAsksBothHandsForOneKey() {
+        Exams.GRADES.forEach { g ->
+            for (seed in 1L..60L) assertEquals(0, sharedKeys(Score.from(Exams.sightPiece(g, seed))), "grade ${g.n} seed $seed")
+        }
+        // The same generators make the L6/L7 reading drills and skill tests.
+        for (level in 6..7) for (seed in 1L..60L) {
+            assertEquals(0, sharedKeys(Score.from(com.id.mimikopi.core.theory.StageGenerators.sightReading(level, emptyList(), 60, seed))), "L$level seed $seed")
         }
     }
 
@@ -158,7 +181,11 @@ class ExamTest {
         // Stops cost marks; a part played badly still earns a third; nothing played earns nothing.
         assertTrue(Exams.playedMarks(ExamPart.PIECE_1, 0.95, 0.9, 3) < Exams.playedMarks(ExamPart.PIECE_1, 0.95, 0.9, 0))
         assertEquals(10, Exams.playedMarks(ExamPart.PIECE_1, 0.2, 0.1, 5))
-        assertEquals(0, Exams.playedMarks(ExamPart.PIECE_1, 0.0, 0.0, 0))
+        assertEquals(0, Exams.playedMarks(ExamPart.PIECE_1, 0.0, 0.0, 0, played = false))
+        // Played through but with as many wrong keys as right ones (net accuracy 0): still a third, not nothing.
+        assertEquals(10, Exams.playedMarks(ExamPart.PIECE_1, 0.0, 0.3, 0, played = true))
+        // One note and then the stop button: only what the notes give.
+        assertEquals(0, Exams.playedMarks(ExamPart.SIGHT, 1.0 / 32, 1.0 / 32, 1, played = true, complete = false))
         assertEquals(12, Exams.auralMarks(8, 12))
         assertEquals(18, Exams.auralMarks(12, 12))
         assertEquals(Band.PASS, Exams.band(100))
@@ -190,6 +217,16 @@ class ExamTest {
 
         val other = ExamLog.abandon(listOf(ExamLog.start(3, listOf("silent-night", "twinkle-twinkle"), 9_000, "2026-10-18", 1)), "9000-3")
         assertNull(ExamLog.active(other, "2026-10-18"))
+        assertTrue(ExamLog.record(other, "9000-3", ExamPart.AURAL, PartMark(18, 9_500)).single().parts.isEmpty(), "a given-up exam takes no marks")
+
+        // A new exam gives up every exam still open that day (two can arrive by sync), but not finished ones.
+        val a = ExamLog.start(1, listOf("row-row-row", "yankee-doodle"), 100, "2026-10-18", 1)
+        val b = ExamLog.start(2, listOf("ode-to-joy", "sakura-sakura"), 200, "2026-10-18", 2)
+        val c = ExamLog.start(3, listOf("silent-night", "twinkle-twinkle"), 300, "2026-10-18", 3)
+        val begun = ExamLog.begin(listOf(a, b, done), c)
+        assertTrue(begun.filter { it.id == a.id || it.id == b.id }.all { it.abandoned })
+        assertTrue(!begun.first { it.id == done.id }.abandoned)
+        assertEquals(c, ExamLog.active(begun, "2026-10-18"))
     }
 
     @Test
@@ -202,6 +239,16 @@ class ExamTest {
         assertEquals(ab, ExamLog.merge(ab, ab))
         assertEquals(15, ab.single().mark(ExamPart.SCALES)!!.marks)
         assertEquals(14, ab.single().mark(ExamPart.AURAL)!!.marks)
+
+        // Given up on one device before the other device's last parts arrived: the finished exam wins.
+        val stale = ExamLog.abandon(ExamLog.record(listOf(s), s.id, ExamPart.PIECE_1, PartMark(22, 1_500)), s.id)
+        var finished = listOf(s)
+        ExamPart.entries.forEachIndexed { i, p -> finished = ExamLog.record(finished, s.id, p, PartMark(p.pass, 1_600L + i)) }
+        val merged = ExamLog.merge(stale, finished)
+        assertTrue(merged.single().complete && !merged.single().abandoned)
+        assertEquals(merged, ExamLog.merge(finished, stale))
+        // An unfinished exam given up on either device stays given up.
+        assertTrue(ExamLog.merge(stale, a).single().abandoned)
     }
 
     @Test

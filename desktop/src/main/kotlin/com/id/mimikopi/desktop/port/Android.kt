@@ -137,6 +137,36 @@ fun <T : ViewModel> rememberViewModel(vararg keys: Any?, create: () -> T): T {
     return vm
 }
 
+/**
+ * View models of the pages in the window's stacks. A page that is only hidden (another page on top, another tab) keeps
+ * its view model, so it comes back with its data and scroll position at once; the window clears it when the page
+ * leaves its stack.
+ */
+class PageModels {
+    private val models = HashMap<String, ViewModel>()
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T : ViewModel> getOrCreate(key: String, create: () -> T): T = models.getOrPut(key, create) as T
+
+    fun clear(key: String) { models.remove(key)?.clear() }
+}
+
+/** The window's page models and the key of the page shown (null outside the window, e.g. in tests). */
+val LocalPageModels = staticCompositionLocalOf<PageModels?> { null }
+val LocalPageKey = staticCompositionLocalOf<String?> { null }
+
+/**
+ * A list page's view model: kept by the window while the page is in a stack, else as [rememberViewModel]. Only for
+ * pages that neither take piano input nor hold the sound, since a hidden page's view model stays alive.
+ */
+@Composable
+fun <T : ViewModel> rememberPageViewModel(create: () -> T): T {
+    val models = LocalPageModels.current
+    val key = LocalPageKey.current
+    if (models == null || key == null) return rememberViewModel(create = create)
+    return remember(key) { models.getOrCreate(key, create) }
+}
+
 // ---------------- lifecycle ----------------
 
 abstract class Lifecycle {

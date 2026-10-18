@@ -40,8 +40,12 @@ What the app does not do, or does only partly, as of the last milestone. Details
   plays rubato or drifts loses timing marks. Scales are shown as written music with fingers (in a real exam they are
   played from memory). Hands-separately items are written right hand then left hand in one run.
 - One take per part, finished on the day it starts. Leaving a part's page mid-run records nothing (so a phone call
-  does not spoil the exam); stopping with the stop button records what was played. Showing note names during a part
-  voids that take and it can be played again.
+  does not spoil the exam); stopping with the stop button records what was played (without the one-third minimum of
+  a part played to the end). Showing note names during a part voids that take and it can be played again; for
+  sight-reading the next look is always new music. This is honour-based: a player can leave a bad take and retry it.
+- The two-hand sight-reading generators (L6, L7) wrote the same key in both hands at one moment in about two pieces of
+  three; one key press could only count once, so a flawless run lost notes. v0.25.0 drops the left-hand copy. This also
+  changes the L6/L7 reading drills and the SIGHT level 6-7 tests (results taken before were judged on the old pieces).
 - The ear course replaces the scale-degree trainer of v0.20-v0.24. Its stats (`ear.tone.*`) are kept and still sync,
   but the course starts at stage 1 and does not read them. EAR level results already earned stay and keep counting,
   although the eight EAR tests are now drawn from the course. Stage and "known" thresholds (asked 6 times, strength
@@ -53,8 +57,10 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Sync works on the same home Wi-Fi only (phone listens, computer connects; some routers isolate devices, then use
   the file instead). Both sides must run v0.25.0 or later. Device settings (latency, MIDI device, sound, theme, window)
   never sync. A backup is made automatically before each merge.
-- Windows: each tab keeps its own page stack, Esc goes back, the window remembers its size and position (only where a
-  screen still is) and cannot be made smaller than 880 × 600.
+- Windows: each tab keeps its own page stack; list pages (Today, Skills, songs, progress, exams ...) keep their data and
+  scroll position while hidden, practice pages start fresh. Esc goes back one page, also while a dialog is open (the
+  dialog closes with the page) or while typing. The window remembers its normal size and position (only where a screen
+  still is) and whether it was maximised, and cannot be made smaller than 880 × 600.
 
 ## Today, skills and the free piano (v0.24.0)
 - Four tabs: Today, Skills, Piano, Songs. The song notebook ("จดเพลง") is gone; notebook data left in settings is

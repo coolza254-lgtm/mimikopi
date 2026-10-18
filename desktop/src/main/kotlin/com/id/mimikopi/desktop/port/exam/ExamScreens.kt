@@ -363,7 +363,7 @@ private fun ResultCard(s: ExamSitting) {
             Band.BELOW -> "ขาดอีก $toPass คะแนนถึงเกณฑ์ผ่าน"
             Band.PASS -> "อีก ${Exams.MERIT - s.total} คะแนนถึงระดับดี"
             Band.MERIT -> "อีก ${Exams.DISTINCTION - s.total} คะแนนถึงระดับดีเยี่ยม"
-            Band.DISTINCTION -> "พร้อมขยับไปเกรดถัดไป"
+            Band.DISTINCTION -> if (Exams.grade(s.grade + 1) == null) "ผ่านเกรดสูงสุดของแอพแล้ว" else "พร้อมขยับไปเกรดถัดไป"
         }
         Text(line, fontSize = 14.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 4.dp))
         // One bar per part, filled to its share of the part's marks, so the weak part shows at a glance.

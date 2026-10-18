@@ -233,7 +233,7 @@ object StageGenerators {
                 listOf(r, r + 7, r + 12, r + 7).forEachIndexed { i, m -> lh += TimedNote(start + i * 4, 4, listOf(Keys.spellMidi(m, fifths))) }
             }
         }
-        return Timeline(meta, bars, rh, lh).toPieceFile()
+        return Timeline(meta, bars, rh, clearLeft(lh, rh)).toPieceFile()
     }
 
     private fun levelSeven(fifths: Int, tempo: Int, rnd: Random, seed: Long): PieceFile {
@@ -253,7 +253,20 @@ object StageGenerators {
             lh += TimedNote(b * 16 + 8, 8, v.map { Keys.spellMidi(it, fifths) })
             prev = v
         }
-        return Timeline(meta, bars, rh, lh).toPieceFile()
+        return Timeline(meta, bars, rh, clearLeft(lh, rh)).toPieceFile()
+    }
+
+    /**
+     * The left hand without the keys the right hand sounds during each of its notes: one key cannot be pressed twice at
+     * once, so the judge would count the second copy as missed. With [below], also without keys at or above the lowest
+     * right-hand key sounding then, so the hands never cross. A note left with no keys becomes a rest.
+     */
+    internal fun clearLeft(lh: List<TimedNote>, rh: List<TimedNote>, below: Boolean = false): List<TimedNote> = lh.mapNotNull { n ->
+        val over = rh.filter { it.start < n.start + n.length && n.start < it.start + it.length }.flatMap { it.pitches }
+        val busy = over.map { it.midi }.toSet()
+        val low = over.minOfOrNull { it.midi }
+        val left = n.pitches.filter { it.midi !in busy && (!below || low == null || it.midi < low) }
+        if (left.isEmpty()) null else n.copy(pitches = left)
     }
 
     internal fun endOnTonic(notes: List<TimedNote>, fifths: Int): List<TimedNote> {

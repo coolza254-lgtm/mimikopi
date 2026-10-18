@@ -23,6 +23,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -37,6 +39,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
@@ -75,6 +78,10 @@ import com.id.mimikopi.desktop.port.reader.PieceListScreen
 import com.id.mimikopi.desktop.port.reader.PieceListViewModel
 import com.id.mimikopi.desktop.port.reader.ReaderScreen
 import com.id.mimikopi.desktop.port.reader.ReaderViewModel
+import com.id.mimikopi.desktop.port.LocalPageKey
+import com.id.mimikopi.desktop.port.LocalPageModels
+import com.id.mimikopi.desktop.port.PageModels
+import com.id.mimikopi.desktop.port.rememberPageViewModel
 import com.id.mimikopi.desktop.port.rememberViewModel
 import com.id.mimikopi.desktop.port.skill.Skill
 import com.id.mimikopi.desktop.port.skill.SkillScreen
@@ -195,26 +202,67 @@ private fun savedWindow(): Triple<DpSize, WindowPosition, WindowPlacement> {
     return Triple(DpSize(w.coerceAtLeast(MIN_WIDTH.toFloat()).dp, h.coerceAtLeast(MIN_HEIGHT.toFloat()).dp), position, placement)
 }
 
+/**
+ * The window's last bounds while it was a normal window (not maximised or minimised), in the window's own units (the
+ * same numbers as its size in dp): what "restore down" should give after the next start.
+ */
+private var normalBounds: java.awt.Rectangle? = null
+
 private fun saveWindow(state: WindowState) {
+    val b = normalBounds
+    val size = if (b != null) "${b.width},${b.height}" else "${state.size.width.value},${state.size.height.value}"
     val p = state.position
-    val at = if (p is WindowPosition.Absolute) "${p.x.value},${p.y.value}" else ","
-    Services.store.put(Keys.WINDOW, "${state.size.width.value},${state.size.height.value},$at,${state.placement == WindowPlacement.Maximized}")
+    val at = if (b != null) "${b.x},${b.y}" else if (p is WindowPosition.Absolute) "${p.x.value},${p.y.value}" else ","
+    Services.store.put(Keys.WINDOW, "$size,$at,${state.placement == WindowPlacement.Maximized}")
 }
 
 /** Esc goes back one page; set by the window's content (false: nothing to go back to). */
 private var escape: () -> Boolean = { false }
+/** When Esc last went down: holding it (key repeat) goes back one page, not several. */
+private var escapeAt = 0L
+
+private fun onWindowKey(e: KeyEvent): Boolean {
+    if (e.key != Key.Escape) return false
+    return when (e.type) {
+        KeyEventType.KeyDown -> {
+            val now = System.currentTimeMillis()
+            val repeat = now - escapeAt < 700
+            escapeAt = now
+            repeat || escape()
+        }
+        KeyEventType.KeyUp -> { escapeAt = 0L; false }
+        else -> false
+    }
+}
 
 fun main() {
     Services.start()
     application {
         val (winSize, winPosition, winPlacement) = remember { savedWindow() }
+        remember {
+            (winPosition as? WindowPosition.Absolute)?.let {
+                normalBounds = java.awt.Rectangle(it.x.value.toInt(), it.y.value.toInt(), winSize.width.value.toInt(), winSize.height.value.toInt())
+            }
+        }
         val state = rememberWindowState(size = winSize, position = winPosition, placement = winPlacement)
         Window(
             onCloseRequest = { Services.midi.stop(); runCatching { saveWindow(state); Services.store.flush() }; exitApplication() },
             title = "ミミコピ", state = state, icon = appIcon,
-            onPreviewKeyEvent = { e -> e.type == KeyEventType.KeyDown && e.key == Key.Escape && escape() },
+            onPreviewKeyEvent = ::onWindowKey,
         ) {
             LaunchedEffect(Unit) { window.minimumSize = java.awt.Dimension(MIN_WIDTH, MIN_HEIGHT) }
+            // Remember the bounds only while the window is normal, so a maximised close keeps the earlier normal size.
+            DisposableEffect(Unit) {
+                fun note() {
+                    if ((window.extendedState and (java.awt.Frame.MAXIMIZED_BOTH or java.awt.Frame.ICONIFIED)) == 0) normalBounds = window.bounds
+                }
+                val listener = object : java.awt.event.ComponentAdapter() {
+                    override fun componentResized(e: java.awt.event.ComponentEvent) = note()
+                    override fun componentMoved(e: java.awt.event.ComponentEvent) = note()
+                }
+                window.addComponentListener(listener)
+                onDispose { window.removeComponentListener(listener) }
+            }
             val mode by Services.themeMode.collectAsState()
             val dark = when (mode) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; ThemeMode.SYSTEM -> isSystemInDarkTheme() }
             MimikopiTheme(dark) { App() }
@@ -232,12 +280,18 @@ private fun App() {
     var tabNow by remember { mutableStateOf<Screen>(Screen.Today) }
     var stacks by remember { mutableStateOf(TABS.associateWith { listOf(it) }) }
     val holder = rememberSaveableStateHolder()
+    val models = remember { PageModels() }
     val stack = stacks.getValue(tabNow)
     val screen = stack.last()
     fun keyOf(tab: Screen, i: Int, s: Screen) = "$tab#$i#$s"
     fun setStack(tab: Screen, next: List<Screen>) {
-        // Pages that leave a stack forget their saved state.
-        stacks.getValue(tab).forEachIndexed { i, s -> if (next.getOrNull(i) != s) holder.removeState(keyOf(tab, i, s)) }
+        // Pages that leave a stack forget their saved state and view model.
+        stacks.getValue(tab).forEachIndexed { i, s ->
+            if (next.getOrNull(i) != s) {
+                holder.removeState(keyOf(tab, i, s))
+                models.clear(keyOf(tab, i, s))
+            }
+        }
         stacks = stacks + (tab to next)
     }
     fun go(s: Screen) = setStack(tabNow, stacks.getValue(tabNow) + s)
@@ -271,12 +325,15 @@ private fun App() {
         Box(Modifier.width(1.dp).fillMaxHeight().background(Tokens.Palette.Hair))
         // Clipped: a score strip draws past its edges and must not cover the rail.
         Box(Modifier.weight(1f).fillMaxHeight().clipToBounds()) {
-        holder.SaveableStateProvider(keyOf(tabNow, stack.size - 1, screen)) {
-            if (!screen.scrollsInPage) Box(Modifier.fillMaxSize()) {
-                PortedPage(screen, go = ::go, back = ::back, open = open, openMidi = openMidi)
-            } else Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
-                Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().padding(horizontal = 48.dp, vertical = 40.dp)) {
-                    if (screen == Screen.Settings) SettingsScreen(onBack = ::back, onOpenMetronome = { go(Screen.Metronome) })
+        val pageKey = keyOf(tabNow, stack.size - 1, screen)
+        holder.SaveableStateProvider(pageKey) {
+            CompositionLocalProvider(LocalPageModels provides models, LocalPageKey provides pageKey) {
+                if (!screen.scrollsInPage) Box(Modifier.fillMaxSize()) {
+                    PortedPage(screen, go = ::go, back = ::back, open = open, openMidi = openMidi)
+                } else Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
+                    Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().padding(horizontal = 48.dp, vertical = 40.dp)) {
+                        if (screen == Screen.Settings) SettingsScreen(onBack = ::back, onOpenMetronome = { go(Screen.Metronome) })
+                    }
                 }
             }
         }
@@ -294,9 +351,9 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
     val openDrill: (String, Int) -> Unit = { id, i -> lessonDrill(id, i)?.let(go) }
     val openSettings = { go(Screen.Settings) }
     when (screen) {
-        Screen.Today -> TodayScreen(onOpen = open, onOpenMidi = openMidi, onOpenSettings = openSettings, vm = rememberViewModel(screen) { TodayViewModel(app) })
-        Screen.Skills -> SkillsScreen(onOpen = open, onOpenMidi = openMidi, onOpenSettings = openSettings, vm = rememberViewModel(screen) { SkillsViewModel(app) })
-        is Screen.SkillDetail -> SkillDetailScreen(screen.skill, onBack = back, onOpen = open, vm = rememberViewModel(screen) { SkillsViewModel(app) })
+        Screen.Today -> TodayScreen(onOpen = open, onOpenMidi = openMidi, onOpenSettings = openSettings, vm = rememberPageViewModel { TodayViewModel(app) })
+        Screen.Skills -> SkillsScreen(onOpen = open, onOpenMidi = openMidi, onOpenSettings = openSettings, vm = rememberPageViewModel { SkillsViewModel(app) })
+        is Screen.SkillDetail -> SkillDetailScreen(screen.skill, onBack = back, onOpen = open, vm = rememberPageViewModel { SkillsViewModel(app) })
         Screen.Piano -> FreePianoScreen(onOpenMidi = openMidi, onOpenSettings = openSettings, vm = rememberViewModel(screen) { FreePianoViewModel(app) })
         Screen.Ladder -> SkillScreen(
             skill = Skill.READING,
@@ -306,7 +363,7 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
             onOpenMidi = openMidi,
             onOpenSettings = openSettings,
             onBack = back,
-            vm = rememberViewModel(screen) { SkillViewModel(app) },
+            vm = rememberPageViewModel { SkillViewModel(app) },
         )
         Screen.Ear -> EarHomeScreen(
             onRound = { kind -> go(Screen.EarSession(kind?.name)) },
@@ -314,19 +371,19 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
             onOpenMidi = openMidi,
             onOpenSettings = openSettings,
             onBack = back,
-            vm = rememberViewModel(screen) { EarHomeViewModel(app) },
+            vm = rememberPageViewModel { EarHomeViewModel(app) },
         )
         Screen.Progress -> com.id.mimikopi.desktop.port.progress.ProgressScreen(onBack = back, onOpen = open,
-            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.progress.ProgressViewModel(app) })
+            vm = rememberPageViewModel { com.id.mimikopi.desktop.port.progress.ProgressViewModel(app) })
         Screen.Goal -> com.id.mimikopi.desktop.port.progress.GoalScreen(onBack = back, onOpen = open,
-            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.progress.GoalViewModel(app) })
+            vm = rememberPageViewModel { com.id.mimikopi.desktop.port.progress.GoalViewModel(app) })
         is Screen.EarSession -> EarSessionScreen(onBack = back, vm = rememberViewModel(screen) { EarSessionViewModel(app, args("focus" to screen.focus)) })
         Screen.Exams -> com.id.mimikopi.desktop.port.exam.ExamHomeScreen(onBack = back, onOpen = open,
-            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args()) })
+            vm = rememberPageViewModel { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args()) })
         is Screen.ExamGrade -> com.id.mimikopi.desktop.port.exam.ExamGradeScreen(onBack = back, onOpen = open,
-            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args("grade" to screen.grade.toString())) })
+            vm = rememberPageViewModel { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args("grade" to screen.grade.toString())) })
         is Screen.ExamResult -> com.id.mimikopi.desktop.port.exam.ExamResultScreen(onBack = back, onOpen = open,
-            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args("id" to screen.id)) })
+            vm = rememberPageViewModel { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args("id" to screen.id)) })
         is Screen.ExamPlay -> ReaderScreen(onBack = back, vm = rememberViewModel(screen) { ReaderViewModel(app, args("exam" to screen.sitting, "part" to screen.part)) })
         is Screen.ExamAural -> EarSessionScreen(onBack = back, vm = rememberViewModel(screen) { EarSessionViewModel(app, args("exam" to screen.sitting)) })
         Screen.Metronome -> MetronomeScreen(onBack = back, vm = rememberViewModel(screen) { MetronomeViewModel(app) })
@@ -334,7 +391,7 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
             onPlay = { id, hand -> go(Screen.Reader(id, hand)) },
             onOpenMidi = openMidi,
             onOpenSettings = openSettings,
-            vm = rememberViewModel(screen) { SongsViewModel(app) },
+            vm = rememberPageViewModel { SongsViewModel(app) },
         )
         is Screen.LessonPage -> LessonScreen(onBack = back, onOpenDrill = openDrill,
             vm = rememberViewModel(screen) { LessonViewModel(app, args("lessonId" to screen.lessonId)) })
@@ -342,7 +399,7 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
             vm = rememberViewModel(screen) { DrillViewModel(app, args("lessonId" to screen.lessonId, "drill" to screen.index.toString(), "via" to screen.via)) })
         Screen.Review -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("review" to "true")) })
         Screen.Chords -> ChordHomeScreen(onStart = { go(Screen.ChordDrill("chords")) }, onOpenMidi = openMidi, onOpenSettings = openSettings, onBack = back,
-            vm = rememberViewModel(screen) { ChordHomeViewModel(app) })
+            vm = rememberPageViewModel { ChordHomeViewModel(app) })
         is Screen.ChordDrill -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("practice" to screen.practice)) })
         is Screen.Check -> when (screen.run) {
             is CheckRun.DrillRun -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("check" to screen.key)) })
@@ -351,7 +408,7 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
         }
         is Screen.NewReading -> ReaderScreen(onBack = back, vm = rememberViewModel(screen) { ReaderViewModel(app, args("newread" to screen.level.toString())) })
         is Screen.Pieces -> PieceListScreen(onBack = back, onOpenPiece = { id, hand -> go(Screen.Reader(id, hand)) },
-            vm = rememberViewModel(screen) { PieceListViewModel(app, args("lesson" to screen.lessonId, "drill" to screen.index.toString())) })
+            vm = rememberPageViewModel { PieceListViewModel(app, args("lesson" to screen.lessonId, "drill" to screen.index.toString())) })
         is Screen.Reader -> ReaderScreen(onBack = back,
             vm = rememberViewModel(screen) { ReaderViewModel(app, args("pieceId" to screen.pieceId, "hand" to screen.hand)) })
         is Screen.ScoreDrill -> ReaderScreen(onBack = back,

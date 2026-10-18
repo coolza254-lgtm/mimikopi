@@ -85,11 +85,8 @@ class ProgressStore(private val read: suspend (String) -> String?, private val w
         }
     }
 
-    /** Starts an exam (any unfinished exam of today is given up first: one exam at a time). */
-    suspend fun startExam(sitting: ExamSitting) = changeExams { log ->
-        val open = ExamLog.active(log, sitting.day)
-        (if (open != null) ExamLog.abandon(log, open.id) else log) + sitting
-    }
+    /** Starts an exam (every unfinished exam of today is given up first: one exam at a time). */
+    suspend fun startExam(sitting: ExamSitting) = changeExams { ExamLog.begin(it, sitting) }
 
     /** Records one part of an exam; a part already taken keeps its first marks. */
     suspend fun recordExam(id: String, part: ExamPart, mark: PartMark) = changeExams { ExamLog.record(it, id, part, mark) }

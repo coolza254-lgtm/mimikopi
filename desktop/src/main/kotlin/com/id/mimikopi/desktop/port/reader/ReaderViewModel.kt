@@ -251,7 +251,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             ExamPart.PIECE_2 -> pieces.pieceOrExercise(sitting.pieces[1])
             ExamPart.POP -> Score.from(Exams.pop(grade))
             ExamPart.SCALES -> Score.from(Exams.scalesPiece(grade, sitting.seed))
-            ExamPart.SIGHT -> Score.from(Exams.sightPiece(grade, sitting.seed))
+            // New music on every look: a voided take or a left page never shows the same piece twice.
+            ExamPart.SIGHT -> Score.from(Exams.sightPiece(grade, seed))
             ExamPart.AURAL -> null
         }
     }
@@ -318,6 +319,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     private var runJob: Job? = null
     /** Exam sight-reading: the look-first countdown. */
     private var previewJob: Job? = null
+    /** The run was ended with the stop button before the music's end (an exam part then gets no minimum marks). */
+    private var stoppedEarly = false
     private var judge: PlayAlongJudge? = null
     private var latencies: Map<InputSource, Double> = emptyMap()
     private var helperUsedThisRun = false
@@ -354,7 +357,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     /** Exam sight-reading: half a minute to look at the music, then the run starts, as an examiner would ask. */
     private fun startPreview() {
         val src = source as? Source.Exam ?: return
-        if (src.part != ExamPart.SIGHT || examTaken() || score == null) return
+        if (src.part != ExamPart.SIGHT || previewJob != null || examTaken() || score == null || _ui.value.phase != Phase.IDLE) return
         previewJob = viewModelScope.launch {
             for (left in PREVIEW_SECONDS downTo 1) {
                 _ui.update { it.copy(previewLeft = left) }
@@ -362,17 +365,32 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             }
             _ui.update { it.copy(previewLeft = null) }
             previewJob = null
-            if (_ui.value.phase == Phase.IDLE) start()
+            // Only while the page is on screen (the countdown is cancelled when it leaves).
+            if (holding && _ui.value.phase == Phase.IDLE) start()
         }
     }
 
     fun onStart() {
+        startPreview()
         if (holding) return
         holding = true
         viewModelScope.launch { withContext(Dispatchers.IO) { piano.acquire(needPack = false) } }
     }
 
     fun onStop() {
+        // Exams: leaving the page (a call, the home button, another page) drops a take in progress instead of marking
+        // it; only the stop button or the end of the music counts. Sight-reading then gets new music for the next look.
+        previewJob?.cancel()
+        previewJob = null
+        if (_ui.value.previewLeft != null) _ui.update { it.copy(previewLeft = null) }
+        val src = source
+        if (src is Source.Exam) {
+            judge = null
+            if (src.part == ExamPart.SIGHT && !examTaken() && _ui.value.phase != Phase.RESULT) {
+                seed = System.currentTimeMillis()
+                loadPiece()
+            }
+        }
         stop()
         if (!holding) return
         holding = false
@@ -511,6 +529,11 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             _ui.update { it.copy(message = "สอบส่วนนี้ไปแล้ว ผลนับครั้งแรกเท่านั้น") }
             return
         }
+        exam()?.first?.takeIf { it.abandoned || it.day != java.time.LocalDate.now().toString() }?.let {
+            _ui.update { u -> u.copy(message = "การสอบนี้ยกเลิกแล้วหรือหมดวันแล้ว เริ่มสอบใหม่ได้ที่หน้าเกรด") }
+            return
+        }
+        stoppedEarly = false
         if (newPieceNext) {
             seed = System.currentTimeMillis()
             loadPiece()
@@ -561,6 +584,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val j = judge
         judge = null
         if (j != null && (phase == Phase.PLAYING) && j.outcomes().values.any { it.result != NoteResult.PENDING }) {
+            stoppedEarly = true
             finish(j)
         } else if (phase != Phase.RESULT) {
             _ui.update { it.copy(phase = Phase.IDLE, countIn = null) }
@@ -832,9 +856,19 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                     val before = exam()?.first?.mark(src.part)
                     when {
                         before != null -> progressLine = "สอบส่วนนี้ไปแล้ว ได้ ${before.marks} คะแนน (นับครั้งแรกเท่านั้น)"
-                        helper -> lines += CoachLine("เปิดชื่อโน้ตระหว่างสอบ ส่วนนี้จึงยังไม่นับ ปิดชื่อโน้ตแล้วเล่นใหม่ได้")
+                        helper -> {
+                            lines += CoachLine("เปิดชื่อโน้ตระหว่างสอบ ส่วนนี้จึงยังไม่นับ ปิดชื่อโน้ตแล้วเล่นใหม่ได้")
+                            if (src.part == ExamPart.SIGHT) {
+                                lines += CoachLine("รอบใหม่ใช้โน้ตใหม่")
+                                seed = System.currentTimeMillis()
+                                loadPiece()
+                            }
+                        }
                         else -> {
-                            val marks = Exams.playedMarks(src.part, acc, timing, result.stumbles)
+                            val played = result.wrongPresses.isNotEmpty() || result.outcomes.values.any {
+                                it.result == NoteResult.CORRECT || it.result == NoteResult.EARLY || it.result == NoteResult.LATE || it.result == NoteResult.CORRECTED
+                            }
+                            val marks = Exams.playedMarks(src.part, acc, timing, result.stumbles, played = played, complete = !stoppedEarly)
                             val mark = PartMark(marks, System.currentTimeMillis(), acc, timing, result.stumbles)
                             services.progress.recordExam(src.sitting, src.part, mark)
                             services.progress.log("check", seconds)

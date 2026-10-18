@@ -167,6 +167,7 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
                 val stop = when {
                     sitting == null || examGrade == null -> "ไม่พบการสอบนี้"
                     sitting.mark(ExamPart.AURAL) != null -> "สอบส่วนนี้ไปแล้ว ได้ ${sitting.mark(ExamPart.AURAL)!!.marks} คะแนน"
+                    sitting.abandoned || sitting.day != LocalDate.now().toString() -> "การสอบนี้ยกเลิกแล้วหรือหมดวันแล้ว เริ่มสอบใหม่ได้ที่หน้าเกรด"
                     else -> null
                 }
                 if (stop != null) {

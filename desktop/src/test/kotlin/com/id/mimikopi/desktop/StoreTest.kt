@@ -15,7 +15,7 @@ class StoreTest {
     @Test
     fun valuesSurviveReopening() {
         val dir = kotlin.io.path.createTempDirectory("mimikopi").toFile()
-        Store(dir.resolve("data.json")).apply { put("a", "1"); putItemStat(ItemStatRow("ear:cmp", 2, 5L, "10", null)) }
+        Store(dir.resolve("data.json")).apply { put("a", "1"); putItemStat(ItemStatRow("ear:cmp", 2, 5L, "10", null)); flush() }
         val again = Store(dir.resolve("data.json"))
         assertEquals("1", again.get("a"))
         assertEquals(2, again.itemStats()["ear:cmp"]?.box)

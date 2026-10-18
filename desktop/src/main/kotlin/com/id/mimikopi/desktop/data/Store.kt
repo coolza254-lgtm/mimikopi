@@ -12,12 +12,19 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Instant
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 /**
  * Everything the desktop app keeps, in one JSON file in the user's app-data folder (%APPDATA%\Mimikopi on Windows).
  * The same key/value settings rows as the Android settings table, plus spaced-repetition item stats, so an Android
  * backup can be imported as it is and a desktop backup restored on the phone. Writes go to a temp file then replace
  * the old one, so a crash never leaves a half-written file. Nothing leaves the computer.
+ *
+ * Changes are saved shortly after they are made on a background thread (several changes in a row share one write),
+ * so the screens never wait for the disk; [flush] writes at once (closing the window, and at shutdown).
  */
 class Store(private val file: File) {
     @Serializable
@@ -26,34 +33,68 @@ class Store(private val file: File) {
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
     private val lock = Any()
     private var content: Content = load()
+    /** Guarded by [lock]: changes not written yet, and the background save that will write them. */
+    private var dirty = false
+    private var pending: ScheduledFuture<*>? = null
+    /** Held for every disk access, so writes (and the pre-sync copy) never overlap. Taken before [lock], never inside it. */
+    private val diskLock = Any()
+
+    init {
+        Runtime.getRuntime().addShutdownHook(Thread({ runCatching { flush() } }, "mimikopi-store-flush"))
+    }
 
     private fun load(): Content = runCatching { if (file.exists()) json.decodeFromString(Content.serializer(), file.readText()) else null }
         .getOrNull() ?: Content()
 
-    private fun save() {
+    private fun save(snapshot: Content) {
         file.parentFile?.mkdirs()
         val tmp = File(file.parentFile, file.name + ".tmp")
-        tmp.writeText(json.encodeToString(Content.serializer(), content))
+        tmp.writeText(json.encodeToString(Content.serializer(), snapshot))
         Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+    }
+
+    /** Called under [lock] after a change: the background save is due [SAVE_DELAY_MS] after the first unsaved change. */
+    private fun saveLater() {
+        dirty = true
+        if (pending == null) pending = writer.schedule(Runnable { runCatching { flush() } }, SAVE_DELAY_MS, TimeUnit.MILLISECONDS)
+    }
+
+    /** Writes the unsaved changes now, if there are any. A failed write keeps them for the next try and rethrows. */
+    fun flush() {
+        synchronized(diskLock) {
+            val snapshot = synchronized(lock) {
+                pending?.cancel(false)
+                pending = null
+                if (!dirty) return
+                dirty = false
+                content
+            }
+            try {
+                save(snapshot)
+            } catch (e: Exception) {
+                synchronized(lock) { dirty = true }
+                throw e
+            }
+        }
     }
 
     fun get(key: String): String? = synchronized(lock) { content.settings[key] }
 
     fun put(key: String, value: String) = synchronized(lock) {
         content = content.copy(settings = content.settings + (key to value))
-        save()
+        saveLater()
     }
 
     fun delete(key: String) = synchronized(lock) {
         content = content.copy(settings = content.settings - key)
-        save()
+        saveLater()
     }
 
     fun itemStats(): Map<String, ItemStatRow> = synchronized(lock) { content.itemStats }
 
     fun putItemStat(row: ItemStatRow) = synchronized(lock) {
         content = content.copy(itemStats = content.itemStats + (row.itemId to row))
-        save()
+        saveLater()
     }
 
     /** The settings rows named in [keys] and every review item, read in one step (what a sync sends). */
@@ -62,14 +103,20 @@ class Store(private val file: File) {
     }
 
     /**
-     * Writes a sync's merged rows and items in one step and one save; a copy of the file as it was is kept first
-     * (data.before-sync.json), so a bad sync can be undone by hand.
+     * Writes a sync's merged rows and items in one step and one save, on disk before it returns; a copy of the file
+     * as it was is kept first (data.before-sync.json), so a bad sync can be undone by hand.
      */
-    fun applyMerge(settings: Map<String, String>, items: List<ItemStatRow>) = synchronized(lock) {
-        if (settings.isEmpty() && items.isEmpty()) return@synchronized
-        if (file.exists()) runCatching { file.copyTo(File(file.parentFile, "data.before-sync.json"), overwrite = true) }
-        content = content.copy(settings = content.settings + settings, itemStats = content.itemStats + items.associateBy { it.itemId })
-        save()
+    fun applyMerge(settings: Map<String, String>, items: List<ItemStatRow>) {
+        if (settings.isEmpty() && items.isEmpty()) return
+        synchronized(diskLock) {
+            flush() // the copy below then holds every change made before the sync
+            if (file.exists()) runCatching { file.copyTo(File(file.parentFile, "data.before-sync.json"), overwrite = true) }
+            synchronized(lock) {
+                content = content.copy(settings = content.settings + settings, itemStats = content.itemStats + items.associateBy { it.itemId })
+                dirty = true
+            }
+            flush()
+        }
     }
 
     // ---------------- backups (the Android format, so data moves both ways) ----------------
@@ -96,8 +143,9 @@ class Store(private val file: File) {
                 settings = backup.data.settings.associate { it.key to it.value },
                 itemStats = backup.data.itemStats.associateBy { it.itemId },
             )
-            save()
+            dirty = true
         }
+        flush()
         return null
     }
 
@@ -106,6 +154,14 @@ class Store(private val file: File) {
         const val APPLICATION_ID = "com.id.mimikopi"
         /** Android Room schema version the settings rows belong to. */
         const val DATABASE_VERSION = 1
+
+        /** How long after a change it is written, so a burst of changes is written once. */
+        private const val SAVE_DELAY_MS = 250L
+
+        /** One background thread writes every store; a daemon, so it never keeps the program running. */
+        private val writer: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { r ->
+            Thread(r, "mimikopi-store").apply { isDaemon = true }
+        }
 
         /** %APPDATA%\Mimikopi on Windows, ~/.mimikopi elsewhere. */
         fun defaultDir(): File {

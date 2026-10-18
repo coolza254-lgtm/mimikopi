@@ -57,6 +57,8 @@ import kotlinx.coroutines.launch
 object ToneKeys {
     const val LEVELS = "ear.tone.levels"
     const val STATS = "ear.tone.stats"
+    /** Ids of deleted levels, so a sync with another device does not bring them back. */
+    const val DELETED = com.id.mimikopi.core.sync.ProgressMerge.EAR_DELETED
 }
 
 /** The user's own levels and every level's recent runs, read from and written to the settings rows. */
@@ -65,6 +67,10 @@ class ToneStore(private val services: MimikopiApp) {
     suspend fun saveCustom(levels: List<ToneLevel>) = services.database.settingsDao().put(SettingEntity(ToneKeys.LEVELS, FunctionalEar.levelsJson(levels)))
     suspend fun stats(): Map<String, ToneStats> = FunctionalEar.parseStats(services.database.settingsDao().get(ToneKeys.STATS))
     suspend fun saveStats(stats: Map<String, ToneStats>) = services.database.settingsDao().put(SettingEntity(ToneKeys.STATS, FunctionalEar.statsJson(stats)))
+    suspend fun markDeleted(id: String) {
+        val dao = services.database.settingsDao()
+        dao.put(SettingEntity(ToneKeys.DELETED, com.id.mimikopi.core.sync.ProgressMerge.withDeleted(dao.get(ToneKeys.DELETED), id)))
+    }
     suspend fun level(id: String): ToneLevel? = (FunctionalEar.intro + FunctionalEar.basic).firstOrNull { it.id == id } ?: customLevels().firstOrNull { it.id == id }
 }
 

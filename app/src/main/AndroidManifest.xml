@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Update check and APK download from the public releases repo only (M2). -->
+    <!-- Network use, each started by the user: the update check and APK download (public releases repo), the piano
+         sound download, and phone-to-PC sync on the home Wi-Fi (direct between the two devices, no server). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Lets the user approve installing app updates; every install still needs their confirmation. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />

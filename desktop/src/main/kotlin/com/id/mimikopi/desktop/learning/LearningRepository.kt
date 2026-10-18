@@ -98,7 +98,7 @@ class LearningRepository(private val store: Store) {
         var changed = false
         for (l in lessons) {
             val r = next[l.id] ?: continue
-            if (ProgressRules.failedConfirmation(l, r, today)) { next[l.id] = ProgressRules.reopen(r); changed = true }
+            if (ProgressRules.failedConfirmation(l, r, today)) { next[l.id] = ProgressRules.reopen(r, today); changed = true }
         }
         if (changed) save(next)
     }

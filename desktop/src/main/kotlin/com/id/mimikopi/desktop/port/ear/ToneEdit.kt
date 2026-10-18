@@ -101,6 +101,7 @@ class ToneEditViewModel(app: Application, args: SavedStateHandle) : AndroidViewM
         val id = editing ?: return
         viewModelScope.launch {
             store.saveCustom(store.customLevels().filterNot { it.id == id })
+            store.markDeleted(id)
             val stats = store.stats()
             if (id in stats) store.saveStats(stats - id)
             onDone()

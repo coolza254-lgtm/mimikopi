@@ -210,8 +210,9 @@ fun SettingsScreen(onBack: () -> Unit, onOpenMetronome: () -> Unit = {}) {
                 }
             }
         }
-        PageCard(title = "ย้ายข้อมูลกับมือถือ") {
-            Text("ใช้ไฟล์สำรองแบบเดียวกับแอพมือถือ: ในมือถือไปที่ ตั้งค่า → สำรองข้อมูล → ส่งออก แล้วนำไฟล์มาเปิดที่นี่ (ระดับทักษะ เวลาฝึก และความคืบหน้าทั้งหมดจะตามมาด้วย)",
+        SyncSection()
+        PageCard(title = "สำรองข้อมูล") {
+            Text("ไฟล์สำรองทั้งเครื่อง (แบบเดียวกับแอพมือถือ) นำเข้าแล้วจะแทนข้อมูลเดิมทั้งหมด ใช้กู้คืนเครื่องนี้ ถ้าจะรวมกับมือถือให้ใช้ \"ซิงค์กับมือถือ\" ด้านบน",
                 style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
                 OutlinedButton(onClick = {
@@ -290,4 +291,51 @@ private fun pickFile(load: Boolean, name: String): File? {
     d.isVisible = true
     val file = d.file ?: return null
     return File(d.directory, file)
+}
+
+/**
+ * Phone-to-PC sync: the address and one-time code the phone shows, or a sync file the phone exported. Merges both
+ * ways (nothing replaced); runs off the UI thread.
+ */
+@Composable
+private fun SyncSection() {
+    val scope = rememberCoroutineScope()
+    var address by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf<String?>(null) }
+    fun outcome(o: com.id.mimikopi.desktop.sync.SyncOutcome) =
+        if (o.changed == 0) "ข้อมูลตรงกับ ${o.from} อยู่แล้ว" else "ซิงค์แล้ว: รับความคืบหน้าจาก ${o.from} (${o.changed} รายการ) และส่งของคอมไปให้แล้ว"
+    fun start(work: () -> com.id.mimikopi.desktop.sync.SyncOutcome) {
+        busy = true
+        message = "กำลังซิงค์…"
+        scope.launch {
+            message = withContext(Dispatchers.IO) { runCatching { outcome(work()) }.getOrElse { com.id.mimikopi.desktop.sync.DesktopSync.explain(it) } }
+            busy = false
+        }
+    }
+    PageCard(title = "ซิงค์กับมือถือ") {
+        Text("บนมือถือไปที่ ตั้งค่า → ซิงค์กับคอม → เริ่มซิงค์ แล้วใส่ที่อยู่และรหัสที่ขึ้นบนมือถือ (มือถือกับคอมต้องอยู่ Wi-Fi วงเดียวกัน) ข้อมูลของทั้งสองเครื่องรวมกัน ไม่มีอะไรหาย การตั้งค่าของแต่ละเครื่องไม่เปลี่ยน",
+            style = MaterialTheme.typography.bodyMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 12.dp)) {
+            androidx.compose.material3.OutlinedTextField(address, { address = it.trim() }, label = { Text("ที่อยู่ (เช่น 192.168.1.23:48123)") }, singleLine = true, modifier = Modifier.width(300.dp))
+            androidx.compose.material3.OutlinedTextField(code, { v -> code = v.filter { it.isDigit() }.take(6) }, label = { Text("รหัส 6 หลัก") }, singleLine = true, modifier = Modifier.width(150.dp))
+            Button(onClick = { start { com.id.mimikopi.desktop.sync.DesktopSync.connect(address, code) } },
+                enabled = !busy && code.length == 6 && com.id.mimikopi.core.sync.LanSync.parseAddress(address) != null) { Text("ซิงค์") }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
+            OutlinedButton(onClick = {
+                val f = pickFile(load = true, "mimikopi-sync.json") ?: return@OutlinedButton
+                start { com.id.mimikopi.desktop.sync.DesktopSync.importFrom(f) }
+            }, enabled = !busy) { Text("นำเข้าไฟล์ซิงค์จากมือถือ") }
+            OutlinedButton(onClick = {
+                val f = pickFile(load = false, "mimikopi-sync-${LocalDate.now()}.json") ?: return@OutlinedButton
+                message = runCatching { com.id.mimikopi.desktop.sync.DesktopSync.exportTo(f); "บันทึกไฟล์ซิงค์แล้ว: ${f.name} ส่งไปมือถือแล้วนำเข้าที่ ตั้งค่า → ซิงค์กับคอม" }
+                    .getOrElse { "บันทึกไม่ได้: ${it.message}" }
+            }, enabled = !busy) { Text("ส่งออกไฟล์ซิงค์") }
+        }
+        message?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp).width(640.dp)) }
+        Text("ส่งตรงระหว่างสองเครื่องใน Wi-Fi เข้ารหัส ไม่ผ่านอินเทอร์เน็ต ก่อนรวม โปรแกรมเก็บสำเนาข้อมูลเดิมไว้ (data.before-sync.json)",
+            style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 8.dp).width(640.dp))
+    }
 }

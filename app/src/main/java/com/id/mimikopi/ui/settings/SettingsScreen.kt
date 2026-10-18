@@ -54,6 +54,7 @@ fun SettingsScreen(
     onOpenMetronome: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    onOpenSync: () -> Unit = {},
     vm: SettingsViewModel = viewModel(),
 ) {
     val update by vm.update.collectAsStateWithLifecycle()
@@ -91,6 +92,7 @@ fun SettingsScreen(
     ScreenScaffold(title = stringResource(R.string.settings_title), onBack = onBack) {
         PageCard {
             NavRow(R.drawable.ic_usb, R.string.home_midi_title, onOpenMidi)
+            NavRow(R.drawable.ic_review, R.string.home_sync_title, onOpenSync)
             NavRow(R.drawable.ic_metronome, R.string.home_metronome_title, onOpenMetronome)
             NavRow(R.drawable.ic_info, R.string.home_about_title, onOpenAbout)
             NavRow(R.drawable.ic_device, R.string.home_diagnostics_title, onOpenDiagnostics)

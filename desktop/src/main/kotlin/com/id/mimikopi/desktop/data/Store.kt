@@ -56,6 +56,22 @@ class Store(private val file: File) {
         save()
     }
 
+    /** The settings rows named in [keys] and every review item, read in one step (what a sync sends). */
+    fun snapshot(keys: Set<String>): Pair<Map<String, String>, List<ItemStatRow>> = synchronized(lock) {
+        content.settings.filterKeys { it in keys } to content.itemStats.values.sortedBy { it.itemId }
+    }
+
+    /**
+     * Writes a sync's merged rows and items in one step and one save; a copy of the file as it was is kept first
+     * (data.before-sync.json), so a bad sync can be undone by hand.
+     */
+    fun applyMerge(settings: Map<String, String>, items: List<ItemStatRow>) = synchronized(lock) {
+        if (settings.isEmpty() && items.isEmpty()) return@synchronized
+        if (file.exists()) runCatching { file.copyTo(File(file.parentFile, "data.before-sync.json"), overwrite = true) }
+        content = content.copy(settings = content.settings + settings, itemStats = content.itemStats + items.associateBy { it.itemId })
+        save()
+    }
+
     // ---------------- backups (the Android format, so data moves both ways) ----------------
 
     /** A backup in the Android app's format: settings rows and item stats (sessions and attempts stay empty). */

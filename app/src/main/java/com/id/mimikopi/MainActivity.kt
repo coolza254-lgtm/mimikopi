@@ -119,6 +119,7 @@ private object Routes {
     const val CREDITS = "credits"
     const val METRONOME = "metronome"
     const val MIDI = "midi"
+    const val SYNC = "sync"
     const val LESSON = "lesson/{lessonId}"
     const val DRILL = "drill/{lessonId}/{drill}?via={via}"
     const val REVIEW = "review/{review}"
@@ -256,6 +257,7 @@ private fun AppNavigation() {
         composable(Routes.CREDITS) { CreditsScreen(onBack = back) }
         composable(Routes.METRONOME) { MetronomeScreen(onBack = back) }
         composable(Routes.MIDI) { MidiScreen(onBack = back) }
+        composable(Routes.SYNC) { com.id.mimikopi.ui.settings.SyncScreen(onBack = back) }
         composable(Routes.LESSON) { LessonScreen(onBack = back, onOpenDrill = openDrill) }
         composable(Routes.DRILL, arguments = listOf(optional("via"))) { DrillScreen(onBack = back) }
         composable(Routes.REVIEW) { DrillScreen(onBack = back) }
@@ -271,6 +273,7 @@ private fun AppNavigation() {
                 onOpenMetronome = { nav.navigate(Routes.METRONOME) },
                 onOpenAbout = { nav.navigate(Routes.ABOUT) },
                 onOpenDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },
+                onOpenSync = { nav.navigate(Routes.SYNC) },
             )
         }
     }

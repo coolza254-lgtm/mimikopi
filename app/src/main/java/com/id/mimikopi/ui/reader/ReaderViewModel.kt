@@ -756,7 +756,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                     val verdict = level.judge(m)
                     val passed = verdict.passed && !helper
                     val p = services.progress
-                    p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, java.time.LocalDate.now().toString(), passed, m))
+                    p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, java.time.LocalDate.now().toString(), passed, m, at = System.currentTimeMillis()))
                     p.log("check", seconds)
                     val status = com.id.mimikopi.core.progress.SkillBook.status(level.skill, p.checks.value, java.time.LocalDate.now())
                     verdict.lines.forEach { lines += CoachLine(it) }

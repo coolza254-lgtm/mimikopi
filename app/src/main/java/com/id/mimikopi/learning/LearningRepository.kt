@@ -86,7 +86,7 @@ class LearningRepository(private val context: Context, private val db: AppDataba
             val next = _records.value.toMutableMap()
             for (l in all) {
                 val r = next[l.id] ?: continue
-                if (ProgressRules.failedConfirmation(l, r, today)) { next[l.id] = ProgressRules.reopen(r); changed = true }
+                if (ProgressRules.failedConfirmation(l, r, today)) { next[l.id] = ProgressRules.reopen(r, today); changed = true }
             }
             if (changed) {
                 _records.value = next

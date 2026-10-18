@@ -260,7 +260,7 @@ class ToneSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVi
         _ui.update { it.copy(phase = TonePhase.DONE) }
         viewModelScope.launch {
             val stats = store.stats()
-            val run = ToneRun(LocalDate.now().toString(), u.total, u.right)
+            val run = ToneRun(LocalDate.now().toString(), u.total, u.right, at = System.currentTimeMillis())
             store.saveStats(stats + (levelId to (stats[levelId] ?: com.id.mimikopi.core.ear.ToneStats()).plus(run)))
             val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
             val p = services.progress
@@ -268,7 +268,7 @@ class ToneSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVi
             if (level == null) { p.log("ear", seconds); return@launch }
             val m = com.id.mimikopi.core.progress.CheckMetrics(accuracy = if (u.total == 0) 0.0 else u.right.toDouble() / u.total)
             val verdict = level.judge(m)
-            p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, LocalDate.now().toString(), verdict.passed, m))
+            p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, LocalDate.now().toString(), verdict.passed, m, at = System.currentTimeMillis()))
             p.log("check", seconds)
             val status = com.id.mimikopi.core.progress.SkillBook.status(level.skill, p.checks.value, LocalDate.now())
             _ui.update {

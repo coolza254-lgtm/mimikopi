@@ -733,7 +733,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         val seconds = (System.currentTimeMillis() - startedAt) / 1000
         viewModelScope.launch {
             val p = services.progress
-            p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, java.time.LocalDate.now().toString(), passed, m))
+            p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, java.time.LocalDate.now().toString(), passed, m, at = System.currentTimeMillis()))
             p.log("check", seconds)
             val status = com.id.mimikopi.core.progress.SkillBook.status(level.skill, p.checks.value, java.time.LocalDate.now())
             val lines = verdict.lines.toMutableList()

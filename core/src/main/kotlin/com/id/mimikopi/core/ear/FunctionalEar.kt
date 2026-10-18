@@ -42,7 +42,13 @@ data class ToneLevel(
 
 /** One finished run of a level. */
 @Serializable
-data class ToneRun(val day: String, val asked: Int, val firstTry: Int) {
+data class ToneRun(
+    val day: String,
+    val asked: Int,
+    val firstTry: Int,
+    /** When it ended (epoch ms; older runs have none): orders and tells apart runs of one day across devices. */
+    val at: Long? = null,
+) {
     val accuracy: Double get() = if (asked == 0) 0.0 else firstTry.toDouble() / asked
 }
 

@@ -81,7 +81,15 @@ data class Verdict(val passed: Boolean, val lines: List<String>)
 
 /** One test taken. */
 @Serializable
-data class CheckRecord(val skill: SkillId, val level: Int, val date: String, val passed: Boolean, val metrics: CheckMetrics = CheckMetrics()) {
+data class CheckRecord(
+    val skill: SkillId,
+    val level: Int,
+    val date: String,
+    val passed: Boolean,
+    val metrics: CheckMetrics = CheckMetrics(),
+    /** When it was taken (epoch ms; older records have none): orders tests of one day across devices. */
+    val at: Long? = null,
+) {
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
         private val list = ListSerializer(serializer())

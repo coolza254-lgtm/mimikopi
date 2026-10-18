@@ -31,6 +31,8 @@ class MimikopiApp : Application() {
     val progress: com.id.mimikopi.ui.today.ProgressStore by lazy {
         com.id.mimikopi.ui.today.ProgressStore({ database.settingsDao().get(it) }, { k, v -> database.settingsDao().put(com.id.mimikopi.data.db.SettingEntity(k, v)) })
     }
+    /** Phone-to-PC progress sync (Wi-Fi or file). */
+    val sync: com.id.mimikopi.sync.SyncService by lazy { com.id.mimikopi.sync.SyncService(this) }
     val bleScanner: com.id.mimikopi.midi.BleMidiScanner by lazy { com.id.mimikopi.midi.BleMidiScanner(this) }
     val learning: com.id.mimikopi.learning.LearningRepository by lazy { com.id.mimikopi.learning.LearningRepository(this, database) }
     val pieces: com.id.mimikopi.pieces.PieceRepository by lazy { com.id.mimikopi.pieces.PieceRepository(this, database) }

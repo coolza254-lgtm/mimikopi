@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.NavBackStackEntry
 import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.ui.about.AboutScreen
 import com.id.mimikopi.ui.about.CreditsScreen
@@ -141,6 +143,10 @@ private object Routes {
     const val REVIEW_NOW = "review/true"
 }
 
+/** A move from one tab to another (not a page opened on top). */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.betweenTabs(): Boolean =
+    initialState.destination.route in Routes.TABS && targetState.destination.route in Routes.TABS
+
 /** Opens a lesson drill in the runner that fits its type ([via]: the Today plan part it counts for). */
 private fun openLessonDrill(nav: NavController, app: MimikopiApp, lessonId: String, index: Int, via: String? = null) {
     val lesson = app.learning.lesson(lessonId) ?: return
@@ -220,10 +226,11 @@ private fun AppNavigation() {
         navController = nav,
         startDestination = Routes.TODAY,
         modifier = Modifier.padding(inner).consumeWindowInsets(inner),
-        enterTransition = { fadeIn(tween(260)) + slideInHorizontally(tween(260)) { it / 14 } },
-        exitTransition = { fadeOut(tween(180)) },
-        popEnterTransition = { fadeIn(tween(260)) + slideInHorizontally(tween(260)) { -it / 14 } },
-        popExitTransition = { fadeOut(tween(180)) + slideOutHorizontally(tween(220)) { it / 14 } },
+        // Between tabs only a quick cross-fade: tabs sit side by side, not on top of each other.
+        enterTransition = { if (betweenTabs()) fadeIn(tween(160)) else fadeIn(tween(260)) + slideInHorizontally(tween(260)) { it / 14 } },
+        exitTransition = { fadeOut(tween(if (betweenTabs()) 120 else 180)) },
+        popEnterTransition = { if (betweenTabs()) fadeIn(tween(160)) else fadeIn(tween(260)) + slideInHorizontally(tween(260)) { -it / 14 } },
+        popExitTransition = { if (betweenTabs()) fadeOut(tween(120)) else fadeOut(tween(180)) + slideOutHorizontally(tween(220)) { it / 14 } },
     ) {
         composable(Routes.TODAY) { TodayScreen(onOpen = open, onOpenMidi = openMidi, onOpenSettings = openSettings) }
         composable(Routes.SKILLS) { SkillsScreen(onOpen = open, onOpenMidi = openMidi, onOpenSettings = openSettings) }

@@ -23,21 +23,31 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
+import androidx.compose.ui.window.WindowPosition
+import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.id.mimikopi.core.lesson.ExerciseType
@@ -165,11 +175,46 @@ private val appIcon by lazy {
     BitmapPainter(javax.imageio.ImageIO.read(Thread.currentThread().contextClassLoader.getResourceAsStream("icon.png")).toComposeImageBitmap())
 }
 
+/** Smallest window the pages still lay out in (the rail plus a phone-width page). */
+private const val MIN_WIDTH = 880
+private const val MIN_HEIGHT = 600
+
+/** The window as it was closed: size, position (only where a screen still is) and maximised; else the default. */
+private fun savedWindow(): Triple<DpSize, WindowPosition, WindowPlacement> {
+    val fallback = Triple(DpSize(1180.dp, 820.dp), WindowPosition.PlatformDefault, WindowPlacement.Floating)
+    val parts = Services.store.get(Keys.WINDOW)?.split(',')?.takeIf { it.size == 5 } ?: return fallback
+    val w = parts[0].toFloatOrNull() ?: return fallback
+    val h = parts[1].toFloatOrNull() ?: return fallback
+    val x = parts[2].toFloatOrNull()
+    val y = parts[3].toFloatOrNull()
+    // A monitor that was unplugged must not leave the window off screen.
+    val position = if (x != null && y != null && runCatching {
+            java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().screenDevices.any { it.defaultConfiguration.bounds.contains(x.toInt() + 60, y.toInt() + 20) }
+        }.getOrDefault(false)) WindowPosition.Absolute(x.dp, y.dp) else WindowPosition.PlatformDefault
+    val placement = if (parts[4] == "true") WindowPlacement.Maximized else WindowPlacement.Floating
+    return Triple(DpSize(w.coerceAtLeast(MIN_WIDTH.toFloat()).dp, h.coerceAtLeast(MIN_HEIGHT.toFloat()).dp), position, placement)
+}
+
+private fun saveWindow(state: WindowState) {
+    val p = state.position
+    val at = if (p is WindowPosition.Absolute) "${p.x.value},${p.y.value}" else ","
+    Services.store.put(Keys.WINDOW, "${state.size.width.value},${state.size.height.value},$at,${state.placement == WindowPlacement.Maximized}")
+}
+
+/** Esc goes back one page; set by the window's content (false: nothing to go back to). */
+private var escape: () -> Boolean = { false }
+
 fun main() {
     Services.start()
     application {
-        val state = rememberWindowState(size = DpSize(1180.dp, 820.dp))
-        Window(onCloseRequest = { Services.midi.stop(); runCatching { Services.store.flush() }; exitApplication() }, title = "ミミコピ", state = state, icon = appIcon) {
+        val (winSize, winPosition, winPlacement) = remember { savedWindow() }
+        val state = rememberWindowState(size = winSize, position = winPosition, placement = winPlacement)
+        Window(
+            onCloseRequest = { Services.midi.stop(); runCatching { saveWindow(state); Services.store.flush() }; exitApplication() },
+            title = "ミミコピ", state = state, icon = appIcon,
+            onPreviewKeyEvent = { e -> e.type == KeyEventType.KeyDown && e.key == Key.Escape && escape() },
+        ) {
+            LaunchedEffect(Unit) { window.minimumSize = java.awt.Dimension(MIN_WIDTH, MIN_HEIGHT) }
             val mode by Services.themeMode.collectAsState()
             val dark = when (mode) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; ThemeMode.SYSTEM -> isSystemInDarkTheme() }
             MimikopiTheme(dark) { App() }
@@ -177,23 +222,39 @@ fun main() {
     }
 }
 
-/** The window: a left rail (four tabs, MIDI state, settings) and the page. */
+/**
+ * The window: a left rail (four tabs, MIDI state, settings) and the page. Each tab keeps its own stack of pages, as on
+ * a phone: switching tabs comes back to where that tab was, its rail item again goes to its top, and a page returned to
+ * keeps its scroll position.
+ */
 @Composable
 private fun App() {
-    var stack by remember { mutableStateOf(listOf<Screen>(Screen.Today)) }
+    var tabNow by remember { mutableStateOf<Screen>(Screen.Today) }
+    var stacks by remember { mutableStateOf(TABS.associateWith { listOf(it) }) }
+    val holder = rememberSaveableStateHolder()
+    val stack = stacks.getValue(tabNow)
     val screen = stack.last()
-    fun go(s: Screen) { stack = stack + s }
-    fun back() { if (stack.size > 1) stack = stack.dropLast(1) }
-    fun tab(s: Screen) { stack = listOf(s) }
+    fun keyOf(tab: Screen, i: Int, s: Screen) = "$tab#$i#$s"
+    fun setStack(tab: Screen, next: List<Screen>) {
+        // Pages that leave a stack forget their saved state.
+        stacks.getValue(tab).forEachIndexed { i, s -> if (next.getOrNull(i) != s) holder.removeState(keyOf(tab, i, s)) }
+        stacks = stacks + (tab to next)
+    }
+    fun go(s: Screen) = setStack(tabNow, stacks.getValue(tabNow) + s)
+    fun back() { val st = stacks.getValue(tabNow); if (st.size > 1) setStack(tabNow, st.dropLast(1)) }
+    fun tab(s: Screen) { if (s == tabNow) setStack(s, listOf(s)) else tabNow = s }
+    /** A link to a tab (e.g. "play a song" on Today) lands on that tab's top page. */
+    fun openTab(s: Screen) { setStack(s, listOf(s)); tabNow = s }
+    SideEffect { escape = { if (stacks.getValue(tabNow).size > 1) { back(); true } else false } }
     val openMidi = { go(Screen.Settings) }
-    val open: (Open) -> Unit = { o -> target(o)?.let { (s, isTab) -> if (isTab) tab(s) else go(s) } }
+    val open: (Open) -> Unit = { o -> target(o)?.let { (s, isTab) -> if (isTab) openTab(s) else go(s) } }
     val labels = listOf(R.string.tab_today, R.string.tab_skills, R.string.tab_piano, R.string.tab_songs)
 
     Row(Modifier.fillMaxSize().background(Tokens.Palette.Paper)) {
         Column(Modifier.width(220.dp).fillMaxHeight().padding(start = 28.dp, top = 32.dp, bottom = 28.dp)) {
             Text("ミミコピ", fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Tokens.Palette.Ink)
             Spacer(Modifier.height(36.dp))
-            TABS.forEachIndexed { i, t -> RailItem(stringResource(labels[i]), stack.first() == t) { tab(t) } }
+            TABS.forEachIndexed { i, t -> RailItem(stringResource(labels[i]), tabNow == t) { tab(t) } }
             Spacer(Modifier.weight(1f))
             val ready = midiReady()
             Row(Modifier.heightIn(min = 40.dp).clickable(onClick = openMidi), verticalAlignment = Alignment.CenterVertically) {
@@ -210,11 +271,13 @@ private fun App() {
         Box(Modifier.width(1.dp).fillMaxHeight().background(Tokens.Palette.Hair))
         // Clipped: a score strip draws past its edges and must not cover the rail.
         Box(Modifier.weight(1f).fillMaxHeight().clipToBounds()) {
-        if (!screen.scrollsInPage) Box(Modifier.fillMaxSize()) {
-            PortedPage(screen, go = ::go, back = ::back, open = open, openMidi = openMidi)
-        } else Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
-            Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().padding(horizontal = 48.dp, vertical = 40.dp)) {
-                if (screen == Screen.Settings) SettingsScreen(onBack = ::back, onOpenMetronome = { go(Screen.Metronome) })
+        holder.SaveableStateProvider(keyOf(tabNow, stack.size - 1, screen)) {
+            if (!screen.scrollsInPage) Box(Modifier.fillMaxSize()) {
+                PortedPage(screen, go = ::go, back = ::back, open = open, openMidi = openMidi)
+            } else Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), contentAlignment = Alignment.TopCenter) {
+                Column(Modifier.widthIn(max = 820.dp).fillMaxWidth().padding(horizontal = 48.dp, vertical = 40.dp)) {
+                    if (screen == Screen.Settings) SettingsScreen(onBack = ::back, onOpenMetronome = { go(Screen.Metronome) })
+                }
             }
         }
         // Plugged in or pulled out: told on whatever page is open.

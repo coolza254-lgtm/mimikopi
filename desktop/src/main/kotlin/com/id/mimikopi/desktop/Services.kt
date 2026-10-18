@@ -35,6 +35,8 @@ object Keys {
     const val VELOCITY_MODE = "midi.velocityMode"
     const val NOTE_NAME_STYLE = "notes.nameStyle"
     const val PIANO_SOUND = "piano.sound"
+    /** Window size, position and maximised, as last closed (this computer only, never synced). */
+    const val WINDOW = "ui.window"
 }
 
 /**

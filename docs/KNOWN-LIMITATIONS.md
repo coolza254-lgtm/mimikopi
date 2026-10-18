@@ -26,6 +26,36 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Grade exams, ear course, progress, sync (v0.25.0)
+- Grade exams (Initial to Grade 5) follow the ABRSM practical exam's structure and mark scheme (pieces 30 each,
+  scales 21, sight-reading 21, aural 18; pass 100, merit 120, distinction 130 on the total) but nothing else of it:
+  the pieces come from the app's public-domain library, the pop piece, scales, sight-reading and aural questions are
+  made by the app, and the marks come from a formula of mine (notes 60%, timing 40%, 0.03 off per stop; anchors in
+  learning-system.md 2.7). A real examiner also marks tone, dynamics, phrasing and musical character, which the app
+  cannot hear; the app's grade is therefore not comparable to an official grade, and the page says so.
+- Library levels were used as grades (Initial L1-L2, Grade n = L(n+2)); the arrangements are simplified, so e.g. the
+  Grade 5 "Für Elise" is the app's opening arrangement, not the original. Grades 4 and 5 have exactly two library
+  pieces, so there is no choice there yet.
+- Exams keep the metronome on, because the judge times notes against a steady tempo from the count-in; a player who
+  plays rubato or drifts loses timing marks. Scales are shown as written music with fingers (in a real exam they are
+  played from memory). Hands-separately items are written right hand then left hand in one run.
+- One take per part, finished on the day it starts. Leaving a part's page mid-run records nothing (so a phone call
+  does not spoil the exam); stopping with the stop button records what was played. Showing note names during a part
+  voids that take and it can be played again.
+- The ear course replaces the scale-degree trainer of v0.20-v0.24. Its stats (`ear.tone.*`) are kept and still sync,
+  but the course starts at stage 1 and does not read them. EAR level results already earned stay and keep counting,
+  although the eight EAR tests are now drawn from the course. Stage and "known" thresholds (asked 6 times, strength
+  0.8) and the round mix are my choices.
+- Mistake patterns need several runs over 21 days before they show, by design; a single bad day shows nothing. Hand
+  and timing patterns come from score runs only (pieces, score drills, tests, exams).
+- The idol-song goal's skill needs per song are my estimates from tempo, range, keys and chords found on the web, not
+  checked against the recordings; the song facts are marked unverified on the page.
+- Sync works on the same home Wi-Fi only (phone listens, computer connects; some routers isolate devices, then use
+  the file instead). Both sides must run v0.25.0 or later. Device settings (latency, MIDI device, sound, theme, window)
+  never sync. A backup is made automatically before each merge.
+- Windows: each tab keeps its own page stack, Esc goes back, the window remembers its size and position (only where a
+  screen still is) and cannot be made smaller than 880 × 600.
+
 ## Today, skills and the free piano (v0.24.0)
 - Four tabs: Today, Skills, Piano, Songs. The song notebook ("จดเพลง") is gone; notebook data left in settings is
   no longer read. The ladder, ear training and chords open from Today and Skills instead of their own tabs.

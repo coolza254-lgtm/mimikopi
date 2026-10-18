@@ -21,6 +21,8 @@ import com.id.mimikopi.desktop.port.SettingEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -96,13 +98,17 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     private var earStage = com.id.mimikopi.core.ear.EarCourse.STAGES.first()
     val ui: StateFlow<TodayUi> = _ui.asStateFlow()
 
+    private var refreshJob: Job? = null
+
     init {
-        viewModelScope.launch { progress.log.collect { if (_ui.value.loaded) refresh() } }
-        viewModelScope.launch { progress.checks.collect { if (_ui.value.loaded) refresh() } }
+        // A finished run changes the log and often the tests too: one refresh for both (the latest wins).
+        viewModelScope.launch { merge(progress.log, progress.checks).collect { if (_ui.value.loaded) refresh() } }
     }
 
+    /** Rebuilds the page; a refresh still running is replaced (returning to the page right after a run asks again). */
     fun refresh() {
-        viewModelScope.launch {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             learning.load()
             progress.load()
             val today = LocalDate.now()

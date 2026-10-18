@@ -29,13 +29,13 @@ import com.id.mimikopi.ui.theme.Tokens
 data class Tab(val route: String, val label: Int)
 
 val TABS = listOf(
-    Tab("reading", R.string.tab_reading),
-    Tab("ear", R.string.tab_ear),
+    Tab("today", R.string.tab_today),
+    Tab("skills", R.string.tab_skills),
+    Tab("piano", R.string.tab_piano),
     Tab("songs", R.string.tab_songs),
-    Tab("sections", R.string.tab_sections),
 )
 
-/** The bottom bar (M15): four words, no icons; the current tab is white with a small dot above it. */
+/** The bottom bar: four words, no icons; the current tab in bold with a small dot above it. */
 @Composable
 fun BottomNav(current: String?, onSelect: (String) -> Unit) {
     Column(Modifier.fillMaxWidth().background(Tokens.Palette.Paper).navigationBarsPadding()) {

@@ -4,11 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.id.mimikopi.R
 
 /**
  * The single design-token file. Everything visual (colour, type, spacing, radius) comes from here so the
@@ -30,35 +27,22 @@ object Tokens {
         val Hair: Color get() = if (dark) Color(0xFF1F1F1F) else Color(0xFFEDEDED) // list dividers
         /** Text and icons on an [Ink] fill. */
         val OnInk: Color get() = Paper
+        /** Grouped lists (rounded blocks of rows on the page), like the system settings. */
+        val Group: Color get() = if (dark) Color(0xFF151515) else Color(0xFFF2F2F2)
         /** Dialogs and menus: one step off the background. */
         val Raised: Color get() = if (dark) Color(0xFF111111) else Color(0xFFF5F5F5)
+        /** The one colour in the app: a confirmed connection (asked for by the user). */
+        val Positive: Color get() = if (dark) Color(0xFF3DD68C) else Color(0xFF1E8E4E)
     }
 
     object Fonts {
-        /** Body and UI text: IBM Plex Sans Thai (clean, modern Thai with Latin). */
-        val body = FontFamily(
-            Font(R.font.sans_regular, FontWeight.Normal),
-            Font(R.font.sans_medium, FontWeight.Medium),
-            Font(R.font.sans_semibold, FontWeight.SemiBold),
-            Font(R.font.sans_semibold, FontWeight.Bold),
-        )
-
-        /** Headings and titles: Noto Serif Thai, like a printed book. */
-        val display = FontFamily(
-            Font(R.font.serif_medium, FontWeight.Medium),
-            Font(R.font.serif_semibold, FontWeight.SemiBold),
-            Font(R.font.serif_semibold, FontWeight.Bold),
-            Font(R.font.serif_semibold, FontWeight.Black),
-        )
-
-        /** Numbers, step ids and note names: IBM Plex Mono, so they line up. */
-        val mono = FontFamily(
-            Font(R.font.mono_light, FontWeight.Light),
-            Font(R.font.mono_regular, FontWeight.Normal),
-            Font(R.font.mono_medium, FontWeight.Medium),
-            Font(R.font.mono_medium, FontWeight.SemiBold),
-            Font(R.font.mono_medium, FontWeight.Bold),
-        )
+        /**
+         * The phone's own standard font everywhere (the user asked for a plain one): Thai, Latin and Japanese come from
+         * the system, in the weights it has. The names stay so screens say what a text is for.
+         */
+        val body: FontFamily = FontFamily.Default
+        val display: FontFamily = FontFamily.Default
+        val mono: FontFamily = FontFamily.Default
     }
 
     object Space {

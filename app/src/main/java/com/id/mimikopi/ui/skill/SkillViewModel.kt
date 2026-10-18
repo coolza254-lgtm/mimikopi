@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /** The two practice ladders (M15). */
-enum class Skill { READING, EAR }
+enum class Skill { READING }
 
 /** One part of today's practice in a ladder, done top to bottom. */
 enum class TodayKind { CONFIRM, REVIEW, REPEAT, STEP }
@@ -68,7 +68,7 @@ class SkillViewModel(app: Application) : AndroidViewModel(app) {
         refresh()
     }
 
-    private fun ladder(): List<Lesson> = if (skill == Skill.READING) repo.lessons else repo.earRungs
+    private fun ladder(): List<Lesson> = repo.lessons
 
     fun refresh() {
         if (!bound) return
@@ -90,12 +90,7 @@ class SkillViewModel(app: Application) : AndroidViewModel(app) {
                 if (due || confirmedToday) items += TodayItem(TodayKind.CONFIRM, l.title, l.id, done = confirmedToday,
                     notYet = due && t in r.triedDays, tried = true)
             }
-            if (skill == Skill.READING) {
-                val due = repo.readingDueItems().size
-                if (due > 0) items += TodayItem(TodayKind.REVIEW, "", null, done = false)
-            } else {
-                if (repo.earDueItems().size >= 5) items += TodayItem(TodayKind.REVIEW, "", null, done = false)
-            }
+            if (repo.readingDueItems().isNotEmpty()) items += TodayItem(TodayKind.REVIEW, "", null, done = false)
             // Repetition: one older, confirmed step, chosen by the date (practice makes it stick).
             val older = ladder.filter { l ->
                 val r = records[l.id]

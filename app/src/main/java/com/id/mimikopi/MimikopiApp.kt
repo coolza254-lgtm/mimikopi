@@ -27,10 +27,15 @@ class MimikopiApp : Application() {
     val inputHub: InputHub by lazy { InputHub(piano) }
     val inputConfig: InputConfigStore by lazy { InputConfigStore(database.settingsDao()) }
     val midiInput: MidiInputManager by lazy { MidiInputManager(this, inputHub) }
+    /** Practice minutes per day and the level tests (Today and Skills pages). */
+    val progress: com.id.mimikopi.ui.today.ProgressStore by lazy {
+        com.id.mimikopi.ui.today.ProgressStore({ database.settingsDao().get(it) }, { k, v -> database.settingsDao().put(com.id.mimikopi.data.db.SettingEntity(k, v)) })
+    }
+    /** Phone-to-PC progress sync (Wi-Fi or file). */
+    val sync: com.id.mimikopi.sync.SyncService by lazy { com.id.mimikopi.sync.SyncService(this) }
     val bleScanner: com.id.mimikopi.midi.BleMidiScanner by lazy { com.id.mimikopi.midi.BleMidiScanner(this) }
     val learning: com.id.mimikopi.learning.LearningRepository by lazy { com.id.mimikopi.learning.LearningRepository(this, database) }
     val pieces: com.id.mimikopi.pieces.PieceRepository by lazy { com.id.mimikopi.pieces.PieceRepository(this, database) }
-    val sections: com.id.mimikopi.sections.SectionRepository by lazy { com.id.mimikopi.sections.SectionRepository(database) }
     val session: com.id.mimikopi.learning.SessionTracker by lazy { com.id.mimikopi.learning.SessionTracker(learning) }
 
     /** The chosen look (dark by default until the stored choice is read). */
@@ -54,11 +59,9 @@ class MimikopiApp : Application() {
                 ?.let { runCatching { com.id.mimikopi.ui.theme.ThemeMode.valueOf(it) }.getOrNull() }?.let { themeMode.value = it }
             midiInput.octaveOffset = inputConfig.load().octaveOffset
             inputHub.soundThrough = database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_SOUND_THROUGH)?.toBooleanStrictOrNull() ?: true
-            // Reconnect the remembered Bluetooth piano (only if the user already allowed nearby devices).
-            database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_BLE_DEVICE)?.substringBefore('|')?.takeIf { it.isNotBlank() }?.let { address ->
-                midiInput.bleAddress = address
-                if (bleScanner.hasPermissions()) midiInput.connectBluetooth(address)
-            }
+            inputHub.velocity = com.id.mimikopi.core.input.VelocityMode.parse(database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.VELOCITY_MODE))
+            piano.sound = com.id.mimikopi.core.piano.PianoSound.parse(database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.PIANO_SOUND))
+            // A Bluetooth piano is connected only when the user asks, on the MIDI screen.
         }
     }
 }

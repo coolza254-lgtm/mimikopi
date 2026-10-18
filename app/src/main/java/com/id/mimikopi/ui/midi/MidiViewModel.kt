@@ -20,6 +20,7 @@ import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.data.db.SettingEntity
 import com.id.mimikopi.data.db.SettingKeys
 import com.id.mimikopi.input.OutputRoute
+import com.id.mimikopi.midi.BleLink
 import com.id.mimikopi.midi.BleMidiDevice
 import com.id.mimikopi.midi.MidiDeviceState
 import kotlinx.coroutines.Dispatchers
@@ -72,9 +73,14 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
     private val ble = services.bleScanner
     val bleFound: StateFlow<List<BleMidiDevice>> = ble.found
     val bleScanning: StateFlow<Boolean> = ble.scanning
+    /** The last search ended without finding a Bluetooth MIDI instrument. */
+    val bleScanFinished: StateFlow<Boolean> = ble.finished
+    val bleLink: StateFlow<BleLink> = midi.bleLink
+    /** The latest plug or unplug, to say "unplugged" with the instrument's name. */
+    val notice: StateFlow<com.id.mimikopi.core.input.MidiNotice?> = midi.notice
     val bleSupported: Boolean = ble.supported && midi.supported
     private val _bleSaved = MutableStateFlow<BleMidiDevice?>(null)
-    /** The remembered Bluetooth instrument, reconnected automatically. */
+    /** The remembered Bluetooth instrument: one tap connects it, and a search connects it when it is found. */
     val bleSaved: StateFlow<BleMidiDevice?> = _bleSaved.asStateFlow()
     private val _bleProblem = MutableStateFlow<BleProblem?>(null)
     val bleProblem: StateFlow<BleProblem?> = _bleProblem.asStateFlow()
@@ -86,6 +92,8 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _soundThrough = MutableStateFlow(hub.soundThrough)
     val soundThrough: StateFlow<Boolean> = _soundThrough.asStateFlow()
+    private val _velocity = MutableStateFlow(hub.velocity)
+    val velocity: StateFlow<com.id.mimikopi.core.input.VelocityMode> = _velocity.asStateFlow()
 
     private val _probe = MutableStateFlow<ProbeUi>(ProbeUi.Idle)
     val probe: StateFlow<ProbeUi> = _probe.asStateFlow()
@@ -106,41 +114,54 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _bleSaved.value = settings.get(SettingKeys.MIDI_BLE_DEVICE)?.split('|', limit = 2)?.takeIf { it.size == 2 }?.let { BleMidiDevice(it[0], it[1]) }
         }
+        // The user's search connects the remembered instrument as soon as it shows up.
+        viewModelScope.launch {
+            ble.found.collect { found ->
+                val saved = _bleSaved.value ?: return@collect
+                val connected = midi.devices.value.any { it.source == InputSource.BLE_MIDI && it.open }
+                if (!connected && ble.scanning.value && found.any { it.address == saved.address }) bleConnect(saved)
+            }
+        }
     }
 
     // --- Bluetooth LE MIDI ---
 
-    /** Called after the permission dialog (or right away when already allowed). */
-    fun bleScan() {
+    /** Bluetooth can be used now; otherwise says why not. */
+    private fun bleReady(): Boolean {
         _bleProblem.value = when {
             !ble.hasPermissions() -> BleProblem.PERMISSION
             !ble.enabled -> BleProblem.OFF
             else -> null
         }
-        if (_bleProblem.value == null) ble.scan()
+        return _bleProblem.value == null
+    }
+
+    /** One search (10 s at most), after the permission dialog (or right away when already allowed). */
+    fun bleScan() {
+        if (!bleReady()) return
+        midi.clearBluetoothFailure()
+        ble.scan()
     }
 
     fun bleConnect(device: BleMidiDevice) {
         ble.stop()
+        if (!bleReady()) return
         _bleSaved.value = device
         viewModelScope.launch { settings.put(SettingEntity(SettingKeys.MIDI_BLE_DEVICE, "${device.address}|${device.name.replace('|', ' ')}")) }
-        midi.connectBluetooth(device.address)
+        midi.connectBluetooth(device.address, device.name)
     }
 
-    /** Retries the remembered instrument now (e.g. after switching the piano on). */
-    fun bleReconnect() {
-        val saved = _bleSaved.value ?: return
-        _bleProblem.value = when {
-            !ble.hasPermissions() -> BleProblem.PERMISSION
-            !ble.enabled -> BleProblem.OFF
-            else -> null
-        }
-        if (_bleProblem.value == null) midi.connectBluetooth(saved.address)
+    /** Connects the remembered instrument now (e.g. after switching the piano on). */
+    fun bleConnectSaved() {
+        _bleSaved.value?.let(::bleConnect)
     }
+
+    fun bleDisconnect() = midi.disconnectBluetooth()
 
     fun bleForget() {
+        ble.stop()
         _bleSaved.value = null
-        midi.forgetBluetooth()
+        midi.disconnectBluetooth()
         viewModelScope.launch { settings.delete(SettingKeys.MIDI_BLE_DEVICE) }
     }
 
@@ -158,16 +179,20 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) { piano.release() }
     }
 
-    /** Re-reads the system's device list (and retries the remembered Bluetooth instrument). */
-    fun recheck() {
-        midi.resync()
-        bleReconnect()
-    }
+    /** Re-reads the system's device list (cables plugged in or pulled out while the app was not watching). */
+    fun recheck() = midi.resync()
 
     fun setSoundThrough(on: Boolean) {
         hub.soundThrough = on
         _soundThrough.value = on
         viewModelScope.launch { settings.put(SettingEntity(SettingKeys.MIDI_SOUND_THROUGH, on.toString())) }
+    }
+
+    /** Key strength on or off (and the one level when off) for the app's sound. */
+    fun setVelocity(mode: com.id.mimikopi.core.input.VelocityMode) {
+        hub.velocity = mode
+        _velocity.value = mode
+        viewModelScope.launch { settings.put(SettingEntity(SettingKeys.VELOCITY_MODE, mode.encode())) }
     }
 
     private fun onEvent(e: InputEvent) {

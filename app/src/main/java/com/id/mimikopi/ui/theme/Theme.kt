@@ -29,7 +29,7 @@ private fun colors(dark: Boolean): ColorScheme {
     )
 }
 
-// IBM Plex Sans Thai for text, Noto Serif Thai for headings (bundled, OFL); other scripts fall back to the system font.
+// The system font for all text (Tokens.Fonts); headings differ by size and weight only.
 // Sizes are in sp so they follow the user's font-size setting. Thai needs generous line height.
 private val body = Tokens.Fonts.body
 private val typography = Typography(

@@ -103,9 +103,8 @@ object SettingKeys {
     const val PIANO_LOW_NOTE = "piano.lowNote"
     const val PIANO_KEY_WIDTH = "piano.whiteKeyDp"
     const val PIANO_VELOCITY = "piano.velocity"
-    const val PIANO_GAIN = "piano.volume"
-    const val PIANO_REVERB = "piano.reverb"
-    const val PIANO_WARMTH = "piano.warmth"
+    /** The app piano's volume, room and warmth (PianoSound: "volume|reverb|warmth"). */
+    const val PIANO_SOUND = "piano.sound"
     const val PIANO_TOUCH_VELOCITY = "piano.touchVelocity"
     const val NOTE_NAME_STYLE = "notes.nameStyle"
     const val HELPER_NOTE_NAMES_COUNT = "helper.noteNames.count"
@@ -113,6 +112,8 @@ object SettingKeys {
     const val METRONOME_SELF_TEST = "metronome.lastSelfTest"
     const val INPUT_CONFIG = "input.config"
     const val MIDI_SOUND_THROUGH = "midi.soundThrough"
+    /** Key strength on or off for the app's sound (VelocityMode: "on" or "off:<level>"). */
+    const val VELOCITY_MODE = "midi.velocityMode"
     /** Look: DARK, LIGHT or SYSTEM (ThemeMode). */
     const val THEME_MODE = "ui.theme"
     /** Remembered Bluetooth MIDI instrument: "<address>|<name>". */
@@ -130,8 +131,9 @@ object SettingKeys {
     /** "3" once the M15 reading and ear ladders started fresh; the records before are kept under [LESSON_RECORDS_V2]. */
     const val PATH_VERSION = "path.version"
     const val LESSON_RECORDS_V2 = "lesson.records.v2"
-    /** Section practice: all sections as one JSON list (backups include them). */
-    const val SECTIONS = "sections"
+    /** Chord tab: the last chosen practice (ChordPractice JSON) and the recent runs (ChordRun list). */
+    const val CHORDS_SETTINGS = "chords.settings"
+    const val CHORDS_RUNS = "chords.runs"
     /** Today's session: item keys opened, by date ("flow:2026-10-14"). */
     const val FLOW_PREFIX = "flow:"
 }

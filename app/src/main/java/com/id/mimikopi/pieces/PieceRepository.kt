@@ -41,10 +41,17 @@ class PieceRepository(private val context: Context, private val db: AppDatabase)
     }
 
     fun pieceOrExercise(id: String): Score? = piece(id) ?: exercises.firstOrNull { it.id == id }
+        ?: com.id.mimikopi.core.exam.Exams.practicePiece(id)?.let { runCatching { Score.from(it) }.getOrNull() }
 
     private val _progress = MutableStateFlow<Map<String, PieceProgress>>(emptyMap())
     val progress: StateFlow<Map<String, PieceProgress>> = _progress.asStateFlow()
     private var loaded = false
+
+    /** Reads the stored rows again (after a backup restore). */
+    suspend fun reload() {
+        mutex.withLock { loaded = false }
+        load()
+    }
 
     suspend fun load() = mutex.withLock {
         if (loaded) return@withLock

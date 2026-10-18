@@ -63,6 +63,7 @@ fun SkillScreen(
     onReview: () -> Unit,
     onOpenMidi: () -> Unit,
     onOpenSettings: () -> Unit,
+    onBack: (() -> Unit)? = null,
     vm: SkillViewModel = viewModel(key = skill.name),
 ) {
     LaunchedEffect(skill) { vm.bind(skill) }
@@ -74,18 +75,14 @@ fun SkillScreen(
         when {
             item.kind == TodayKind.REVIEW -> onReview()
             item.lessonId == null -> Unit
-            skill == Skill.EAR || item.tried -> onOpenDrill(item.lessonId)
+            item.tried -> onOpenDrill(item.lessonId)
             else -> onOpenStep(item.lessonId)
         }
     }
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
-            TabHeader(
-                stringResource(if (skill == Skill.READING) R.string.tab_reading else R.string.tab_ear),
-                stringResource(if (skill == Skill.READING) R.string.skill_reading_goal else R.string.skill_ear_goal),
-                onOpenMidi, onOpenSettings,
-            )
+            TabHeader("ขั้นหลัก", stringResource(R.string.skill_reading_goal), onOpenMidi, onOpenSettings, onBack)
             Column(Modifier.padding(horizontal = 24.dp)) {
                 Spacer(Modifier.height(40.dp))
                 if (ui.loaded) Hero(ui, open)
@@ -225,7 +222,7 @@ private fun Ladder(ui: SkillUi, skill: Skill, onOpenStep: (String) -> Unit, onOp
         }
         Row(
             Modifier.fillMaxWidth().heightIn(min = 52.dp)
-                .clickable(enabled = !locked) { if (skill == Skill.EAR) onOpenDrill(row.lesson.id) else onOpenStep(row.lesson.id) },
+                .clickable(enabled = !locked) { onOpenStep(row.lesson.id) },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {

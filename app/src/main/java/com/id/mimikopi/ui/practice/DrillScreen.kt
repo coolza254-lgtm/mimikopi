@@ -64,7 +64,6 @@ import com.id.mimikopi.ui.theme.Tokens
 fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val showNames by vm.showNames.collectAsStateWithLifecycle()
-    val pressed by vm.pressed.collectAsStateWithLifecycle()
 
     val answer = when (val s = ui) {
         is DrillUi.Question -> s.feedback
@@ -130,7 +129,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                             )
                         }
                     }
-                    KeyHint(marked = if (s.feedback == Feedback.WRONG) s.prompt.answerKeys(vm.keyRange) else emptySet(), nameStyle = vm.nameStyle)
+                    KeyHint(marked = if (s.feedback == Feedback.WRONG) s.prompt.answerKeys(vm.keyRange) else emptySet(), nameStyle = vm.nameStyle, range = vm.keyRange, showNames = showNames)
                 }
                 is DrillUi.Interval -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
@@ -149,7 +148,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         if (s.feedback == Feedback.WRONG && s.pair == null) Text(stringResource(R.string.drill_wrong), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
                         if (s.pair != null) IntervalAnswers(s, vm)
                     }
-                    KeyHint(marked = emptySet(), nameStyle = vm.nameStyle)
+                    KeyHint(marked = emptySet(), nameStyle = vm.nameStyle, range = vm.keyRange, showNames = showNames)
                 }
                 is DrillUi.ChordAsk -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
@@ -182,7 +181,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                             )
                         }
                     }
-                    KeyHint(marked = s.answer, nameStyle = vm.nameStyle)
+                    KeyHint(marked = s.answer, nameStyle = vm.nameStyle, range = vm.keyRange, showNames = showNames)
                 }
                 is DrillUi.Pulse -> Column(Modifier.fillMaxWidth().weight(1f).padding(Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("${s.bpm} BPM", style = MaterialTheme.typography.titleLarge)
@@ -288,7 +287,7 @@ private fun dispatchTouch(vm: DrillViewModel, note: Int, down: Boolean) {
 
 /** Thai prompt for a key-finding item; exact-octave items are described relative to Middle C. */
 private fun keyPrompt(item: KeyFindItem): String {
-    val name = "${item.letter.name} (${item.letter.thaiSolfege})"
+    val name = "${item.letter.name} (${item.letter.solfege})"
     val t = item.target ?: return "หา $name"
     return when {
         t.midi == 60 -> "หา Middle C (โดกลาง)"

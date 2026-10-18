@@ -16,6 +16,8 @@ data class LessonRecord(
     val drillDays: Map<Int, Set<String>> = emptyMap(),
     /** Days on which a required drill was run at all (met or not): the step ladder's confirmation check. */
     val triedDays: Set<String> = emptySet(),
+    /** The day the step was sent back to practice ([ProgressRules.reopen]); pass days before it no longer count (sync keeps it so). */
+    val reopenedOn: String? = null,
 )
 
 enum class LessonStatus { LOCKED, AVAILABLE, IN_PROGRESS, PASSED }
@@ -78,7 +80,8 @@ object ProgressRules {
         lessons.firstOrNull { l -> records[l.id]?.passDays.isNullOrEmpty() && status(l, records) != LessonStatus.LOCKED }
 
     /** Back to practice: the pass days are cleared, attempts and history stay. */
-    fun reopen(record: LessonRecord): LessonRecord = record.copy(passDays = emptySet(), drillDays = emptyMap())
+    fun reopen(record: LessonRecord, on: LocalDate? = null): LessonRecord =
+        record.copy(passDays = emptySet(), drillDays = emptyMap(), reopenedOn = on?.toString() ?: record.reopenedOn)
 
     /** The lesson to work on now: the first not-yet-passed, unlocked lesson in order. */
     fun current(lessons: List<Lesson>, records: Map<String, LessonRecord>): Lesson? =

@@ -35,7 +35,7 @@
     <string name="piano_sound_retry">เปิดเสียงอีกครั้ง</string>
     <string name="piano_engine_error">เปิดเสียงไม่ได้: %1$s</string>
     <string name="names_letter">C D E</string>
-    <string name="names_solfege">โด เร มี</string>
+    <string name="names_solfege">ド レ ミ</string>
     <string name="names_both">ทั้งสองแบบ</string>
     <string name="pack_title">ดาวน์โหลดเสียงเปียโน</string>
     <string name="pack_body">เสียงแกรนด์เปียโนจริง (Salamander Grand Piano, Yamaha C5) ดาวน์โหลดครั้งเดียว แนะนำให้ใช้ Wi-Fi หลังดาวน์โหลด แอพจะแตกไฟล์เสียงเก็บในเครื่อง (อัปเดตแอพครั้งต่อไปไม่ต้องโหลดใหม่)</string>
@@ -74,23 +74,18 @@
     <string name="selftest_failed">วัดไม่ได้ (ระบบเสียงไม่ส่งค่าเวลา) ลองใหม่อีกครั้ง</string>
 
     <string name="home_midi_title">ต่อเปียโน (MIDI)</string>
+    <string name="home_sync_title">ซิงค์กับคอม</string>
     <string name="home_midi_body">ต่อคีย์บอร์ดผ่านสาย USB-C หรือบลูทูธ ดูโน้ตที่เข้ามา และปรับเทียบเครื่อง</string>
 
     <!-- MIDI -->
     <string name="midi_title">ต่อเปียโน (MIDI)</string>
-    <string name="midi_devices">อุปกรณ์ที่ต่ออยู่</string>
     <string name="midi_unsupported">เครื่องนี้ไม่รองรับ MIDI</string>
-    <string name="midi_none_help">ยังไม่พบอุปกรณ์ เสียบสาย USB-C (สายที่รับส่งข้อมูลได้ ไม่ใช่สายชาร์จอย่างเดียว) จากเปียโนเข้ามือถือ แล้วเปิดเปียโน แอพจะเชื่อมต่อเองภายในไม่กี่วินาที ถ้ามือถือถามว่าจะใช้ USB ทำอะไร ให้เลือก MIDI</string>
-    <string name="midi_connected">เชื่อมต่อแล้ว</string>
-    <string name="midi_connecting">กำลังเชื่อมต่อ…</string>
+    <string name="midi_none_help">เสียบสาย USB-C (สายที่รับส่งข้อมูลได้ ไม่ใช่สายชาร์จอย่างเดียว) จากเปียโนเข้ามือถือแล้วเปิดเปียโน ขึ้นว่าเชื่อมต่อทันทีที่เสียบ ถ้ามือถือถามว่าจะใช้ USB ทำอะไร ให้เลือก MIDI ถ้าเป็นเปียโนบลูทูธ ให้กดค้นหาด้านล่าง</string>
     <string name="ble_title">เปียโนบลูทูธ (Bluetooth MIDI)</string>
-    <string name="ble_help">ถ้าเปียโนมีบลูทูธ MIDI ให้เปิดเปียโนแล้วกดค้นหา เลือกชื่อเปียโนครั้งเดียว ครั้งต่อไปแอพจะเชื่อมต่อเอง</string>
+    <string name="ble_help">ถ้าเปียโนมีบลูทูธ MIDI ให้เปิดเปียโนแล้วกดค้นหา (ค้นหาครั้งละไม่เกิน 10 วินาที) แล้วเลือกชื่อเปียโน แอพจะจำเครื่องไว้ แต่ไม่ค้นหาหรือเชื่อมต่อเอง ครั้งต่อไปกดเชื่อมต่อหรือค้นหาเมื่อต้องการ</string>
     <string name="ble_scan">ค้นหาเปียโนบลูทูธ</string>
-    <string name="ble_scanning">กำลังค้นหา…</string>
+    <string name="ble_scanning">กำลังค้นหา… (ไม่เกิน 10 วินาที)</string>
     <string name="ble_connect_to">เชื่อมต่อ %1$s</string>
-    <string name="ble_saved_connected">%1$s · เชื่อมต่อแล้ว</string>
-    <string name="ble_saved_waiting">%1$s · ยังไม่เชื่อมต่อ (เปิดเปียโนแล้วกดเชื่อมต่ออีกครั้ง)</string>
-    <string name="ble_reconnect">เชื่อมต่ออีกครั้ง</string>
     <string name="ble_forget">เลิกจำเครื่องนี้</string>
     <string name="ble_need_permission">ต้องอนุญาต \"อุปกรณ์ใกล้เคียง\" ก่อน แอพใช้เพื่อหาเปียโนเท่านั้น ไม่ได้ใช้ตำแหน่ง</string>
     <string name="ble_off">บลูทูธของมือถือปิดอยู่ เปิดบลูทูธแล้วกดอีกครั้ง</string>
@@ -215,9 +210,8 @@
 สิ่งที่ ミミコピ ปรับ: ใช้ 8 จาก 16 ระดับความแรง ตัดช่วงเงียบก่อนเสียงและหางเสียงที่ต่ำกว่า -60 dB พร้อมเฟดออก ปรับระดับเสียงรวม และแปลงเป็น 16 บิต</string>
     <string name="credit_oboe_title">เครื่องเสียง: Oboe</string>
     <string name="credit_oboe_body">ไลบรารีเสียงหน่วงต่ำของ Google · Apache License 2.0</string>
-    <string name="credit_font_title">ฟอนต์: Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono และ Zen Maru Gothic (โลโก้)</string>
-    <string name="credit_font_body">Noto Serif Thai: The Noto Project Authors · SIL Open Font License 1.1 (ตัดเป็นน้ำหนัก 500 และ 600 จากไฟล์ variable)
-IBM Plex Sans Thai และ IBM Plex Mono: © 2017 IBM Corp. · SIL Open Font License 1.1 ชื่อฟอนต์สงวน "Plex" (ใช้ตามต้นฉบับ ไม่ได้ดัดแปลง)
+    <string name="credit_font_title">ฟอนต์: ตัวหนังสือใช้ฟอนต์มาตรฐานของเครื่อง · Zen Maru Gothic (โลโก้)</string>
+    <string name="credit_font_body">ตัวหนังสือในแอพใช้ฟอนต์ของระบบ (ไม่ได้ฝังฟอนต์ไว้ในแอพ)
 Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.1 (โลโก้แปลงเป็นเส้นเวกเตอร์)</string>
     <string name="credit_logo_title">โลโก้และไอคอน</string>
     <string name="credit_logo_body">สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
@@ -301,22 +295,22 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="about_version">เวอร์ชัน %1$s (%2$d)</string>
     <string name="about_credits_title">เครดิต</string>
     <string name="about_credit_logo">โลโก้และไอคอน: สร้างด้วยเครื่องมือสร้างภาพ AI เพื่อใช้ส่วนตัว แล้ววาดใหม่เป็นเวกเตอร์</string>
-    <string name="about_credit_font">ฟอนต์ Noto Serif Thai, IBM Plex Sans Thai, IBM Plex Mono และ Zen Maru Gothic (SIL Open Font License 1.1)</string>
+    <string name="about_credit_font">ฟอนต์ตัวโน้ต Bravura (SIL Open Font License 1.1) ตัวหนังสือใช้ฟอนต์มาตรฐานของเครื่อง</string>
     <string name="about_credit_libs">ไลบรารี: Jetpack Compose, Room, Kotlin, kotlinx.serialization (Apache License 2.0)</string>
     <string name="about_limits_title">ยังไม่มีในรุ่นนี้</string>
-    <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงที่ยังมีลิขสิทธิ์ เพลงฝึกเป็นเพลงที่หมดลิขสิทธิ์แล้ว (ทำนองเขียนจากความจำ ยังไม่ได้เทียบต้นฉบับ) ท่อนเพลงที่ชอบต้องจดเองในโหมดฝึกท่อน</string>
+    <string name="about_limit_1">แอพไม่มีโน้ตหรือเนื้อร้องของเพลงที่ยังมีลิขสิทธิ์ เพลงฝึกเป็นเพลงที่หมดลิขสิทธิ์แล้ว (ทำนองเขียนจากความจำ ยังไม่ได้เทียบต้นฉบับ)</string>
     <string name="about_limit_2">เสียงปล่อยคีย์และเสียงสะท้อนสายของเปียโน</string>
-    <string name="about_limit_3">โหมดฝึกท่อนจดเฉพาะโน้ตและลำดับ ยังไม่จดจังหวะ และยังไม่มีมุมมองโน้ตตก (falling notes)</string>
-    <string name="about_limit_4">Bluetooth MIDI ยังไม่ได้ทดสอบกับเปียโนจริง และหน่วงกว่าสาย USB ควรปรับเทียบความหน่วงใหม่ตอนต่อบลูทูธ</string>
-    <string name="about_limit_6">ธีมมืด ภาษาอังกฤษ ระบบเตือน (ผู้ใช้ยังไม่ต้องการ) และรุ่น Windows (ทำเมื่อผู้ใช้อนุมัติเท่านั้น) แอพไม่มีคีย์บอร์ดบนจอแล้ว ต้องต่อคีย์บอร์ด MIDI</string>
-    <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (ไปที่หน้า release สาธารณะบน GitHub) และไม่ส่งข้อมูลของคุณออกไป</string>
+    <string name="about_limit_3">ระดับทักษะเทียบกับแบบทดสอบในแอพนี้ ไม่ใช่เกรดสอบดนตรี เกณฑ์ของแต่ละระดับและการแบ่งเวลาในแผนวันนี้เป็นค่าตั้งต้นที่ยังต้องปรับจากการใช้จริง</string>
+    <string name="about_limit_4">Bluetooth MIDI หน่วงกว่าสาย USB เล็กน้อย ควรปรับเทียบความหน่วงใหม่ตอนต่อบลูทูธ และเปียโนที่ไม่ส่งสัญญาณบอกสถานะ แอพจะยืนยันการเชื่อมต่อได้จากเสียงที่กดเท่านั้น</string>
+    <string name="about_limit_6">ภาษาอังกฤษ และระบบเตือน (ผู้ใช้ยังไม่ต้องการ) แป้นบนจอแตะได้ทีละแรงเดียว และจังหวะไม่แม่นเท่าเปียโนจริง (ในหน้าฝึกจะขึ้นเฉพาะตอนยังไม่ได้ต่อคีย์บอร์ด MIDI)</string>
+    <string name="about_privacy">ข้อมูลทั้งหมดอยู่ในเครื่องนี้เท่านั้น แอพเชื่อมต่ออินเทอร์เน็ตเฉพาะตอนกด "ตรวจหาอัปเดต" (หน้า release สาธารณะบน GitHub) และตอนกดติดตั้งเสียงเปียโน (ดาวน์โหลดไฟล์เสียง) และไม่ส่งข้อมูลของคุณออกไป</string>
 
     <!-- M7: reader and play-along -->
     <string name="home_reader_title">อ่านโน้ตและเล่นตาม</string>
     <string name="home_reader_body">อ่านโน้ตบรรทัดคู่ เล่นตามแบบรอหรือตามจังหวะ วนท่อน แยกมือ แอพบอกโน้ตที่ถูก เร็ว ช้า หรือพลาด</string>
     <string name="pieces_title">อ่านโน้ตและเล่นตาม</string>
     <string name="pieces_intro">เลือกเพลงที่จะฝึก เริ่มจากโหมด "รอ" (แอพรอจนกดถูก) แล้วค่อยไปโหมด "ตามจังหวะ" ฝึกทีละท่อนช้าๆ ดีกว่าเล่นทั้งเพลงวนๆ</string>
-    <string name="pieces_source_note">เพลงในแอพเป็นทำนองสาธารณะ (public domain) ที่แอพเรียบเรียงใหม่แบบง่าย หรือเพลงที่แต่งใหม่สำหรับแอพ ไม่มีโน้ตหรือเนื้อร้องที่มีลิขสิทธิ์</string>
+    <string name="pieces_source_note">เพลงในแอพเป็นทำนองสาธารณะ (public domain) ที่แอพเรียบเรียงใหม่แบบง่าย ไม่มีโน้ตหรือเนื้อร้องที่มีลิขสิทธิ์</string>
     <string name="pieces_meta">ระดับ %1$s · %2$d/%3$d · เป้าหมาย %4$d bpm · %5$d บาร์</string>
     <string name="pieces_status_new">ยังไม่ได้ฝึก</string>
     <string name="pieces_status_runs">ฝึกแล้ว %1$d รอบ</string>
@@ -330,6 +324,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="reader_again">เล่นอีกครั้ง</string>
     <string name="reader_back_to_setup">ปรับการฝึก</string>
     <string name="reader_mode_wait">รอ</string>
+    <string name="reader_falling">โน้ตตก</string>
     <string name="reader_mode_tempo">ตามจังหวะ</string>
     <string name="reader_hand_right">มือขวา</string>
     <string name="reader_hand_left">มือซ้าย</string>
@@ -362,6 +357,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="drill_interval_play">เล่นโน้ตทั้งชุดจากซ้ายไปขวา</string>
     <string name="drill_interval_correction">คำตอบที่ถูก: %1$s</string>
     <string name="reader_new_piece">โจทย์ใหม่</string>
+    <string name="reader_exam_preview">ดูโน้ตก่อนเล่น เหลือ %1$d วินาที แล้วจะเริ่มเอง (กดเริ่มก่อนได้)</string>
     <string name="reader_fixed_summary">โหมด%1$s · %2$s · %3$d bpm</string>
     <string name="block_warmup_body">อุ่นมือช้าๆ ผ่อนคลาย: %1$s</string>
     <string name="block_new_reading_body">อ่านบทใหม่ที่ไม่เคยเห็น ระดับ L%1$d (ง่ายกว่าบทเรียนปัจจุบัน) เล่นไม่เกิน 3 รอบต่อบท แล้วเปลี่ยนบทใหม่</string>
@@ -490,7 +486,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="reader_playing_wait">โหมดรอ: กดโน้ตที่เคอร์เซอร์ แอพจะรอจนกดถูก</string>
     <string name="reader_playing_tempo">โหมดตามจังหวะ · %1$d bpm</string>
     <string name="reader_listening">กำลังเล่นตัวอย่าง · %1$d bpm</string>
-    <string name="reader_pack_missing">ยังไม่ได้ติดตั้งเสียงเปียโน แอพจะเล่นมืออื่นและตัวอย่างไม่ได้ (ติดตั้งได้ที่หน้า "เปียโน")</string>
+    <string name="reader_pack_missing">ยังไม่ได้ติดตั้งเสียงเปียโน แอพจะเล่นมืออื่นและตัวอย่างไม่ได้ (ติดตั้งได้ที่แท็บ "เปียโน")</string>
     <string name="reader_legend">สี: เขียว = ถูก · ส้ม ← เร็วไป / → ช้าไป · แดง × = ไม่ได้เล่น · แดง ! = แก้หลังกดผิด · วงแดง = คีย์ที่กดผิด</string>
     <string name="drill_ready_chord_build">%1$d คอร์ด: กดโน้ตของคอร์ดที่แอพบอกพร้อมกัน กลับเสียงหรืออ็อกเทฟไหนก็ได้ แต่ห้ามมีโน้ตเกิน (สแลชคอร์ดต้องให้เบสอยู่ล่างสุด)</string>
     <string name="drill_ready_chord_change">เปลี่ยนคอร์ดตามโปรเกรสชันวนไปเรื่อยๆ จนหมดเวลา แอพนับจำนวนครั้งที่กดคอร์ดถูก ค้างโน้ตที่เหมือนกันไว้ได้</string>
@@ -525,8 +521,6 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="song_notes">หมายเหตุ / แหล่งข้อมูล</string>
     <string name="song_verified">ยืนยันด้วยหูแล้ว</string>
     <string name="song_unverified">ยังไม่ได้ยืนยัน (ติ๊กเมื่อตรวจด้วยหูแล้ว)</string>
-    <string name="song_sections">ท่อนเพลงและคอร์ด</string>
-    <string name="song_sections_help">พิมพ์คอร์ดที่ถอดได้ เช่น | C | G/B | Am7 | F | แอพแปลงเป็นเลขโรมันตามคีย์ ถ้าท่อนไหนเปลี่ยนคีย์ เลือกคีย์ของท่อนนั้น</string>
     <string name="song_add_section">เพิ่มท่อน</string>
     <string name="song_section_name">ชื่อท่อน</string>
     <string name="song_section_chords">คอร์ด</string>
@@ -564,18 +558,19 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="timing_strict">เข้ม (±%1$d ms)</string>
     <string name="timing_normal">ปกติ (±%1$d ms)</string>
     <string name="timing_forgiving">ผ่อน (±%1$d ms)</string>
-    <string name="reader_opt_page">แสดงแบบหน้า (ตัดบรรทัด)</string>
-    <string name="reader_opt_page_body">โน้ตเรียงเป็นบรรทัดลงมาเหมือนหนังสือ ระหว่างเล่นจะเลื่อนลงตามเคอร์เซอร์ ปิด = แถบยาวแถบเดียวที่เลื่อนไปทางขวา</string>
+    <string name="reader_opt_page">ชีตเต็มแผ่น</string>
+    <string name="reader_opt_page_body">โน้ตเรียงเป็นบรรทัดลงมาเหมือนชีตบนกระดาษ มีเส้นบอกว่าเล่นถึงไหน พอถึงบรรทัดสุดท้ายของจอจะพลิกหน้าให้ ปิด = แถบยาวแถบเดียวที่เลื่อนไปทางขวา</string>
+    <string name="reader_opt_paper">ขนาดเหมือนกระดาษ</string>
+    <string name="reader_opt_paper_body">ตัวโน้ตขนาดเท่าชีตที่พิมพ์ เห็นหลายบรรทัดพร้อมกัน ฝึกอ่านล่วงหน้าเหมือนอ่านจากกระดาษ ปิด = บรรทัดใหญ่ (เหมาะกับจอเล็กที่วางไกล)</string>
     <string name="block_song_project">โปรเจกต์ถอดเพลง: %1$s · วันที่ %2$d: %3$s</string>
     <string name="block_open_song">เปิดเพลงนี้</string>
     <string name="diag_section_crash">ข้อผิดพลาดล่าสุด</string>
     <string name="diag_crash_none">ยังไม่เคยมีการปิดตัวเพราะข้อผิดพลาด</string>
     <string name="diag_crash_help">แอพเคยปิดตัวเพราะข้อผิดพลาด รายละเอียดอยู่ในไฟล์ Diagnostics (ปุ่มคัดลอก/แชร์ด้านบน) เก็บในเครื่องนี้เท่านั้น</string>
-    <string name="tab_home">หน้าแรก</string>
     <string name="tab_today">วันนี้</string>
+    <string name="tab_skills">ทักษะ</string>
     <string name="tab_piano">เปียโน</string>
     <string name="tab_songs">เพลง</string>
-    <string name="tab_me">ฉัน</string>
     <string name="home_due">ทวน %1$d</string>
     <string name="home_today_minutes">วันนี้ · %1$d นาที</string>
     <string name="home_week_minutes">สัปดาห์นี้ %1$d นาที</string>
@@ -632,12 +627,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="lesson_start_step">เริ่มฝึกขั้นนี้</string>
 
     <!-- M15: four tabs, section practice -->
-    <string name="tab_reading">อ่านโน้ต</string>
-    <string name="tab_ear">ฝึกฟัง</string>
-    <string name="tab_sections">ฝึกท่อน</string>
-    <string name="midi_needed">ต่อคีย์บอร์ด MIDI ก่อน (สาย USB หรือบลูทูธ) แอพรับโน้ตจากคีย์บอร์ดเท่านั้น</string>
-    <string name="midi_ready">MIDI</string>
-    <string name="midi_not_ready">ไม่มี MIDI</string>
+    <string name="midi_needed">ยังไม่ได้ต่อคีย์บอร์ด MIDI · กดแป้นบนจอเพื่อลองเล่นตามได้ (ต่อเปียโนแล้วแป้นบนจอจะหายไป)</string>
     <string name="skill_reading_goal">เป้าหมาย: เห็นโน้ตแล้วเล่นตามได้</string>
     <string name="skill_ear_goal">เป้าหมาย: ฟังแล้วแกะเพลงเองได้</string>
     <string name="skill_today">วันนี้</string>
@@ -660,44 +650,6 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="songs_level">ระดับ %1$s</string>
     <string name="songs_passed">ผ่านแล้ว: %1$s</string>
     <string name="songs_unverified">ทำนองเขียนจากความจำ ยังไม่ได้เทียบกับโน้ตต้นฉบับ อาจต่างจากที่เคยได้ยินบ้าง</string>
-    <string name="sections_intro">ท่อนเพลงที่ชอบ: เล่นบนคีย์บอร์ดให้แอพจดโน้ต แล้วฝึกทีละวลีจนเล่นได้ทั้งท่อน</string>
-    <string name="sections_new">ท่อนใหม่</string>
-    <string name="sections_mastered">เล่นได้แล้ว</string>
-    <string name="sections_summary">%1$d โน้ต · %2$d วลี</string>
-    <string name="sections_stats">เล่นจบไม่ผิด %1$d จาก %2$d รอบ · แม่นยำ %3$d%%</string>
-    <string name="sections_practice">ฝึก</string>
-    <string name="sections_edit">แก้โน้ต</string>
-    <string name="sections_delete">ลบ</string>
-    <string name="sections_default_title">ท่อนที่ %1$d</string>
-    <string name="sections_name_title">ชื่อท่อน</string>
-    <string name="sections_create">เริ่มจดโน้ต</string>
-    <string name="sections_delete_q">ลบ \"%1$s\" ?</string>
-    <string name="sections_edit_title">จดโน้ต</string>
-    <string name="sections_record_help">เล่นบนคีย์บอร์ดทีละโน้ต แอพจดให้เอง กดพร้อมกันจะเป็นคอร์ด ไม่ต้องตรงจังหวะ แตะโน้ตเพื่อแก้</string>
-    <string name="sections_replace_help">เล่นโน้ตใหม่บนคีย์บอร์ดเพื่อแทนตัวที่เลือก</string>
-    <string name="sections_empty">ยังไม่มีโน้ต เริ่มเล่นได้เลย</string>
-    <string name="sections_phrase">วลี %1$d</string>
-    <string name="sections_delete_note">ลบตัวนี้</string>
-    <string name="sections_split_here">เริ่มวลีใหม่ตรงนี้</string>
-    <string name="sections_join_phrase">รวมกับวลีก่อนหน้า</string>
-    <string name="sections_undo">ลบตัวล่าสุด</string>
-    <string name="sections_listen">ฟัง</string>
-    <string name="sections_auto_phrases">แบ่งวลีอัตโนมัติ</string>
-    <string name="sections_flats">แสดงเป็น ♭</string>
-    <string name="sections_clear">ล้างทั้งหมด</string>
-    <string name="sections_clear_q">ล้างโน้ตทั้งหมดของท่อนนี้?</string>
-    <string name="sections_start_practice">เริ่มฝึกท่อนนี้</string>
-    <string name="sections_whole">ทั้งท่อน</string>
-    <string name="sections_mode_phrase">วลี %1$d จาก %2$d</string>
-    <string name="sections_mode_full">ทั้งท่อน (ผิดตรงไหน เริ่มวลีนั้นใหม่)</string>
-    <string name="sections_streak">ไม่ผิดติดกัน %1$d/%2$d</string>
-    <string name="sections_wrong">ผิด เริ่มวลีนี้ใหม่จากโน้ตแรก</string>
-    <string name="sections_phrase_run">ไม่ผิดเลย อีก %1$d รอบติดกันจะไปวลีถัดไป</string>
-    <string name="sections_phrase_passed">ผ่านวลีนี้แล้ว ต่อวลีถัดไป</string>
-    <string name="sections_full_clean">เล่นจบไม่ผิดเลย อีก %1$d รอบติดกัน</string>
-    <string name="sections_full_mistakes">เล่นจบแล้ว แต่มีที่ผิด รอบนี้ไม่นับ เริ่มใหม่ได้เลย</string>
-    <string name="sections_mastered_now">เล่นทั้งท่อนไม่ผิด 3 รอบติดกันแล้ว ฝึกต่อได้เรื่อยๆ ให้ติดมือ</string>
-    <string name="sections_play_hint">เล่นโน้ตที่กรอบสีชมพู</string>
     <string name="skill_kind_done">วันนี้</string>
     <string name="skill_rule_short">ผ่านเกณฑ์วันนี้ แล้วยืนยันอีกครั้งพรุ่งนี้</string>
     <string name="skill_kind_hint">ทำให้ผ่านเกณฑ์อีกครั้ง เพื่อให้ติดมือ</string>
@@ -709,20 +661,40 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="skill_hide_ladder">ซ่อนบันได</string>
     <string name="songs_hands">เลือกมือ</string>
     <string name="songs_count">เพลงหมดลิขสิทธิ์ %1$d เพลง เรียงจากง่ายไปยาก</string>
-    <string name="sections_new_body">เล่นบนคีย์บอร์ด แอพจดโน้ตให้เอง</string>
-    <string name="sections_meta">%1$d โน้ต · %2$d วลี</string>
-    <string name="sections_subtitle">ท่อนที่ชอบ จดด้วยการเล่น ฝึกทีละวลี</string>
     <string name="ear_answer_row">เฉลย</string>
     <string name="theme_title">หน้าตา</string>
     <string name="theme_dark">มืด (OLED)</string>
     <string name="theme_light">สว่าง</string>
     <string name="theme_system">ตามเครื่อง</string>
-    <string name="midi_live">เชื่อมต่อแล้ว · เปิดเครื่องอยู่</string>
-    <string name="midi_silent">ยังเสียบอยู่แต่ไม่มีสัญญาณ (น่าจะปิดเครื่อง)</string>
-    <string name="midi_connected_unknown">เชื่อมต่อแล้ว (คีย์บอร์ดนี้ไม่ส่งสัญญาณบอกสถานะ แอพจึงรู้ไม่ได้ว่าปิดเครื่องหรือยัง ถ้าสายยังเสียบอยู่)</string>
     <string name="midi_recheck">ตรวจการเชื่อมต่อใหม่</string>
-    <string name="midi_banner">ยังไม่ได้ต่อคีย์บอร์ด (หรือปิดเครื่องอยู่)</string>
-    <string name="midi_banner_action">ต่อ →</string>
-    <string name="sections_empty_list">ยังไม่มีท่อน ลองเลือกท่อนสั้นๆ ที่ชอบ 4–8 โน้ตก่อน เช่นท่อนฮุก แล้วค่อยต่อท่อนยาวขึ้น</string>
+    <string name="midi_state_connected">Connected</string>
+    <string name="midi_state_connected_body">เชื่อมต่อแล้ว · เปิดเครื่องอยู่</string>
+    <string name="midi_state_silent">ไม่มีสัญญาณ</string>
+    <string name="midi_state_silent_body">เปียโนน่าจะปิดอยู่ เปิดเปียโนแล้วสถานะจะกลับเป็น Connected เอง</string>
+    <string name="midi_state_connecting">กำลังเชื่อมต่อ…</string>
+    <string name="midi_state_none">ยังไม่ได้เชื่อมต่อ</string>
+    <string name="midi_state_unplugged">ถอดสายแล้ว</string>
+    <string name="midi_state_ble_lost">บลูทูธหลุด</string>
+    <string name="midi_state_open_failed">เปิดเปียโนไม่ได้</string>
+    <string name="midi_state_open_failed_body">ถอดสายแล้วเสียบใหม่ หรือกดตรวจการเชื่อมต่อใหม่</string>
+    <string name="midi_state_connected_plain">เชื่อมต่อแล้ว · กดคีย์ได้เลย</string>
+    <string name="ble_not_connected">ไม่ได้เชื่อมต่อ</string>
+    <string name="ble_connect">เชื่อมต่อ</string>
+    <string name="ble_disconnect">ตัดการเชื่อมต่อ</string>
+    <string name="ble_cancel">หยุด</string>
+    <string name="ble_connecting_to">กำลังเชื่อมต่อ %1$s… (ไม่เกิน %2$d วินาที)</string>
+    <string name="ble_failed">เชื่อมต่อ %1$s ไม่สำเร็จ เปิดเปียโนให้อยู่ใกล้ๆ แล้วกดเชื่อมต่ออีกครั้ง</string>
+    <string name="ble_not_found">ไม่พบเปียโนบลูทูธ ตรวจว่าเปิดเปียโนและบลูทูธของเปียโนแล้ว และไม่ได้ต่อกับเครื่องอื่นอยู่ แล้วกดค้นหาอีกครั้ง</string>
+    <string name="midi_usb">USB</string>
+    <string name="midi_bluetooth">บลูทูธ</string>
+    <string name="midi_last_note">เสียงล่าสุด %1$s · %2$d วินาทีที่แล้ว</string>
+    <string name="midi_last_note_now">เสียงล่าสุด %1$s · เมื่อกี้</string>
+    <string name="midi_settings">การตั้งค่า</string>
+    <string name="midi_velocity">น้ำหนักคีย์ (Velocity)</string>
+    <string name="midi_velocity_off">ปิดอยู่: ทุกโน้ตดังเท่ากัน กดเบาหรือแรงก็เหมือนกัน เหมาะกับช่วงแรก (มีผลกับเสียงของแอพ ถ้าใช้ลำโพงเปียโน ให้ปิด Touch ที่ตัวเปียโน)</string>
+    <string name="midi_velocity_on">เปิดอยู่: กดแรงเสียงดัง กดเบาเสียงเบา ใช้ตอนฝึกน้ำหนักมือ</string>
+    <string name="midi_velocity_soft">เบา</string>
+    <string name="midi_velocity_medium">กลาง</string>
+    <string name="midi_velocity_loud">ดัง</string>
     <string name="songs_passed_count">ผ่านแล้ว %1$d จาก %2$d เพลง (สองมือ)</string>
 </resources>

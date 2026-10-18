@@ -16,6 +16,11 @@ import com.id.mimikopi.core.progress.Benchmarks
 import com.id.mimikopi.core.metronome.FrameTimestamp
 import com.id.mimikopi.core.metronome.JitterAnalysis
 import com.id.mimikopi.core.music.NoteNameStyle
+import com.id.mimikopi.core.exam.ExamPart
+import com.id.mimikopi.core.exam.ExamSitting
+import com.id.mimikopi.core.exam.Exams
+import com.id.mimikopi.core.exam.Grade
+import com.id.mimikopi.core.exam.PartMark
 import com.id.mimikopi.core.playalong.Advice
 import com.id.mimikopi.core.playalong.Coach
 import com.id.mimikopi.core.playalong.Feedback
@@ -71,8 +76,12 @@ data class ReaderOptions(
     val hideNotes: Boolean = false,
     /** "Listen" repeats the section until stopped. */
     val loopListen: Boolean = false,
-    /** Page view: the score wrapped into lines that scroll down, instead of one long strip. */
-    val pageView: Boolean = false,
+    /** Page view (the default): the score wrapped into lines like a printed sheet, instead of one long strip. */
+    val pageView: Boolean = true,
+    /** Page view at the size of printed music (several lines on screen); off = large lines for a phone on the stand. */
+    val paperSize: Boolean = true,
+    /** Falling notes over a keyboard instead of the score (songs only); a run with it does not count toward passing. */
+    val falling: Boolean = false,
 )
 
 sealed interface ResultAction {
@@ -108,6 +117,8 @@ data class ReaderUi(
     val packMissing: Boolean = false,
     val passDays: Int = 0,
     val message: String? = null,
+    /** Exam sight-reading: seconds left to look at the music before the run starts by itself. */
+    val previewLeft: Int? = null,
 )
 
 /**
@@ -131,7 +142,16 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         data class LessonDrill(val lesson: Lesson, val index: Int) : Source { val drill: Drill get() = lesson.drills[index] }
         data class NewReading(val level: Int) : Source
         data class Benchmark(val level: Int) : Source
+        /** A level test of the skill page (rhythm, sight-reading, technique). */
+        data class Check(val level: com.id.mimikopi.core.progress.SkillLevel) : Source {
+            val drill: Drill get() = (level.run as com.id.mimikopi.core.progress.CheckRun.ScoreRun).drill
+        }
+        /** One played part of a grade exam (pieces, scales, sight-reading), taken once. */
+        data class Exam(val sitting: String, val part: ExamPart) : Source
     }
+
+    /** The practice log kind of this sitting's runs, when the Today plan says (e.g. "warmup"). */
+    private val via: String? = args.get<String>("via")
 
     data class LoadedPiece(val score: Score, val layout: ScoreLayout, val keyRange: IntRange)
 
@@ -140,6 +160,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         args.get<String>("lessonId") != null -> learning.lesson(args.get<String>("lessonId")!!)
             ?.let { l -> args.get<String>("drill")?.toIntOrNull()?.takeIf { it in l.drills.indices }?.let { Source.LessonDrill(l, it) } }
             ?: Source.Piece("", null)
+        args.get<String>("check") != null -> com.id.mimikopi.core.progress.SkillBook.parseKey(args.get<String>("check"))
+            ?.takeIf { it.run is com.id.mimikopi.core.progress.CheckRun.ScoreRun }?.let { Source.Check(it) } ?: Source.Piece("", null)
+        args.get<String>("exam") != null -> ExamPart.entries.firstOrNull { it.name == args.get<String>("part") }
+            ?.let { Source.Exam(args.get<String>("exam")!!, it) } ?: Source.Piece("", null)
         args.get<String>("newread") != null -> Source.NewReading(args.get<String>("newread")!!.toIntOrNull()?.coerceIn(1, 5) ?: 1)
         else -> Source.Benchmark(args.get<String>("bench")?.toIntOrNull()?.coerceIn(1, Benchmarks.MAX_LEVEL) ?: 1)
     }
@@ -184,30 +208,76 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         transposeKey = null
         when (val src = source) {
             is Source.Piece -> pieces.pieceOrExercise(src.id)
-            is Source.LessonDrill -> {
-                val d = src.drill
-                when (d.type) {
-                    ExerciseType.E_FINGER_PATTERN -> Score.from(ScoreGenerators.fingerPatterns(d, seed))
-                    ExerciseType.E_RHYTHM_TAP -> Score.from(ScoreGenerators.rhythm(d, seed))
-                    ExerciseType.E_READ_PIECE -> Score.from(ScoreGenerators.read(d, seed))
-                    ExerciseType.E_COMP_PATTERN -> Score.from(ScoreGenerators.comp(d, seed))
-                    ExerciseType.E_TRANSPOSE -> {
-                        val from = d.keys.firstOrNull() ?: 0
-                        val targets = d.targetKeys.ifEmpty { listOf(1) }
-                        val to = targets[kotlin.random.Random(seed).nextInt(targets.size)]
-                        val (original, moved) = com.id.mimikopi.core.theory.StageGenerators.transposePair(from, to, seed)
-                        playScore = Score.from(moved)
-                        transposeKey = to
-                        Score.from(original)
-                    }
-                    ExerciseType.E_PIECE -> pieces.pieceOrExercise(d.pieces.first())
-                    else -> null
-                }
-            }
+            is Source.Check -> scoreFor(src.drill)
+            is Source.Exam -> examScore(src)
+            is Source.LessonDrill -> scoreFor(src.drill)
             is Source.NewReading -> Score.from(ScoreGenerators.sightReading(newReadingDrill(src.level), seed))
             is Source.Benchmark -> Score.from(ScoreGenerators.sightReading(Benchmarks.sightReadingDrill(benchLevel), Benchmarks.sightReadingSeed(benchLevel)))
         }
     }.getOrNull()
+
+    /** A drill's score: generated for exercises, the piece or exercise file for E_PIECE. */
+    private fun scoreFor(d: Drill): Score? = when (d.type) {
+        ExerciseType.E_FINGER_PATTERN -> Score.from(ScoreGenerators.fingerPatterns(d, seed))
+        ExerciseType.E_RHYTHM_TAP -> Score.from(ScoreGenerators.rhythm(d, seed))
+        ExerciseType.E_READ_PIECE -> Score.from(ScoreGenerators.read(d, seed))
+        ExerciseType.E_COMP_PATTERN -> Score.from(ScoreGenerators.comp(d, seed))
+        ExerciseType.E_TRANSPOSE -> {
+            val from = d.keys.firstOrNull() ?: 0
+            val targets = d.targetKeys.ifEmpty { listOf(1) }
+            val to = targets[kotlin.random.Random(seed).nextInt(targets.size)]
+            val (original, moved) = com.id.mimikopi.core.theory.StageGenerators.transposePair(from, to, seed)
+            playScore = Score.from(moved)
+            transposeKey = to
+            Score.from(original)
+        }
+        ExerciseType.E_PIECE -> pieces.pieceOrExercise(d.pieces.first())
+        else -> null
+    }
+
+    /** The exam this reader plays a part of, with its grade (null until the exams are read). */
+    private fun exam(): Pair<ExamSitting, Grade>? {
+        val src = source as? Source.Exam ?: return null
+        val sitting = services.progress.exams.value.firstOrNull { it.id == src.sitting } ?: return null
+        return Exams.grade(sitting.grade)?.let { sitting to it }
+    }
+
+    private fun examScore(src: Source.Exam): Score? {
+        val (sitting, grade) = exam() ?: return null
+        return when (src.part) {
+            ExamPart.PIECE_1 -> pieces.pieceOrExercise(sitting.pieces[0])
+            ExamPart.PIECE_2 -> pieces.pieceOrExercise(sitting.pieces[1])
+            ExamPart.POP -> Score.from(Exams.pop(grade))
+            ExamPart.SCALES -> Score.from(Exams.scalesPiece(grade, sitting.seed))
+            // New music on every look: a voided take or a left page never shows the same piece twice.
+            ExamPart.SIGHT -> Score.from(Exams.sightPiece(grade, seed))
+            ExamPart.AURAL -> null
+        }
+    }
+
+    /** This exam part was taken already (a part counts once). */
+    private fun examTaken(): Boolean {
+        val src = source as? Source.Exam ?: return false
+        return exam()?.first?.mark(src.part) != null
+    }
+
+    /** The exam was given up (here or by sync) or its day is over: no part of it can be taken any more. */
+    private fun examClosed(): Boolean = exam()?.first?.let { it.abandoned || it.day != java.time.LocalDate.now().toString() } == true
+
+    /** Exam sight-reading after a look that did not count: the next look must be new music with its own 30 seconds. */
+    private var sightNeedsLook = false
+
+    /** Exam sight-reading: new music, back to the start, and the half-minute look again. True when that was done. */
+    private fun newSightLook(): Boolean {
+        val src = source as? Source.Exam ?: return false
+        if (src.part != ExamPart.SIGHT || !sightNeedsLook || examTaken()) return false
+        sightNeedsLook = false
+        seed = System.currentTimeMillis()
+        loadPiece()
+        _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap()) }
+        startPreview()
+        return true
+    }
 
     private fun newReadingDrill(level: Int) = Drill(ExerciseType.E_READ_PIECE, "new", level = "L$level", bpm = 60, mode = "TEMPO",
         hand = if (level == 2) "LEFT" else "RIGHT")
@@ -220,16 +290,17 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         newPieceNext = false
         val bpm = when (val src = source) {
             is Source.LessonDrill -> src.drill.bpm
+            is Source.Check -> src.drill.bpm
             is Source.NewReading, is Source.Benchmark -> 60
-            is Source.Piece -> s.tempo
+            is Source.Piece, is Source.Exam -> s.tempo
         }
         _ui.update { it.copy(section = 0 until s.measures, bpm = bpm, targetBpm = bpm, results = emptyMap(), wrongMarks = emptyList(), pendingSectionStart = null) }
     }
 
     /** Options a fixed source dictates (mode, hands, no ramp); the keyboard choice stays the user's. */
     private fun fixedOptions(saved: ReaderOptions): ReaderOptions = when (val src = source) {
-        is Source.LessonDrill -> {
-            val d = src.drill
+        is Source.LessonDrill, is Source.Check -> {
+            val d = if (src is Source.Check) src.drill else (src as Source.LessonDrill).drill
             ReaderOptions(
                 mode = if (d.mode == "WAIT") PlayMode.WAIT else PlayMode.TEMPO,
                 hands = runCatching { HandChoice.valueOf(d.hand) }.getOrDefault(HandChoice.RIGHT),
@@ -242,6 +313,11 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         is Source.Benchmark -> ReaderOptions(PlayMode.TEMPO, if (benchLevel == 2) HandChoice.LEFT else if (benchLevel == 5) HandChoice.BOTH else HandChoice.RIGHT,
             playOtherHand = false, metronome = true, useRamp = false, showKeyboard = saved.showKeyboard)
         is Source.Piece -> saved.let { o -> src.hand?.let { o.copy(hands = it) } ?: o }
+        // Exams: both hands, at the written tempo, nothing played for the player (the metronome stays: the judge times
+        // every note against a steady beat).
+        is Source.Exam -> ReaderOptions(PlayMode.TEMPO,
+            if (src.part == ExamPart.SIGHT) exam()?.second?.let { runCatching { HandChoice.valueOf(Exams.sightHand(it)) }.getOrNull() } ?: HandChoice.RIGHT else HandChoice.BOTH,
+            playOtherHand = false, metronome = true, useRamp = false, showKeyboard = saved.showKeyboard)
     }
 
     /** Title line for the top bar. */
@@ -251,10 +327,16 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             (transposeKey?.let { " · เล่นในคีย์ ${com.id.mimikopi.core.theory.Keys.name(it)}" } ?: "")
         is Source.NewReading -> "อ่านโน้ตใหม่ (ระดับ L${src.level})"
         is Source.Benchmark -> "วัดผล: อ่านโน้ตระดับ L$benchLevel"
+        is Source.Check -> "ทดสอบวัดระดับ · ${src.level.skill.title} ระดับ ${src.level.level}"
+        is Source.Exam -> "สอบ ${exam()?.second?.name ?: ""} · ${src.part.title}"
     }
 
     private var holding = false
     private var runJob: Job? = null
+    /** Exam sight-reading: the look-first countdown. */
+    private var previewJob: Job? = null
+    /** The run was ended with the stop button before the music's end (an exam part then gets no minimum marks). */
+    private var stoppedEarly = false
     private var judge: PlayAlongJudge? = null
     private var latencies: Map<InputSource, Double> = emptyMap()
     private var helperUsedThisRun = false
@@ -273,7 +355,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         loadPiece()
         viewModelScope.launch {
             pieces.load()
-            if (_piece.value == null) loadPiece() // user scores are read from storage first
+            services.progress.load()
+            if (_piece.value == null) loadPiece() // user scores and exams are read from storage first
             learning.load()
             services.database.settingsDao().get(SettingKeys.NOTE_NAME_STYLE)?.let { runCatching { nameStyle = NoteNameStyle.valueOf(it) } }
             val options = services.database.settingsDao().get(SettingKeys.READER_OPTIONS)
@@ -282,17 +365,49 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             _ui.update { it.copy(options = fixedOptions(options), packMissing = missing) }
             refreshProgress()
             applyRampTempo()
+            startPreview()
         }
         viewModelScope.launch { hub.events.collect(::onInput) }
     }
 
+    /** Exam sight-reading: half a minute to look at the music, then the run starts, as an examiner would ask. */
+    private fun startPreview() {
+        val src = source as? Source.Exam ?: return
+        if (src.part != ExamPart.SIGHT || previewJob != null || examTaken() || score == null || _ui.value.phase != Phase.IDLE) return
+        if (examClosed()) {
+            _ui.update { it.copy(message = CLOSED_EXAM) }
+            return
+        }
+        previewJob = viewModelScope.launch {
+            for (left in PREVIEW_SECONDS downTo 1) {
+                _ui.update { it.copy(previewLeft = left) }
+                delay(1000)
+            }
+            _ui.update { it.copy(previewLeft = null) }
+            previewJob = null
+            // Only while the page is on screen (the countdown is cancelled when it leaves).
+            if (holding && _ui.value.phase == Phase.IDLE) start()
+        }
+    }
+
     fun onStart() {
+        if (!newSightLook()) startPreview()
         if (holding) return
         holding = true
         viewModelScope.launch { withContext(Dispatchers.IO) { piano.acquire(needPack = false) } }
     }
 
     fun onStop() {
+        // Exams: leaving the page (a call, the home button, another page) drops a take in progress instead of marking
+        // it; only the stop button or the end of the music counts. Sight-reading then gets new music for the next look.
+        previewJob?.cancel()
+        previewJob = null
+        if (_ui.value.previewLeft != null) _ui.update { it.copy(previewLeft = null) }
+        val src = source
+        if (src is Source.Exam) {
+            judge = null
+            if (src.part == ExamPart.SIGHT && !examTaken()) sightNeedsLook = true
+        }
         stop()
         if (!holding) return
         holding = false
@@ -304,24 +419,26 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     fun setMode(mode: PlayMode) = updateOptions { it.copy(mode = mode) }
     fun setHands(choice: HandChoice) = updateOptions { it.copy(hands = choice) }
-    fun setPlayOtherHand(on: Boolean) = updateOptions { it.copy(playOtherHand = on) }
+    fun setPlayOtherHand(on: Boolean) { if (source !is Source.Exam) updateOptions { it.copy(playOtherHand = on) } }
     fun setMetronome(on: Boolean) = updateOptions { it.copy(metronome = on) }
     fun setUseRamp(on: Boolean) = updateOptions { it.copy(useRamp = on) }
     fun setShowKeyboard(on: Boolean) = updateOptions { it.copy(showKeyboard = on) }
     fun setHideNotes(on: Boolean) = updateOptions { it.copy(hideNotes = on) }
     fun setLoopListen(on: Boolean) = updateOptions { it.copy(loopListen = on) }
     fun setPageView(on: Boolean) = updateOptions { it.copy(pageView = on) }
+    fun setPaperSize(on: Boolean) = updateOptions { it.copy(paperSize = on) }
+    fun setFalling(on: Boolean) = updateOptions { it.copy(falling = on) }
 
     private fun updateOptions(change: (ReaderOptions) -> ReaderOptions) {
         if (!editable()) return
         val before = _ui.value.options
         var next = change(before)
-        if (fixed) next = before.copy(showKeyboard = next.showKeyboard, playOtherHand = next.playOtherHand, pageView = next.pageView)
+        if (fixed) next = before.copy(showKeyboard = next.showKeyboard, playOtherHand = next.playOtherHand, pageView = next.pageView, paperSize = next.paperSize)
         _ui.update { it.copy(options = next) }
         viewModelScope.launch {
             val dao = services.database.settingsDao()
             val stored = if (fixed) (dao.get(SettingKeys.READER_OPTIONS)?.let { runCatching { json.decodeFromString(ReaderOptions.serializer(), it) }.getOrNull() }
-                ?: ReaderOptions()).copy(showKeyboard = next.showKeyboard, pageView = next.pageView) else next
+                ?: ReaderOptions()).copy(showKeyboard = next.showKeyboard, pageView = next.pageView, paperSize = next.paperSize) else next
             dao.put(SettingEntity(SettingKeys.READER_OPTIONS, json.encodeToString(ReaderOptions.serializer(), stored)))
         }
         applyRampTempo()
@@ -422,6 +539,19 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     fun start() {
         if (!editable()) return
+        previewJob?.cancel()
+        previewJob = null
+        if (_ui.value.previewLeft != null) _ui.update { it.copy(previewLeft = null) }
+        if (examTaken()) {
+            _ui.update { it.copy(message = "สอบส่วนนี้ไปแล้ว ผลนับครั้งแรกเท่านั้น") }
+            return
+        }
+        if (examClosed()) {
+            _ui.update { u -> u.copy(message = CLOSED_EXAM) }
+            return
+        }
+        if (newSightLook()) return
+        stoppedEarly = false
         if (newPieceNext) {
             seed = System.currentTimeMillis()
             loadPiece()
@@ -434,7 +564,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             fromMeasure = u.section.first,
             toMeasure = u.section.last,
             bpm = u.bpm.toDouble(),
-            toleranceMs = learning.toleranceMs((source as? Source.LessonDrill)?.lesson?.stage ?: stageOf(s), u.bpm.toDouble(), benchmark = source is Source.Benchmark),
+            toleranceMs = learning.toleranceMs((source as? Source.LessonDrill)?.lesson?.stage ?: stageOf(s), u.bpm.toDouble(), benchmark = source is Source.Benchmark || source is Source.Check || source is Source.Exam),
             latencyMs = 0, // compensated per event and source in onInput
             anyKey = (source as? Source.LessonDrill)?.drill?.type == ExerciseType.E_RHYTHM_TAP,
         )
@@ -448,7 +578,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         pedalEvents.clear()
         chordHits.clear()
         chordBeats = j.expected.groupBy { it.beat }.filterValues { it.size >= 3 }.keys
-        helperUsedThisRun = u.showNames
+        // Falling notes are played without reading the score: like note names, the run does not count toward passing.
+        helperUsedThisRun = u.showNames || (u.options.falling && !fixed)
         runStartedAt = System.currentTimeMillis()
         _ui.update { it.copy(results = emptyMap(), wrongMarks = emptyList(), result = null, pendingSectionStart = null, message = null) }
         runJob?.cancel()
@@ -471,8 +602,12 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val j = judge
         judge = null
         if (j != null && (phase == Phase.PLAYING) && j.outcomes().values.any { it.result != NoteResult.PENDING }) {
+            // Early only when notes were still to come (not when stopped during the last held note).
+            stoppedEarly = j.outcomes().values.any { it.result == NoteResult.PENDING }
             finish(j)
         } else if (phase != Phase.RESULT) {
+            // Exam sight-reading stopped before any note counted: the music was seen, so the next try is new music.
+            if ((source as? Source.Exam)?.part == ExamPart.SIGHT && (phase == Phase.COUNT_IN || phase == Phase.PLAYING)) sightNeedsLook = true
             _ui.update { it.copy(phase = Phase.IDLE, countIn = null) }
         }
     }
@@ -667,6 +802,11 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         if (fixed) { finishFixed(j); return }
         val s = score ?: return
         val result = j.result()
+        val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
+        services.appScope.launch {
+            services.progress.log(via ?: "song", seconds)
+            services.progress.addMistakes(com.id.mimikopi.core.progress.Mistakes.fromPlay(j, result, "piece", System.currentTimeMillis(), java.time.LocalDate.now().toString()))
+        }
         val u = _ui.value
         val helper = helperUsedThisRun
         viewModelScope.launch {
@@ -713,14 +853,75 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         if (clean) { cleanCount++; cleanStreak++ } else cleanStreak = 0
         val generated = when (val src = source) {
             is Source.LessonDrill -> src.drill.type != ExerciseType.E_PIECE
+            is Source.Check -> src.drill.type != ExerciseType.E_PIECE
+            is Source.Exam -> false
             else -> true
         }
         // A clean run, or three runs of the same piece (learning-system.md 1.4), brings a new one.
         newPieceNext = generated && (clean || runsOnPiece >= 3) && source !is Source.Benchmark
+        val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
+        if (source !is Source.Check && source !is Source.Exam) services.appScope.launch {
+            services.progress.log(via ?: when (source) { is Source.NewReading -> "sight"; is Source.Benchmark -> "check"; else -> "ladder" }, seconds)
+        }
+        services.appScope.launch {
+            services.progress.addMistakes(com.id.mimikopi.core.progress.Mistakes.fromPlay(j, result, "score", System.currentTimeMillis(), java.time.LocalDate.now().toString()))
+        }
         viewModelScope.launch {
             val lines = mutableListOf<CoachLine>()
             var progressLine: String? = null
             when (val src = source) {
+                is Source.Exam -> {
+                    val sum = result.summary
+                    val acc = sum?.noteAccuracy ?: 0.0
+                    val timing = if (result.timingJudged) sum?.fractionWithinTiming ?: 0.0 else 0.0
+                    val before = exam()?.first?.mark(src.part)
+                    when {
+                        before != null -> progressLine = "สอบส่วนนี้ไปแล้ว ได้ ${before.marks} คะแนน (นับครั้งแรกเท่านั้น)"
+                        helper -> {
+                            lines += CoachLine("เปิดชื่อโน้ตระหว่างสอบ ส่วนนี้จึงยังไม่นับ ปิดชื่อโน้ตแล้วเล่นใหม่ได้")
+                            if (src.part == ExamPart.SIGHT) {
+                                lines += CoachLine("รอบใหม่ใช้โน้ตใหม่ และได้ดูโน้ต 30 วินาทีอีกครั้ง")
+                                sightNeedsLook = true
+                            }
+                        }
+                        else -> {
+                            val played = result.wrongPresses.isNotEmpty() || result.outcomes.values.any {
+                                it.result == NoteResult.CORRECT || it.result == NoteResult.EARLY || it.result == NoteResult.LATE || it.result == NoteResult.CORRECTED
+                            }
+                            val marks = Exams.playedMarks(src.part, acc, timing, result.stumbles, played = played, complete = !stoppedEarly)
+                            val mark = PartMark(marks, System.currentTimeMillis(), acc, timing, result.stumbles)
+                            services.progress.recordExam(src.sitting, src.part, mark)
+                            services.progress.log("check", seconds)
+                            benchDone = true
+                            progressLine = "${src.part.title}: $marks จาก ${src.part.max} คะแนน · ${Exams.partBand(src.part, marks).title}"
+                            Exams.remark(mark).lines().drop(1).forEach { lines += CoachLine(it) }
+                        }
+                    }
+                    if (before != null) benchDone = true
+                    _ui.update { it.copy(phase = Phase.RESULT, result = resultUi(result, lines.distinct(), progressLine), countIn = null) }
+                    return@launch
+                }
+                is Source.Check -> {
+                    val level = src.level
+                    val m = com.id.mimikopi.core.progress.CheckMetrics(
+                        accuracy = result.summary?.noteAccuracy ?: 0.0,
+                        timing = if (result.timingJudged) result.summary?.fractionWithinTiming ?: 0.0 else 0.0,
+                    )
+                    val verdict = level.judge(m)
+                    val passed = verdict.passed && !helper
+                    val p = services.progress
+                    p.addCheck(com.id.mimikopi.core.progress.CheckRecord(level.skill, level.level, java.time.LocalDate.now().toString(), passed, m, at = System.currentTimeMillis()))
+                    p.log("check", seconds)
+                    val status = com.id.mimikopi.core.progress.SkillBook.status(level.skill, p.checks.value, java.time.LocalDate.now())
+                    verdict.lines.forEach { lines += CoachLine(it) }
+                    if (helper) lines += CoachLine("เปิดตัวช่วยระหว่างทดสอบ ผลนี้จึงไม่นับ")
+                    progressLine = if (passed) "ผ่านระดับ ${level.level}: ${level.canDo} · ${level.skill.title}ตอนนี้ระดับ ${status.level} จาก ${status.maxLevel}"
+                    else if (status.lockedToday) "ยังไม่ผ่านระดับ ${level.level} · ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น"
+                    else "ยังไม่ผ่านระดับ ${level.level} · ยังลองได้อีกครั้งวันนี้ (โน้ตใหม่)"
+                    benchDone = passed || status.lockedToday
+                    _ui.update { it.copy(phase = Phase.RESULT, result = resultUi(result, lines.distinct(), progressLine), countIn = null) }
+                    return@launch
+                }
                 is Source.LessonDrill -> {
                     val l = src.lesson
                     val need = l.pass.cleanRuns
@@ -855,7 +1056,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         if (newBpm != null) {
             out += CoachLine(if (newBpm > r.setup.bpm) "เล่นสะอาด 3 รอบติด เพิ่มความเร็วเป็น $newBpm bpm" else "พลาด 2 รอบติด ลดความเร็วกลับเป็น $newBpm bpm")
         }
-        if (helper) out += CoachLine("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่านเพลง")
+        if (helper) out += CoachLine(
+            if (_ui.value.options.falling && !fixed) "รอบนี้เล่นแบบโน้ตตก (ไม่ได้อ่านโน้ตดนตรี) จึงไม่นับเป็นการผ่านเพลง สลับกลับเป็นโน้ตดนตรีเมื่อพร้อม"
+            else "รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่านเพลง",
+        )
         if (!r.timingJudged && (r.summary?.noteAccuracy ?: 0.0) >= 0.95) {
             out += CoachLine("อ่านโน้ตได้แม่นแล้ว ลองโหมด \"ตามจังหวะ\" ดู")
         }
@@ -892,6 +1096,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     fun dismissMessage() = _ui.update { it.copy(message = null) }
 
     fun backToSetup() {
+        if (newSightLook()) return
         if (_ui.value.phase == Phase.RESULT) _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap()) }
     }
 
@@ -901,6 +1106,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     }
 
     companion object {
+        /** Exam sight-reading: time to look at the music first (ABRSM gives half a minute). */
+        const val PREVIEW_SECONDS = 30
+        private const val CLOSED_EXAM = "การสอบนี้ยกเลิกแล้วหรือหมดวันแล้ว เริ่มสอบใหม่ได้ที่หน้าเกรด"
+
         /** Timing tolerance follows the piece level: L1-L3 stage 1, L4-L5 stage 2, L6+ stage 3 (learning-system.md 4 and 6.2). */
         fun stageOf(s: Score): Int = when (s.level.removePrefix("L").toIntOrNull() ?: 1) {
             in 1..3 -> 1

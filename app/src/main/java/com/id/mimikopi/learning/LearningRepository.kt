@@ -66,24 +66,14 @@ class LearningRepository(private val context: Context, private val db: AppDataba
             .sortedWith(compareBy({ it.id.substringBefore('.').toInt() }, { it.id.substringAfter('.').toInt() }))
     }
 
-    /** The ear ladder (content/ear): small listening steps e1, e2 ..., each after the previous one. */
-    val earRungs: List<Lesson> by lazy {
-        context.assets.list("ear").orEmpty().filter { it.endsWith(".json") }
-            .map { name -> context.assets.open("ear/$name").use { Lesson.parse(it.readBytes().toString(Charsets.UTF_8)) } }
-            .sortedBy { it.id.removePrefix("e").toInt() }
-    }
-
-    fun lesson(id: String): Lesson? = lessons.firstOrNull { it.id == id } ?: earRungs.firstOrNull { it.id == id }
+    fun lesson(id: String): Lesson? = lessons.firstOrNull { it.id == id }
 
     // ---------------- step ladder (M14) ----------------
 
     /** Today's new step: the first step not yet met on any day. */
     fun currentStep(): Lesson? = ProgressRules.nextToLearn(lessons, _records.value)
 
-    /** Today's ear rung. */
-    fun currentEarRung(): Lesson? = ProgressRules.nextToLearn(earRungs, _records.value)
-
-    /** Steps (or ear rungs) passed on an earlier day that wait for their confirming run, oldest first. */
+    /** Steps passed on an earlier day that wait for their confirming run, oldest first. */
     fun confirmations(ladder: List<Lesson>, today: LocalDate = LocalDate.now()): List<Lesson> =
         ProgressRules.awaitingConfirmation(ladder, _records.value, today)
 
@@ -91,12 +81,12 @@ class LearningRepository(private val context: Context, private val db: AppDataba
     suspend fun reopenFailedConfirmations(today: LocalDate = LocalDate.now()) {
         load()
         mutex.withLock {
-            val all = lessons + earRungs
+            val all = lessons
             var changed = false
             val next = _records.value.toMutableMap()
             for (l in all) {
                 val r = next[l.id] ?: continue
-                if (ProgressRules.failedConfirmation(l, r, today)) { next[l.id] = ProgressRules.reopen(r); changed = true }
+                if (ProgressRules.failedConfirmation(l, r, today)) { next[l.id] = ProgressRules.reopen(r, today); changed = true }
             }
             if (changed) {
                 _records.value = next
@@ -108,6 +98,12 @@ class LearningRepository(private val context: Context, private val db: AppDataba
     private val _records = MutableStateFlow<Map<String, LessonRecord>>(emptyMap())
     val records: StateFlow<Map<String, LessonRecord>> = _records.asStateFlow()
     private var loaded = false
+
+    /** Reads the stored rows again (after a backup restore). */
+    suspend fun reload() {
+        mutex.withLock { loaded = false }
+        load()
+    }
 
     suspend fun load() = mutex.withLock {
         if (loaded) return@withLock
@@ -208,17 +204,7 @@ class LearningRepository(private val context: Context, private val db: AppDataba
     suspend fun readingDueItems(now: Long = System.currentTimeMillis()): List<String> =
         leitner.selectDue(itemStates().values.filter { isReading(it.itemId) }, now).map { it.itemId }
 
-    /** Due ear items, most urgent first. */
-    suspend fun earDueItems(now: Long = System.currentTimeMillis()): List<String> =
-        leitner.selectDue(itemStates().values.filter { it.itemId.startsWith("ear:") }, now).map { it.itemId }
-
     fun isReading(itemId: String) = itemId.startsWith("key:") || itemId.startsWith("note:")
-
-    /** Recent results per ear item (the last 10 answers each) for the statistics of learning-system.md 11.4. */
-    suspend fun earStats(): List<com.id.mimikopi.core.ear.EarStats.ItemStat> =
-        db.learningDao().itemStats().filter { it.itemId.startsWith("ear:") }.map {
-            com.id.mimikopi.core.ear.EarStats.ItemStat(it.itemId, it.lastResults.count { c -> c == '1' }, it.lastResults.length, it.medianResponseMs)
-        }
 
     suspend fun dueTomorrowCount(): Int {
         val tomorrow = LocalDate.now().plusDays(1).atTime(23, 59).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()

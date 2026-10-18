@@ -59,9 +59,9 @@ class PitchTest {
     fun namesInBothStyles() {
         val fSharp = SpelledPitch(Letter.F, 1, 4)
         assertEquals("F♯", fSharp.name(NoteNameStyle.LETTER))
-        assertEquals("ฟา♯", fSharp.name(NoteNameStyle.SOLFEGE))
-        assertEquals("F♯4 / ฟา♯", fSharp.name(NoteNameStyle.BOTH, withOctave = true))
-        assertEquals("ซอล", Letter.G.thaiSolfege)
+        assertEquals("ファ♯", fSharp.name(NoteNameStyle.SOLFEGE))
+        assertEquals("F♯4 / ファ♯", fSharp.name(NoteNameStyle.BOTH, withOctave = true))
+        assertEquals("ソ", Letter.G.solfege)
     }
 
     @Test

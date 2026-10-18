@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,7 +46,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.id.mimikopi.R
 import com.id.mimikopi.core.playalong.PlayMode
+import com.id.mimikopi.core.music.NoteNameStyle
+import com.id.mimikopi.core.music.SpelledPitch
+import com.id.mimikopi.core.playalong.NoteResult
+import com.id.mimikopi.core.score.Hand
+import com.id.mimikopi.core.score.NoteKey
+import com.id.mimikopi.ui.components.FallingNote
+import com.id.mimikopi.ui.components.FallingNotesView
+import com.id.mimikopi.ui.components.FallingState
+import com.id.mimikopi.ui.components.DEFAULT_KEY_RANGE
 import com.id.mimikopi.ui.components.KeyHint
+import com.id.mimikopi.ui.components.midiConnected
+import com.id.mimikopi.ui.components.rememberTouchPlayer
 import com.id.mimikopi.ui.theme.Tokens
 
 /**
@@ -65,9 +77,13 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
 
     val score = piece?.score
     val layout = piece?.layout
+    // The screen stays on while a run or the exam's look-first countdown is going: a screen that turns itself off
+    // would stop the run (and an exam take would not count).
+    val busy = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING || ui.previewLeft != null
     Column(
         Modifier
             .fillMaxSize()
+            .then(if (busy) Modifier.keepScreenOn() else Modifier)
             .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding(),
     ) {
@@ -89,7 +105,13 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
         }
         if (score == null || layout == null) return@Column
 
-        if (ui.options.pageView) PagedScoreView(
+        if (ui.options.falling && !vm.fixed) FallingScore(
+            piece = piece!!,
+            ui = ui,
+            vm = vm,
+            playing = playing,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) else if (ui.options.pageView) PagedScoreView(
             score = score,
             cursorBeat = vm::cursorAt,
             playing = playing,
@@ -101,6 +123,7 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             nameStyle = vm.nameStyle,
             onMeasureTap = vm::onMeasureTap,
             modifier = Modifier.weight(1f).fillMaxWidth(),
+            paper = ui.options.paperSize,
         ) else ScoreView(
             score = score,
             layout = layout,
@@ -129,10 +152,66 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
             Phase.RESULT -> ui.result?.let { ResultPanel(it, vm, onBack) }
         }
 
-        if (ui.phase != Phase.RESULT) KeyHint(marked = emptySet(), nameStyle = vm.nameStyle)
+        // Falling notes draw their own keys (playable without a piano).
+        if (ui.phase != Phase.RESULT) KeyHint(
+            marked = emptySet(), nameStyle = vm.nameStyle, range = piece?.keyRange ?: DEFAULT_KEY_RANGE, showNames = ui.showNames,
+            keyboard = !(ui.options.falling && !vm.fixed),
+        )
     }
 
     if (showOptions) OptionsDialog(ui.options, vm, onDismiss = { showOptions = false })
+}
+
+/** The song as falling notes over a keyboard (the piece's range), names on the bars and on the white keys. */
+@Composable
+private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: ReaderViewModel, playing: Boolean, modifier: Modifier) {
+    val score = piece.score
+    val pressed by vm.pressed.collectAsStateWithLifecycle()
+    val barStyle = if (vm.nameStyle == NoteNameStyle.SOLFEGE) NoteNameStyle.SOLFEGE else NoteNameStyle.LETTER
+    // Each heard note (ties merged) with its key in the judge's results, its hand and its bar (named once per style).
+    val base = remember(score, barStyle) {
+        val events = score.events.associateBy { it.id }
+        score.sounding().map { n ->
+            val ev = events.getValue(n.eventId)
+            val i = ev.pitches.indexOfFirst { it.midi == n.midi }.coerceAtLeast(0)
+            val p = ev.pitches.getOrNull(i) ?: SpelledPitch.fromMidiSharp(n.midi)
+            Triple(NoteKey(n.eventId, i), n.hand, FallingNote(n.midi, n.onset, n.duration, left = n.hand == Hand.LEFT, label = p.name(barStyle)))
+        }
+    }
+    // Only the states change while playing: rebuilt when a note is judged or the hands change, not on every key press.
+    val results = ui.results
+    val hands = ui.options.hands.hands
+    val notes = remember(base, results, hands) {
+        base.map { (key, hand, note) ->
+            val state = when (results[key]) {
+                NoteResult.CORRECT, NoteResult.EARLY, NoteResult.LATE, NoteResult.CORRECTED -> FallingState.DONE
+                NoteResult.MISSED -> FallingState.MISSED
+                else -> if (hand in hands) FallingState.WAITING else FallingState.BACKGROUND
+            }
+            if (state == note.state) note else note.copy(state = state)
+        }
+    }
+    val bars = remember(score) { (0..score.measures).map { score.measureStart(it) } }
+    val keyRange = piece.keyRange
+    val keyNames = remember(keyRange, barStyle) { keyRange.associateWith { SpelledPitch.fromMidiSharp(it).name(barStyle) } }
+    val wrongMarks = ui.wrongMarks
+    val marks = remember(wrongMarks) { wrongMarks.map { it.midi to it.atNanos } }
+    val touch = rememberTouchPlayer()
+    val connected = midiConnected()
+    FallingNotesView(
+        notes = notes,
+        cursor = vm::cursorAt,
+        animate = playing,
+        keyRange = keyRange,
+        pressed = pressed,
+        keyLabel = { m -> keyNames[m] },
+        modifier = modifier,
+        window = (score.beatsPerMeasure * 2.0).coerceAtLeast(6.0),
+        smooth = ui.options.mode == PlayMode.WAIT,
+        lines = bars,
+        marks = marks,
+        onKey = if (connected) null else touch,
+    )
 }
 
 @Composable
@@ -149,6 +228,8 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
             OutlinedButton(onClick = vm::listen) { Text(stringResource(R.string.reader_listen)) }
             FilterChip(selected = ui.options.mode == PlayMode.WAIT, onClick = { vm.setMode(PlayMode.WAIT) }, label = { Text(stringResource(R.string.reader_mode_wait)) })
             FilterChip(selected = ui.options.mode == PlayMode.TEMPO, onClick = { vm.setMode(PlayMode.TEMPO) }, label = { Text(stringResource(R.string.reader_mode_tempo)) })
+            Spacer(Modifier.width(Tokens.Space.xs))
+            FilterChip(selected = ui.options.falling, onClick = { vm.setFalling(!ui.options.falling) }, label = { Text(stringResource(R.string.reader_falling)) })
             Spacer(Modifier.width(Tokens.Space.xs))
             for ((choice, label) in listOf(HandChoice.RIGHT to R.string.reader_hand_right, HandChoice.LEFT to R.string.reader_hand_left, HandChoice.BOTH to R.string.reader_hand_both)) {
                 FilterChip(selected = ui.options.hands == choice, onClick = { vm.setHands(choice) }, label = { Text(stringResource(label)) })
@@ -195,13 +276,17 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
 private fun FixedControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.s)) {
         if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+        ui.previewLeft?.let { left ->
+            Text(stringResource(R.string.reader_exam_preview, left), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
+        }
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Button(onClick = vm::start) { Text(stringResource(if (vm.nextLabelIsNew()) R.string.reader_new_piece else R.string.reader_start)) }
-            if (vm.source !is ReaderViewModel.Source.Benchmark) OutlinedButton(onClick = vm::listen) { Text(stringResource(R.string.reader_listen)) }
+            val test = vm.source is ReaderViewModel.Source.Benchmark || vm.source is ReaderViewModel.Source.Check || vm.source is ReaderViewModel.Source.Exam
+            if (!test) OutlinedButton(onClick = vm::listen) { Text(stringResource(R.string.reader_listen)) }
             val handLabel = when (ui.options.hands) {
                 HandChoice.RIGHT -> R.string.reader_hand_right
                 HandChoice.LEFT -> R.string.reader_hand_left
@@ -291,6 +376,7 @@ private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -
                 if (!fixed) OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)
                 if (!fixed) OptionRow(R.string.reader_opt_ramp, R.string.reader_opt_ramp_body, o.useRamp, vm::setUseRamp)
                 OptionRow(R.string.reader_opt_page, R.string.reader_opt_page_body, o.pageView, vm::setPageView)
+                if (o.pageView) OptionRow(R.string.reader_opt_paper, R.string.reader_opt_paper_body, o.paperSize, vm::setPaperSize)
                 if (!fixed) OptionRow(R.string.reader_opt_loop, R.string.reader_opt_loop_body, o.loopListen, vm::setLoopListen)
             }
         },

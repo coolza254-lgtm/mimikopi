@@ -61,3 +61,17 @@ updates through `PackageInstaller` are treated like other sideloads.
 turn on Developer options → confirm you are not being coached → restart and re-authenticate → wait the
 one-time 24 hours → confirm with fingerprint/PIN → allow installs from unverified developers
 for 7 days or indefinitely. ADB installs are exempt.
+
+## Windows (from v0.17.0; reading and songs from v0.18.0)
+1. Open the releases page of `coolza254-lgtm/mimikopi-releases` and download `mimikopi-windows-vX.Y.Z.msi`.
+2. Double-click it. The installer is not signed, so Windows SmartScreen may say "Windows protected your PC":
+   choose **More info → Run anyway**. It installs for the current user only (no admin rights) and adds a Start-menu
+   entry and a desktop shortcut "Mimikopi".
+3. Plug the MIDI keyboard in over USB before starting the program.
+4. Optional: Settings → Piano sound → download the sampled grand piano (about 79 MB, once).
+5. To bring progress over from the phone: on the phone, Settings → Backup → Export; on the PC, Settings → Move data →
+   Import backup. The PC can export a backup the phone can import too.
+
+Updating on Windows: from v0.18.1 the program checks once a day when it starts (and on demand in Settings → Update)
+and can download, verify (size + SHA-256) and install the new MSI itself, then start again. Before v0.18.1: download
+the newer MSI and run it. Either way it replaces the old version and keeps your data (`%APPDATA%\Mimikopi`).

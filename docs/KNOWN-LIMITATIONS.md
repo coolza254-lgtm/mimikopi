@@ -6,9 +6,10 @@ Updated each milestone. Mirrors the "ยังไม่มีในรุ่น�
 What the app does not do, or does only partly, as of the last milestone. Details per milestone follow below.
 
 **Not built**
-- Falling-notes view, dark theme, English UI, reminders (the user does not want them now), Windows desktop
-  (only on the user's approval), audio-file import for transcription.
-- On-screen keyboard: removed on purpose in M15; every exercise is played on a MIDI keyboard.
+- English UI, reminders (the user does not want them now), audio-file import for transcription. (Dark theme came in
+  M15, the Windows version in v0.17-0.18, the falling-notes view in v0.19.)
+- On-screen keyboard: removed in M15, back in v0.20.2 only while no MIDI keyboard is connected (to try things
+  out); it hides itself when one connects. Touches have one fixed strength (80) and no latency calibration.
 - Release ("damper") noise and sympathetic resonance samples; velocity layers are switched, not cross-faded.
 - Section practice: rhythm is not recorded or judged; no tempo mode for sections.
 - Measuring legato/staccato, dynamics and fingering (the app sees notes and timing only).
@@ -24,6 +25,172 @@ What the app does not do, or does only partly, as of the last milestone. Details
 **Only verifiable on the phone (never confirmed by CI)**
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
+
+## Grade exams, ear course, progress, sync (v0.25.0)
+- Grade exams (Initial to Grade 5) follow the ABRSM practical exam's structure and mark scheme (pieces 30 each,
+  scales 21, sight-reading 21, aural 18; pass 100, merit 120, distinction 130 on the total) but nothing else of it:
+  the pieces come from the app's public-domain library, the pop piece, scales, sight-reading and aural questions are
+  made by the app, and the marks come from a formula of mine (notes 60%, timing 40%, 0.03 off per stop; anchors in
+  learning-system.md 2.7). A real examiner also marks tone, dynamics, phrasing and musical character, which the app
+  cannot hear; the app's grade is therefore not comparable to an official grade, and the page says so.
+- Library levels were used as grades (Initial L1-L2, Grade n = L(n+2)); the arrangements are simplified, so e.g. the
+  Grade 5 "Für Elise" is the app's opening arrangement, not the original. Grades 4 and 5 have exactly two library
+  pieces, so there is no choice there yet.
+- Exams keep the metronome on, because the judge times notes against a steady tempo from the count-in; a player who
+  plays rubato or drifts loses timing marks. Scales are shown as written music with fingers (in a real exam they are
+  played from memory). Hands-separately items are written right hand then left hand in one run.
+- One take per part, finished on the day it starts. Leaving a part's page mid-run records nothing (so a phone call
+  does not spoil the exam); stopping with the stop button records what was played (without the one-third minimum of
+  a part played to the end). Showing note names during a part voids that take and it can be played again; for
+  sight-reading the next look is always new music. This is honour-based: a player can leave a bad take and retry it.
+  The reader and the ear session keep the screen on during a run, the count-in, the look-first countdown and an ear
+  round (playing a MIDI piano does not keep a phone awake), so a screen timeout does not end a take.
+- The two-hand sight-reading generators (L6, L7) wrote the same key in both hands at one moment in about two pieces of
+  three; one key press could only count once, so a flawless run lost notes. v0.25.0 drops the left-hand copy. This also
+  changes the L6/L7 reading drills and the SIGHT level 6-7 tests (results taken before were judged on the old pieces).
+- The ear course replaces the scale-degree trainer of v0.20-v0.24. Its stats (`ear.tone.*`) are kept and still sync,
+  but the course starts at stage 1 and does not read them. EAR level results already earned stay and keep counting,
+  although the eight EAR tests are now drawn from the course. Stage and "known" thresholds (asked 6 times, strength
+  0.8) and the round mix are my choices.
+- Mistake patterns need several runs over 21 days before they show, by design; a single bad day shows nothing. Hand
+  and timing patterns come from score runs only (pieces, score drills, tests, exams).
+- The idol-song goal's skill needs per song are my estimates from tempo, range, keys and chords found on the web, not
+  checked against the recordings; the song facts are marked unverified on the page.
+- Sync works on the same home Wi-Fi only (phone listens, computer connects; some routers isolate devices, then use
+  the file instead). Both sides must run v0.25.0 or later. Device settings (latency, MIDI device, sound, theme, window)
+  never sync. A backup is made automatically before each merge.
+- Windows: each tab keeps its own page stack; list pages (Today, Skills, songs, progress, exams ...) keep their data and
+  scroll position while hidden, practice pages start fresh. Esc goes back one page, also while a dialog is open (the
+  dialog closes with the page) or while typing. The window remembers its normal size and position (only where a screen
+  still is) and whether it was maximised, and cannot be made smaller than 880 × 600.
+
+## Today, skills and the free piano (v0.24.0)
+- Four tabs: Today, Skills, Piano, Songs. The song notebook ("จดเพลง") is gone; notebook data left in settings is
+  no longer read. The ladder, ear training and chords open from Today and Skills instead of their own tabs.
+- Skill levels come only from the level tests in core (SkillBook). Every level's test content and threshold is my
+  own choice from learning-system.md, not a validated assessment; the "overall" phrase is an average inside this
+  app, not a music exam grade. The tests reuse the drill, reader and ear runners in a fixed mode, so their feel
+  (judging, timing tolerance) is the same as practice, and the timing tolerance for score tests is the benchmark one.
+- Today's plan is made once a day from the minutes chosen; the split between parts (weights, the 1.6× extra for
+  the weakest skill, 60% of a part's minutes to tick it) is my estimate, to be tuned from real use.
+- Practice minutes are logged per finished run (capped at 20 minutes a run); a run left unfinished adds nothing.
+  Free playing counts the time between notes less than 10 s apart.
+- The free piano's room and warmth exist only on the phone; the Windows version has volume only (the built-in
+  Java synth tops out a little above the usual level). The keyboard shows 2-4 octaves by width; touches have one
+  strength. Transpose changes the app's sound only and resets when the page closes.
+- The phone can install the piano sound again from the Piano tab (79 MB download when the button is tapped,
+  about 440 MB stored); it had no install button since M15.
+
+## Full-sheet reading (v0.23.0)
+- The reader opens in page view at printed size by default (grand-staff systems 170 dp tall, the page at most
+  1000 dp wide, centred). The page turns when the cursor reaches the last fully visible line. "Paper size" is my
+  estimate of printed music on screen, not a measured match to a real page; the large size and the strip remain.
+
+## Song notebook (v0.22.0)
+- The section tab became "จดเพลง": a section is now a whole song with an optional video link, part names and part
+  start times (seconds, shown as m:ss), and a hand split (notes below it are the left hand, Middle C by default).
+  Editing rules live in core (SongEditor) for both platforms. Rhythm is still not written: the user asked for
+  pitches only.
+- The video is opened in the YouTube app or the browser when the user taps it (the link with "t=…s"); the app itself
+  sends nothing. One-hand practice drops steps with no notes for that hand; one-hand runs add to the note counts but
+  not to part progress or "mastered".
+
+## Velocity switch and Windows input (v0.22.0)
+- Key strength (VelocityMode, row "midi.velocityMode") starts off: the app's piano plays every key at one level
+  (50 / 80 / 105). It changes only the app's sound; nothing is judged by velocity, recorded attempts keep the real
+  velocity, and a piano's own speaker follows the piano's touch setting.
+- Windows: on the user's PC the keyboard opened but delivered nothing when it was plugged in before the program
+  started; plugging it in with the program open worked. This matches reports about Windows 11's new MIDI service
+  and WinMM programs (Java uses WinMM). Not fixed in the app; the settings page explains it, and the report now
+  shows raw message counts and the Windows build.
+
+## Chord tab (v0.21.0)
+- A fifth tab runs the existing chord drills (E_CHORD_BUILD by name or roman numeral, E_CHORD_CHANGE through a
+  progression) with the user's own choices (ChordPractice, settings row "chords.settings"). Runs are free practice:
+  no pass rule, no SRS items, no lesson progress; the last 20 results are kept in "chords.runs" and 10 are shown.
+- Judging is the lesson rule: the held notes must be exactly the chord's notes (any inversion or octave, slash bass
+  lowest); extensions above the 9th may drop the 5th. Voicing quality and timing of changes are not judged.
+- Which chord sets and progressions are offered are my choices (from learning-system.md 8.1 and the chord table).
+- Solfège is shown in katakana (ド レ ミ ファ ソ ラ シ, fixed do; movable do in ear training), as the user asked;
+  Thai clef names (กุญแจซอล, กุญแจฟา) stay Thai. All text uses the system font (bundled Thai/Latin fonts removed);
+  how it looks depends on the phone's or Windows' fonts. Bravura is still bundled for notation.
+
+## MIDI connection, reworked (v0.20.2)
+- Bluetooth MIDI is connected only when the user asks: no connection at app start and no reconnect loop. A search
+  lasts at most 10 s and ends with the instruments found or "not found"; a found remembered instrument is connected
+  at once. One connection attempt ends after 15 s with "failed". A lost link is told, not retried.
+- USB (phone and Windows): plugging in shows the keyboard at once (Windows reads the list every second) and pulling
+  it out says "unplugged" with its name, in a short notice on every screen. Keyboards already there when the app
+  starts are not announced.
+- "Connected" now means listed and open, unless Active Sensing or identity answers stop (then "no signal"). The
+  earlier "linked but unconfirmed" state is gone: the user found it confusing. A USB keyboard that is switched off
+  but still plugged in and sends neither signal still reads Connected; this cannot be told apart on USB.
+- On-screen keys (v0.20.2): shown at the bottom of drills, the score reader, lessons and sections only while no MIDI
+  keyboard is connected; in falling-notes mode the falling keyboard itself is playable. They feed the same input
+  stream as MIDI (source TOUCH) and always sound, even with "sound through" off. Range: the drill's or piece's keys,
+  two octaves from C3 elsewhere, C3-C6 when recording a section.
+- Windows: a port that fails to open (another program holds it) is not retried every poll; it is retried when it is
+  plugged in again or when "ตรวจการเชื่อมต่อใหม่" is pressed. Whether Java sees a keyboard plugged in after start is
+  a Windows check (the JDK re-reads the system list when its device count changes).
+
+## Ear training and MIDI status (v0.20.0)
+- Ear training is functional (scale-degree) training: a cadence, one note, the answer by key (any octave) or button,
+  then the note resolves stepwise to do. The earlier 36-rung ear ladder, its content and generators were removed
+  (v0.20.1); old ear records stay in backups, unused.
+- Custom levels and results live in the settings rows "ear.tone.levels" and "ear.tone.stats". Results are the last
+  20 runs per level (first-try accuracy); there is no spacing or unlocking.
+- MIDI "Connected" (green tick, the one colour in the app, asked for by the user) was shown only when the instrument
+  sent Active Sensing, answered the MIDI identity request (asked every 2 s; silence for 4.5 s = off), or a key arrived
+  in the last 10 minutes (changed in v0.20.2, above). BLE instruments
+  are closed when their GATT link reads disconnected twice in a row (about 2.4 s). Whether the user's piano answers
+  the identity request is a phone check. The desktop sends the same request (v0.20.1) to the keyboard's output port,
+  matched by name; a keyboard without a matching output port is judged by Active Sensing and keys only.
+- Desktop metronome (v0.20.1): the Android screen ported, without the self-test (desktop click times are scheduled,
+  not measured from the audio output, so a self-test would always look perfect).
+- Songs: the app's own pieces were removed; steps 3.15 and 4.19 use public-domain pieces instead.
+
+## Falling notes (v0.19.0)
+- Songs: a "falling notes" chip in the reader (library pieces only, not lesson drills). The bars come from the score
+  (ties merged) and move with the same cursor as the score view, so wait mode, tempo mode, listen and the judge are
+  unchanged. A run in this view counts as a helper (like note names): it does not count toward passing the piece.
+- Sections: "falling notes" / "big note" switch on the practice page (remembered); one step per row, no rhythm (the
+  recorded sections keep note order only). Black and white: right hand white bars, left hand grey; the keyboard is
+  always light keys / dark keys. Hand split in sections is not known, so all bars are one colour.
+
+## Windows version, v0.18.1
+- In-program update: reads `windows.json` from the latest release (attached by the release workflow's Windows job a
+  few minutes after the release itself; until then the check finds nothing new). The MSI is unsigned, so its
+  integrity rests on HTTPS from github.com and the SHA-256 in windows.json (the same trust as the APK update). The
+  installer runs through a small cmd script with `msiexec /passive`; Windows may still show its own prompts.
+- MIDI: Settings shows messages received per keyboard and a copyable report of every device Java Sound sees, to find
+  out why a keyboard does not connect on a given PC (the cause on the user's PC is not known yet).
+
+## Windows version, phase 2 (v0.18.0)
+- Reading (steps, drills, review), the score reader and songs are the Android screens copied into
+  desktop/.../port with only their imports changed; a small layer supplies the Android names (R generated from
+  strings.xml and the drawables at build time, view-model base, lifecycle effects, services). Changes to those Android
+  files have to be copied again by hand.
+- Metronome clicks on the PC: a thread sends each click at its time; a click counts as heard at send time plus the
+  piano's output buffer (Java synthesizer: its reported latency; sampled piano: the line buffer + 10 ms). Windows'
+  own mixer delay is not included, so tempo-mode timing can read consistently "late" on some PCs; the steadiness
+  (SD) is unaffected. There is no latency calibration on the PC (phone calibration values are keyed by phone outputs).
+- Attempts and practice sessions are not stored on the PC (the Android app's statistics screens are gone since M15;
+  lesson records, piece progress, spaced-repetition items and benchmarks are stored and move with a backup).
+- No on-screen tap pad for the pulse step other than the large pad (clicking it counts as a tap; a MIDI key is better).
+
+## Windows version, phase 1 (v0.17.0)
+- Ear training and section practice (reading and songs added in phase 2). Built with Compose Multiplatform for the
+  desktop JVM; the logic is the shared :core module, the screens are a desktop copy of the Android ones.
+- USB MIDI only, through javax.sound.midi. Java Sound has no plug/unplug events, so devices are polled every 2 s;
+  on some Windows setups a keyboard plugged in after the program started only shows after a restart. Active Sensing
+  silence is used for "switched off" as on Android (whether Windows passes Active Sensing through is a PC check).
+- Sound: Java's built-in synthesizer until the sampled piano (the Android pack, decoded with jflac, LGPL 2.1) is
+  installed; the sampled piano plays through a SourceDataLine with about 40 ms of buffer. No metronome screen yet;
+  the rhythm rungs use clicks played by the piano.
+- Data in %APPDATA%\Mimikopi\data.json; moved to and from the phone with the Android backup file format (settings
+  rows and item stats only; practice sessions and attempts are not carried).
+- The MSI is unsigned (SmartScreen warns on first install); per-user install, upgrades keep the same upgrade UUID.
+- Nothing of the desktop app has been run by anyone yet: CI builds and unit-tests it, and packages the MSI on Windows.
 
 ## As of v0.16.0
 - "Connected" for MIDI: an instrument whose USB-MIDI chip stays powered by the phone stays listed by Android after it

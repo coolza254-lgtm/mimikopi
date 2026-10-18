@@ -155,7 +155,7 @@ fun main() {
     Services.start()
     application {
         val state = rememberWindowState(size = DpSize(1180.dp, 820.dp))
-        Window(onCloseRequest = { Services.midi.stop(); exitApplication() }, title = "ミミコピ", state = state, icon = appIcon) {
+        Window(onCloseRequest = { Services.midi.stop(); runCatching { Services.store.flush() }; exitApplication() }, title = "ミミコピ", state = state, icon = appIcon) {
             val mode by Services.themeMode.collectAsState()
             val dark = when (mode) { ThemeMode.DARK -> true; ThemeMode.LIGHT -> false; ThemeMode.SYSTEM -> isSystemInDarkTheme() }
             MimikopiTheme(dark) { App() }

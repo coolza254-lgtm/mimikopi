@@ -65,7 +65,6 @@ import com.id.mimikopi.desktop.ui.Tokens
 fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val showNames by vm.showNames.collectAsStateWithLifecycle()
-    val pressed by vm.pressed.collectAsStateWithLifecycle()
 
     val answer = when (val s = ui) {
         is DrillUi.Question -> s.feedback

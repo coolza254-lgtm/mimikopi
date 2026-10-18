@@ -163,40 +163,48 @@ private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: R
     val score = piece.score
     val pressed by vm.pressed.collectAsStateWithLifecycle()
     val barStyle = if (vm.nameStyle == NoteNameStyle.SOLFEGE) NoteNameStyle.SOLFEGE else NoteNameStyle.LETTER
-    // Each heard note (ties merged) with its key in the judge's results.
-    val base = remember(score) {
+    // Each heard note (ties merged) with its key in the judge's results, its hand and its bar (named once per style).
+    val base = remember(score, barStyle) {
         val events = score.events.associateBy { it.id }
         score.sounding().map { n ->
             val ev = events.getValue(n.eventId)
             val i = ev.pitches.indexOfFirst { it.midi == n.midi }.coerceAtLeast(0)
-            Triple(NoteKey(n.eventId, i), n, ev.pitches.getOrNull(i) ?: SpelledPitch.fromMidiSharp(n.midi))
+            val p = ev.pitches.getOrNull(i) ?: SpelledPitch.fromMidiSharp(n.midi)
+            Triple(NoteKey(n.eventId, i), n.hand, FallingNote(n.midi, n.onset, n.duration, left = n.hand == Hand.LEFT, label = p.name(barStyle)))
         }
     }
-    val notes = base.map { (key, n, p) ->
-        FallingNote(
-            n.midi, n.onset, n.duration, left = n.hand == Hand.LEFT, label = p.name(barStyle),
-            state = when (ui.results[key]) {
+    // Only the states change while playing: rebuilt when a note is judged or the hands change, not on every key press.
+    val results = ui.results
+    val hands = ui.options.hands.hands
+    val notes = remember(base, results, hands) {
+        base.map { (key, hand, note) ->
+            val state = when (results[key]) {
                 NoteResult.CORRECT, NoteResult.EARLY, NoteResult.LATE, NoteResult.CORRECTED -> FallingState.DONE
                 NoteResult.MISSED -> FallingState.MISSED
-                else -> if (n.hand in ui.options.hands.hands) FallingState.WAITING else FallingState.BACKGROUND
-            },
-        )
+                else -> if (hand in hands) FallingState.WAITING else FallingState.BACKGROUND
+            }
+            if (state == note.state) note else note.copy(state = state)
+        }
     }
     val bars = remember(score) { (0..score.measures).map { score.measureStart(it) } }
+    val keyRange = piece.keyRange
+    val keyNames = remember(keyRange, barStyle) { keyRange.associateWith { SpelledPitch.fromMidiSharp(it).name(barStyle) } }
+    val wrongMarks = ui.wrongMarks
+    val marks = remember(wrongMarks) { wrongMarks.map { it.midi to it.atNanos } }
     val touch = rememberTouchPlayer()
     val connected = midiConnected()
     FallingNotesView(
         notes = notes,
         cursor = vm::cursorAt,
         animate = playing,
-        keyRange = piece.keyRange,
+        keyRange = keyRange,
         pressed = pressed,
-        keyLabel = { m -> SpelledPitch.fromMidiSharp(m).name(barStyle) },
+        keyLabel = { m -> keyNames[m] },
         modifier = modifier,
         window = (score.beatsPerMeasure * 2.0).coerceAtLeast(6.0),
         smooth = ui.options.mode == PlayMode.WAIT,
         lines = bars,
-        marks = ui.wrongMarks.map { it.midi to it.atNanos },
+        marks = marks,
         onKey = if (connected) null else touch,
     )
 }

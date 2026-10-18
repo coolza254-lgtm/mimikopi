@@ -155,7 +155,13 @@ fun TouchKeyboard(range: IntRange, marked: Set<Int>, showNames: Boolean, nameSty
     val play = rememberTouchPlayer()
     val measurer = rememberTextMeasurer()
     val whites = remember(range) { KeyboardLayout(range.first, range.last, 1f, 1f).whiteKeys.size }
-    fun layoutFor(w: Float, h: Float) = KeyboardLayout(range.first, range.last, w / whites, h)
+    // The layout for the current size, kept between touches and frames; built again only when the keys are resized.
+    val cached = remember(range) { arrayOfNulls<KeyboardLayout>(1) }
+    fun layoutFor(w: Float, h: Float): KeyboardLayout {
+        val last = cached[0]
+        if (last != null && last.whiteKeyWidth == w / whites && last.height == h) return last
+        return KeyboardLayout(range.first, range.last, w / whites, h).also { cached[0] = it }
+    }
 
     val whiteKey = if (Tokens.dark) Color(0xFFE6E6E6) else Color(0xFFFFFFFF)
 

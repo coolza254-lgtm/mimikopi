@@ -34,6 +34,7 @@ import com.id.mimikopi.core.score.Score
 import com.id.mimikopi.core.score.ScoreLayout
 import com.id.mimikopi.ui.components.Bravura
 import com.id.mimikopi.ui.theme.Tokens
+import kotlinx.coroutines.delay
 
 /** A wrong key shown briefly at the cursor as a hollow red notehead. */
 data class WrongMark(val midi: Int, val beat: Double, val atNanos: Long)
@@ -42,12 +43,13 @@ private const val SPACES_TALL = 24f
 private const val TOP_PAD = 6f // staff spaces above the treble staff's top line
 private const val CURSOR_AT = 0.3f // fraction of the width where the cursor sits while following
 private const val WRONG_MARK_NANOS = 700_000_000L
+private const val MARK_GRACE_NANOS = 100_000_000L // redraw a little past a wrong key's time, so the frame clearing it is drawn
 
 /**
  * Draws a [ScoreLayout] (one long grand-staff strip) scaled to the box height. While [following],
  * the strip scrolls so the cursor stays near the left; otherwise it can be dragged, and tapping a
  * bar reports it (section selection). [cursorBeat] is read every frame, so the cursor moves smoothly
- * without recomposing the screen.
+ * without recomposing the screen; frames where nothing moves (wait mode between notes) are not redrawn.
  */
 @Composable
 fun ScoreView(
@@ -77,20 +79,41 @@ fun ScoreView(
     cursorOnlyInside: Boolean = false,
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 64)
+    val texts = remember(measurer) { TextCache() }
     var frame by remember { mutableLongStateOf(System.nanoTime()) }
     var manualOffset by remember { mutableFloatStateOf(0f) }
     val tap by rememberUpdatedState(onMeasureTap)
     val scoreTap by rememberUpdatedState(onScoreTap)
-    val pitches = remember(score) {
-        score.events.flatMap { e -> e.pitches.mapIndexed { i, p -> NoteKey(e.id, i) to (e.hand to p) } }.toMap()
+    val beatNow by rememberUpdatedState(cursorBeat)
+    val marksNow by rememberUpdatedState(wrongMarks)
+    val names = remember(score, nameStyle) {
+        score.events.flatMap { e -> e.pitches.mapIndexed { i, p -> NoteKey(e.id, i) to p.name(nameStyle) } }.toMap()
     }
+    val barNumbers = remember(layout, firstBarNumber) { layout.measures.map { (it.index + firstBarNumber).toString() } }
+    val tiePath = remember { androidx.compose.ui.graphics.Path() }
     // Last scroll offset in px, shared between drawing and gestures.
     val scroll = remember { floatArrayOf(0f) }
     val spacePx = remember { floatArrayOf(1f) }
 
-    // Redraw every frame only while playing (the cursor moves); otherwise state changes redraw it.
+    // While playing, redraw on the frames where the cursor moved or a wrong key is fading out; otherwise state
+    // changes redraw it (and once more when a wrong key still shown at the stop has had its time).
     LaunchedEffect(animate) {
-        if (animate) while (true) withFrameNanos { frame = it } else frame = System.nanoTime()
+        if (animate) {
+            var drawn = Double.NaN
+            while (true) withFrameNanos { f ->
+                val beat = beatNow(f)
+                if (beat != drawn || marksNow.any { f - it.atNanos <= WRONG_MARK_NANOS + MARK_GRACE_NANOS }) {
+                    drawn = beat
+                    frame = f
+                }
+            }
+        } else {
+            frame = System.nanoTime()
+            if (marksNow.any { frame - it.atNanos <= WRONG_MARK_NANOS }) {
+                delay((WRONG_MARK_NANOS + MARK_GRACE_NANOS) / 1_000_000)
+                frame = System.nanoTime()
+            }
+        }
     }
 
     Canvas(
@@ -116,6 +139,7 @@ fun ScoreView(
     ) {
         val space = size.height / SPACES_TALL
         spacePx[0] = space
+        texts.at(space)
         val ink = Tokens.Palette.Ink
         val maxOffset = (layout.width.toFloat() * space + space * 2 - size.width).coerceAtLeast(0f)
         val beat = cursorBeat(frame)
@@ -133,7 +157,8 @@ fun ScoreView(
         val visible = -space * 4..size.width + space * 4
 
         // Section and problem-spot tints behind the music.
-        for (m in layout.measures) {
+        for (mi in layout.measures.indices) {
+            val m = layout.measures[mi]
             val x0 = px(m.x0)
             val x1 = px(m.x1)
             if (x1 < 0 || x0 > size.width) continue
@@ -143,7 +168,7 @@ fun ScoreView(
                 else -> null
             }
             if (tint != null) drawRect(tint, Offset(x0, py(ScoreLayout.TOP_Y - 3)), Size(x1 - x0, py(ScoreLayout.BOTTOM_Y + 3) - py(ScoreLayout.TOP_Y - 3)))
-            text(measurer, (m.index + firstBarNumber).toString(), x0 + space * 0.2f, py(ScoreLayout.TOP_Y - 2.6), space * 1.2f, Tokens.Palette.InkMuted)
+            text(measurer, texts.bars, barNumbers[mi], x0 + space * 0.2f, py(ScoreLayout.TOP_Y - 2.6), space * 1.2f, Tokens.Palette.InkMuted)
         }
 
         for (l in layout.lines) {
@@ -161,7 +186,7 @@ fun ScoreView(
             if (x !in visible) continue
             val result = g.note?.let { results[it] }
             val color = colorFor(result) ?: ink
-            glyph(measurer, g.codepoint, glyphStyle, x, py(g.y), color)
+            glyph(texts.glyphs.getOrPut(g.codepoint) { measurer.measure(g.codepoint.toString(), glyphStyle) }, x, py(g.y), color)
             val key = g.note ?: continue
             val marker = when (result) {
                 NoteResult.EARLY -> "←"
@@ -170,9 +195,9 @@ fun ScoreView(
                 NoteResult.CORRECTED -> "!"
                 else -> null
             }
-            if (marker != null) text(measurer, marker, x, py(g.y) - space * 2.6f, space * 1.3f, color)
+            if (marker != null) text(measurer, texts.markers, marker, x, py(g.y) - space * 2.6f, space * 1.3f, color)
             if (showNames) {
-                pitches[key]?.let { (_, p) -> text(measurer, p.name(nameStyle), x - space * 0.2f, py(g.y) + space * 0.7f, space * 1.1f, Tokens.Palette.InkMuted) }
+                names[key]?.let { text(measurer, texts.names, it, x - space * 0.2f, py(g.y) + space * 0.7f, space * 1.1f, Tokens.Palette.InkMuted) }
             }
         }
 
@@ -181,21 +206,23 @@ fun ScoreView(
             val x = px(lb.x)
             if (x !in visible) continue
             val chord = lb.kind == ScoreLayout.LabelKind.CHORD
-            val t = measurer.measure(lb.text, TextStyle(fontSize = (space * if (chord) 1.9f else 1.3f).toSp(), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold))
+            val t = (if (chord) texts.chords else texts.fingers).getOrPut(lb.text) {
+                measurer.measure(lb.text, TextStyle(fontSize = (space * if (chord) 1.9f else 1.3f).toSp(), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold))
+            }
             val left = if (chord) x else x - t.size.width / 2f
             drawText(t, color = Tokens.Palette.Ink, topLeft = Offset(left, py(lb.y) - t.size.height / 2f))
         }
+        val tieStroke = Stroke(space * 0.16f)
         if (!hideNotes) for (tie in layout.ties) {
             val x1 = px(tie.x1)
             val x2 = px(tie.x2)
             if (x2 < visible.start || x1 > visible.endInclusive) continue
             val y = py(tie.y)
             val bulge = (if (tie.above) -1f else 1f) * space * 0.9f
-            val path = androidx.compose.ui.graphics.Path().apply {
-                moveTo(x1, y)
-                quadraticTo((x1 + x2) / 2, y + bulge * 2, x2, y)
-            }
-            drawPath(path, Tokens.Palette.Ink, style = Stroke(space * 0.16f))
+            tiePath.reset()
+            tiePath.moveTo(x1, y)
+            tiePath.quadraticTo((x1 + x2) / 2, y + bulge * 2, x2, y)
+            drawPath(tiePath, Tokens.Palette.Ink, style = tieStroke)
         }
 
         // Wrong keys: hollow white rings where that pitch would sit, at the beat it was played.
@@ -229,13 +256,33 @@ private fun colorFor(result: NoteResult?): Color? = when (result) {
     else -> null
 }
 
-/** SMuFL glyph with its origin (baseline, left) at (x, baselineY). Layouts are cached by the measurer. */
-private fun DrawScope.glyph(measurer: TextMeasurer, c: Char, style: TextStyle, x: Float, baselineY: Float, color: Color) {
-    val layout: TextLayoutResult = measurer.measure(c.toString(), style)
+/**
+ * Measured text of the strip, by kind and string (colours are given when drawing). Every size follows the staff
+ * space, so a new space (another height) empties it; one cache per measurer, i.e. per density and font settings.
+ */
+private class TextCache {
+    private var space = Float.NaN
+    val glyphs = HashMap<Char, TextLayoutResult>()
+    val bars = HashMap<String, TextLayoutResult>()
+    val markers = HashMap<String, TextLayoutResult>()
+    val names = HashMap<String, TextLayoutResult>()
+    val fingers = HashMap<String, TextLayoutResult>()
+    val chords = HashMap<String, TextLayoutResult>()
+
+    fun at(space: Float) {
+        if (space == this.space) return
+        this.space = space
+        glyphs.clear(); bars.clear(); markers.clear(); names.clear(); fingers.clear(); chords.clear()
+    }
+}
+
+/** SMuFL glyph with its origin (baseline, left) at (x, baselineY). */
+private fun DrawScope.glyph(layout: TextLayoutResult, x: Float, baselineY: Float, color: Color) {
     drawText(layout, color = color, topLeft = Offset(x, baselineY - layout.firstBaseline))
 }
 
-private fun DrawScope.text(measurer: TextMeasurer, s: String, x: Float, top: Float, sizePx: Float, color: Color) {
-    val layout = measurer.measure(s, TextStyle(fontSize = sizePx.toSp()))
+/** [s] at [sizePx], measured once into [cache] (one size per cache). */
+private fun DrawScope.text(measurer: TextMeasurer, cache: HashMap<String, TextLayoutResult>, s: String, x: Float, top: Float, sizePx: Float, color: Color) {
+    val layout = cache.getOrPut(s) { measurer.measure(s, TextStyle(fontSize = sizePx.toSp())) }
     drawText(layout, color = color, topLeft = Offset(x, top))
 }

@@ -24,6 +24,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.StateFlow
 import org.w3c.dom.Element
+import java.util.concurrent.ConcurrentHashMap
 import javax.xml.parsers.DocumentBuilderFactory
 
 /*
@@ -41,14 +42,21 @@ fun stringResource(id: Int, vararg formatArgs: Any): String = STRING_VALUES[id].
 
 private const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
 
+/** Icons read so far by [R.drawable] id: each file is parsed once per run, not once per screen that shows it. */
+private val vectorCache = ConcurrentHashMap<Int, ImageVector>()
+
+/** One XML factory for every icon (a factory is not thread-safe, so builders are made under its lock). */
+private val xmlFactory: DocumentBuilderFactory = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }
+
 /** An Android vector drawable ([R.drawable]) drawn by Compose; icons are tinted by the caller as on Android. */
 @Composable
-fun painterResource(id: Int): Painter = rememberVectorPainter(remember(id) { loadVectorDrawable(DRAWABLE_FILES[id]) })
+fun painterResource(id: Int): Painter = rememberVectorPainter(remember(id) { vectorCache.getOrPut(id) { loadVectorDrawable(DRAWABLE_FILES[id]) } })
 
 /** Reads the paths of an Android vector drawable XML from the classpath (the app's res/drawable is a resource folder). */
 internal fun loadVectorDrawable(file: String): ImageVector {
     val stream = Thread.currentThread().contextClassLoader.getResourceAsStream(file) ?: error("missing drawable $file")
-    val doc = stream.use { DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }.newDocumentBuilder().parse(it) }
+    val xml = synchronized(xmlFactory) { xmlFactory.newDocumentBuilder() }
+    val doc = stream.use { xml.parse(it) }
     val root = doc.documentElement
     fun Element.attr(name: String): String = getAttributeNS(ANDROID_NS, name)
     fun dp(s: String) = s.removeSuffix("dp").toFloatOrNull() ?: 24f

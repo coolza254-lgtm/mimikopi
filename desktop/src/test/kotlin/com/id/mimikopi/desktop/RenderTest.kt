@@ -90,6 +90,21 @@ class RenderTest {
     }
 
     @Test
+    fun examPagesRenderInBothLooks() {
+        val app = MimikopiApp
+        for (dark in listOf(true, false)) {
+            render(dark) { com.id.mimikopi.desktop.port.exam.ExamHomeScreen({}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args()) }) }
+            for (g in listOf("0", "3", "5")) {
+                render(dark) { com.id.mimikopi.desktop.port.exam.ExamGradeScreen({}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args("grade" to g)) }) }
+            }
+            render(dark) { com.id.mimikopi.desktop.port.exam.ExamResultScreen({}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args("id" to "none")) }) }
+        }
+        // An exam part opens in the reader and the ear session.
+        render(true) { ReaderScreen(onBack = {}, vm = rememberViewModel { ReaderViewModel(app, args("exam" to "none", "part" to "SCALES")) }) }
+        render(true) { EarSessionScreen(onBack = {}, vm = rememberViewModel { EarSessionViewModel(app, args("exam" to "none")) }) }
+    }
+
+    @Test
     fun levelTestsAndNewReadingRender() {
         val app = MimikopiApp
         render(true) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("check" to "KEYS:1")) }) }

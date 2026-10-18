@@ -272,13 +272,17 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
 private fun FixedControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.s)) {
         if (ui.packMissing) Text(stringResource(R.string.reader_pack_missing), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+        ui.previewLeft?.let { left ->
+            Text(stringResource(R.string.reader_exam_preview, left), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
+        }
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Button(onClick = vm::start) { Text(stringResource(if (vm.nextLabelIsNew()) R.string.reader_new_piece else R.string.reader_start)) }
-            if (vm.source !is ReaderViewModel.Source.Benchmark && vm.source !is ReaderViewModel.Source.Check) OutlinedButton(onClick = vm::listen) { Text(stringResource(R.string.reader_listen)) }
+            val test = vm.source is ReaderViewModel.Source.Benchmark || vm.source is ReaderViewModel.Source.Check || vm.source is ReaderViewModel.Source.Exam
+            if (!test) OutlinedButton(onClick = vm::listen) { Text(stringResource(R.string.reader_listen)) }
             val handLabel = when (ui.options.hands) {
                 HandChoice.RIGHT -> R.string.reader_hand_right
                 HandChoice.LEFT -> R.string.reader_hand_left

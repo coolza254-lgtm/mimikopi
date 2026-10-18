@@ -103,6 +103,11 @@ sealed interface Screen {
     data class EarSession(val focus: String?) : Screen
     data object Progress : Screen
     data object Goal : Screen
+    data object Exams : Screen
+    data class ExamGrade(val grade: Int) : Screen
+    data class ExamResult(val id: String) : Screen
+    data class ExamPlay(val sitting: String, val part: String) : Screen
+    data class ExamAural(val sitting: String) : Screen
     data class LessonPage(val lessonId: String) : Screen
     data class Drill(val lessonId: String, val index: Int, val via: String? = null) : Screen
     data object Review : Screen
@@ -144,6 +149,11 @@ private fun target(o: Open): Pair<Screen, Boolean>? = when (o) {
     Open.Metronome -> Screen.Metronome to false
     Open.Progress -> Screen.Progress to false
     Open.Goal -> Screen.Goal to false
+    is Open.Piece -> Screen.Reader(o.id, null) to false
+    Open.Exams -> Screen.Exams to false
+    is Open.ExamGrade -> Screen.ExamGrade(o.grade) to false
+    is Open.ExamResult -> Screen.ExamResult(o.id) to false
+    is Open.ExamTake -> (if (o.part == com.id.mimikopi.core.exam.ExamPart.AURAL.name) Screen.ExamAural(o.sitting) else Screen.ExamPlay(o.sitting, o.part)) to false
 }
 
 /** Settings is laid out as one scrolling column; the ported pages manage their own height. */
@@ -248,6 +258,14 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
         Screen.Goal -> com.id.mimikopi.desktop.port.progress.GoalScreen(onBack = back, onOpen = open,
             vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.progress.GoalViewModel(app) })
         is Screen.EarSession -> EarSessionScreen(onBack = back, vm = rememberViewModel(screen) { EarSessionViewModel(app, args("focus" to screen.focus)) })
+        Screen.Exams -> com.id.mimikopi.desktop.port.exam.ExamHomeScreen(onBack = back, onOpen = open,
+            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args()) })
+        is Screen.ExamGrade -> com.id.mimikopi.desktop.port.exam.ExamGradeScreen(onBack = back, onOpen = open,
+            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args("grade" to screen.grade.toString())) })
+        is Screen.ExamResult -> com.id.mimikopi.desktop.port.exam.ExamResultScreen(onBack = back, onOpen = open,
+            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.exam.ExamViewModel(app, args("id" to screen.id)) })
+        is Screen.ExamPlay -> ReaderScreen(onBack = back, vm = rememberViewModel(screen) { ReaderViewModel(app, args("exam" to screen.sitting, "part" to screen.part)) })
+        is Screen.ExamAural -> EarSessionScreen(onBack = back, vm = rememberViewModel(screen) { EarSessionViewModel(app, args("exam" to screen.sitting)) })
         Screen.Metronome -> MetronomeScreen(onBack = back, vm = rememberViewModel(screen) { MetronomeViewModel(app) })
         Screen.Songs -> SongsScreen(
             onPlay = { id, hand -> go(Screen.Reader(id, hand)) },

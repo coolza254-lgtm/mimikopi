@@ -44,6 +44,13 @@ sealed interface Open {
     data object Metronome : Open
     data object Progress : Open
     data object Goal : Open
+    /** A library piece or exam material ("exam-pop-2") in the reader, to practise. */
+    data class Piece(val id: String) : Open
+    data object Exams : Open
+    data class ExamGrade(val grade: Int) : Open
+    data class ExamResult(val id: String) : Open
+    /** One part of the exam in progress ([part]: an ExamPart name). */
+    data class ExamTake(val sitting: String, val part: String) : Open
 }
 
 data class BlockUi(val block: PlanBlock, val title: String, val detail: String, val done: Boolean)

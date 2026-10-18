@@ -121,6 +121,11 @@ private object Routes {
     const val SYNC = "sync"
     const val PROGRESS = "progress"
     const val GOAL = "goal"
+    const val EXAMS = "exams"
+    const val EXAM_GRADE = "exams/grade/{grade}"
+    const val EXAM_RESULT = "exams/result/{id}"
+    const val EXAM_PLAY = "exams/play/{exam}/{part}"
+    const val EXAM_AURAL = "exams/aural/{exam}"
     const val LESSON = "lesson/{lessonId}"
     const val DRILL = "drill/{lessonId}/{drill}?via={via}"
     const val REVIEW = "review/{review}"
@@ -177,6 +182,11 @@ private fun openPage(nav: NavController, app: MimikopiApp, o: Open, selectTab: (
         Open.Metronome -> nav.navigate(Routes.METRONOME)
         Open.Progress -> nav.navigate(Routes.PROGRESS)
         Open.Goal -> nav.navigate(Routes.GOAL)
+        is Open.Piece -> nav.navigate(Routes.reader(o.id, null))
+        Open.Exams -> nav.navigate(Routes.EXAMS)
+        is Open.ExamGrade -> nav.navigate("exams/grade/${o.grade}")
+        is Open.ExamResult -> nav.navigate("exams/result/${o.id}")
+        is Open.ExamTake -> nav.navigate(if (o.part == com.id.mimikopi.core.exam.ExamPart.AURAL.name) "exams/aural/${o.sitting}" else "exams/play/${o.sitting}/${o.part}")
     }
 }
 
@@ -262,6 +272,11 @@ private fun AppNavigation() {
         composable(Routes.SYNC) { com.id.mimikopi.ui.settings.SyncScreen(onBack = back) }
         composable(Routes.PROGRESS) { com.id.mimikopi.ui.progress.ProgressScreen(onBack = back, onOpen = open) }
         composable(Routes.GOAL) { com.id.mimikopi.ui.progress.GoalScreen(onBack = back, onOpen = open) }
+        composable(Routes.EXAMS) { com.id.mimikopi.ui.exam.ExamHomeScreen(onBack = back, onOpen = open) }
+        composable(Routes.EXAM_GRADE) { com.id.mimikopi.ui.exam.ExamGradeScreen(onBack = back, onOpen = open) }
+        composable(Routes.EXAM_RESULT) { com.id.mimikopi.ui.exam.ExamResultScreen(onBack = back, onOpen = open) }
+        composable(Routes.EXAM_PLAY) { ReaderScreen(onBack = back) }
+        composable(Routes.EXAM_AURAL) { EarSessionScreen(onBack = back) }
         composable(Routes.LESSON) { LessonScreen(onBack = back, onOpenDrill = openDrill) }
         composable(Routes.DRILL, arguments = listOf(optional("via"))) { DrillScreen(onBack = back) }
         composable(Routes.REVIEW) { DrillScreen(onBack = back) }

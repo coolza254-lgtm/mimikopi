@@ -2,6 +2,10 @@ package com.id.mimikopi.desktop.port.today
 
 // Ported from the Android app (app/src/main/java/com/id/mimikopi/ui/today/ProgressStore.kt): imports changed, other changes marked "Desktop:".
 
+import com.id.mimikopi.core.exam.ExamLog
+import com.id.mimikopi.core.exam.ExamPart
+import com.id.mimikopi.core.exam.ExamSitting
+import com.id.mimikopi.core.exam.PartMark
 import com.id.mimikopi.core.progress.CheckRecord
 import com.id.mimikopi.core.progress.Mistakes
 import com.id.mimikopi.core.progress.RunMistakes
@@ -34,6 +38,9 @@ class ProgressStore(private val read: suspend (String) -> String?, private val w
     private val _mistakes = MutableStateFlow<List<RunMistakes>>(emptyList())
     /** What went wrong in each finished run (for "what to fix"). */
     val mistakes: StateFlow<List<RunMistakes>> = _mistakes.asStateFlow()
+    private val _exams = MutableStateFlow<List<ExamSitting>>(emptyList())
+    /** Grade exams started and taken. */
+    val exams: StateFlow<List<ExamSitting>> = _exams.asStateFlow()
 
     suspend fun load() = mutex.withLock { if (!loaded) readAll() }
 
@@ -46,6 +53,7 @@ class ProgressStore(private val read: suspend (String) -> String?, private val w
         _log.value = ProgressMerge.combinedLog(own, peers)
         _checks.value = CheckRecord.parse(read(CHECKS))
         _mistakes.value = Mistakes.parse(read(MISTAKES))
+        _exams.value = ExamLog.parse(read(EXAMS))
         loaded = true
     }
 
@@ -79,12 +87,34 @@ class ProgressStore(private val read: suspend (String) -> String?, private val w
         }
     }
 
+    /** Starts an exam (any unfinished exam of today is given up first: one exam at a time). */
+    suspend fun startExam(sitting: ExamSitting) = changeExams { log ->
+        val open = ExamLog.active(log, sitting.day)
+        (if (open != null) ExamLog.abandon(log, open.id) else log) + sitting
+    }
+
+    /** Records one part of an exam; a part already taken keeps its first marks. */
+    suspend fun recordExam(id: String, part: ExamPart, mark: PartMark) = changeExams { ExamLog.record(it, id, part, mark) }
+
+    suspend fun abandonExam(id: String) = changeExams { ExamLog.abandon(it, id) }
+
+    private suspend fun changeExams(change: (List<ExamSitting>) -> List<ExamSitting>) {
+        load()
+        mutex.withLock {
+            val next = change(_exams.value)
+            if (next == _exams.value) return@withLock
+            _exams.value = next
+            write(EXAMS, ExamLog.encode(next))
+        }
+    }
+
     companion object {
         const val LOG = ProgressMerge.LOG
         /** The other devices' own logs by device id (written only by sync). */
         const val PEERS = ProgressMerge.PEERS
         const val CHECKS = "skills.checks"
         const val MISTAKES = Mistakes.KEY
+        const val EXAMS = ExamLog.KEY
         /** Today's plan (DailyPlan.Stored) and the minutes last chosen. */
         const val PLAN = "today.plan"
         const val MINUTES = "today.minutes"

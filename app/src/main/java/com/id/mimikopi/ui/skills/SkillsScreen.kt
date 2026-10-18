@@ -71,6 +71,8 @@ fun SkillsScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
                 GroupRow("พัฒนาการ", subtitle = "ระดับย้อนหลัง เวลาฝึก หู และสิ่งที่ควรแก้", onClick = { onOpen(Open.Progress) })
                 GroupDivider()
                 GroupRow("เป้าหมาย: เพลงไอดอล", subtitle = "แต่ละเพลงต้องการอะไร ยังขาดอะไร", onClick = { onOpen(Open.Goal) })
+                GroupDivider()
+                GroupRow("สอบเกรด", subtitle = "Initial ถึงเกรด 5 แบบ ABRSM มีส่วนเพลงป็อป เต็ม 150 คะแนน", onClick = { onOpen(Open.Exams) })
             }
             Spacer(Modifier.height(20.dp))
             Group {

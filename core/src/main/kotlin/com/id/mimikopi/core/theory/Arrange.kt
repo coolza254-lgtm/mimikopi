@@ -155,7 +155,7 @@ object StageGenerators {
     private fun respell(n: TimedNote, fifths: Int) = n.copy(pitches = n.pitches.map { Keys.spellMidi(it.midi, fifths) })
 
     /** Melody of chord tones (with passing notes when not [simple]) between C4 and D5, one or two notes per beat. */
-    private fun chordToneMelody(chords: List<Chord>, fifths: Int, rnd: Random, simple: Boolean, syncopation: Boolean = false): List<TimedNote> {
+    internal fun chordToneMelody(chords: List<Chord>, fifths: Int, rnd: Random, simple: Boolean, syncopation: Boolean = false): List<TimedNote> {
         val out = mutableListOf<TimedNote>()
         var last = 67
         chords.forEachIndexed { bar, chord ->
@@ -256,7 +256,7 @@ object StageGenerators {
         return Timeline(meta, bars, rh, lh).toPieceFile()
     }
 
-    private fun endOnTonic(notes: List<TimedNote>, fifths: Int): List<TimedNote> {
+    internal fun endOnTonic(notes: List<TimedNote>, fifths: Int): List<TimedNote> {
         if (notes.isEmpty()) return notes
         val last = notes.last()
         var t = Keys.tonic(fifths).pc

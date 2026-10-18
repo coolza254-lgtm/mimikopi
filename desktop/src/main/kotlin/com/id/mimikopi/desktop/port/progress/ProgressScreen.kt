@@ -28,6 +28,9 @@ import com.id.mimikopi.desktop.port.collectAsStateWithLifecycle
 import com.id.mimikopi.desktop.port.viewModelScope
 import com.id.mimikopi.desktop.port.MimikopiApp
 import com.id.mimikopi.core.ear.EarProgress
+import com.id.mimikopi.core.exam.ExamLog
+import com.id.mimikopi.core.exam.ExamSitting
+import com.id.mimikopi.core.exam.Exams
 import com.id.mimikopi.core.progress.Fix
 import com.id.mimikopi.core.progress.History
 import com.id.mimikopi.core.progress.Mistake
@@ -59,6 +62,8 @@ data class ProgressUi(
     val weeks: List<Pair<LocalDate, Int>> = emptyList(),
     val ear: List<Pair<LocalDate, Double?>> = emptyList(),
     val fixes: List<Mistake> = emptyList(),
+    /** Finished grade exams, oldest first. */
+    val exams: List<ExamSitting> = emptyList(),
 )
 
 class ProgressViewModel(app: Application) : AndroidViewModel(app) {
@@ -81,6 +86,7 @@ class ProgressViewModel(app: Application) : AndroidViewModel(app) {
                 weeks = History.weeklyMinutes(p.log.value, today, 12),
                 ear = History.earWeekly(ear, today, 12),
                 fixes = Mistakes.summarize(p.mistakes.value, ear, today),
+                exams = ExamLog.finished(p.exams.value).reversed(),
             )
         }
     }
@@ -157,6 +163,24 @@ fun ProgressScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ProgressViewM
                     }
                 }
                 GroupFooter("ข้อยากขึ้นตามขั้นที่เปิด เปอร์เซ็นต์จึงอาจลดลงตอนเข้าขั้นใหม่ ดูระดับหูประกอบ")
+
+                GroupHeader("สอบเกรด")
+                Group {
+                    if (ui.exams.isEmpty()) {
+                        GroupRow("ยังไม่ได้สอบ", subtitle = "การสอบวัดทุกด้านพร้อมกัน: เพลง สเกล อ่านโน้ตใหม่ และการฟัง", onClick = { onOpen(Open.Exams) })
+                    } else {
+                        Column(Modifier.padding(16.dp)) {
+                            val recent = ui.exams.takeLast(12)
+                            BarChart(recent.map { it.total.toFloat() / Exams.MAX }, listOfNotNull(recent.firstOrNull()?.let { runCatching { shortDate(LocalDate.parse(it.day)) }.getOrNull() }, "ล่าสุด"))
+                            val last = ui.exams.last()
+                            Text("ล่าสุด ${Exams.grade(last.grade)?.name ?: ""} ${last.total}/${Exams.MAX} · ${Exams.band(last.total).title}",
+                                fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
+                        }
+                        GroupDivider()
+                        GroupRow("ผลสอบทั้งหมด", onClick = { onOpen(Open.Exams) })
+                    }
+                }
+                GroupFooter("คะแนนรวม 150 ผ่าน 100 ดี 120 ดีเยี่ยม 130 เทียบกันได้เฉพาะเกรดเดียวกัน")
 
                 GroupHeader("สิ่งที่ควรแก้")
                 Group {

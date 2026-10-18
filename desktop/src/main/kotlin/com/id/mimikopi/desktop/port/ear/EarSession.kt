@@ -52,6 +52,10 @@ import com.id.mimikopi.core.ear.EarResult
 import com.id.mimikopi.core.ear.EarState
 import com.id.mimikopi.core.ear.EarStep
 import com.id.mimikopi.core.ear.FunctionalEar
+import com.id.mimikopi.core.exam.ExamPart
+import com.id.mimikopi.core.exam.Exams
+import com.id.mimikopi.core.exam.Grade
+import com.id.mimikopi.core.exam.PartMark
 import com.id.mimikopi.core.input.InputConfig
 import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
@@ -132,8 +136,13 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
 
     private val check = SkillBook.parseKey(args.get<String>("check"))?.takeIf { it.run is CheckRun.EarRun }
     private val focus: EarKind? = args.get<String>("focus")?.let { f -> EarKind.entries.firstOrNull { it.name == f } }
+    /** The aural part of a grade exam (the sitting's id), taken once. */
+    private val examId: String? = args.get<String>("exam")
+    private var examGrade: Grade? = null
+    /** Level tests and exams: fixed items, a single answer, no hints. */
+    private val testLike: Boolean get() = check != null || examId != null
 
-    private val _ui = MutableStateFlow(EarUi(test = check != null))
+    private val _ui = MutableStateFlow(EarUi(test = check != null || examId != null))
     val ui: StateFlow<EarUi> = _ui.asStateFlow()
 
     private var state = EarState()
@@ -150,7 +159,22 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
     init {
         viewModelScope.launch {
             state = EarProgress.parse(dao.get(EarProgress.KEY))
-            val title = check?.let { "ทดสอบระดับหู ${it.level}" } ?: focus?.let { "ฝึก${it.title}" } ?: "ฝึกหู"
+            var title = check?.let { "ทดสอบระดับหู ${it.level}" } ?: focus?.let { "ฝึก${it.title}" } ?: "ฝึกหู"
+            if (examId != null) {
+                services.progress.load()
+                val sitting = services.progress.exams.value.firstOrNull { it.id == examId }
+                examGrade = sitting?.let { Exams.grade(it.grade) }
+                title = "สอบ ${examGrade?.name ?: ""} · ${ExamPart.AURAL.title}"
+                val stop = when {
+                    sitting == null || examGrade == null -> "ไม่พบการสอบนี้"
+                    sitting.mark(ExamPart.AURAL) != null -> "สอบส่วนนี้ไปแล้ว ได้ ${sitting.mark(ExamPart.AURAL)!!.marks} คะแนน"
+                    else -> null
+                }
+                if (stop != null) {
+                    _ui.value = EarUi(phase = EarPhase.DONE, test = true, title = title, message = stop)
+                    return@launch
+                }
+            }
             if (check != null) {
                 services.progress.load()
                 if (SkillBook.status(check.skill, services.progress.checks.value, LocalDate.now()).lockedToday) {
@@ -162,7 +186,7 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
                 val cfg = services.inputConfig.load()
                 ((cfg.latencyMs[InputConfig.latencyKey(InputSource.USB_MIDI, OutputRoute.current(getApplication()))] ?: 0.0) * 1_000_000).toLong()
             }.getOrDefault(0L)
-            _ui.value = EarUi(phase = EarPhase.LISTEN, questions = makeRound(), test = check != null, title = title, places = places())
+            _ui.value = EarUi(phase = EarPhase.LISTEN, questions = makeRound(), test = testLike, title = title, places = places())
             startedAt = System.currentTimeMillis()
             delay(400)
             ask()
@@ -173,11 +197,12 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
     }
 
     private fun places(): List<Int> {
-        val items = check?.level?.let { EarCourse.test(it)?.items } ?: EarProgress.unlocked(state)
+        val items = examGrade?.aural?.let { it.items + it.context } ?: check?.level?.let { EarCourse.test(it)?.items } ?: EarProgress.unlocked(state)
         return (FunctionalEar.MAJOR + items.filter { EarCourse.kindOf(it) == EarKind.DEGREE }.map { it.substringAfter(':').toInt() }).distinct().sorted()
     }
 
     private fun makeRound(): List<EarQuestion> {
+        examGrade?.let { return Exams.auralRound(it, random) }
         val level = check?.level
         if (level != null) {
             val test = EarCourse.test(level) ?: return emptyList()
@@ -204,7 +229,7 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
         val qs = _ui.value.questions
         val q = qs.getOrNull(i) ?: return false
         if (!q.cadence) return false
-        if (check != null || i == 0) return true
+        if (testLike || i == 0) return true
         val prev = qs[i - 1]
         return !prev.cadence || prev.tonic != q.tonic || EarProgress.stat(state, q.item).strength < 0.7
     }
@@ -366,7 +391,7 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
         val u = _ui.value
         val now = System.currentTimeMillis()
         val before = state
-        state = EarProgress.record(state, u.results, now, test = check != null, focus = focus)
+        state = EarProgress.record(state, u.results, now, test = testLike, focus = focus)
         val after = state
         val seconds = (now - startedAt) / 1000
         viewModelScope.launch {
@@ -377,7 +402,18 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
             val byKind = u.results.groupBy { EarCourse.kindOf(it.item) }.map { (k, rs) -> k to (rs.count { it.right } to rs.size) }
             var summary = EarSummary(u.results.count { it.right }, u.results.size, byKind, better, missed)
             val level = check
-            if (level == null) {
+            val exam = examId
+            if (exam != null) {
+                val right = u.results.count { it.right }
+                val marks = Exams.auralMarks(right, u.results.size)
+                services.progress.recordExam(exam, ExamPart.AURAL, PartMark(marks, now, right = right, asked = u.results.size))
+                services.progress.log("check", seconds)
+                summary = summary.copy(
+                    passed = marks >= ExamPart.AURAL.pass,
+                    verdict = listOf("${ExamPart.AURAL.title}: $marks จาก ${ExamPart.AURAL.max} คะแนน · ${Exams.partBand(ExamPart.AURAL, marks).title}",
+                        "ตอบถูกครั้งแรก $right จาก ${u.results.size} ข้อ"),
+                )
+            } else if (level == null) {
                 services.progress.log("ear", seconds)
             } else {
                 val m = CheckMetrics(accuracy = if (u.results.isEmpty()) 0.0 else u.results.count { it.right }.toDouble() / u.results.size)
@@ -404,7 +440,8 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
                 services.progress.load()
                 if (SkillBook.status(check.skill, services.progress.checks.value, LocalDate.now()).lockedToday) return@launch
             }
-            _ui.value = EarUi(phase = EarPhase.LISTEN, questions = makeRound(), test = check != null, title = _ui.value.title, places = places())
+            if (examId != null) return@launch
+            _ui.value = EarUi(phase = EarPhase.LISTEN, questions = makeRound(), test = testLike, title = _ui.value.title, places = places())
             startedAt = System.currentTimeMillis()
             delay(300)
             ask()

@@ -41,6 +41,7 @@ class PieceRepository(private val context: Context, private val db: AppDatabase)
     }
 
     fun pieceOrExercise(id: String): Score? = piece(id) ?: exercises.firstOrNull { it.id == id }
+        ?: com.id.mimikopi.core.exam.Exams.practicePiece(id)?.let { runCatching { Score.from(it) }.getOrNull() }
 
     private val _progress = MutableStateFlow<Map<String, PieceProgress>>(emptyMap())
     val progress: StateFlow<Map<String, PieceProgress>> = _progress.asStateFlow()

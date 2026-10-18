@@ -76,9 +76,10 @@ object ProgressMerge {
     const val HELPER_COUNT = "helper.noteNames.count"
     const val EAR_COURSE = com.id.mimikopi.core.ear.EarProgress.KEY
     const val MISTAKES = com.id.mimikopi.core.progress.Mistakes.KEY
+    const val EXAMS = com.id.mimikopi.core.exam.ExamLog.KEY
 
     /** The settings rows that are progress and travel between devices; every other row stays where it is. */
-    val KEYS = setOf(LESSONS, PIECES, LOG, PEERS, CHECKS, EAR_STATS, EAR_LEVELS, EAR_DELETED, CHORD_RUNS, BENCHMARKS, HELPER_COUNT, EAR_COURSE, MISTAKES)
+    val KEYS = setOf(LESSONS, PIECES, LOG, PEERS, CHECKS, EAR_STATS, EAR_LEVELS, EAR_DELETED, CHORD_RUNS, BENCHMARKS, HELPER_COUNT, EAR_COURSE, MISTAKES, EXAMS)
 
     private const val DAY_MS = 86_400_000L
     private val json = Json { ignoreUnknownKeys = true }
@@ -111,6 +112,7 @@ object ProgressMerge {
         put(BENCHMARKS, mergeRows(l[BENCHMARKS], r[BENCHMARKS], benchSer, ::benchmarks))
         put(EAR_COURSE, mergeRows(l[EAR_COURSE], r[EAR_COURSE], com.id.mimikopi.core.ear.EarState.serializer(), com.id.mimikopi.core.ear.EarProgress::merge))
         put(MISTAKES, mergeRows(l[MISTAKES], r[MISTAKES], ListSerializer(com.id.mimikopi.core.progress.RunMistakes.serializer()), com.id.mimikopi.core.progress.Mistakes::merge))
+        put(EXAMS, mergeRows(l[EXAMS], r[EXAMS], ListSerializer(com.id.mimikopi.core.exam.ExamSitting.serializer()), com.id.mimikopi.core.exam.ExamLog::merge))
         put(HELPER_COUNT, listOfNotNull(l[HELPER_COUNT]?.toIntOrNull(), r[HELPER_COUNT]?.toIntOrNull()).maxOrNull()?.toString())
 
         val deleted = mergeRows(l[EAR_DELETED], r[EAR_DELETED], deletedSer) { a, b -> a + b }

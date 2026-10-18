@@ -357,6 +357,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="drill_interval_play">เล่นโน้ตทั้งชุดจากซ้ายไปขวา</string>
     <string name="drill_interval_correction">คำตอบที่ถูก: %1$s</string>
     <string name="reader_new_piece">โจทย์ใหม่</string>
+    <string name="reader_exam_preview">ดูโน้ตก่อนเล่น เหลือ %1$d วินาที แล้วจะเริ่มเอง (กดเริ่มก่อนได้)</string>
     <string name="reader_fixed_summary">โหมด%1$s · %2$s · %3$d bpm</string>
     <string name="block_warmup_body">อุ่นมือช้าๆ ผ่อนคลาย: %1$s</string>
     <string name="block_new_reading_body">อ่านบทใหม่ที่ไม่เคยเห็น ระดับ L%1$d (ง่ายกว่าบทเรียนปัจจุบัน) เล่นไม่เกิน 3 รอบต่อบท แล้วเปลี่ยนบทใหม่</string>

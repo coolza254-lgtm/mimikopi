@@ -69,6 +69,12 @@ fun SkillsScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
         Column(Modifier.padding(horizontal = PageMargin)) {
             Spacer(Modifier.height(12.dp))
             Group {
+                GroupRow("พัฒนาการ", subtitle = "ระดับย้อนหลัง เวลาฝึก หู และสิ่งที่ควรแก้", onClick = { onOpen(Open.Progress) })
+                GroupDivider()
+                GroupRow("เป้าหมาย: เพลงไอดอล", subtitle = "แต่ละเพลงต้องการอะไร ยังขาดอะไร", onClick = { onOpen(Open.Goal) })
+            }
+            Spacer(Modifier.height(20.dp))
+            Group {
                 ui.statuses.forEachIndexed { i, s ->
                     if (i > 0) GroupDivider()
                     GroupRow(

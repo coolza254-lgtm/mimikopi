@@ -84,6 +84,8 @@ class RenderTest {
                 com.id.mimikopi.desktop.port.skills.SkillDetailScreen(skill, {}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.skills.SkillsViewModel(app) })
             }
             render(dark) { com.id.mimikopi.desktop.port.piano.FreePianoScreen({}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.piano.FreePianoViewModel(app) }) }
+            render(dark) { com.id.mimikopi.desktop.port.progress.ProgressScreen({}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.progress.ProgressViewModel(app) }) }
+            render(dark) { com.id.mimikopi.desktop.port.progress.GoalScreen({}, {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.progress.GoalViewModel(app) }) }
         }
     }
 

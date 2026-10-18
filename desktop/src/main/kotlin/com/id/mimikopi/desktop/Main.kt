@@ -101,6 +101,8 @@ sealed interface Screen {
     data object Settings : Screen
     data object Metronome : Screen
     data class EarSession(val focus: String?) : Screen
+    data object Progress : Screen
+    data object Goal : Screen
     data class LessonPage(val lessonId: String) : Screen
     data class Drill(val lessonId: String, val index: Int, val via: String? = null) : Screen
     data object Review : Screen
@@ -140,6 +142,8 @@ private fun target(o: Open): Pair<Screen, Boolean>? = when (o) {
     Open.Skills -> Screen.Skills to true
     Open.Piano -> Screen.Piano to true
     Open.Metronome -> Screen.Metronome to false
+    Open.Progress -> Screen.Progress to false
+    Open.Goal -> Screen.Goal to false
 }
 
 /** Settings is laid out as one scrolling column; the ported pages manage their own height. */
@@ -239,6 +243,10 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
             onBack = back,
             vm = rememberViewModel(screen) { EarHomeViewModel(app) },
         )
+        Screen.Progress -> com.id.mimikopi.desktop.port.progress.ProgressScreen(onBack = back, onOpen = open,
+            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.progress.ProgressViewModel(app) })
+        Screen.Goal -> com.id.mimikopi.desktop.port.progress.GoalScreen(onBack = back, onOpen = open,
+            vm = rememberViewModel(screen) { com.id.mimikopi.desktop.port.progress.GoalViewModel(app) })
         is Screen.EarSession -> EarSessionScreen(onBack = back, vm = rememberViewModel(screen) { EarSessionViewModel(app, args("focus" to screen.focus)) })
         Screen.Metronome -> MetronomeScreen(onBack = back, vm = rememberViewModel(screen) { MetronomeViewModel(app) })
         Screen.Songs -> SongsScreen(

@@ -251,6 +251,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     private val answers = mutableListOf<Answer>()
     private val events = mutableListOf<AttemptEvent>()
     private val misses = mutableMapOf<String, Int>()
+    /** Reading confusions of this run as "expected>played" (for the mistakes summary). */
+    private val confusions = mutableListOf<String>()
     private var current: Prompt? = null
     private var currentFirstTry = true
     private var shownAt = 0L
@@ -263,7 +265,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         val d = drill ?: return
         startedAt = System.currentTimeMillis()
         seed = startedAt
-        answers.clear(); events.clear(); misses.clear(); queue.clear(); requeued.clear()
+        answers.clear(); events.clear(); misses.clear(); confusions.clear(); queue.clear(); requeued.clear()
         helperUses = if (_showNames.value) 1 else 0
         job?.cancel()
         job = viewModelScope.launch {
@@ -330,6 +332,11 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         }
         if (!ok) {
             misses[p.srsId] = (misses[p.srsId] ?: 0) + 1
+            if (currentFirstTry) when (p) {
+                is Prompt.Note -> confusions += "${p.item.pitch}>${com.id.mimikopi.core.music.SpelledPitch.fromMidiSharp(e.note)}"
+                is Prompt.Key -> confusions += "${p.item.target ?: p.item.letter.name}>" + com.id.mimikopi.core.music.SpelledPitch.fromMidiSharp(e.note).let { pp -> if (p.item.target != null) pp.toString() else pp.letter.name }
+                else -> Unit
+            }
             // learning-system.md section 10: show the right place, ask again at the end of the round (once).
             if (p !in requeued) {
                 requeued += p
@@ -356,6 +363,13 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             return
         }
         logRun()
+        if (bench == null && (d.type == ExerciseType.E_NOTEID || d.type == ExerciseType.E_KEYFIND)) {
+            val run = com.id.mimikopi.core.progress.RunMistakes(
+                System.currentTimeMillis(), java.time.LocalDate.now().toString(), "drill",
+                notes = answers.size, wrong = answers.count { !it.correct }, confusions = confusions.toList(),
+            )
+            services.appScope.launch { services.progress.addMistakes(run) }
+        }
         val slow = if (d.type == ExerciseType.E_INTERVAL_READ || d.type == ExerciseType.E_CHORD_BUILD) 0 else answers.count { it.correct && it.responseMs > 3000 }
         val isPassDrill = l != null && drillIndex in l.pass.requiredDrills
         val met: Boolean? = if (!isPassDrill || l == null) null else when (d.type) {

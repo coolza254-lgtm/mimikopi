@@ -687,7 +687,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val s = score ?: return
         val result = j.result()
         val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
-        services.appScope.launch { services.progress.log(via ?: "song", seconds) }
+        services.appScope.launch {
+            services.progress.log(via ?: "song", seconds)
+            services.progress.addMistakes(com.id.mimikopi.core.progress.Mistakes.fromPlay(j, result, "piece", System.currentTimeMillis(), java.time.LocalDate.now().toString()))
+        }
         val u = _ui.value
         val helper = helperUsedThisRun
         viewModelScope.launch {
@@ -742,6 +745,9 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
         if (source !is Source.Check) services.appScope.launch {
             services.progress.log(via ?: when (source) { is Source.NewReading -> "sight"; is Source.Benchmark -> "check"; else -> "ladder" }, seconds)
+        }
+        services.appScope.launch {
+            services.progress.addMistakes(com.id.mimikopi.core.progress.Mistakes.fromPlay(j, result, "score", System.currentTimeMillis(), java.time.LocalDate.now().toString()))
         }
         viewModelScope.launch {
             val lines = mutableListOf<CoachLine>()

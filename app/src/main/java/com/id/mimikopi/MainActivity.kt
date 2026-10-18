@@ -119,6 +119,8 @@ private object Routes {
     const val METRONOME = "metronome"
     const val MIDI = "midi"
     const val SYNC = "sync"
+    const val PROGRESS = "progress"
+    const val GOAL = "goal"
     const val LESSON = "lesson/{lessonId}"
     const val DRILL = "drill/{lessonId}/{drill}?via={via}"
     const val REVIEW = "review/{review}"
@@ -173,6 +175,8 @@ private fun openPage(nav: NavController, app: MimikopiApp, o: Open, selectTab: (
         Open.Skills -> selectTab(Routes.SKILLS)
         Open.Piano -> selectTab(Routes.PIANO)
         Open.Metronome -> nav.navigate(Routes.METRONOME)
+        Open.Progress -> nav.navigate(Routes.PROGRESS)
+        Open.Goal -> nav.navigate(Routes.GOAL)
     }
 }
 
@@ -256,6 +260,8 @@ private fun AppNavigation() {
         composable(Routes.METRONOME) { MetronomeScreen(onBack = back) }
         composable(Routes.MIDI) { MidiScreen(onBack = back) }
         composable(Routes.SYNC) { com.id.mimikopi.ui.settings.SyncScreen(onBack = back) }
+        composable(Routes.PROGRESS) { com.id.mimikopi.ui.progress.ProgressScreen(onBack = back, onOpen = open) }
+        composable(Routes.GOAL) { com.id.mimikopi.ui.progress.GoalScreen(onBack = back, onOpen = open) }
         composable(Routes.LESSON) { LessonScreen(onBack = back, onOpenDrill = openDrill) }
         composable(Routes.DRILL, arguments = listOf(optional("via"))) { DrillScreen(onBack = back) }
         composable(Routes.REVIEW) { DrillScreen(onBack = back) }

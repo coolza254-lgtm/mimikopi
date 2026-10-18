@@ -40,6 +40,8 @@ sealed interface Open {
     data object Skills : Open
     data object Piano : Open
     data object Metronome : Open
+    data object Progress : Open
+    data object Goal : Open
 }
 
 data class BlockUi(val block: PlanBlock, val title: String, val detail: String, val done: Boolean)
@@ -60,6 +62,11 @@ data class TodayUi(
     val overall: String? = null,
     val weakest: SkillStatus? = null,
     val untested: Int = SkillId.entries.size,
+    /** The top patterns in recent mistakes (what to fix). */
+    val fixes: List<com.id.mimikopi.core.progress.Mistake> = emptyList(),
+    /** The first target song not yet within reach, and how far along it is. */
+    val goalSong: String? = null,
+    val goalReady: Double = 0.0,
 ) {
     val next: BlockUi? get() = blocks.firstOrNull { !it.done }
     val allDone: Boolean get() = blocks.isNotEmpty() && blocks.all { it.done }
@@ -128,7 +135,8 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun publish(plan: List<PlanBlock>, minutes: Int, today: LocalDate) {
-        earStage = com.id.mimikopi.core.ear.EarProgress.currentStage(com.id.mimikopi.core.ear.EarProgress.parse(dao.get(com.id.mimikopi.core.ear.EarProgress.KEY)))
+        val earState = com.id.mimikopi.core.ear.EarProgress.parse(dao.get(com.id.mimikopi.core.ear.EarProgress.KEY))
+        earStage = com.id.mimikopi.core.ear.EarProgress.currentStage(earState)
         val log = progress.log.value
         val day = PracticeLog.on(log, today)
         val checks = progress.checks.value
@@ -139,6 +147,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         }
         val (days, mins) = PracticeLog.week(log, today)
         val statuses = SkillId.entries.map { SkillBook.status(it, checks, today) }
+        val goal = com.id.mimikopi.core.goal.IdolGoal.SONGS.firstOrNull { com.id.mimikopi.core.goal.IdolGoal.gaps(it, statuses).isNotEmpty() }
         _ui.value = TodayUi(
             loaded = true,
             dateText = thaiDate(today),
@@ -153,6 +162,9 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
             overall = SkillBook.overall(checks, today),
             weakest = SkillBook.weakest(checks, today)?.let { w -> statuses.first { it.skill == w } },
             untested = statuses.count { it.lastTested == null },
+            fixes = com.id.mimikopi.core.progress.Mistakes.summarize(progress.mistakes.value, earState, today).take(2),
+            goalSong = goal?.title,
+            goalReady = goal?.let { com.id.mimikopi.core.goal.IdolGoal.readiness(it, statuses) } ?: 1.0,
         )
     }
 

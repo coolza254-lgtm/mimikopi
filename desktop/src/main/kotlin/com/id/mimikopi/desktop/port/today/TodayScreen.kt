@@ -49,6 +49,7 @@ import com.id.mimikopi.desktop.port.components.Segmented
 import com.id.mimikopi.desktop.port.components.SecondaryButton
 import com.id.mimikopi.desktop.port.components.StepMark
 import com.id.mimikopi.desktop.port.components.paper
+import com.id.mimikopi.desktop.port.progress.fixTarget
 import com.id.mimikopi.desktop.ui.Tokens
 
 /**
@@ -86,6 +87,17 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
                     }
                 }
 
+                if (ui.fixes.isNotEmpty()) {
+                    GroupHeader("สิ่งที่ควรแก้")
+                    Group {
+                        ui.fixes.forEachIndexed { i, m ->
+                            if (i > 0) GroupDivider()
+                            GroupRow(m.title, subtitle = m.fixText, onClick = { onOpen(fixTarget(m.fix)) })
+                        }
+                    }
+                    GroupFooter("จากการเล่นและฝึก ${com.id.mimikopi.core.progress.Mistakes.DAYS} วันล่าสุด รายละเอียดอยู่ในหน้าพัฒนาการ")
+                }
+
                 GroupHeader("เวลาฝึกวันนี้")
                 Segmented(DailyPlan.CHOICES, ui.minutesChosen, { "$it" }, vm::choose)
                 GroupFooter("นาที · แผนจัดใหม่ตามเวลาที่เลือก ส่วนที่ฝึกไปแล้วยังนับอยู่")
@@ -114,6 +126,14 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
                         GroupDivider()
                         GroupRow("เน้นวันนี้: ${w.skill.title}", subtitle = "อ่อนที่สุดตอนนี้ ระดับ ${w.level} จาก ${w.maxLevel} · แผนให้เวลาส่วนนี้มากขึ้น", onClick = { onOpen(Open.Skill(w.skill)) })
                     }
+                    GroupDivider()
+                    GroupRow("พัฒนาการ", subtitle = "ระดับย้อนหลัง เวลาฝึกต่อสัปดาห์ หู และสิ่งที่ควรแก้", onClick = { onOpen(Open.Progress) })
+                    GroupDivider()
+                    GroupRow(
+                        "เป้าหมาย: เพลงไอดอล",
+                        subtitle = ui.goalSong?.let { "เพลงถัดไป $it · พร้อม ${(ui.goalReady * 100).toInt()}%" } ?: "ทักษะถึงเพลงเป้าหมายชุดแรกแล้ว",
+                        onClick = { onOpen(Open.Goal) },
+                    )
                 }
                 Spacer(Modifier.height(40.dp))
             }

@@ -1,6 +1,8 @@
 package com.id.mimikopi.ui.today
 
 import com.id.mimikopi.core.progress.CheckRecord
+import com.id.mimikopi.core.progress.Mistakes
+import com.id.mimikopi.core.progress.RunMistakes
 import com.id.mimikopi.core.session.DayLog
 import com.id.mimikopi.core.session.PracticeLog
 import com.id.mimikopi.core.sync.ProgressMerge
@@ -27,6 +29,9 @@ class ProgressStore(private val read: suspend (String) -> String?, private val w
     val log: StateFlow<List<DayLog>> = _log.asStateFlow()
     private val _checks = MutableStateFlow<List<CheckRecord>>(emptyList())
     val checks: StateFlow<List<CheckRecord>> = _checks.asStateFlow()
+    private val _mistakes = MutableStateFlow<List<RunMistakes>>(emptyList())
+    /** What went wrong in each finished run (for "what to fix"). */
+    val mistakes: StateFlow<List<RunMistakes>> = _mistakes.asStateFlow()
 
     suspend fun load() = mutex.withLock { if (!loaded) readAll() }
 
@@ -38,6 +43,7 @@ class ProgressStore(private val read: suspend (String) -> String?, private val w
         peers = ProgressMerge.parsePeers(read(PEERS))
         _log.value = ProgressMerge.combinedLog(own, peers)
         _checks.value = CheckRecord.parse(read(CHECKS))
+        _mistakes.value = Mistakes.parse(read(MISTAKES))
         loaded = true
     }
 
@@ -62,11 +68,21 @@ class ProgressStore(private val read: suspend (String) -> String?, private val w
         }
     }
 
+    suspend fun addMistakes(run: RunMistakes) {
+        load()
+        mutex.withLock {
+            val next = (_mistakes.value + run).takeLast(Mistakes.KEEP)
+            _mistakes.value = next
+            write(MISTAKES, Mistakes.encode(next))
+        }
+    }
+
     companion object {
         const val LOG = ProgressMerge.LOG
         /** The other devices' own logs by device id (written only by sync). */
         const val PEERS = ProgressMerge.PEERS
         const val CHECKS = "skills.checks"
+        const val MISTAKES = Mistakes.KEY
         /** Today's plan (DailyPlan.Stored) and the minutes last chosen. */
         const val PLAN = "today.plan"
         const val MINUTES = "today.minutes"

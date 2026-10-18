@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.draw.clip
 import com.id.mimikopi.desktop.port.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -458,7 +459,9 @@ fun EarSessionScreen(onBack: () -> Unit, vm: EarSessionViewModel) {
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     val ui by vm.ui.collectAsStateWithLifecycle()
 
-    Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+    // Answers come from the piano, which does not keep the phone awake: the screen stays on during a round.
+    Column(Modifier.fillMaxSize().then(if (ui.phase != EarPhase.DONE) Modifier.keepScreenOn() else Modifier).paper().verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 720.dp).fillMaxWidth().padding(horizontal = 20.dp)) {
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {

@@ -263,6 +263,24 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         return exam()?.first?.mark(src.part) != null
     }
 
+    /** The exam was given up (here or by sync) or its day is over: no part of it can be taken any more. */
+    private fun examClosed(): Boolean = exam()?.first?.let { it.abandoned || it.day != java.time.LocalDate.now().toString() } == true
+
+    /** Exam sight-reading after a look that did not count: the next look must be new music with its own 30 seconds. */
+    private var sightNeedsLook = false
+
+    /** Exam sight-reading: new music, back to the start, and the half-minute look again. True when that was done. */
+    private fun newSightLook(): Boolean {
+        val src = source as? Source.Exam ?: return false
+        if (src.part != ExamPart.SIGHT || !sightNeedsLook || examTaken()) return false
+        sightNeedsLook = false
+        seed = System.currentTimeMillis()
+        loadPiece()
+        _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap()) }
+        startPreview()
+        return true
+    }
+
     private fun newReadingDrill(level: Int) = Drill(ExerciseType.E_READ_PIECE, "new", level = "L$level", bpm = 60, mode = "TEMPO",
         hand = if (level == 2) "LEFT" else "RIGHT")
 
@@ -358,6 +376,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     private fun startPreview() {
         val src = source as? Source.Exam ?: return
         if (src.part != ExamPart.SIGHT || previewJob != null || examTaken() || score == null || _ui.value.phase != Phase.IDLE) return
+        if (examClosed()) {
+            _ui.update { it.copy(message = CLOSED_EXAM) }
+            return
+        }
         previewJob = viewModelScope.launch {
             for (left in PREVIEW_SECONDS downTo 1) {
                 _ui.update { it.copy(previewLeft = left) }
@@ -371,7 +393,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     }
 
     fun onStart() {
-        startPreview()
+        if (!newSightLook()) startPreview()
         if (holding) return
         holding = true
         viewModelScope.launch { withContext(Dispatchers.IO) { piano.acquire(needPack = false) } }
@@ -386,10 +408,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val src = source
         if (src is Source.Exam) {
             judge = null
-            if (src.part == ExamPart.SIGHT && !examTaken() && _ui.value.phase != Phase.RESULT) {
-                seed = System.currentTimeMillis()
-                loadPiece()
-            }
+            if (src.part == ExamPart.SIGHT && !examTaken()) sightNeedsLook = true
         }
         stop()
         if (!holding) return
@@ -529,10 +548,11 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             _ui.update { it.copy(message = "สอบส่วนนี้ไปแล้ว ผลนับครั้งแรกเท่านั้น") }
             return
         }
-        exam()?.first?.takeIf { it.abandoned || it.day != java.time.LocalDate.now().toString() }?.let {
-            _ui.update { u -> u.copy(message = "การสอบนี้ยกเลิกแล้วหรือหมดวันแล้ว เริ่มสอบใหม่ได้ที่หน้าเกรด") }
+        if (examClosed()) {
+            _ui.update { u -> u.copy(message = CLOSED_EXAM) }
             return
         }
+        if (newSightLook()) return
         stoppedEarly = false
         if (newPieceNext) {
             seed = System.currentTimeMillis()
@@ -584,9 +604,12 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val j = judge
         judge = null
         if (j != null && (phase == Phase.PLAYING) && j.outcomes().values.any { it.result != NoteResult.PENDING }) {
-            stoppedEarly = true
+            // Early only when notes were still to come (not when stopped during the last held note).
+            stoppedEarly = j.outcomes().values.any { it.result == NoteResult.PENDING }
             finish(j)
         } else if (phase != Phase.RESULT) {
+            // Exam sight-reading stopped before any note counted: the music was seen, so the next try is new music.
+            if ((source as? Source.Exam)?.part == ExamPart.SIGHT && (phase == Phase.COUNT_IN || phase == Phase.PLAYING)) sightNeedsLook = true
             _ui.update { it.copy(phase = Phase.IDLE, countIn = null) }
         }
     }
@@ -859,9 +882,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                         helper -> {
                             lines += CoachLine("เปิดชื่อโน้ตระหว่างสอบ ส่วนนี้จึงยังไม่นับ ปิดชื่อโน้ตแล้วเล่นใหม่ได้")
                             if (src.part == ExamPart.SIGHT) {
-                                lines += CoachLine("รอบใหม่ใช้โน้ตใหม่")
-                                seed = System.currentTimeMillis()
-                                loadPiece()
+                                lines += CoachLine("รอบใหม่ใช้โน้ตใหม่ และได้ดูโน้ต 30 วินาทีอีกครั้ง")
+                                sightNeedsLook = true
                             }
                         }
                         else -> {
@@ -1076,6 +1098,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     fun dismissMessage() = _ui.update { it.copy(message = null) }
 
     fun backToSetup() {
+        if (newSightLook()) return
         if (_ui.value.phase == Phase.RESULT) _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap()) }
     }
 
@@ -1087,6 +1110,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     companion object {
         /** Exam sight-reading: time to look at the music first (ABRSM gives half a minute). */
         const val PREVIEW_SECONDS = 30
+        private const val CLOSED_EXAM = "การสอบนี้ยกเลิกแล้วหรือหมดวันแล้ว เริ่มสอบใหม่ได้ที่หน้าเกรด"
 
         /** Timing tolerance follows the piece level: L1-L3 stage 1, L4-L5 stage 2, L6+ stage 3 (learning-system.md 4 and 6.2). */
         fun stageOf(s: Score): Int = when (s.level.removePrefix("L").toIntOrNull() ?: 1) {

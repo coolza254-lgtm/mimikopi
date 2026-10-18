@@ -208,11 +208,17 @@ private fun savedWindow(): Triple<DpSize, WindowPosition, WindowPlacement> {
  */
 private var normalBounds: java.awt.Rectangle? = null
 
-private fun saveWindow(state: WindowState) {
+private fun saveWindow(state: WindowState, startSize: DpSize) {
     val b = normalBounds
-    val size = if (b != null) "${b.width},${b.height}" else "${state.size.width.value},${state.size.height.value}"
+    val maximised = state.placement == WindowPlacement.Maximized
+    // Never a normal window this time (started and closed maximised): keep the normal size it started with.
+    val size = when {
+        b != null -> "${b.width},${b.height}"
+        maximised -> "${startSize.width.value},${startSize.height.value}"
+        else -> "${state.size.width.value},${state.size.height.value}"
+    }
     val p = state.position
-    val at = if (b != null) "${b.x},${b.y}" else if (p is WindowPosition.Absolute) "${p.x.value},${p.y.value}" else ","
+    val at = if (b != null) "${b.x},${b.y}" else if (!maximised && p is WindowPosition.Absolute) "${p.x.value},${p.y.value}" else ","
     Services.store.put(Keys.WINDOW, "$size,$at,${state.placement == WindowPlacement.Maximized}")
 }
 
@@ -226,7 +232,8 @@ private fun onWindowKey(e: KeyEvent): Boolean {
     return when (e.type) {
         KeyEventType.KeyDown -> {
             val now = System.currentTimeMillis()
-            val repeat = now - escapeAt < 700
+            // Key repeat until Esc is let go (Windows waits up to a second, more with FilterKeys, before repeating).
+            val repeat = escapeAt != 0L && now - escapeAt < 3000
             escapeAt = now
             repeat || escape()
         }
@@ -246,7 +253,7 @@ fun main() {
         }
         val state = rememberWindowState(size = winSize, position = winPosition, placement = winPlacement)
         Window(
-            onCloseRequest = { Services.midi.stop(); runCatching { saveWindow(state); Services.store.flush() }; exitApplication() },
+            onCloseRequest = { Services.midi.stop(); runCatching { saveWindow(state, winSize); Services.store.flush() }; exitApplication() },
             title = "ミミコピ", state = state, icon = appIcon,
             onPreviewKeyEvent = ::onWindowKey,
         ) {
@@ -399,7 +406,7 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
             vm = rememberViewModel(screen) { DrillViewModel(app, args("lessonId" to screen.lessonId, "drill" to screen.index.toString(), "via" to screen.via)) })
         Screen.Review -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("review" to "true")) })
         Screen.Chords -> ChordHomeScreen(onStart = { go(Screen.ChordDrill("chords")) }, onOpenMidi = openMidi, onOpenSettings = openSettings, onBack = back,
-            vm = rememberPageViewModel { ChordHomeViewModel(app) })
+            vm = rememberViewModel(screen) { ChordHomeViewModel(app) })
         is Screen.ChordDrill -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("practice" to screen.practice)) })
         is Screen.Check -> when (screen.run) {
             is CheckRun.DrillRun -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("check" to screen.key)) })

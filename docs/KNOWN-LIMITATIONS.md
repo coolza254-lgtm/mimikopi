@@ -43,6 +43,8 @@ What the app does not do, or does only partly, as of the last milestone. Details
   does not spoil the exam); stopping with the stop button records what was played (without the one-third minimum of
   a part played to the end). Showing note names during a part voids that take and it can be played again; for
   sight-reading the next look is always new music. This is honour-based: a player can leave a bad take and retry it.
+  The reader and the ear session keep the screen on during a run, the count-in, the look-first countdown and an ear
+  round (playing a MIDI piano does not keep a phone awake), so a screen timeout does not end a take.
 - The two-hand sight-reading generators (L6, L7) wrote the same key in both hands at one moment in about two pieces of
   three; one key press could only count once, so a flawless run lost notes. v0.25.0 drops the left-hand copy. This also
   changes the L6/L7 reading drills and the SIGHT level 6-7 tests (results taken before were judged on the old pieces).

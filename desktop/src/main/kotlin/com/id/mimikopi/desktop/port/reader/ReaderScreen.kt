@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.keepScreenOn
 import com.id.mimikopi.desktop.port.painterResource
 import com.id.mimikopi.desktop.port.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,9 +78,13 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel) {
 
     val score = piece?.score
     val layout = piece?.layout
+    // The screen stays on while a run or the exam's look-first countdown is going: a screen that turns itself off
+    // would stop the run (and an exam take would not count).
+    val busy = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING || ui.previewLeft != null
     Column(
         Modifier
             .fillMaxSize()
+            .then(if (busy) Modifier.keepScreenOn() else Modifier)
             .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding(),
     ) {

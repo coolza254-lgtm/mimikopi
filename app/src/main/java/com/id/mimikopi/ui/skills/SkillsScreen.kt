@@ -97,7 +97,7 @@ fun SkillsScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
                 GroupDivider()
                 GroupRow("อ่านโน้ตใหม่", subtitle = "โน้ตที่ไม่เคยเห็น เล่นครั้งแรก", onClick = { onOpen(Open.Sight(sight.coerceIn(1, 5))) })
                 GroupDivider()
-                GroupRow("ฝึกฟัง", subtitle = "บอกโน้ตในคีย์จากเสียง", onClick = { onOpen(Open.EarHome) })
+                GroupRow("ฝึกหู", subtitle = "โน้ต ทำนอง คอร์ด ทางเดินคอร์ด เพื่อแกะเพลงเอง", onClick = { onOpen(Open.EarHome) })
                 GroupDivider()
                 GroupRow("คอร์ด", subtitle = "กดคอร์ด เปลี่ยนคอร์ด และวิธีจับ", onClick = { onOpen(Open.ChordHome) })
                 GroupDivider()
@@ -234,7 +234,7 @@ private fun practice(skill: SkillId, s: SkillStatus): List<Pair<String, Open>> {
         SkillId.KEYS, SkillId.NOTES -> listOf(review, ladder)
         SkillId.RHYTHM, SkillId.TECH -> listOf(ladder, metronome)
         SkillId.SIGHT -> listOf("อ่านโน้ตใหม่ ระดับ L${s.level.coerceIn(1, 5)}" to Open.Sight(s.level.coerceIn(1, 5)), ladder)
-        SkillId.EAR -> listOf("ฝึกฟัง" to Open.EarHome)
+        SkillId.EAR -> listOf("ฝึกหู (รอบปรับตามจุดอ่อน)" to Open.Ear(), "หน้าฝึกหู: เส้นทางและภาพรวม" to Open.EarHome)
         SkillId.CHORDS -> listOf("คอร์ด: ฝึกกด เปลี่ยนคอร์ด วิธีจับ" to Open.ChordHome)
     }
 }

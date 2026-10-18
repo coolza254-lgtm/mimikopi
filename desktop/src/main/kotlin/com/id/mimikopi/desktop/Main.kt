@@ -49,12 +49,10 @@ import com.id.mimikopi.desktop.port.SavedStateHandle
 import com.id.mimikopi.desktop.port.chords.ChordHomeScreen
 import com.id.mimikopi.desktop.port.chords.ChordHomeViewModel
 import com.id.mimikopi.desktop.port.components.MidiNoticeBar
-import com.id.mimikopi.desktop.port.ear.ToneEditScreen
-import com.id.mimikopi.desktop.port.ear.ToneEditViewModel
-import com.id.mimikopi.desktop.port.ear.ToneHomeScreen
-import com.id.mimikopi.desktop.port.ear.ToneHomeViewModel
-import com.id.mimikopi.desktop.port.ear.ToneSessionScreen
-import com.id.mimikopi.desktop.port.ear.ToneSessionViewModel
+import com.id.mimikopi.desktop.port.ear.EarHomeScreen
+import com.id.mimikopi.desktop.port.ear.EarHomeViewModel
+import com.id.mimikopi.desktop.port.ear.EarSessionScreen
+import com.id.mimikopi.desktop.port.ear.EarSessionViewModel
 import com.id.mimikopi.desktop.port.lesson.LessonScreen
 import com.id.mimikopi.desktop.port.lesson.LessonViewModel
 import com.id.mimikopi.desktop.port.metronome.MetronomeScreen
@@ -102,8 +100,7 @@ sealed interface Screen {
     data class NewReading(val level: Int) : Screen
     data object Settings : Screen
     data object Metronome : Screen
-    data class ToneSession(val levelId: String) : Screen
-    data class ToneEdit(val id: String?) : Screen
+    data class EarSession(val focus: String?) : Screen
     data class LessonPage(val lessonId: String) : Screen
     data class Drill(val lessonId: String, val index: Int, val via: String? = null) : Screen
     data object Review : Screen
@@ -133,7 +130,7 @@ private fun target(o: Open): Pair<Screen, Boolean>? = when (o) {
     Open.Review -> Screen.Review to false
     Open.Ladder -> Screen.Ladder to false
     is Open.Sight -> Screen.NewReading(o.level) to false
-    is Open.Ear -> Screen.ToneSession(o.levelId) to false
+    is Open.Ear -> Screen.EarSession(o.focus) to false
     Open.EarHome -> Screen.Ear to false
     Open.ChordsToday -> Screen.ChordDrill("chords-today") to false
     Open.ChordHome -> Screen.Chords to false
@@ -234,16 +231,15 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
             onBack = back,
             vm = rememberViewModel(screen) { SkillViewModel(app) },
         )
-        Screen.Ear -> ToneHomeScreen(
-            onOpen = { go(Screen.ToneSession(it)) },
-            onEdit = { go(Screen.ToneEdit(it)) },
+        Screen.Ear -> EarHomeScreen(
+            onRound = { kind -> go(Screen.EarSession(kind?.name)) },
+            onTest = { go(Screen.SkillDetail(SkillId.EAR)) },
             onOpenMidi = openMidi,
             onOpenSettings = openSettings,
             onBack = back,
-            vm = rememberViewModel(screen) { ToneHomeViewModel(app) },
+            vm = rememberViewModel(screen) { EarHomeViewModel(app) },
         )
-        is Screen.ToneSession -> ToneSessionScreen(onBack = back, vm = rememberViewModel(screen) { ToneSessionViewModel(app, args("levelId" to screen.levelId)) })
-        is Screen.ToneEdit -> ToneEditScreen(onBack = back, vm = rememberViewModel(screen) { ToneEditViewModel(app, args("id" to screen.id)) })
+        is Screen.EarSession -> EarSessionScreen(onBack = back, vm = rememberViewModel(screen) { EarSessionViewModel(app, args("focus" to screen.focus)) })
         Screen.Metronome -> MetronomeScreen(onBack = back, vm = rememberViewModel(screen) { MetronomeViewModel(app) })
         Screen.Songs -> SongsScreen(
             onPlay = { id, hand -> go(Screen.Reader(id, hand)) },
@@ -262,7 +258,7 @@ private fun PortedPage(screen: Screen, go: (Screen) -> Unit, back: () -> Unit, o
         is Screen.Check -> when (screen.run) {
             is CheckRun.DrillRun -> DrillScreen(onBack = back, vm = rememberViewModel(screen) { DrillViewModel(app, args("check" to screen.key)) })
             is CheckRun.ScoreRun -> ReaderScreen(onBack = back, vm = rememberViewModel(screen) { ReaderViewModel(app, args("check" to screen.key)) })
-            is CheckRun.EarRun -> ToneSessionScreen(onBack = back, vm = rememberViewModel(screen) { ToneSessionViewModel(app, args("check" to screen.key)) })
+            is CheckRun.EarRun -> EarSessionScreen(onBack = back, vm = rememberViewModel(screen) { EarSessionViewModel(app, args("check" to screen.key)) })
         }
         is Screen.NewReading -> ReaderScreen(onBack = back, vm = rememberViewModel(screen) { ReaderViewModel(app, args("newread" to screen.level.toString())) })
         is Screen.Pieces -> PieceListScreen(onBack = back, onOpenPiece = { id, hand -> go(Screen.Reader(id, hand)) },

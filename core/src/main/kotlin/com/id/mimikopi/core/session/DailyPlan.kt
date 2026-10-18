@@ -202,16 +202,6 @@ object PlanContent {
         else -> ChordPractice(ChordPractice.Mode.CHANGE, listOf(-1), progression = "ii–V–I", seconds = 60)
     }
 
-    /**
-     * Ear practice: the level the next ear test uses; before the first level, the getting-started steps in order,
-     * the first one not yet answered 90% right at the first try in its latest run.
-     */
-    fun ear(levelHeld: Int, lastAccuracy: Map<String, Double>): String {
-        if (levelHeld == 0) {
-            val intro = com.id.mimikopi.core.ear.FunctionalEar.intro.take(3)
-            return intro.firstOrNull { (lastAccuracy[it.id] ?: 0.0) < 0.9 }?.id ?: "intro3"
-        }
-        val next = com.id.mimikopi.core.progress.SkillBook.level(SkillId.EAR, levelHeld + 1) ?: com.id.mimikopi.core.progress.SkillBook.level(SkillId.EAR, levelHeld)
-        return (next?.run as? com.id.mimikopi.core.progress.CheckRun.EarRun)?.levelId ?: "c-major-1"
-    }
+    /** The ear part is always the ear course's adaptive round (it picks the stage and the weak items itself). */
+    const val EAR_ROUND = "course"
 }

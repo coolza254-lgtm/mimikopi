@@ -34,9 +34,8 @@ import com.id.mimikopi.ui.chords.ChordHomeScreen
 import com.id.mimikopi.ui.components.BottomNav
 import com.id.mimikopi.ui.components.MidiNoticeBar
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
-import com.id.mimikopi.ui.ear.ToneEditScreen
-import com.id.mimikopi.ui.ear.ToneHomeScreen
-import com.id.mimikopi.ui.ear.ToneSessionScreen
+import com.id.mimikopi.ui.ear.EarHomeScreen
+import com.id.mimikopi.ui.ear.EarSessionScreen
 import com.id.mimikopi.ui.lesson.LessonScreen
 import com.id.mimikopi.ui.metronome.MetronomeScreen
 import com.id.mimikopi.ui.midi.MidiScreen
@@ -128,8 +127,8 @@ private object Routes {
     const val READER = "reader/{pieceId}?hand={hand}"
     fun reader(id: String, hand: String?) = if (hand == null) "reader/$id" else "reader/$id?hand=$hand"
     const val SCORE_DRILL = "scoredrill/{lessonId}/{drill}?via={via}"
-    const val TONE = "tone/{levelId}"
-    const val TONE_EDIT = "toneedit?id={id}"
+    const val EAR_SESSION = "ear/session?focus={focus}"
+    fun earSession(focus: String?) = if (focus == null) "ear/session" else "ear/session?focus=$focus"
     fun lesson(id: String) = "lesson/$id"
     fun withVia(route: String, via: String?) = if (via == null) route else "$route?via=$via"
     const val REVIEW_NOW = "review/true"
@@ -155,7 +154,7 @@ private fun openPage(nav: NavController, app: MimikopiApp, o: Open, selectTab: (
         Open.Review -> nav.navigate(Routes.REVIEW_NOW)
         Open.Ladder -> nav.navigate(Routes.LADDER)
         is Open.Sight -> nav.navigate("newread/${o.level}")
-        is Open.Ear -> nav.navigate("tone/${o.levelId}")
+        is Open.Ear -> nav.navigate(Routes.earSession(o.focus))
         Open.EarHome -> nav.navigate(Routes.EAR)
         Open.ChordsToday -> nav.navigate("chorddrill/chords-today")
         Open.ChordHome -> nav.navigate(Routes.CHORDS)
@@ -236,22 +235,21 @@ private fun AppNavigation() {
             )
         }
         composable(Routes.EAR) {
-            ToneHomeScreen(
-                onOpen = { nav.navigate("tone/$it") },
-                onEdit = { id -> nav.navigate(if (id == null) "toneedit" else "toneedit?id=$id") },
+            EarHomeScreen(
+                onRound = { kind -> nav.navigate(Routes.earSession(kind?.name)) },
+                onTest = { nav.navigate("skill/${SkillId.EAR.name}") },
                 onOpenMidi = openMidi,
                 onOpenSettings = openSettings,
                 onBack = back,
             )
         }
-        composable(Routes.TONE) { ToneSessionScreen(onBack = back) }
-        composable(Routes.CHECK_EAR, arguments = listOf(optional("check"))) { ToneSessionScreen(onBack = back) }
+        composable(Routes.EAR_SESSION, arguments = listOf(optional("focus"))) { EarSessionScreen(onBack = back) }
+        composable(Routes.CHECK_EAR, arguments = listOf(optional("check"))) { EarSessionScreen(onBack = back) }
         composable(Routes.CHORDS) { ChordHomeScreen(onStart = { nav.navigate("chorddrill/chords") }, onOpenMidi = openMidi, onOpenSettings = openSettings, onBack = back) }
         composable(Routes.CHORD_DRILL) { DrillScreen(onBack = back) }
         composable(Routes.CHECK_DRILL, arguments = listOf(optional("check"))) { DrillScreen(onBack = back) }
         composable(Routes.CHECK_SCORE, arguments = listOf(optional("check"))) { ReaderScreen(onBack = back) }
         composable(Routes.NEW_READING, arguments = listOf(optional("via"))) { ReaderScreen(onBack = back) }
-        composable(Routes.TONE_EDIT, arguments = listOf(optional("id"))) { ToneEditScreen(onBack = back) }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = back) }
         composable(Routes.ABOUT) { AboutScreen(onBack = back, onOpenCredits = { nav.navigate(Routes.CREDITS) }) }
         composable(Routes.CREDITS) { CreditsScreen(onBack = back) }

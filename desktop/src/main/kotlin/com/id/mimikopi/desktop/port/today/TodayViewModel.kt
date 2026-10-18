@@ -6,7 +6,6 @@ import com.id.mimikopi.desktop.port.Application
 import com.id.mimikopi.desktop.port.AndroidViewModel
 import com.id.mimikopi.desktop.port.viewModelScope
 import com.id.mimikopi.desktop.port.MimikopiApp
-import com.id.mimikopi.core.ear.FunctionalEar
 import com.id.mimikopi.core.lesson.ProgressRules
 import com.id.mimikopi.core.progress.CheckRun
 import com.id.mimikopi.core.progress.SkillBook
@@ -19,7 +18,6 @@ import com.id.mimikopi.core.session.PlanContent
 import com.id.mimikopi.core.session.PlanInput
 import com.id.mimikopi.core.session.PracticeLog
 import com.id.mimikopi.desktop.port.SettingEntity
-import com.id.mimikopi.desktop.port.ear.ToneStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +30,8 @@ sealed interface Open {
     data object Review : Open
     data object Ladder : Open
     data class Sight(val level: Int) : Open
-    data class Ear(val levelId: String) : Open
+    /** An ear-course round ([focus]: one kind only, an EarKind name). */
+    data class Ear(val focus: String? = null) : Open
     data object EarHome : Open
     data object ChordsToday : Open
     data object ChordHome : Open
@@ -79,6 +78,8 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = services.database.settingsDao()
 
     private val _ui = MutableStateFlow(TodayUi())
+    /** The ear course's current stage (named on the ear part of the plan). */
+    private var earStage = com.id.mimikopi.core.ear.EarCourse.STAGES.first()
     val ui: StateFlow<TodayUi> = _ui.asStateFlow()
 
     init {
@@ -113,7 +114,6 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         val records = learning.records.value
         fun level(s: SkillId) = SkillBook.status(s, checks, today).level
         val ladder = ProgressRules.nextToLearn(lessons, records) != null || ProgressRules.awaitingConfirmation(lessons, records, today).isNotEmpty()
-        val earStats = ToneStore(services).stats().mapValues { (_, s) -> s.last?.accuracy ?: 0.0 }
         return DailyPlan.build(
             PlanInput(
                 minutes = minutes,
@@ -121,7 +121,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
                 reviewDue = learning.readingDueItems().size,
                 ladder = ladder,
                 sightLevel = PlanContent.sightLevel(lessons, records, level(SkillId.SIGHT)),
-                earLevel = PlanContent.ear(level(SkillId.EAR), earStats),
+                earLevel = PlanContent.EAR_ROUND,
                 chords = level(SkillId.KEYS) >= 2 || level(SkillId.CHORDS) >= 1,
                 check = SkillBook.dueCheck(checks, today)?.let { s -> s.nextTest?.let { SkillBook.key(s.skill, it) } },
                 weakest = SkillBook.weakest(checks, today),
@@ -130,6 +130,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun publish(plan: List<PlanBlock>, minutes: Int, today: LocalDate) {
+        earStage = com.id.mimikopi.core.ear.EarProgress.currentStage(com.id.mimikopi.core.ear.EarProgress.parse(dao.get(com.id.mimikopi.core.ear.EarProgress.KEY)))
         val log = progress.log.value
         val day = PracticeLog.on(log, today)
         val checks = progress.checks.value
@@ -166,7 +167,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         BlockKind.LADDER -> ProgressRules.nextToLearn(learning.lessons, learning.records.value)?.let { "ขั้น ${it.id} · ${it.title}" } ?: "ยืนยันขั้นที่ผ่านแล้ว"
         BlockKind.SIGHT -> "ระดับ L${b.target}"
         BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, progress.checks.value, LocalDate.now()).level).summary()
-        BlockKind.EAR -> (FunctionalEar.intro + FunctionalEar.basic).firstOrNull { it.id == b.target }?.title ?: ""
+        BlockKind.EAR -> "ขั้น ${earStage.n} ${earStage.title}"
         BlockKind.SONG -> "เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น"
     } + " · ${b.minutes} นาที"
 
@@ -184,7 +185,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
                     dao.put(SettingEntity(ProgressStore.CHORDS_TODAY, com.id.mimikopi.core.exercise.ChordPractice.encode(PlanContent.chords(level))))
                     Open.ChordsToday
                 }
-                BlockKind.EAR -> Open.Ear(b.target ?: "intro1")
+                BlockKind.EAR -> Open.Ear()
                 BlockKind.SONG -> Open.Songs
             } ?: return@launch
             go(target)

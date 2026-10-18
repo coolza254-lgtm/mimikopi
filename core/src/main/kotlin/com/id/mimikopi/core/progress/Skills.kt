@@ -20,7 +20,7 @@ enum class SkillId(val title: String, val about: String) {
     RHYTHM("จังหวะ", "กดตรงจังหวะตามที่เขียนไว้ ตั้งแต่ตัวดำจนถึงซิงโคเพชัน"),
     SIGHT("อ่านโน้ตใหม่", "เล่นโน้ตที่ไม่เคยเห็นได้ครั้งแรก ตามจังหวะ"),
     TECH("นิ้วและสเกล", "นิ้วเดินสม่ำเสมอ สเกลมือเดียวและสองมือ"),
-    EAR("หู", "ฟังแล้วบอกได้ว่าโน้ตเป็นตัวไหนในคีย์"),
+    EAR("หู", "ฟังแล้วบอกโน้ต ทำนอง คอร์ด และทางเดินคอร์ดได้ เพื่อแกะเพลงเอง"),
     CHORDS("คอร์ด", "เห็นชื่อคอร์ดแล้วกดได้ และเปลี่ยนคอร์ดได้ทัน"),
 }
 
@@ -162,6 +162,9 @@ object SkillBook {
         Drill(ExerciseType.E_PIECE, "ทดสอบ: $title", items = 1, pieces = listOf(piece), hand = hand, mode = "TEMPO", bpm = bpm),
     )
 
+    /** An ear test of the ear course (EarCourse.TESTS). */
+    private fun ear(level: Int) = CheckRun.EarRun("ear-test-$level")
+
     private fun chords(p: ChordPractice) = CheckRun.DrillRun(p.drill().copy(title = "ทดสอบ: " + p.summary()))
 
     private val ALL_KEYS = ChordPractice.KEYS
@@ -218,14 +221,14 @@ object SkillBook {
             SkillLevel(SkillId.TECH, 7, "สเกล B♭ สองมือพร้อมกันที่ 80", scale("ex-scale-bb-both", "BOTH", 80, "สเกล B♭ สองมือ"), SCORE),
         ),
         SkillId.EAR to listOf(
-            SkillLevel(SkillId.EAR, 1, "แยก ド レ ミ ファ ในคีย์ C ได้", CheckRun.EarRun("intro3"), Criteria(minAccuracy = 0.9)),
-            SkillLevel(SkillId.EAR, 2, "บอกโน้ตทั้ง 7 ตัวของ C เมเจอร์ได้ (หนึ่งอ็อกเทฟ)", CheckRun.EarRun("c-major-1"), Criteria(minAccuracy = 0.85)),
-            SkillLevel(SkillId.EAR, 3, "เช่นเดียวกันในสองอ็อกเทฟ", CheckRun.EarRun("c-major-2"), Criteria(minAccuracy = 0.85)),
-            SkillLevel(SkillId.EAR, 4, "บอกโน้ตได้ในทุกคีย์เมเจอร์", CheckRun.EarRun("any-major-1"), Criteria(minAccuracy = 0.85)),
-            SkillLevel(SkillId.EAR, 5, "ทุกคีย์เมเจอร์ สองอ็อกเทฟ", CheckRun.EarRun("any-major-2"), Criteria(minAccuracy = 0.85)),
-            SkillLevel(SkillId.EAR, 6, "คีย์ไมเนอร์ (A ไมเนอร์)", CheckRun.EarRun("a-minor-1"), Criteria(minAccuracy = 0.85)),
-            SkillLevel(SkillId.EAR, 7, "ทุกคีย์ไมเนอร์", CheckRun.EarRun("any-minor-1"), Criteria(minAccuracy = 0.85)),
-            SkillLevel(SkillId.EAR, 8, "รวมโน้ตครึ่งเสียง (โครมาติก)", CheckRun.EarRun("c-chromatic-1"), Criteria(minAccuracy = 0.8)),
+            SkillLevel(SkillId.EAR, 1, "บอกโน้ต ド レ ミ ファ ソ ในคีย์ C ได้", ear(1), Criteria(minAccuracy = 0.9)),
+            SkillLevel(SkillId.EAR, 2, "บอกโน้ตครบทั้ง 7 ตัวของคีย์ C ได้", ear(2), Criteria(minAccuracy = 0.85)),
+            SkillLevel(SkillId.EAR, 3, "แกะทำนอง 3 โน้ต และแยกคอร์ดเมเจอร์กับไมเนอร์", ear(3), Criteria(minAccuracy = 0.8)),
+            SkillLevel(SkillId.EAR, 4, "บอกโน้ตและเบส I IV V ได้ในหลายคีย์", ear(4), Criteria(minAccuracy = 0.85)),
+            SkillLevel(SkillId.EAR, 5, "แกะทำนอง 4 โน้ต และฟังออกว่าเป็น Axis โกมุโร หรือ 50s", ear(5), Criteria(minAccuracy = 0.8)),
+            SkillLevel(SkillId.EAR, 6, "ฟังคอร์ดเซเวนท์ และ 王道進行 ออก", ear(6), Criteria(minAccuracy = 0.8)),
+            SkillLevel(SkillId.EAR, 7, "แกะทำนอง 5–6 โน้ตได้ทุกคีย์ และจับการขึ้นคีย์ได้", ear(7), Criteria(minAccuracy = 0.75)),
+            SkillLevel(SkillId.EAR, 8, "แกะทำนองยาวแบบเพลงจริง เบสอินเวอร์ชัน และ Canon", ear(8), Criteria(minAccuracy = 0.7)),
         ),
         SkillId.CHORDS to listOf(
             SkillLevel(SkillId.CHORDS, 1, "กดคอร์ดเมเจอร์/ไมเนอร์ในคีย์ C G F ได้", chords(ChordPractice(ChordPractice.Mode.NAME, listOf(0, 1, -1), listOf("triads"), items = 10)), Criteria(0.9, 6.0)),

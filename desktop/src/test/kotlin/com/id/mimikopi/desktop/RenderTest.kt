@@ -29,12 +29,10 @@ import com.id.mimikopi.desktop.port.songs.SongsScreen
 import com.id.mimikopi.desktop.port.songs.SongsViewModel
 import com.id.mimikopi.desktop.ui.MimikopiTheme
 import com.id.mimikopi.desktop.ui.SettingsScreen
-import com.id.mimikopi.desktop.port.ear.ToneEditScreen
-import com.id.mimikopi.desktop.port.ear.ToneEditViewModel
-import com.id.mimikopi.desktop.port.ear.ToneHomeScreen
-import com.id.mimikopi.desktop.port.ear.ToneHomeViewModel
-import com.id.mimikopi.desktop.port.ear.ToneSessionScreen
-import com.id.mimikopi.desktop.port.ear.ToneSessionViewModel
+import com.id.mimikopi.desktop.port.ear.EarHomeScreen
+import com.id.mimikopi.desktop.port.ear.EarHomeViewModel
+import com.id.mimikopi.desktop.port.ear.EarSessionScreen
+import com.id.mimikopi.desktop.port.ear.EarSessionViewModel
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -96,7 +94,7 @@ class RenderTest {
         render(true) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("check" to "CHORDS:4")) }) }
         render(true) { ReaderScreen(onBack = {}, vm = rememberViewModel { ReaderViewModel(app, args("check" to "RHYTHM:1")) }) }
         render(true) { ReaderScreen(onBack = {}, vm = rememberViewModel { ReaderViewModel(app, args("check" to "SIGHT:2")) }) }
-        render(true) { ToneSessionScreen(onBack = {}, vm = rememberViewModel { ToneSessionViewModel(app, args("check" to "EAR:1")) }) }
+        render(true) { EarSessionScreen(onBack = {}, vm = rememberViewModel { EarSessionViewModel(app, args("check" to "EAR:1")) }) }
         render(true) { ReaderScreen(onBack = {}, vm = rememberViewModel { ReaderViewModel(app, args("newread" to "1")) }) }
         render(true) { DrillScreen(onBack = {}, vm = rememberViewModel { DrillViewModel(app, args("practice" to "chords-today")) }) }
     }
@@ -106,9 +104,9 @@ class RenderTest {
         val app = MimikopiApp
         for (dark in listOf(true, false)) {
             render(dark) { SkillScreen(Skill.READING, {}, {}, {}, {}, {}, vm = rememberViewModel { SkillViewModel(app) }) }
-            render(dark) { ToneHomeScreen(onOpen = {}, onEdit = {}, onOpenMidi = {}, onOpenSettings = {}, vm = rememberViewModel { ToneHomeViewModel(app) }) }
-            render(dark) { ToneSessionScreen(onBack = {}, vm = rememberViewModel { ToneSessionViewModel(app, args("levelId" to "intro1")) }) }
-            render(dark) { ToneEditScreen(onBack = {}, vm = rememberViewModel { ToneEditViewModel(app, args("id" to null)) }) }
+            render(dark) { EarHomeScreen(onRound = {}, onTest = {}, onOpenMidi = {}, onOpenSettings = {}, vm = rememberViewModel { EarHomeViewModel(app) }) }
+            render(dark) { EarSessionScreen(onBack = {}, vm = rememberViewModel { EarSessionViewModel(app, args()) }) }
+            render(dark) { EarSessionScreen(onBack = {}, vm = rememberViewModel { EarSessionViewModel(app, args("focus" to "MELODY")) }) }
             render(dark) { com.id.mimikopi.desktop.port.metronome.MetronomeScreen(onBack = {}, vm = rememberViewModel { com.id.mimikopi.desktop.port.metronome.MetronomeViewModel(app) }) }
             render(dark) { SongsScreen(onPlay = { _, _ -> }, onOpenMidi = {}, onOpenSettings = {}, vm = rememberViewModel { SongsViewModel(app) }) }
             render(dark) { LessonScreen(onBack = {}, onOpenDrill = { _, _ -> }, vm = rememberViewModel { LessonViewModel(app, args("lessonId" to "1.1")) }) }

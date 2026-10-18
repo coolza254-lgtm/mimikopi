@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class DailyPlanTest {
-    private val full = PlanInput(30, "1.6/0", reviewDue = 5, ladder = true, sightLevel = 1, earLevel = "c-major-1", chords = true, check = "NOTES:2", weakest = null)
+    private val full = PlanInput(30, "1.6/0", reviewDue = 5, ladder = true, sightLevel = 1, earLevel = "course", chords = true, check = "NOTES:2", weakest = null)
 
     @Test
     fun aPlanUsesTheTimeChosenInTheRightOrder() {
@@ -71,8 +71,6 @@ class PlanContentTest {
     @Test
     fun chordAndEarPracticeFollowTheLevel() {
         for (l in 0..7) assertTrue(com.id.mimikopi.core.session.PlanContent.chords(l).drill().problems().isEmpty())
-        assertEquals("intro1", com.id.mimikopi.core.session.PlanContent.ear(0, emptyMap()))
-        assertEquals("intro2", com.id.mimikopi.core.session.PlanContent.ear(0, mapOf("intro1" to 0.95)))
-        assertEquals("c-major-2", com.id.mimikopi.core.session.PlanContent.ear(2, emptyMap()))
+        assertEquals("course", com.id.mimikopi.core.session.PlanContent.EAR_ROUND)
     }
 }

@@ -10,21 +10,13 @@ import com.id.mimikopi.core.progress.CheckRecord
 import com.id.mimikopi.core.progress.SkillId
 import com.id.mimikopi.core.session.DayLog
 import com.id.mimikopi.core.session.PracticeLog
-import com.id.mimikopi.core.sync.LanSync
 import com.id.mimikopi.core.sync.ProgressMerge
-import com.id.mimikopi.core.sync.SyncException
 import com.id.mimikopi.core.sync.SyncPayload
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
-import java.net.InetAddress
-import java.net.ServerSocket
-import java.time.LocalDate
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -154,34 +146,5 @@ class SyncTest {
         val remote = device("b", mapOf(ProgressMerge.CHECKS to CheckRecord.encode(listOf(CheckRecord(SkillId.EAR, 1, "2026-10-17", true)))))
         assertNull(ProgressMerge.merge(local, remote, interval).settings[ProgressMerge.CHECKS])
         assertEquals(setOf(ProgressMerge.LESSONS), ProgressMerge.progressRows(mapOf(ProgressMerge.LESSONS to "{}", "input.config" to "x", "ui.theme" to "DARK")).keys)
-    }
-
-    @Test
-    fun wifiExchangeWorksWithTheRightCodeAndRefusesAWrongOne() {
-        val phone = device("phone", mapOf(ProgressMerge.HELPER_COUNT to "1"))
-        val pc = device("pc", mapOf(ProgressMerge.HELPER_COUNT to "2"))
-        val pool = Executors.newSingleThreadExecutor()
-        try {
-            ServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { server ->
-                val code = LanSync.newCode()
-                val got = pool.submit<SyncPayload> { LanSync.serve(server, code, 5_000) { phone } }
-                val fromPhone = LanSync.connect("127.0.0.1", server.localPort, code, { pc })
-                assertEquals("phone", fromPhone.deviceId)
-                assertEquals("pc", got.get(5, TimeUnit.SECONDS).deviceId)
-            }
-            ServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { server ->
-                val got = pool.submit<Result<SyncPayload>> { runCatching { LanSync.serve(server, "111111", 5_000) { phone } } }
-                val e = assertFailsWith<SyncException> { LanSync.connect("127.0.0.1", server.localPort, "222222", { pc }) }
-                assertEquals(SyncException.Kind.WRONG_CODE, e.kind)
-                assertEquals(SyncException.Kind.WRONG_CODE, (got.get(5, TimeUnit.SECONDS).exceptionOrNull() as SyncException).kind)
-            }
-        } finally {
-            pool.shutdownNow()
-        }
-        assertEquals("192.168.1.23" to 48123, LanSync.parseAddress(" 192.168.1.23:48123 "))
-        assertEquals("10.0.0.5" to 5000, LanSync.parseAddress("10.0.0.5 5000"))
-        assertNull(LanSync.parseAddress("192.168.1:80"))
-        assertEquals(6, LanSync.newCode().length)
-        assertEquals(LocalDate.now().toString().length, 10)
     }
 }

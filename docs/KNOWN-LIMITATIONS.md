@@ -26,6 +26,11 @@ What the app does not do, or does only partly, as of the last milestone. Details
 - Audio quality, latency and glitch-free playback; the metronome's feel; USB and Bluetooth MIDI; the new tabs,
   section recording/practice and the large notation layout; the timing feel of judging.
 
+## Phone only (v0.26.0)
+- The Windows version and phone-to-PC sync were removed at the user's request; the app is Android only. Progress
+  rows written by sync (other devices' practice minutes) stay and still count. Backups (export/import a file) remain.
+  The Windows notes in the sections below describe releases up to v0.25.0.
+
 ## Grade exams, ear course, progress, sync (v0.25.0)
 - Grade exams (Initial to Grade 5) follow the ABRSM practical exam's structure and mark scheme (pieces 30 each,
   scales 21, sight-reading 21, aural 18; pass 100, merit 120, distinction 130 on the total) but nothing else of it:

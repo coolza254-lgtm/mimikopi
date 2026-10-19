@@ -19,8 +19,7 @@ import java.time.LocalDate
 
 /**
  * Practice minutes per day and the level tests taken, kept in settings rows (so backups carry them). Every
- * runner logs its finished runs here; the Today and Skills pages read it. Storage is passed in, so the phone and the
- * desktop share this class.
+ * runner logs its finished runs here; the Today and Skills pages read it.
  */
 class ProgressStore(private val read: suspend (String) -> String?, private val write: suspend (String, String) -> Unit) {
     private val mutex = Mutex()

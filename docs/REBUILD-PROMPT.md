@@ -1,144 +1,139 @@
-# สร้าง ミミコピ ใหม่บน Windows (ออฟไลน์ ได้ไฟล์ .apk)
+# สร้าง ミミコピ ใหม่เป็นโปรแกรมบน Windows อย่างเดียว (ออฟไลน์)
 
-## ส่วนที่ 1: สิ่งที่ต้องทำเอง (ครั้งเดียว ราว 1–2 ชั่วโมง ส่วนใหญ่เป็นเวลาดาวน์โหลด)
+ผลลัพธ์ที่ได้คือตัวติดตั้ง `.msi` ติดตั้งแล้วเปิดจากเมนู Start ได้เลย ใช้กับเปียโน USB MIDI และฝึกหน้าคอม
 
-1. **ติดตั้ง Android Studio** จาก developer.android.com/studio
-   - เปิดครั้งแรกให้กด Next ตามค่าเริ่มต้นจนจบ มันจะลง Android SDK และ JDK ให้เอง
-   - เปิด More Actions → SDK Manager แล้วติ๊ก Android SDK Platform รุ่นล่าสุด, Android SDK Build-Tools และ NDK (Side by side) กับ CMake เพราะเสียงเปียโนใช้โค้ด C++
+## ส่วนที่ 1: สิ่งที่ต้องทำเอง (ครั้งเดียว ราว 30–60 นาที)
+
+1. **ติดตั้ง JDK 21:** ดาวน์โหลด "Temurin 21 (LTS) Windows x64 .msi" จาก adoptium.net ตอนติดตั้งให้ติ๊ก "Set JAVA_HOME"
 2. **ติดตั้ง Git for Windows** จาก git-scm.com ไม่ได้ใช้ GitHub แต่ Claude Code ใช้ Git เก็บประวัติในเครื่องและย้อนกลับได้ถ้าพัง
 3. **ติดตั้ง Claude Code บน Windows**
    - เปิด PowerShell แล้วทำตามคำสั่งติดตั้งที่ docs.claude.com (หัวข้อ Claude Code → Setup)
    - พิมพ์ `claude` แล้วล็อกอินบัญชีของคุณ
-4. **ตั้งค่าตัวแปรระบบ** (ค้นหา "Environment Variables" ใน Start)
-   - `JAVA_HOME` = `C:\Program Files\Android\Android Studio\jbr`
-   - `ANDROID_HOME` = `%LOCALAPPDATA%\Android\Sdk`
-   - ใน `Path` เพิ่ม `%ANDROID_HOME%\platform-tools` (เพื่อให้มีคำสั่ง `adb`)
-5. **สร้างโฟลเดอร์งาน** เช่น `C:\dev\mimikopi2`
-6. **เอาเนื้อหาเดิมมาใช้ (แนะนำมาก):** ดาวน์โหลด zip ของโปรเจกต์เดิมจาก GitHub ครั้งเดียว (ปุ่ม Code → Download ZIP) แล้วแตกไฟล์ไว้ที่ `C:\dev\mimikopi-old`
-   - ข้างในมีบทเรียน เพลงสาธารณะ ตัวสร้างแบบฝึก ระบบสอบ คอร์สฝึกหู และเอกสาร `docs/learning-system.md` ที่ทดสอบแล้ว
-   - ให้ Claude อ่านเป็นต้นแบบ ไม่ต้องเริ่มคิดระบบใหม่จากศูนย์
-   - ไม่อยากใช้ก็ได้ แต่จะเสียเวลาและได้ผลไม่ตรงเดิม
-7. **เปิดโหมดนักพัฒนาบนมือถือ (Galaxy A54)**
-   - ตั้งค่า → เกี่ยวกับโทรศัพท์ → ข้อมูลซอฟต์แวร์ → แตะ "หมายเลขรุ่น" 7 ครั้ง
-   - แล้วเข้า ตัวเลือกนักพัฒนา → เปิด USB debugging
+4. **ติดตั้ง WiX Toolset v3** จาก wixtoolset.org (ตัวสร้างไฟล์ .msi)
+   - ถ้าไม่อยากลง ให้บอก Claude ใช้แบบ `.exe` หรือโฟลเดอร์ที่รันได้เลยแทน
+5. **สร้างโฟลเดอร์งาน** เช่น `C:\dev\mimikopi-pc`
+6. **เอาต้นแบบเดิมมาใช้ (แนะนำมาก):** ดาวน์โหลดโค้ดรุ่น v0.25.0 ครั้งเดียวจาก
+   `https://github.com/coolza254-lgtm/mimikopi/archive/refs/tags/v0.25.0.zip`
+   แล้วแตกไว้ที่ `C:\dev\mimikopi-old`
+   - รุ่นนี้ยังมีรุ่น Windows เดิมครบ (`desktop/`) พร้อมระบบทั้งหมดใน `core/` เช่น บทเรียน สอบเกรด ฝึกหู พัฒนาการ และเพลงสาธารณะ
+   - ให้ Claude ใช้เป็นต้นแบบ จะได้ระบบเหมือนเดิมเร็วกว่าเริ่มจากศูนย์มาก
+7. **เตรียมไฟล์เสียงเปียโน (ไม่บังคับ):** ถ้าต้องการเสียงแกรนด์เปียโนเหมือนในมือถือ ให้หาไฟล์ชุดเสียงเปียโนเดิม (ไฟล์ zip ที่แอพเคยดาวน์โหลด) มาวางในโฟลเดอร์งาน
+   - ถ้าไม่มี โปรแกรมจะใช้เสียงเปียโนที่มีใน Windows ก่อน
 8. **เริ่มงาน**
-   - เปิด PowerShell ในโฟลเดอร์งาน (`cd C:\dev\mimikopi2`) แล้วพิมพ์ `claude`
-   - พิมพ์ `/config` แล้วเปิด ultracode หรือพิมพ์คำว่า ultracode ในข้อความ
+   - เปิด PowerShell ในโฟลเดอร์งาน (`cd C:\dev\mimikopi-pc`) แล้วพิมพ์ `claude`
+   - เปิด ultracode (พิมพ์ `/config` หรือใส่คำว่า ultracode ในข้อความ)
    - วาง prompt ในส่วนที่ 2 ทั้งก้อน
 9. **ระหว่างทำ**
-   - Claude จะถามขออนุญาตรันคำสั่ง ให้กดอนุญาตได้ ถ้าไม่แน่ใจให้ถามมันว่าคำสั่งนั้นทำอะไร
-   - ทุกครั้งที่จบช่วง มันจะบอกว่าต้องลองอะไรบนมือถือ
-10. **ติดตั้งลงมือถือ**
-    - เสียบสาย USB แล้วกด "อนุญาต" บนมือถือ จากนั้นพิมพ์ `adb install -r app\build\outputs\apk\release\app-release.apk` หรือบอก Claude ให้ติดตั้งให้
-    - อีกทางคือก๊อปไฟล์ .apk ลงมือถือแล้วแตะติดตั้ง
-11. **สำรองไฟล์กุญแจเซ็นแอพ (สำคัญ):** Claude จะสร้างไฟล์ `release.jks` ไว้นอกโปรเจกต์
-    - ให้ก๊อปไฟล์นี้กับรหัสผ่านเก็บไว้ที่ปลอดภัย เช่น USB หรือ password manager
-    - ถ้าไฟล์นี้หาย จะอัปเดตแอพทับของเดิมไม่ได้ ต้องลบแล้วลงใหม่ และข้อมูลจะหาย ยกเว้นที่สำรองเป็นไฟล์ไว้
-12. **ย้ายความคืบหน้าจากแอพเก่า:** ในแอพเก่า (v0.26.0) ให้ไป ตั้งค่า → สำรองข้อมูล → ส่งออกไฟล์ แล้วนำเข้าในแอพใหม่
-    - prompt สั่งให้แอพใหม่อ่านไฟล์สำรองของแอพเก่าได้
-    - แอพใหม่ใช้ชื่อแพ็กเกจต่างจากเดิม จึงติดตั้งคู่กันได้ระหว่างลอง
+   - Claude จะขออนุญาตรันคำสั่ง ให้กดอนุญาตได้ ถ้าไม่แน่ใจให้ถามว่าคำสั่งนั้นทำอะไร
+   - ทุกช่วงมันจะบอกว่าต้องลองอะไรบนคอม และเปิดโปรแกรมให้ลองได้ทันทีด้วยคำสั่ง `gradlew run` โดยไม่ต้องติดตั้ง
+10. **ติดตั้งจริง:** เมื่อพอใจ ให้ดับเบิลคลิกไฟล์ `.msi` ที่มันสร้าง
+    - Windows อาจเตือน "Windows protected your PC" เพราะไม่ได้เซ็นชื่อ ให้กด More info → Run anyway
+11. **ย้ายความคืบหน้าจากมือถือ:** ในแอพมือถือ v0.26.0 ไปที่ ตั้งค่า → สำรองข้อมูล → ส่งออกไฟล์ ส่งไฟล์มาที่คอม แล้วนำเข้าในโปรแกรมใหม่
+    - prompt สั่งให้โปรแกรมอ่านไฟล์สำรองของแอพมือถือได้
 
 ## ส่วนที่ 2: Prompt (ก๊อปทั้งหมดในกรอบไปวาง)
 
 ```text
 ultracode
 
-You are building "ミミコピ (Mimikopi) 2", a personal Android piano-practice app, from scratch on this Windows PC.
+You are building "ミミコピ (Mimikopi) PC", a personal piano-practice program for Windows only, from scratch on this PC.
 Work in the current folder. Use git locally for history (commit after every working milestone); never push anywhere.
 
 ## Who it is for
-- One user, "Id": a Thai adult beginner on a Samsung Galaxy A54 (Android 16).
-- Pianos: a Badger C-918 (USB MIDI) and a BLE MIDI piano.
+- One user, "Id": a Thai adult beginner who practises at the computer.
+- Piano: a Badger C-918 digital piano over USB MIDI (a BLE MIDI piano may also be paired through Windows).
 - Goal: play Hello! Project and other J-pop idol songs, with honest, visible long-term progress.
 - All user-facing text in Thai. Note names in katakana (ド レ ミ ファ ソ ラ シ) or letters, the user's choice.
 - Code, comments and commit messages in English.
 
 ## Reference implementation (read first)
-The previous version is in C:\dev\mimikopi-old (if present). It is a working, tested Kotlin app; treat it as the
-specification of WHAT the app does, not of how it looks:
-- docs/learning-system.md: the full learning design (sections 2.5-2.10 are the latest decisions).
-- core/ (pure Kotlin): music theory, timing judge (PlayAlongJudge), skill levels and tests (SkillBook), daily plan,
-  generators (scales with fingering, sight-reading, accompaniment), ear course (EarCourse/EarProgress), grade exams
-  (Exams/ExamScales), mistakes summary, progress history, idol-song goal, backup format.
-- content/ (lessons, public-domain pieces, exercises).
-- docs/KNOWN-LIMITATIONS.md (what was decided and why).
-Reuse the core logic and content (copy, then improve) and keep their unit tests. Rebuild the UI. If the folder is
-missing, design these systems yourself from the feature list below.
+C:\dev\mimikopi-old is the previous version (v0.25.0), a working, tested Kotlin project:
+- desktop/ is the old Windows version: Compose Multiplatform, javax.sound.midi input with plug/unplug polling, a
+  sampled piano and Java synth, a metronome, a JSON data store in %APPDATA%, MSI packaging. Its screens were
+  phone screens ported with a shim layer: do NOT keep that shim. Write the UI natively for the desktop.
+- core/ (pure Kotlin) holds all the logic: music theory, timing judge (PlayAlongJudge), skill levels and tests
+  (SkillBook), daily plan, generators (scales with fingering, sight-reading, accompaniment), ear course, grade
+  exams, mistakes summary, progress history, idol-song goal, backup format. Reuse it as-is, with its tests.
+- content/ holds the lessons, public-domain pieces and exercises.
+- docs/learning-system.md is the learning design (sections 2.5-2.10 are the latest decisions).
+- docs/KNOWN-LIMITATIONS.md records what was decided and why.
+Ignore app/ (Android) except as a reference for features and Thai wording.
 
 ## Hard rules
-- 100% offline, native Android (Kotlin + Jetpack Compose). The INTERNET permission is not in the manifest at all.
-  The piano sound samples ship inside the APK, or come from a file the user picks. No accounts, analytics, ads,
-  update checks or cloud.
-- Output: a signed release APK that installs on the A54 and updates in place. Package id com.id.mimikopi2.
-  Create the keystore OUTSIDE the project folder (e.g. %USERPROFILE%\keys\mimikopi2-release.jks). Read the passwords
-  from %USERPROFILE%\.gradle\gradle.properties, never from files inside the project. Tell me where the keystore is
-  and remind me to back it up.
+- Windows only, 100% offline. Kotlin + Compose Multiplatform for Desktop (JVM 21). No network code at all: no
+  update checks, accounts, analytics or cloud.
+- Deliverables: `gradlew run` for trying it out, and a .msi installer (jpackage through the Compose plugin; if WiX is
+  missing, also offer an app-image folder). Data in %APPDATA%\MimikopiPC with automatic local backups.
 - No gamification (no stars, streaks, rewards, characters). No reminders or notifications.
-- Never bundle copyrighted scores or lyrics. Song facts that are not verified are labelled as such.
-- No placeholder features or dead screens: every visible control works.
+- Never bundle copyrighted scores or lyrics. Unverified song facts are labelled as such.
+- No placeholder features or dead screens.
 - Black-and-white design. The only colour is a green "Connected" mark for MIDI.
-- minSdk 26, targetSdk latest; it must run smoothly on a Galaxy A54 (no jank while playing).
+- It must feel instant on a normal laptop: no jank while playing. Audio latency as low as Java allows (small buffers,
+  a measured latency calibration, and a clear note if the Windows mixer adds delay).
 
-## Features (keep all from the old app)
-1. MIDI: USB and BLE input.
-   - Plug in, unplug and reconnect handled; latency calibration.
-   - Velocity on/off.
-   - An on-screen keyboard appears only when no MIDI piano is connected.
-2. Sound: the app's own sampled grand piano (low latency, C++/Oboe as in the old audio module) with volume, reverb
-   and warmth, plus a metronome with an accurate count-in.
-3. Today: a daily plan for the minutes chosen (10/20/30/45/60). It is ticked only by real practice time, extra time
-   goes to the weakest skill, and one button leads to the next part.
-4. Skills: 7 skills (keys, note reading, rhythm, sight-reading, technique/scales, ear, chords). Levels come only from
-   short fixed-criteria tests, a level drops after two failed re-tests, and every test result is shown with its
-   numbers.
-5. Practice runners: note and key drills; a score reader (wait mode and tempo mode, hands separately, the other hand
-   played by the app, section loops, a tempo ramp, falling-notes view, page view); the reading ladder; chord practice
-   with a chord book showing left-hand and right-hand shapes; review on spaced repetition.
-6. Ear course: 7 kinds of question in 10 adaptive stages. Melodies are played back on the piano, rhythms are tapped
-   back. Progress is shown per kind.
-7. Grade exams modelled on ABRSM, Initial to Grade 5.
-   - Parts: 2 library pieces, an app-made pop piece, scales and arpeggios, sight-reading with a 30 s look, aural.
-   - Marks: 150 total; pass 100, merit 120, distinction 130.
-   - Rules: each part is taken once; leaving mid-run does not count; the screen stays on while playing.
-8. Progress page:
-   - level history and minutes per week;
-   - ear accuracy and exam results;
-   - "what to fix", built from repeated mistakes.
-9. Goal page: the first three idol target songs, the skill levels each needs, and practice in their style.
-10. Free piano with transpose. A songs list from the public-domain library.
-11. Backup: export and import a single file. Import must also accept the old app's backup format, so my progress
-    moves over.
+## Features (all of the old app, desktop-first)
+1. MIDI:
+   - USB MIDI with plug/unplug detection and reconnect.
+   - A "used by another program" message.
+   - Latency calibration and a velocity on/off switch.
+   - Without a piano: the computer keyboard (A S D F ... rows) and mouse clicks on an on-screen keyboard.
+2. Sound: the sampled grand piano (load the old pack if present, else the Java synth), with volume, a metronome and an
+   accurate count-in.
+3. Today: a daily plan for the minutes chosen.
+   - It is ticked only by real practice time.
+   - Extra time goes to the weakest skill.
+   - One button leads to the next part.
+4. Skills: 7 skills, with levels earned only from fixed-criteria tests.
+   - A level drops after two failed re-tests.
+   - Every test result is shown with its numbers.
+5. Practice:
+   - note and key drills;
+   - a score reader: wait and tempo modes, hands separately, the other hand played by the app, loops, a tempo ramp,
+     falling notes and page view; use the wide screen, e.g. score on top, keyboard below, side panel for options;
+   - the reading ladder and review on spaced repetition;
+   - chord practice with a chord book.
+6. Ear course (7 kinds, 10 adaptive stages), grade exams modelled on ABRSM (Initial to Grade 5, 150 marks, each part
+   taken once), progress page with "what to fix", idol-song goal page, free piano with transpose, songs list.
+7. Backup: export and import one file. Import must also accept the phone app's backup format (v0.26.0), so the
+   user's progress moves over.
 
-## What to improve: UX/UI (the main point of this rebuild)
-Make it feel like an app Apple would make: calm, clear, fast, usable one-handed and while sitting at the piano.
-- One obvious next action on every screen. Fewer taps to start practising: from opening the app to playing in at
-  most 2 taps.
-- Large, readable type. Thai-friendly line heights. Big touch targets (at least 48 dp). Works in landscape on a
-  music stand.
-- While playing, nothing distracts: the notes, the keyboard and one stop button.
-  - Feedback right after each run: one sentence about what went wrong and one button for what to practise.
-- Clear, consistent navigation: 4 tabs (Today, Skills, Piano, Songs), back always goes where expected, and state is
-  kept when switching tabs.
-- Dark and light themes. Smooth 60 fps animations that are short and subtle.
+## What to improve: desktop UX/UI (the main point of this rebuild)
+Make it feel like a polished Mac/Windows app: calm, clear, fast, made for sitting at the piano with the computer in
+front.
+- A left sidebar (Today, Skills, Piano, Songs) and a large main area.
+  - Each section keeps its own page stack.
+  - Window size and position are remembered.
+- Keyboard shortcuts:
+  - Space: start/stop; Esc: back; R: restart; +/-: tempo.
+  - Show them in tooltips and in a "Shortcuts" sheet.
+- From opening the program to playing: at most 2 clicks (Enter on Today starts the next part).
+- While playing:
+  - only the music, the keyboard and the stop control; a large, readable score sized to the window;
+  - feedback after each run: one sentence about what went wrong and one button for what to practise;
+  - the screen saver and sleep are blocked during a run.
+- Large, Thai-friendly typography. Clear hover, focus and pressed states. Dark and light themes. Short, subtle
+  animations at 60 fps.
 - Empty, loading and error states written in plain Thai, and they say what to do.
-- Before you build the screens, write docs/UX.md: user journeys, a screen map, and wireframes as ASCII sketches.
-  Show it to me and wait for my OK.
+- Before you build the screens, write docs/UX.md: user journeys, a screen map, wireframes as ASCII sketches, and
+  the shortcut list. Show it to me and wait for my OK.
 
 ## How to work
-- Phase 0: read the reference implementation. Propose the architecture (modules: core, audio, app) and the UX plan.
-  Ask me only the questions that block you.
+- Phase 0: read the reference. Propose the architecture (modules: core, app-desktop) and the UX plan. Ask me only
+  the questions that block you.
 - Then build in phases. Each phase ends with:
-  - the build passing (gradlew assembleRelease) and all unit tests green;
+  - the build and all unit tests passing, plus UI tests that render every screen in both themes off screen;
   - a commit;
-  - a short Thai report in two parts: (1) checked by tests, (2) what I must check on the phone, as a checklist.
-- Use ultracode workflows for substantive work: parallel reviewers and adversarial verification of findings before
-  each phase is called done. Check fingering, timing and marking logic with tests.
-- After each phase, build the APK and, if the phone is connected (adb devices), install it.
+  - `gradlew run` started for me to try;
+  - a short Thai report in two parts: (1) checked by tests, (2) what I must check with the piano, as a checklist.
+- Use ultracode workflows for substantive work: parallel reviewers and adversarial verification before each phase is
+  called done.
+- Final phase: build the .msi and tell me exactly where it is.
 - Keep docs/learning-system.md, docs/KNOWN-LIMITATIONS.md and docs/CHANGELOG.md (Thai) current.
 ```
 
 ## ส่วนที่ 3: เคล็ดลับ
 - **ถ้ามันถามคำถาม** ตอบสั้นๆ เป็นภาษาไทยได้
 - **ถ้าจะหยุดกลางคัน:** พิมพ์ "สรุปงานที่ค้างแล้ว commit" ก่อนปิด ครั้งหน้าเปิด `claude --continue` ในโฟลเดอร์เดิม
-- **ถ้า build พัง:** บอกมันว่า "build ไม่ผ่าน แก้ให้หน่อย" มันจะอ่าน error เอง
-- **ถ้าแอพบนมือถือมีปัญหา:** ถ่ายภาพหน้าจอแล้วลากไฟล์ใส่หน้าต่าง Claude พร้อมเล่าว่ากดอะไรแล้วเกิดอะไร
+- **ถ้า build พัง:** บอกว่า "build ไม่ผ่าน แก้ให้หน่อย" มันจะอ่าน error เอง
+- **ถ้าโปรแกรมมีปัญหา:** กด Win+Shift+S ถ่ายภาพหน้าจอ แล้ววางใส่หน้าต่าง Claude พร้อมเล่าว่ากดอะไรแล้วเกิดอะไร
+- **ถ้าเปียโนไม่ขึ้น:** ปิดโปรแกรมอื่นที่ใช้ MIDI อยู่ (เช่น เว็บทดสอบ MIDI หรือ DAW) แล้วกดตรวจใหม่

@@ -97,7 +97,7 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
     /** Volume, room and warmth from the piano page; kept here so a new engine gets them too. */
     @Volatile var sound: PianoSound = PianoSound()
         set(value) { field = value; applySound() }
-    /** The phone's engine has room and warmth controls (the desktop's does not). */
+    /** The engine has room and warmth controls. */
     val supportsTone: Boolean = true
 
     private fun applySound() {

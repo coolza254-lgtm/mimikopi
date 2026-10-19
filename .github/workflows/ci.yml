@@ -68,9 +68,6 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      - name: Desktop (Windows version) unit tests and compile
-        run: ./gradlew --stacktrace :desktop:test :desktop:compileKotlin
-
       - name: Upload reports and Room schema
         if: always()
         uses: actions/upload-artifact@v5
@@ -81,27 +78,3 @@ jobs:
             app/build/reports/lint-results-debug.*
             app/schemas/
           if-no-files-found: ignore
-
-  # The Windows installer, built on Windows so a broken package shows up before a release.
-  desktop-windows:
-    runs-on: windows-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - uses: gradle/actions/setup-gradle@v5
-
-      - name: Package MSI
-        run: ./gradlew --stacktrace :desktop:packageMsi
-
-      - name: Upload MSI
-        uses: actions/upload-artifact@v5
-        with:
-          name: mimikopi-windows-${{ github.sha }}
-          path: desktop/build/compose/binaries/main/msi/*.msi
-          if-no-files-found: error

@@ -120,7 +120,6 @@ private object Routes {
     const val CREDITS = "credits"
     const val METRONOME = "metronome"
     const val MIDI = "midi"
-    const val SYNC = "sync"
     const val PROGRESS = "progress"
     const val GOAL = "goal"
     const val EXAMS = "exams"
@@ -276,7 +275,6 @@ private fun AppNavigation() {
         composable(Routes.CREDITS) { CreditsScreen(onBack = back) }
         composable(Routes.METRONOME) { MetronomeScreen(onBack = back) }
         composable(Routes.MIDI) { MidiScreen(onBack = back) }
-        composable(Routes.SYNC) { com.id.mimikopi.ui.settings.SyncScreen(onBack = back) }
         composable(Routes.PROGRESS) { com.id.mimikopi.ui.progress.ProgressScreen(onBack = back, onOpen = open) }
         composable(Routes.GOAL) { com.id.mimikopi.ui.progress.GoalScreen(onBack = back, onOpen = open) }
         composable(Routes.EXAMS) { com.id.mimikopi.ui.exam.ExamHomeScreen(onBack = back, onOpen = open) }
@@ -299,7 +297,6 @@ private fun AppNavigation() {
                 onOpenMetronome = { nav.navigate(Routes.METRONOME) },
                 onOpenAbout = { nav.navigate(Routes.ABOUT) },
                 onOpenDiagnostics = { nav.navigate(Routes.DIAGNOSTICS) },
-                onOpenSync = { nav.navigate(Routes.SYNC) },
             )
         }
     }

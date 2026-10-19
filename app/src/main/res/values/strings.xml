@@ -74,7 +74,6 @@
     <string name="selftest_failed">วัดไม่ได้ (ระบบเสียงไม่ส่งค่าเวลา) ลองใหม่อีกครั้ง</string>
 
     <string name="home_midi_title">ต่อเปียโน (MIDI)</string>
-    <string name="home_sync_title">ซิงค์กับคอม</string>
     <string name="home_midi_body">ต่อคีย์บอร์ดผ่านสาย USB-C หรือบลูทูธ ดูโน้ตที่เข้ามา และปรับเทียบเครื่อง</string>
 
     <!-- MIDI -->

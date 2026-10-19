@@ -3,8 +3,7 @@
 ## Principles
 - **Logic in `:core`, pure Kotlin/JVM.** Everything that decides something (music theory, timing
   judgement, pass rules, spaced repetition, generators, scoring, file formats) lives in `:core`,
-  has no Android imports, takes time from an injected `Clock`, and is unit-tested in CI. This keeps it
-  convertible to Kotlin Multiplatform for a possible Windows version later.
+  has no Android imports, takes time from an injected `Clock`, and is unit-tested in CI.
 - **Thin UI.** Composables render state from ViewModels and send events back. Visual design comes from
   one token file (`app/.../ui/theme/Tokens.kt`) so the look can be redone without touching logic.
 - **Numbers in config.** The tunable values from `docs/learning-system.md` live in

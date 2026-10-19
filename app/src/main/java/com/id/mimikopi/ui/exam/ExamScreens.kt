@@ -73,7 +73,7 @@ import java.time.LocalDate
 /**
  * Grade exams (learning-system.md 2.7): the grades with the best result of each, the requirements of a grade with
  * practice links for every part, the exam in progress (each part once, finished on the day), and the result with
- * marks per part. Shared by the phone and the desktop (ported).
+ * marks per part.
  */
 class ExamViewModel(app: Application, args: SavedStateHandle) : AndroidViewModel(app) {
     private val services = app as MimikopiApp

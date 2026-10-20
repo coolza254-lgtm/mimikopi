@@ -101,8 +101,28 @@ class CalibrationTest {
         val taps = clicks.mapIndexed { i, c -> (c + 1e6 * (95 + (i % 3) * 5)).toLong() } + listOf(5_000_000_000L + 330_000_000L)
         val r = assertNotNull(LatencyCalibration.analyze(clicks, taps))
         assertEquals(100.0, r.offsetMs, 0.01)
-        assertEquals(17, r.taps) // the stray tap is kept but cannot move the median
+        assertEquals(16, r.taps) // at most one tap counts for each click
         assertNull(LatencyCalibration.analyze(clicks, taps.take(5)))
+    }
+
+    @Test
+    fun aChordOrRepeatedPressesOnOneClickCannotCompleteCalibration() {
+        val clicks = List(16) { it * 1_000_000_000.0 }
+        val chord = List(12) { 100_000_000L + it * 1_000_000L }
+        assertNull(LatencyCalibration.analyze(clicks, chord))
+        val nineBeats = clicks.take(9).flatMap { c -> List(3) { (c + 100_000_000L + it * 1_000_000L).toLong() } }
+        assertNull(LatencyCalibration.analyze(clicks, nineBeats))
+    }
+
+    @Test
+    fun everyClickCountsOnceAndDuplicateNotesDoNotBiasTheOffset() {
+        val clicks = List(16) { it * 1_000_000_000.0 }
+        val taps = clicks.map { (it + 120_000_000L).toLong() }
+        val duplicates = List(20) { 350_000_000L + it }
+        val result = assertNotNull(LatencyCalibration.analyze(clicks, (taps + duplicates).reversed()))
+        assertEquals(16, result.taps)
+        assertEquals(120.0, result.offsetMs)
+        assertEquals(0.0, result.spreadMs)
     }
 }
 

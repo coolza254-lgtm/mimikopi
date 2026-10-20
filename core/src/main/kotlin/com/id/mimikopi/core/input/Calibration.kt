@@ -60,10 +60,15 @@ object LatencyCalibration {
     /** Click and tap times in nanoseconds on the same clock. Returns null if too few usable taps. */
     fun analyze(clickNanos: List<Double>, tapNanos: List<Long>): LatencyResult? {
         if (clickNanos.isEmpty()) return null
-        val offsets = tapNanos.mapNotNull { tap ->
-            val nearest = clickNanos.minBy { abs(it - tap) }
-            ((tap - nearest) / 1e6).takeIf { abs(it) <= MAX_ABS_OFFSET_MS }
-        }.sorted()
+        // A chord, key bounce or repeated taps on one click are one observation, not enough
+        // evidence for calibration. Keep the first valid press per click, independent of input order.
+        val perClick = mutableMapOf<Int, Double>()
+        for (tap in tapNanos.sorted()) {
+            val nearest = clickNanos.indices.minBy { abs(clickNanos[it] - tap) }
+            val offset = (tap - clickNanos[nearest]) / 1e6
+            if (abs(offset) <= MAX_ABS_OFFSET_MS) perClick.putIfAbsent(nearest, offset)
+        }
+        val offsets = perClick.values.sorted()
         if (offsets.size < MIN_TAPS) return null
         val median = offsets[offsets.size / 2]
         val iqr = offsets[(offsets.size * 3) / 4] - offsets[offsets.size / 4]

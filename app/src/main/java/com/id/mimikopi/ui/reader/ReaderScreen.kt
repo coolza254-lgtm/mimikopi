@@ -39,7 +39,9 @@ import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,7 +67,7 @@ import com.id.mimikopi.ui.theme.Tokens
  * one row of controls (or the result). Played from the MIDI piano only; while playing the notes take the full height.
  */
 @Composable
-fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
+fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     com.id.mimikopi.ui.components.AnswerHaptics(ui.result?.clean)
     val piece by vm.piece.collectAsStateWithLifecycle()
@@ -100,10 +102,30 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            FilterChip(selected = ui.showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.reader_names)) })
+            if (ui.phase != Phase.RESULT) FilterChip(selected = ui.showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.reader_names)) })
             Spacer(Modifier.width(Tokens.Space.s))
         }
         if (score == null || layout == null) return@Column
+
+        if (ui.phase == Phase.RESULT) {
+            ui.result?.let {
+                ResultPanel(it, ui, vm, onBack, onOpenMidi, Modifier.weight(1f)) {
+                    Text(
+                        if (vm.fixed) "โน้ตในรอบนี้ · เลื่อนดูผลได้" else "โน้ตในรอบนี้ · แตะบาร์เพื่อเลือกฝึกเฉพาะจุด",
+                        fontSize = 15.sp, color = Tokens.Palette.InkMuted,
+                    )
+                    PagedScoreView(
+                        score = score, cursorBeat = vm::cursorAt, playing = false,
+                        results = ui.results, wrongMarks = ui.wrongMarks,
+                        loop = ui.section, hotMeasures = ui.hotMeasures,
+                        showNames = ui.showNames, nameStyle = vm.nameStyle,
+                        onMeasureTap = { m -> if (!vm.fixed) vm.practiseMeasures(m, m) },
+                        modifier = Modifier.fillMaxWidth().height(340.dp),
+                    )
+                }
+            }
+            return@Column
+        }
 
         if (ui.options.falling && !vm.fixed) FallingScore(
             piece = piece!!,
@@ -149,7 +171,7 @@ fun ReaderScreen(onBack: () -> Unit, vm: ReaderViewModel = viewModel()) {
         when (ui.phase) {
             Phase.IDLE -> if (vm.fixed) FixedControls(ui, vm, onOptions = { showOptions = true }) else SetupControls(ui, vm, onOptions = { showOptions = true })
             Phase.COUNT_IN, Phase.PLAYING, Phase.LISTENING -> RunControls(ui, vm)
-            Phase.RESULT -> ui.result?.let { ResultPanel(it, vm, onBack) }
+            Phase.RESULT -> Unit
         }
 
         // Falling notes draw their own keys (playable without a piano).
@@ -327,40 +349,66 @@ private fun RunControls(ui: ReaderUi, vm: ReaderViewModel) {
 }
 
 @Composable
-private fun ResultPanel(r: ResultUi, vm: ReaderViewModel, onBack: () -> Unit) {
+private fun ResultPanel(
+    r: ResultUi, ui: ReaderUi, vm: ReaderViewModel, onBack: () -> Unit, onOpenMidi: () -> Unit,
+    modifier: Modifier = Modifier, scoreReview: @Composable () -> Unit,
+) {
+    var details by remember(r) { mutableStateOf(false) }
+    val next = r.nextStep
     Column(
-        Modifier
+        modifier
             .fillMaxWidth()
-            .heightIn(max = 220.dp)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = Tokens.Space.m, vertical = Tokens.Space.xs),
-        verticalArrangement = Arrangement.spacedBy(Tokens.Space.xs),
+            .padding(horizontal = Tokens.Space.l, vertical = Tokens.Space.m),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(r.headline, style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.Ink)
-        if (r.details.isNotEmpty()) Text(r.details, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
-        r.progressLine?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink) }
-        for (line in r.coach) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("• " + line.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                line.action?.let { a -> TextButton(onClick = { vm.applyAction(a) }) { Text(actionLabel(a)) } }
+        Text("ผลรอบนี้", fontSize = 15.sp, color = Tokens.Palette.InkMuted)
+        Text(r.headline, fontSize = 26.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+        next?.let { Text(it.text, fontSize = 19.sp, lineHeight = 28.sp, color = Tokens.Palette.Ink) }
+        r.progressLine?.let { Text(it, fontSize = 15.sp, lineHeight = 22.sp, color = Tokens.Palette.InkMuted) }
+        val action = next?.action
+        com.id.mimikopi.ui.components.PrimaryButton(
+            text = when {
+                vm.benchDone -> stringResource(R.string.reader_done)
+                next?.checkLatency == true -> "ตรวจและวัดความหน่วง"
+                action != null -> actionLabel(action, ui.options.mode == PlayMode.TEMPO)
+                else -> stringResource(if (vm.nextLabelIsNew()) R.string.reader_new_piece else R.string.reader_again)
+            },
+            onClick = {
+                when {
+                    vm.benchDone -> onBack()
+                    next?.checkLatency == true -> onOpenMidi()
+                    action != null -> vm.applyAction(action)
+                    else -> vm.start()
+                }
+            },
+        )
+        if (!vm.benchDone) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (action != null) TextButton(onClick = vm::start) { Text("เล่นแบบเดิมอีกครั้ง") }
+                if (!vm.fixed && ui.section != (0 until (vm.score?.measures ?: 0))) {
+                    TextButton(onClick = { vm.wholePiece(); vm.start() }) { Text("ลองเล่นทั้งเพลง") }
+                }
+                TextButton(onClick = vm::backToSetup) { Text(stringResource(R.string.reader_back_to_setup)) }
+                TextButton(onClick = onBack) { Text("จบการฝึก") }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
-            if (vm.benchDone) {
-                Button(onClick = onBack) { Text(stringResource(R.string.reader_done)) }
-            } else {
-                Button(onClick = vm::start) { Text(stringResource(if (vm.nextLabelIsNew()) R.string.reader_new_piece else R.string.reader_again)) }
-                OutlinedButton(onClick = vm::backToSetup) { Text(stringResource(R.string.reader_back_to_setup)) }
+        TextButton(onClick = { details = !details }) { Text(if (details) "ซ่อนรายละเอียด" else "ดูตัวเลขและคำแนะนำทั้งหมด") }
+        if (details) {
+            if (r.details.isNotEmpty()) Text(r.details, fontSize = 15.sp, lineHeight = 23.sp, color = Tokens.Palette.InkMuted)
+            r.coach.filter { it != next }.forEach {
+                Text(it.text, fontSize = 15.sp, lineHeight = 23.sp, color = Tokens.Palette.InkMuted)
             }
+            scoreReview()
         }
     }
 }
 
 @Composable
-private fun actionLabel(a: ResultAction): String = when (a) {
-    is ResultAction.Loop -> if (a.from == a.to) stringResource(R.string.reader_section_one, a.from + 1) else stringResource(R.string.reader_section, a.from + 1, a.to + 1)
-    is ResultAction.Hands -> stringResource(if (a.choice == HandChoice.LEFT) R.string.reader_hand_left else R.string.reader_hand_right)
-    is ResultAction.Tempo -> stringResource(R.string.reader_bpm, a.bpm)
+private fun actionLabel(a: ResultAction, timed: Boolean): String = when (a) {
+    is ResultAction.Loop -> "ฝึก" + (if (a.from == a.to) stringResource(R.string.reader_section_one, a.from + 1) else stringResource(R.string.reader_section, a.from + 1, a.to + 1)) + if (timed) " · ${a.bpm.coerceAtLeast(30)} bpm" else ""
+    is ResultAction.Hands -> "ฝึก" + stringResource(if (a.choice == HandChoice.LEFT) R.string.reader_hand_left else R.string.reader_hand_right) + if (timed) " · ${a.bpm.coerceAtLeast(30)} bpm" else ""
+    is ResultAction.Tempo -> "ฝึกที่ " + stringResource(R.string.reader_bpm, a.bpm.coerceAtLeast(30))
 }
 
 @Composable

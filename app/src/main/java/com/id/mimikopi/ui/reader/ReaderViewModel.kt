@@ -85,12 +85,12 @@ data class ReaderOptions(
 )
 
 sealed interface ResultAction {
-    data class Loop(val from: Int, val to: Int) : ResultAction
-    data class Hands(val choice: HandChoice) : ResultAction
+    data class Loop(val from: Int, val to: Int, val bpm: Int) : ResultAction
+    data class Hands(val choice: HandChoice, val bpm: Int) : ResultAction
     data class Tempo(val bpm: Int) : ResultAction
 }
 
-data class CoachLine(val text: String, val action: ResultAction? = null)
+data class CoachLine(val text: String, val action: ResultAction? = null, val checkLatency: Boolean = false)
 
 data class ResultUi(
     val headline: String,
@@ -98,7 +98,11 @@ data class ResultUi(
     val clean: Boolean?,
     val coach: List<CoachLine>,
     val progressLine: String?,
-)
+) {
+    // A device timing check must come before advice to practise around a possible device delay.
+    val nextStep: CoachLine? get() = coach.firstOrNull { it.checkLatency }
+        ?: coach.firstOrNull { it.action != null } ?: coach.firstOrNull()
+}
 
 data class ReaderUi(
     val phase: Phase = Phase.IDLE,
@@ -476,14 +480,12 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     }
 
     fun applyAction(a: ResultAction) {
-        when (a) {
-            is ResultAction.Loop -> practiseMeasures(a.from, a.to)
-            is ResultAction.Hands -> { setHands(a.choice); _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap()) } }
-            is ResultAction.Tempo -> {
-                updateOptions { it.copy(useRamp = false, mode = PlayMode.TEMPO) }
-                _ui.update { it.copy(bpm = a.bpm, phase = Phase.IDLE, result = null, results = emptyMap()) }
-            }
-        }
+        // Fixed drills, tests and exams must retain their criteria. These actions belong only to
+        // a completed library-piece run; do not let a stale click change an active run.
+        if (fixed || _ui.value.phase != Phase.RESULT) return
+        val s = score ?: return
+        _ui.update { a.prepare(it, s.measures) }
+        start()
     }
 
     /** Note names are a counted helper: a run that used them does not count toward passing the piece. */
@@ -1038,19 +1040,20 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                     CoachLine(
                         if (unknownLatency) "ส่วนใหญ่กด${dir}จังหวะเท่าๆ กัน (ราว ${kotlin.math.abs(a.meanOffsetMs)} ms) อาจเป็นความหน่วงของเครื่อง ลองวัดความหน่วงที่หน้า \"ต่อเปียโน (MIDI)\" ก่อน"
                         else "ส่วนใหญ่กด${dir}จังหวะ ลองนับออกเสียงหรือเคาะเท้าไปด้วย",
+                        checkLatency = unknownLatency,
                     )
                 }
-                is Advice.Chain -> CoachLine("พลาดตรงรอยต่อบาร์ ${a.fromMeasure + 1}–${a.toMeasure + 1} ลองวนเล่นคร่อมสองบาร์นี้", ResultAction.Loop(a.fromMeasure, a.toMeasure))
+                is Advice.Chain -> CoachLine("พลาดตรงรอยต่อบาร์ ${a.fromMeasure + 1}–${a.toMeasure + 1} ฝึกคร่อมรอยต่อช้าลงก่อน", ResultAction.Loop(a.fromMeasure, a.toMeasure, slowerBpm))
                 is Advice.HandAlone -> {
                     val name = if (a.hand == Hand.LEFT) "ซ้าย" else "ขวา"
-                    CoachLine("ผิดเฉพาะมือ$name ลองฝึกมือ${name}คนเดียวก่อน", ResultAction.Hands(if (a.hand == Hand.LEFT) HandChoice.LEFT else HandChoice.RIGHT))
+                    CoachLine("ผิดเฉพาะมือ$name ฝึกมือ${name}คนเดียวให้แม่นก่อน", ResultAction.Hands(if (a.hand == Hand.LEFT) HandChoice.LEFT else HandChoice.RIGHT, slowerBpm))
                 }
                 is Advice.SlowDown -> CoachLine("ยังเร็วไปสำหรับตอนนี้ ลดเหลือ ${a.bpm} bpm ก่อน", ResultAction.Tempo(a.bpm))
             }
         }
         if (!drill) r.problemMeasures.firstOrNull()?.let { m ->
             if (out.none { it.action is ResultAction.Loop } && r.setup.fromMeasure != r.setup.toMeasure) {
-                out += CoachLine("บาร์ ${m + 1} พลาดมากที่สุด ฝึกบาร์นี้ช้าๆ แยกก่อน แล้วค่อยกลับมาเล่นทั้งท่อน", ResultAction.Loop(m, m))
+                out += CoachLine("บาร์ ${m + 1} พลาดมากที่สุด ฝึกบาร์นี้ช้าๆ ก่อนกลับมาเล่นทั้งท่อน", ResultAction.Loop(m, m, slowerBpm))
             }
         }
         if (newBpm != null) {

@@ -268,8 +268,8 @@ private fun AppNavigation() {
         composable(Routes.CHORDS) { ChordHomeScreen(onStart = { nav.navigate("chorddrill/chords") }, onOpenMidi = openMidi, onOpenSettings = openSettings, onBack = back) }
         composable(Routes.CHORD_DRILL) { DrillScreen(onBack = back) }
         composable(Routes.CHECK_DRILL, arguments = listOf(optional("check"))) { DrillScreen(onBack = back) }
-        composable(Routes.CHECK_SCORE, arguments = listOf(optional("check"))) { ReaderScreen(onBack = back) }
-        composable(Routes.NEW_READING, arguments = listOf(optional("via"))) { ReaderScreen(onBack = back) }
+        composable(Routes.CHECK_SCORE, arguments = listOf(optional("check"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
+        composable(Routes.NEW_READING, arguments = listOf(optional("via"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = back) }
         composable(Routes.ABOUT) { AboutScreen(onBack = back, onOpenCredits = { nav.navigate(Routes.CREDITS) }) }
         composable(Routes.CREDITS) { CreditsScreen(onBack = back) }
@@ -280,7 +280,7 @@ private fun AppNavigation() {
         composable(Routes.EXAMS) { com.id.mimikopi.ui.exam.ExamHomeScreen(onBack = back, onOpen = open) }
         composable(Routes.EXAM_GRADE) { com.id.mimikopi.ui.exam.ExamGradeScreen(onBack = back, onOpen = open) }
         composable(Routes.EXAM_RESULT) { com.id.mimikopi.ui.exam.ExamResultScreen(onBack = back, onOpen = open) }
-        composable(Routes.EXAM_PLAY) { ReaderScreen(onBack = back) }
+        composable(Routes.EXAM_PLAY) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
         composable(Routes.EXAM_AURAL) { EarSessionScreen(onBack = back) }
         composable(Routes.LESSON) { LessonScreen(onBack = back, onOpenDrill = openDrill) }
         composable(Routes.DRILL, arguments = listOf(optional("via"))) { DrillScreen(onBack = back) }
@@ -288,8 +288,8 @@ private fun AppNavigation() {
         composable(Routes.PIECES, arguments = listOf(optional("lesson"), optional("drill"))) {
             PieceListScreen(onBack = back, onOpenPiece = { id, hand -> nav.navigate(Routes.reader(id, hand)) })
         }
-        composable(Routes.READER, arguments = listOf(optional("hand"))) { ReaderScreen(onBack = back) }
-        composable(Routes.SCORE_DRILL, arguments = listOf(optional("via"))) { ReaderScreen(onBack = back) }
+        composable(Routes.READER, arguments = listOf(optional("hand"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
+        composable(Routes.SCORE_DRILL, arguments = listOf(optional("via"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
         composable(Routes.SETTINGS) {
             SettingsScreen(
                 onBack = back,

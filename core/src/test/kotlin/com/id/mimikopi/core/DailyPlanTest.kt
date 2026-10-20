@@ -41,6 +41,43 @@ class DailyPlanTest {
     }
 
     @Test
+    fun weakTechniqueGetsExtraMainPracticeInsteadOfAnIneffectiveFixedWarmupBoost() {
+        val normal = DailyPlan.build(full.copy(minutes = 45)).associate { it.kind to it.minutes }
+        val focused = DailyPlan.build(full.copy(minutes = 45, weakest = SkillId.TECH)).associate { it.kind to it.minutes }
+        assertTrue(focused.getValue(BlockKind.LADDER) > normal.getValue(BlockKind.LADDER))
+        assertEquals(normal[BlockKind.WARMUP], focused[BlockKind.WARMUP])
+    }
+
+    @Test
+    fun everyCombinationOfAvailableActivitiesUsesExactlyTheChosenMinutes() {
+        for (mask in 0 until 128) for (skill in listOf(null) + SkillId.entries) for (minutes in DailyPlan.CHOICES) {
+            fun available(bit: Int) = mask and (1 shl bit) != 0
+            val input = full.copy(
+                minutes = minutes, weakest = skill,
+                warmup = full.warmup.takeIf { available(0) },
+                check = full.check.takeIf { available(1) },
+                reviewDue = if (available(2)) 5 else 0,
+                ladder = available(3), sightLevel = 1.takeIf { available(4) },
+                earLevel = full.earLevel.takeIf { available(5) }, chords = available(6),
+            )
+            val plan = DailyPlan.build(input)
+            val context = "minutes=$minutes, available=$mask, weakest=$skill: $plan"
+            assertEquals(minutes, plan.sumOf { it.minutes }, context)
+            assertTrue(plan.all { it.minutes >= 2 }, context)
+            assertEquals(plan.size, plan.map { it.kind }.distinct().size, context)
+            assertEquals(plan.sortedBy { it.kind.ordinal }, plan, context)
+        }
+    }
+
+    @Test
+    fun storedPlansWithWrongTotalsAreRebuiltWithoutChangingPracticeHistory() {
+        val bad = DailyPlan.Stored("2026-10-20", 10, DailyPlan.build(full).take(1))
+        assertEquals(null, DailyPlan.parse(DailyPlan.encode(bad)))
+        val valid = DailyPlan.Stored("2026-10-20", 30, DailyPlan.build(full))
+        assertEquals(valid, DailyPlan.parse(DailyPlan.encode(valid)))
+    }
+
+    @Test
     fun practiceTimeIsLoggedPerDayAndCapped() {
         val d = LocalDate.of(2026, 10, 18)
         var log = PracticeLog.add(emptyList(), d, "ear", 120)

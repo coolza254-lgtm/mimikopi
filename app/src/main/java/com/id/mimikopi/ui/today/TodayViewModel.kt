@@ -53,7 +53,7 @@ sealed interface Open {
     data class ExamTake(val sitting: String, val part: String) : Open
 }
 
-data class BlockUi(val block: PlanBlock, val title: String, val detail: String, val done: Boolean)
+data class BlockUi(val block: PlanBlock, val title: String, val detail: String, val done: Boolean, val playedSeconds: Int = 0)
 
 data class TodayUi(
     val loaded: Boolean = false,
@@ -62,6 +62,7 @@ data class TodayUi(
     val blocks: List<BlockUi> = emptyList(),
     /** Minutes practised today (all kinds) and planned. */
     val minutesDone: Int = 0,
+    val secondsDone: Int = 0,
     val minutesPlanned: Int = 0,
     /** The last 14 days' minutes, oldest first. */
     val strip: List<Pair<LocalDate, Int>> = emptyList(),
@@ -156,7 +157,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         val reviewDue = learning.readingDueItems().size
         val blocks = plan.map { b ->
             val takenToday = b.target?.let { key -> SkillBook.parseKey(key)?.let { l -> checks.any { it.skill == l.skill && it.level == l.level && it.date == today.toString() } } } ?: false
-            BlockUi(b, b.kind.title, detail(b), DailyPlan.isDone(b, day, takenToday, reviewDue))
+            BlockUi(b, b.kind.title, detail(b), DailyPlan.isDone(b, day, takenToday, reviewDue), day.seconds[b.kind.log] ?: 0)
         }
         val (days, mins) = PracticeLog.week(log, today)
         val statuses = SkillId.entries.map { SkillBook.status(it, checks, today) }
@@ -167,6 +168,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
             minutesChosen = minutes,
             blocks = blocks,
             minutesDone = day.total / 60,
+            secondsDone = day.total,
             minutesPlanned = plan.sumOf { it.minutes },
             strip = PracticeLog.lastDays(log, today, 14),
             weekDays = days,

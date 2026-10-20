@@ -267,10 +267,10 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
             val rate = piano.outputSampleRate()
             val taps = synchronized(latencyTaps) { latencyTaps.toList() }
             val clicks = ticks.drop(COUNT_IN)
-            val result = if (rate > 0 && stamps.size > 10 && clicks.isNotEmpty()) {
-                LatencyCalibration.analyze(JitterAnalysis.presentationTimesNanos(clicks, stamps, rate), taps.map { it.timeNanos })
-            } else null
             val source = taps.groupingBy { it.source }.eachCount().maxByOrNull { it.value }?.key ?: InputSource.TOUCH
+            val result = if (rate > 0 && stamps.size > 10 && clicks.isNotEmpty()) {
+                LatencyCalibration.analyze(JitterAnalysis.presentationTimesNanos(clicks, stamps, rate), taps.filter { it.source == source }.map { it.timeNanos })
+            } else null
             if (result == null) {
                 _latency.value = LatencyUi.Failed
             } else {

@@ -107,13 +107,13 @@
     <string name="octave_done">ตั้งแล้ว: เลื่อน %1$d ครึ่งเสียง</string>
     <string name="octave_rejected">โน้ตที่กด (%1$d) ไม่ใช่ C ลองกดใหม่</string>
     <string name="latency_title">3. วัดความหน่วง</string>
-    <string name="latency_help">จะมีเสียงคลิกนับ 4 ครั้ง แล้วอีก 16 ครั้ง (ครั้งละ 1 วินาที) กดคีย์บนเปียโนจริงให้ตรงกับเสียงคลิกทุกครั้ง (หรือกดปุ่ม "แตะ" ถ้าวัดหน้าจอ) ค่าที่ได้จะใช้กับอุปกรณ์เสียงที่ใช้อยู่ตอนนี้ (ลำโพง/หูฟัง) แยกกัน</string>
+    <string name="latency_help">ฟังคลิกนับ 4 ครั้งก่อน แล้วกดหนึ่งคีย์ต่อคลิกอีก 16 ครั้ง (ครั้งละ 1 วินาที) หรือใช้ปุ่ม "แตะ" เพื่อวัดหน้าจอ ใช้วิธีเดียวตลอดรอบ ต้องตรงอย่างน้อย 10 คลิก การกดคอร์ดหรือกดซ้ำในคลิกเดียวไม่นับเพิ่ม ค่าที่ได้ใช้แยกตามอุปกรณ์เสียงที่ใช้อยู่ตอนนี้</string>
     <string name="latency_start">เริ่มวัด</string>
     <string name="latency_tap_pad">แตะ</string>
     <string name="latency_countin">นับเตรียม… %1$d/4</string>
     <string name="latency_tapping">คลิก %1$d/%2$d · กดแล้ว %3$d ครั้ง</string>
     <string name="latency_done">หน่วง %1$s ms (กระจาย %2$s ms, %3$d ครั้ง) บันทึกเป็น %4$s</string>
-    <string name="latency_failed">วัดไม่ได้ (กดน้อยเกินไปหรือไม่ตรงคลิก) ลองใหม่</string>
+    <string name="latency_failed">ยังวัดไม่ได้ ต้องกดตรงอย่างน้อย 10 คลิกที่ต่างกัน ลองใหม่โดยกดหนึ่งคีย์ต่อคลิก ใช้เปียโนหรือปุ่มแตะอย่างใดอย่างหนึ่งตลอดรอบ หากไม่ได้ยินเสียง ให้ติดตั้งเสียงเปียโนและตรวจระดับเสียงก่อน</string>
     <string name="monitor_title">โน้ตที่เข้ามา (MIDI monitor)</string>
     <string name="monitor_empty">ยังไม่มีโน้ต ลองกดคีย์บนเปียโน หรือใช้ตัวจำลองด้านล่าง</string>
     <string name="sim_title">ตัวจำลอง MIDI (สำหรับทดสอบ)</string>

@@ -28,7 +28,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
 
       - name: Unit tests, lint, debug APK
-        run: ./gradlew --stacktrace :core:test :app:lintDebug :app:assembleDebug
+        run: ./gradlew --stacktrace :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 
       # The build session cannot download artifacts, so print what it needs into the log.
       - name: Print Room schema
@@ -75,6 +75,7 @@ jobs:
           name: reports-${{ github.sha }}
           path: |
             core/build/reports/tests/
+            app/build/reports/tests/
             app/build/reports/lint-results-debug.*
             app/schemas/
           if-no-files-found: ignore

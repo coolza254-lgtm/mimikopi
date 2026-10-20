@@ -19,8 +19,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +63,7 @@ import com.id.mimikopi.ui.theme.Tokens
 fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: () -> Unit, vm: TodayViewModel = viewModel()) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     val ui by vm.ui.collectAsStateWithLifecycle()
+    var showPlan by rememberSaveable { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth()) {
@@ -71,20 +76,32 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
             if (!ui.loaded) return@Column
             Column(Modifier.padding(horizontal = PageMargin)) {
                 Spacer(Modifier.height(16.dp))
+                Text("วันนี้มีเวลาฝึกกี่นาที", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Tokens.Palette.Ink)
+                Spacer(Modifier.height(8.dp))
+                Segmented(DailyPlan.CHOICES, ui.minutesChosen, { "$it" }, vm::choose)
+                Spacer(Modifier.height(16.dp))
                 Hero(ui, onStart = { b -> vm.open(b, onOpen) }, onPiano = { onOpen(Open.Piano) })
 
-                GroupHeader("แผนวันนี้")
-                Group {
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("ทำแล้ว ${ui.blocks.count { it.done }} จาก ${ui.blocks.size} ส่วน", fontSize = 15.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { showPlan = !showPlan }) { Text(if (showPlan) "ซ่อนแผน" else "ดูแผนทั้งหมด") }
+                }
+                if (showPlan) Group {
                     ui.blocks.forEachIndexed { i, b ->
                         if (i > 0) GroupDivider(indent = 52.dp)
                         GroupRow(
-                            title = b.title, subtitle = b.detail,
+                            title = b.title, subtitle = b.detail + "\n" + when {
+                                b.block.kind == com.id.mimikopi.core.session.BlockKind.CHECK -> if (b.done) "บันทึกผลทดสอบวันนี้แล้ว" else "จบแบบทดสอบเพื่อบันทึกผลจริง"
+                                b.block.kind == com.id.mimikopi.core.session.BlockKind.REVIEW && b.done && b.playedSeconds == 0 -> "ไม่มีข้อทวนค้าง"
+                                else -> "เล่นจริง ${practiceTime(b.playedSeconds)}"
+                            },
                             leading = { StepMark(done = b.done, current = b == ui.next) },
                             titleColor = if (b.done) Tokens.Palette.InkMuted else Tokens.Palette.Ink,
                             onClick = { vm.open(b.block, onOpen) },
                         )
                     }
                 }
+                if (showPlan) GroupFooter("ทำเครื่องหมายเมื่อเล่นจริงถึง 60% ของเวลาที่จัดไว้ หรือทำแบบทดสอบ/ทวนเสร็จ การทำครบแผนไม่ใช่การผ่านระดับทักษะ")
 
                 if (ui.fixes.isNotEmpty()) {
                     GroupHeader("สิ่งที่ควรแก้")
@@ -96,10 +113,6 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
                     }
                     GroupFooter("จากการเล่นและฝึก ${com.id.mimikopi.core.progress.Mistakes.DAYS} วันล่าสุด รายละเอียดอยู่ในหน้าพัฒนาการ")
                 }
-
-                GroupHeader("เวลาฝึกวันนี้")
-                Segmented(DailyPlan.CHOICES, ui.minutesChosen, { "$it" }, vm::choose)
-                GroupFooter("นาที · แผนจัดใหม่ตามเวลาที่เลือก ส่วนที่ฝึกไปแล้วยังนับอยู่")
 
                 GroupHeader("14 วันที่ผ่านมา")
                 Group {
@@ -123,7 +136,7 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
                     )
                     ui.weakest?.let { w ->
                         GroupDivider()
-                        GroupRow("เน้นวันนี้: ${w.skill.title}", subtitle = "อ่อนที่สุดตอนนี้ ระดับ ${w.level} จาก ${w.maxLevel} · แผนให้เวลาส่วนนี้มากขึ้น", onClick = { onOpen(Open.Skill(w.skill)) })
+                        GroupRow("เน้นวันนี้: ${w.skill.title}", subtitle = "ระดับ ${w.level} จาก ${w.maxLevel} · ทักษะที่ควรเน้นจากผลทดสอบล่าสุด", onClick = { onOpen(Open.Skill(w.skill)) })
                     }
                     GroupDivider()
                     GroupRow("พัฒนาการ", subtitle = "ระดับย้อนหลัง เวลาฝึกต่อสัปดาห์ หู และสิ่งที่ควรแก้", onClick = { onOpen(Open.Progress) })
@@ -152,21 +165,21 @@ private fun Hero(ui: TodayUi, onStart: (com.id.mimikopi.core.session.PlanBlock) 
                 Text(next.detail, fontSize = 15.sp, lineHeight = 20.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 4.dp))
                 Text(next.block.kind.why, fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 2.dp))
                 Spacer(Modifier.height(18.dp))
-                PrimaryButton(if (ui.minutesDone == 0) "เริ่มฝึก" else "ทำต่อ", onClick = { onStart(next.block) })
+                PrimaryButton("เริ่ม${next.title}", onClick = { onStart(next.block) })
             } else {
-                Text("ฝึกครบตามแผนแล้ว", fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                Text("วันนี้ฝึก ${ui.minutesDone} นาที พักได้ หรือเล่นต่ออิสระ พรุ่งนี้แผนใหม่จะจัดให้เอง", fontSize = 15.sp, lineHeight = 20.sp,
+                Text("ทำครบทุกส่วนแล้ว", fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                Text("วันนี้เล่นจริง ${practiceTime(ui.secondsDone)} พักได้ หรือเล่นต่ออิสระ ระดับทักษะเปลี่ยนเมื่อทำแบบทดสอบผ่านเท่านั้น", fontSize = 15.sp, lineHeight = 20.sp,
                     color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
                 Spacer(Modifier.height(16.dp))
                 SecondaryButton("เล่นเปียโนอิสระ", onPiano)
             }
             Spacer(Modifier.height(18.dp))
             // Minutes practised against minutes planned: a plain bar, no reward.
-            val f = if (ui.minutesPlanned == 0) 0f else (ui.minutesDone.toFloat() / ui.minutesPlanned).coerceIn(0f, 1f)
+            val f = if (ui.minutesPlanned == 0) 0f else (ui.secondsDone.toFloat() / (ui.minutesPlanned * 60)).coerceIn(0f, 1f)
             Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Tokens.Palette.Line)) {
                 Box(Modifier.fillMaxWidth(f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Tokens.Palette.Ink))
             }
-            Text("${ui.minutesDone} จาก ${ui.minutesPlanned} นาที", fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
+            Text("เล่นจริง ${practiceTime(ui.secondsDone)} · แผน ${ui.minutesPlanned} นาที", fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
         }
     }
 }
@@ -182,8 +195,10 @@ private fun DayStrip(days: List<Pair<java.time.LocalDate, Int>>) {
                     Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(5.dp))
                         .background(if (m == 0) Tokens.Palette.Line else Tokens.Palette.Ink.copy(alpha = 0.35f + 0.65f * f)),
                 )
-                Text("${d.dayOfMonth}", fontSize = 10.sp, color = Tokens.Palette.Dim, modifier = Modifier.padding(top = 3.dp))
+                Text("${d.dayOfMonth}", fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 3.dp))
             }
         }
     }
 }
+
+private fun practiceTime(seconds: Int): String = "${seconds / 60} นาที ${seconds % 60} วินาที"

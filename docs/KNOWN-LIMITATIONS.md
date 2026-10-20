@@ -2,6 +2,17 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Mobile-first revision (unreleased, 2026-10-20)
+- Phone UX and useful practice outcomes are the active priority; PC work is deferred until the user is satisfied.
+  See `MOBILE-PLAN.md` for the current scope and acceptance checks.
+- The daily-plan check marks use the existing 60% activity-time threshold (or a completed test/review), not a
+  claim that the full planned duration was played or a skill mastered. Today now distinguishes these explicitly.
+- Corrective practice starts immediately for library pieces. Tests and exams retain fixed criteria and cannot
+  use these shortcuts to reduce the difficulty of a recorded result.
+- Calibration requires at least ten distinct clicks; multiple notes on one click count once. It still measures
+  the player's timing plus input/output delay, not an isolated hardware output latency measurement.
+- On-device UX, physical MIDI, audio latency and long-term learning outcomes still require user validation.
+
 ## Current list (M15, v0.15.x)
 What the app does not do, or does only partly, as of the last milestone. Details per milestone follow below.
 

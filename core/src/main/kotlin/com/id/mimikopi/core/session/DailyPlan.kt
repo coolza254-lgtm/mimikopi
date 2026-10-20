@@ -95,7 +95,9 @@ object DailyPlan {
         SkillId.KEYS, SkillId.NOTES -> BlockKind.REVIEW
         SkillId.RHYTHM -> BlockKind.LADDER
         SkillId.SIGHT -> BlockKind.SIGHT
-        SkillId.TECH -> BlockKind.WARMUP
+        // Warm-up has a fixed short duration. Give technique's extra time to the main practice,
+        // where finger/scale drills live, so its boost does not disappear into a fixed block.
+        SkillId.TECH -> BlockKind.LADDER
         SkillId.EAR -> BlockKind.EAR
         SkillId.CHORDS -> BlockKind.CHORDS
         null -> null
@@ -115,20 +117,35 @@ object DailyPlan {
             add(BlockKind.SONG to null)
         }
         // Short days: the essentials and the weakest part only.
-        val kept = if (total <= 10) candidates.filter { it.first in setOf(BlockKind.WARMUP, BlockKind.CHECK, BlockKind.LADDER) || it.first == weak }
+        val kept = (if (total <= 10) candidates.filter { it.first in setOf(BlockKind.WARMUP, BlockKind.CHECK, BlockKind.LADDER) || it.first == weak }
             .ifEmpty { candidates.take(2) }
-        else if (total <= 20) candidates.filter { it.first != BlockKind.SONG || candidates.size <= 3 } else candidates
+        else if (total <= 20) candidates.filter { it.first != BlockKind.SONG || candidates.size <= 3 } else candidates).toMutableList()
         val fixed = mapOf(BlockKind.WARMUP to (if (total >= 30) 3 else 2), BlockKind.CHECK to 3)
+        // When only fixed activities are available (e.g. a beginner's short day), finish with a song
+        // instead of silently leaving most of the chosen time unallocated.
+        if (kept.all { it.first in fixed }) kept += BlockKind.SONG to null
         val weight = mapOf(
             BlockKind.REVIEW to 2.0, BlockKind.LADDER to 7.0, BlockKind.SIGHT to 3.0, BlockKind.CHORDS to 2.5,
             BlockKind.EAR to 3.0, BlockKind.SONG to if (total >= 45) 5.0 else 3.0,
         )
         val flexible = kept.filter { it.first !in fixed }
-        val budget = (total - kept.sumOf { fixed[it.first] ?: 0 }).coerceAtLeast(flexible.size * 2)
+        val budget = total - kept.sumOf { fixed[it.first] ?: 0 }
         val w = flexible.associate { (k, _) -> k to (weight[k] ?: 2.0) * (if (k == weak) 1.6 else 1.0) }
-        val sum = w.values.sum().takeIf { it > 0 } ?: 1.0
-        val exact = w.mapValues { (_, x) -> budget * x / sum }
-        val minutes = exact.mapValues { (_, x) -> maxOf(2, x.toInt()) }.toMutableMap()
+        // Apply the two-minute minimum before rounding, redistributing its cost among the
+        // remaining activities. Clamping rounded shares alone can exceed the total budget.
+        val exact = mutableMapOf<BlockKind, Double>()
+        val remaining = w.toMutableMap()
+        var available = budget.toDouble()
+        while (remaining.isNotEmpty()) {
+            val sum = remaining.values.sum()
+            val belowMinimum = remaining.filterValues { available * it / sum < 2.0 }.keys
+            if (belowMinimum.isEmpty()) {
+                remaining.forEach { (k, weight) -> exact[k] = available * weight / sum }
+                break
+            }
+            belowMinimum.forEach { k -> exact[k] = 2.0; remaining.remove(k); available -= 2.0 }
+        }
+        val minutes = exact.mapValues { (_, x) -> x.toInt() }.toMutableMap()
         var left = budget - minutes.values.sum()
         for (k in exact.keys.sortedByDescending { exact.getValue(it) - exact.getValue(it).toInt() }) {
             if (left <= 0) break
@@ -146,6 +163,8 @@ object DailyPlan {
     data class Stored(val date: String, val minutes: Int, val blocks: List<PlanBlock>)
 
     fun parse(text: String?): Stored? = text?.let { runCatching { json.decodeFromString(Stored.serializer(), it) }.getOrNull() }
+        ?.takeIf { s -> s.minutes in CHOICES && s.blocks.isNotEmpty() && s.blocks.all { it.minutes >= 2 } &&
+            s.blocks.map { it.kind }.distinct().size == s.blocks.size && s.blocks.sumOf { it.minutes } == s.minutes }
     fun encode(s: Stored): String = json.encodeToString(Stored.serializer(), s)
 
     /** A block counts as done when its kind has at least 60% of its minutes logged today (or the test was taken). */

@@ -114,7 +114,7 @@ jobs:
           # MIMIKOPI_KEY_ALIAS, MIMIKOPI_KEYSTORE_PASSWORD and MIMIKOPI_KEY_PASSWORD (PKCS12: same value)
           # come from the check step, trimmed.
         run: >
-          ./gradlew --stacktrace :core:test :app:assembleRelease
+          ./gradlew --stacktrace :core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease
           -PversionCode=${{ env.VERSION_CODE }} -PversionName=${{ env.VERSION_NAME }}
 
       - name: Remove keystore

@@ -804,7 +804,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         if (fixed) { finishFixed(j); return }
         val s = score ?: return
         val result = j.result()
-        val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
+        val seconds = if (result.hasNoteInput) (System.currentTimeMillis() - runStartedAt) / 1000 else 0L
         services.appScope.launch {
             services.progress.log(via ?: "song", seconds)
             services.progress.addMistakes(com.id.mimikopi.core.progress.Mistakes.fromPlay(j, result, "piece", System.currentTimeMillis(), java.time.LocalDate.now().toString()))
@@ -861,7 +861,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         }
         // A clean run, or three runs of the same piece (learning-system.md 1.4), brings a new one.
         newPieceNext = generated && (clean || runsOnPiece >= 3) && source !is Source.Benchmark
-        val seconds = (System.currentTimeMillis() - runStartedAt) / 1000
+        val seconds = if (result.hasNoteInput) (System.currentTimeMillis() - runStartedAt) / 1000 else 0L
         if (source !is Source.Check && source !is Source.Exam) services.appScope.launch {
             services.progress.log(via ?: when (source) { is Source.NewReading -> "sight"; is Source.Benchmark -> "check"; else -> "ladder" }, seconds)
         }
@@ -887,9 +887,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                             }
                         }
                         else -> {
-                            val played = result.wrongPresses.isNotEmpty() || result.outcomes.values.any {
-                                it.result == NoteResult.CORRECT || it.result == NoteResult.EARLY || it.result == NoteResult.LATE || it.result == NoteResult.CORRECTED
-                            }
+                            val played = result.hasNoteInput
                             val marks = Exams.playedMarks(src.part, acc, timing, result.stumbles, played = played, complete = !stoppedEarly)
                             val mark = PartMark(marks, System.currentTimeMillis(), acc, timing, result.stumbles)
                             services.progress.recordExam(src.sitting, src.part, mark)
@@ -1019,6 +1017,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     }
 
     private fun coachLines(s: Score, r: PlayResult, slowerBpm: Int, newBpm: Int?, helper: Boolean, drill: Boolean = false): List<CoachLine> {
+        if (!r.hasNoteInput) return listOf(CoachLine("รอบนี้ยังไม่มีกดโน้ต จึงไม่เพิ่มเวลาซ้อม ลองเริ่มอีกครั้งแล้วเล่นตามโน้ต"))
         val out = mutableListOf<CoachLine>()
         val unknownLatency = latencies.values.all { it == 0.0 }
         for (a in Coach.advise(r, slowerBpm)) {

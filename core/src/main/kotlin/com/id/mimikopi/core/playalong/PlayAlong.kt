@@ -283,6 +283,13 @@ data class PlayResult(
     val troubleNotes: List<SpelledPitch>,
 ) {
     fun count(result: NoteResult): Int = outcomes.values.count { it.result == result }
+
+    /** A clock reaching the end with only missed notes is not evidence of practice. Wrong keys
+     * still count as an attempt: beginners must not lose practice time just because they struggle. */
+    val hasNoteInput: Boolean get() = wrongPresses.isNotEmpty() || outcomes.values.any {
+        it.result == NoteResult.CORRECT || it.result == NoteResult.CORRECTED ||
+            it.result == NoteResult.EARLY || it.result == NoteResult.LATE
+    }
 }
 
 private class PlayResultBuilder(

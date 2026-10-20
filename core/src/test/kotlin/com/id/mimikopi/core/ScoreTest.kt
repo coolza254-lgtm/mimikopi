@@ -170,6 +170,24 @@ class PlayAlongTest {
         PlayAlongJudge(score, PlaySetup(PlayMode.TEMPO, hands, 0, 1, 60.0, 150, latency)).also { it.start(10_000) }
 
     @Test
+    fun lettingTheClockFinishWithoutPlayingDoesNotCountAsPractice() {
+        val j = tempoJudge()
+        j.advance(20_000)
+        assertTrue(j.isFinished(20_000))
+        assertFalse(j.result().hasNoteInput)
+    }
+
+    @Test
+    fun strugglingWithWrongKeysStillCountsAsAnAttempt() {
+        val wrong = tempoJudge()
+        wrong.onNoteOn(99, 10_000)
+        assertTrue(wrong.result().hasNoteInput)
+        val right = tempoJudge()
+        right.onNoteOn(60, 10_000)
+        assertTrue(right.result().hasNoteInput)
+    }
+
+    @Test
     fun tempoModeJudgesEachNote() {
         val j = tempoJudge()
         assertEquals(5, j.expected.size)

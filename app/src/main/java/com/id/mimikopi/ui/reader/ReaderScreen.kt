@@ -34,6 +34,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.res.painterResource
@@ -184,7 +187,7 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
     if (showOptions) OptionsDialog(ui.options, vm, onDismiss = { showOptions = false })
 }
 
-/** The song as falling notes over a keyboard (the piece's range), names on the bars and on the white keys. */
+/** The song as falling notes; key names can be hidden independently of the bar labels. */
 @Composable
 private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: ReaderViewModel, playing: Boolean, modifier: Modifier) {
     val score = piece.score
@@ -216,24 +219,34 @@ private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: R
     val bars = remember(score) { (0..score.measures).map { score.measureStart(it) } }
     val keyRange = piece.keyRange
     val keyNames = remember(keyRange, barStyle) { keyRange.associateWith { SpelledPitch.fromMidiSharp(it).name(barStyle) } }
-    val wrongMarks = ui.wrongMarks
-    val marks = remember(wrongMarks) { wrongMarks.map { it.midi to it.atNanos } }
     val touch = rememberTouchPlayer()
     val connected = midiConnected()
-    FallingNotesView(
-        notes = notes,
-        cursor = vm::cursorAt,
-        animate = playing,
-        keyRange = keyRange,
-        pressed = pressed,
-        keyLabel = { m -> keyNames[m] },
-        modifier = modifier,
-        window = (score.beatsPerMeasure * 2.0).coerceAtLeast(6.0),
-        smooth = ui.options.mode == PlayMode.WAIT,
-        lines = bars,
-        marks = marks,
-        onKey = if (connected) null else touch,
-    )
+    Column(modifier.background(Color(0xFF202428))) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("● ซ้าย", color = Color(0xFF78AFE1), fontSize = 12.sp)
+            Text("● ขวา", color = Color(0xFFA1EF52), fontSize = 12.sp)
+            Spacer(Modifier.weight(1f))
+            Text("ชื่อบนคีย์", color = Color.White, fontSize = 12.sp)
+            Switch(checked = ui.options.fallingKeyLabels, onCheckedChange = vm::setFallingKeyLabels,
+                modifier = Modifier.semantics { contentDescription = "แสดงชื่อโน้ตบนคีย์" })
+        }
+        FallingNotesView(
+            notes = notes,
+            cursor = vm::cursorAt,
+            animate = playing,
+            keyRange = keyRange,
+            pressed = pressed,
+            keyLabel = { m -> if (ui.options.fallingKeyLabels) keyNames[m] else null },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            window = (score.beatsPerMeasure * 2.0).coerceAtLeast(6.0),
+            smooth = ui.options.mode == PlayMode.WAIT,
+            lines = bars,
+            feedback = ui.fallingFeedback,
+            totalBeats = score.measureStart(score.measures),
+            onKey = if (connected) null else touch,
+        )
+    }
 }
 
 @Composable

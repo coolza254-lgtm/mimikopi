@@ -68,6 +68,12 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        // Robolectric keeps its SDK download lock/cache here, including in a read-only cloud home.
+        unitTests.all { it.systemProperty("user.home", layout.buildDirectory.get().asFile.absolutePath) }
+    }
+
     lint {
         // Thai-only UI for now; English strings are added later.
         disable += "MissingTranslation"
@@ -84,6 +90,7 @@ room {
 
 dependencies {
     testImplementation(libs.kotlin.test)
+    testImplementation(libs.robolectric)
     implementation(project(":core"))
     implementation(project(":audio"))
 

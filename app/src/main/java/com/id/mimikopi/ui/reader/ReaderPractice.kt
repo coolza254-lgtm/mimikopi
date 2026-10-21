@@ -6,7 +6,7 @@ import com.id.mimikopi.core.playalong.PlayMode
 internal fun ResultAction.prepare(ui: ReaderUi, measures: Int): ReaderUi {
     require(measures > 0)
     val reset = ui.copy(
-        phase = Phase.IDLE, result = null, results = emptyMap(), wrongMarks = emptyList(),
+        phase = Phase.IDLE, result = null, results = emptyMap(), wrongMarks = emptyList(), fallingFeedback = emptyList(),
         pendingSectionStart = null, message = null,
         options = ui.options.copy(useRamp = false),
     )

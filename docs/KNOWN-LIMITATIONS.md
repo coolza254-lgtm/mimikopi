@@ -2,6 +2,14 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Falling notes graphics (v0.26.2)
+- Library-song piano roll now uses a dark stage with blue left-hand and green right-hand bars, a matching keyboard,
+  and transient hit/timing/wrong/miss effects from the existing judge. It remains a helper and cannot pass reading criteria.
+- The key-name switch persists and works during playback without recalculating tempo. Bar names remain visible.
+- Rendering and touch use the same keyboard geometry; dragging outside the keys releases the note.
+- Real Android Canvas snapshots cover landscape and portrait. Phone frame rate, actual MIDI/touch behaviour and audio latency
+  still need device validation. On narrow portrait screens a wide song range necessarily makes keys and names small.
+
 ## Mobile-first revision (unreleased, 2026-10-20)
 - Phone UX and useful practice outcomes are the active priority; PC work is deferred until the user is satisfied.
   See `MOBILE-PLAN.md` for the current scope and acceptance checks.

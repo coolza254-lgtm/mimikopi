@@ -1,5 +1,8 @@
 package com.id.mimikopi.ui.reader
 
+import com.id.mimikopi.ui.components.FallingFeedback
+import com.id.mimikopi.ui.components.FallingVerdict
+import com.id.mimikopi.ui.components.withFeedback
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
@@ -82,6 +85,8 @@ data class ReaderOptions(
     val paperSize: Boolean = true,
     /** Falling notes over a keyboard instead of the score (songs only); a run with it does not count toward passing. */
     val falling: Boolean = false,
+    /** Independent of score helpers; can be changed during a run. */
+    val fallingKeyLabels: Boolean = true,
 )
 
 sealed interface ResultAction {
@@ -115,6 +120,7 @@ data class ReaderUi(
     val countIn: Int? = null,
     val results: Map<NoteKey, NoteResult> = emptyMap(),
     val wrongMarks: List<WrongMark> = emptyList(),
+    val fallingFeedback: List<FallingFeedback> = emptyList(),
     val hotMeasures: List<Int> = emptyList(),
     val result: ResultUi? = null,
     val showNames: Boolean = false,
@@ -278,7 +284,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         sightNeedsLook = false
         seed = System.currentTimeMillis()
         loadPiece()
-        _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap()) }
+        _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap(), fallingFeedback = emptyList()) }
         startPreview()
         return true
     }
@@ -298,7 +304,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             is Source.NewReading, is Source.Benchmark -> 60
             is Source.Piece, is Source.Exam -> s.tempo
         }
-        _ui.update { it.copy(section = 0 until s.measures, bpm = bpm, targetBpm = bpm, results = emptyMap(), wrongMarks = emptyList(), pendingSectionStart = null) }
+        _ui.update { it.copy(section = 0 until s.measures, bpm = bpm, targetBpm = bpm, results = emptyMap(), wrongMarks = emptyList(), fallingFeedback = emptyList(), pendingSectionStart = null) }
     }
 
     /** Options a fixed source dictates (mode, hands, no ramp); the keyboard choice stays the user's. */
@@ -432,9 +438,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     fun setPageView(on: Boolean) = updateOptions { it.copy(pageView = on) }
     fun setPaperSize(on: Boolean) = updateOptions { it.copy(paperSize = on) }
     fun setFalling(on: Boolean) = updateOptions { it.copy(falling = on) }
+    fun setFallingKeyLabels(on: Boolean) = updateOptions(duringRun = true) { it.copy(fallingKeyLabels = on) }
 
-    private fun updateOptions(change: (ReaderOptions) -> ReaderOptions) {
-        if (!editable()) return
+    private fun updateOptions(duringRun: Boolean = false, change: (ReaderOptions) -> ReaderOptions) {
+        if (!duringRun && !editable()) return
         val before = _ui.value.options
         var next = change(before)
         if (fixed) next = before.copy(showKeyboard = next.showKeyboard, playOtherHand = next.playOtherHand, pageView = next.pageView, paperSize = next.paperSize)
@@ -445,7 +452,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 ?: ReaderOptions()).copy(showKeyboard = next.showKeyboard, pageView = next.pageView, paperSize = next.paperSize) else next
             dao.put(SettingEntity(SettingKeys.READER_OPTIONS, json.encodeToString(ReaderOptions.serializer(), stored)))
         }
-        applyRampTempo()
+        if (!duringRun) applyRampTempo()
     }
 
     fun changeBpm(delta: Int) {
@@ -459,7 +466,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         if (!editable() || fixed) return
         val start = _ui.value.pendingSectionStart
         if (start == null) {
-            _ui.update { it.copy(section = m..m, pendingSectionStart = m, result = null, phase = Phase.IDLE, results = emptyMap()) }
+            _ui.update { it.copy(section = m..m, pendingSectionStart = m, result = null, phase = Phase.IDLE, results = emptyMap(), fallingFeedback = emptyList()) }
         } else {
             _ui.update { it.copy(section = minOf(start, m)..maxOf(start, m), pendingSectionStart = null) }
         }
@@ -475,7 +482,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     fun practiseMeasures(from: Int, to: Int) {
         if (!editable()) return
-        _ui.update { it.copy(section = from..to, pendingSectionStart = null, phase = Phase.IDLE, result = null, results = emptyMap()) }
+        _ui.update { it.copy(section = from..to, pendingSectionStart = null, phase = Phase.IDLE, result = null, results = emptyMap(), fallingFeedback = emptyList()) }
         applyRampTempo()
     }
 
@@ -583,7 +590,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         // Falling notes are played without reading the score: like note names, the run does not count toward passing.
         helperUsedThisRun = u.showNames || (u.options.falling && !fixed)
         runStartedAt = System.currentTimeMillis()
-        _ui.update { it.copy(results = emptyMap(), wrongMarks = emptyList(), result = null, pendingSectionStart = null, message = null) }
+        _ui.update { it.copy(results = emptyMap(), wrongMarks = emptyList(), fallingFeedback = emptyList(), result = null, pendingSectionStart = null, message = null) }
         runJob?.cancel()
         runJob = viewModelScope.launch {
             val cfg = services.inputConfig.load()
@@ -610,7 +617,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         } else if (phase != Phase.RESULT) {
             // Exam sight-reading stopped before any note counted: the music was seen, so the next try is new music.
             if ((source as? Source.Exam)?.part == ExamPart.SIGHT && (phase == Phase.COUNT_IN || phase == Phase.PLAYING)) sightNeedsLook = true
-            _ui.update { it.copy(phase = Phase.IDLE, countIn = null) }
+            _ui.update { it.copy(phase = Phase.IDLE, countIn = null, fallingFeedback = emptyList()) }
         }
     }
 
@@ -659,7 +666,14 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 metronomeOff = true
             }
             val missed = j.advance(now / 1_000_000)
-            if (missed.isNotEmpty()) _ui.update { u -> u.copy(results = u.results + missed.associateWith { NoteResult.MISSED }) }
+            if (missed.isNotEmpty()) {
+                val at = System.nanoTime()
+                val events = j.expected.filter { it.key in missed }.mapNotNull {
+                    FallingFeedback.judged(it.midi, NoteResult.MISSED, it.hand == Hand.LEFT, at)
+                }
+                _ui.update { u -> u.copy(results = u.results + missed.associateWith { NoteResult.MISSED },
+                    fallingFeedback = u.fallingFeedback.withFeedback(events, at)) }
+            }
             if (j.isFinished(now / 1_000_000)) break
             delay(16)
         }
@@ -718,7 +732,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val t0 = System.nanoTime() + 400_000_000L
         scheduleSection(s, from, to, t0, beatNanos)
         startClock(t0, beatNanos, from, to)
-        _ui.update { it.copy(phase = Phase.LISTENING, results = emptyMap(), result = null, pendingSectionStart = null) }
+        _ui.update { it.copy(phase = Phase.LISTENING, results = emptyMap(), fallingFeedback = emptyList(), result = null, pendingSectionStart = null) }
         runJob?.cancel()
         runJob = viewModelScope.launch {
             var start = t0
@@ -760,12 +774,16 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                         hitPitch[f.key] = e.note
                         j.expected.firstOrNull { it.key == f.key }?.beat?.takeIf { it in chordBeats }?.let { b -> chordHits.putIfAbsent(b, atMs) }
                         val done = if (j.setup.mode == PlayMode.WAIT && beforeGroup != null && j.currentGroup() !== beforeGroup) beforeGroup else null
-                        _ui.update { u -> u.copy(results = u.results + (done?.associate { it.key to j.outcome(it.key).result } ?: mapOf(f.key to f.result))) }
+                        val at = System.nanoTime()
+                        val event = FallingFeedback.judged(e.note, f.result, j.expected.firstOrNull { it.key == f.key }?.hand == Hand.LEFT, at)
+                        _ui.update { u -> u.copy(results = u.results + (done?.associate { it.key to j.outcome(it.key).result } ?: mapOf(f.key to f.result)),
+                            fallingFeedback = u.fallingFeedback.withFeedback(listOfNotNull(event), at)) }
                         if (done != null) onGroupDone(j, done.first().beat)
                     }
                     is Feedback.Wrong -> {
                         val mark = WrongMark(e.note, if (j.setup.mode == PlayMode.WAIT) waitBeat else f.press.beat, System.nanoTime())
-                        _ui.update { u -> u.copy(wrongMarks = (u.wrongMarks + mark).takeLast(6)) }
+                        _ui.update { u -> u.copy(wrongMarks = (u.wrongMarks + mark).takeLast(6),
+                            fallingFeedback = u.fallingFeedback.withFeedback(listOf(FallingFeedback(e.note, FallingVerdict.WRONG, false, mark.atNanos)), mark.atNanos)) }
                     }
                     Feedback.Ignored -> Unit
                 }
@@ -1099,7 +1117,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     fun backToSetup() {
         if (newSightLook()) return
-        if (_ui.value.phase == Phase.RESULT) _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap()) }
+        if (_ui.value.phase == Phase.RESULT) _ui.update { it.copy(phase = Phase.IDLE, result = null, results = emptyMap(), fallingFeedback = emptyList()) }
     }
 
     override fun onCleared() {

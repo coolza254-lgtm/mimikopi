@@ -170,7 +170,8 @@ class MetronomeSession(private val services: Services, private val scope: Corout
             if (stamps.size < 10 || ticks.size < 4) return null
             val fit = ClockFit.of(stamps.distinctBy { it.framePosition })
             val covered = ticks.filter { it <= stamps.maxOf { st -> st.framePosition } }
-            val report = JitterAnalysis.analyze(covered.map(fit::at), idealIntervalMs = 60_000.0 / s.bpm / s.ticksPerBeat).copy(method = METHOD)
+            // Ideal spacing on the card's own clock: a card running slightly fast or slow shows up as drift, not jitter.
+            val report = JitterAnalysis.analyze(covered.map(fit::at), idealIntervalMs = s.framesPerTick(rate) * fit.b / 1e6).copy(method = METHOD)
             val result = ClickTest(Instant.now().toString(), s.bpm, s.ticksPerBeat, rate, report,
                 fit.meanAbsMs, fit.maxAbsMs, (fit.b * rate / 1e9 - 1) * 1e6)
             db.put(SettingKeys.PC_CLICK_TEST, json.encodeToString(ClickTest.serializer(), result))
@@ -183,6 +184,6 @@ class MetronomeSession(private val services: Services, private val scope: Corout
     companion object {
         const val METHOD = "Click frames from the audio callback mapped to time through a least-squares line over the " +
             "output's (frame, System.nanoTime) stamps, the clock MIDI is judged on; jitter = deviation of click-to-click " +
-            "intervals from 60/bpm/subdivision."
+            "intervals from 60/bpm/subdivision on the output's own clock (its rate against the system clock is the drift)."
     }
 }

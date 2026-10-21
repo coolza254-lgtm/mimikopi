@@ -2,6 +2,16 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Heroic Polonaise (v0.26.8)
+- Two eight-bar arrangements use Op.53 measures 17–24, licensed CC BY 4.0 from the Fryderyk Chopin Institute's
+  first-edition data. The C version simplifies rhythm, chromatic passing notes and registers; Bb remains.
+  The Ab version adds chord voicings and more left-hand motion, but reduces ornaments, triplets, 32nd-note
+  figures and octave leaps. Neither is a complete or original-difficulty performance of Heroic Polonaise.
+- The classical path now has 13 suggestions. Wide chord practice benefits from MIDI; phone octave pages
+  remain available, with the existing limitations on hand movement and physical technique.
+- Editor round-trip tests now compare all audible fields while allowing score-local event IDs to change when
+  rests are re-barred. Practice content is an explicit Gradle test input so cached results cannot hide new scores.
+
 ## Classical repertoire (v0.26.7)
 - Eleven suggested steps cover simplified excerpts, not complete original works or official grades. All steps
   remain available; their order is an estimate for these arrangements, independent of tested skill levels.

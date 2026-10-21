@@ -1,8 +1,19 @@
 # ผลตรวจรอบปรับการฝึกบนมือถือ
 
+## Heroic Polonaise และการตรวจไฟล์เพลง (v0.26.8)
+- รัน `:core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease` ด้วย versionName 0.26.8 / code 2608
+- Core 198 + Android 44 = 242 tests ผ่าน ไม่มี failures/errors/skips; lint ไม่มี errors (332 warnings เดิม); release APK สร้างได้ในเครื่อง
+- ประกาศ `content` เป็น input ของทั้ง core/Android tests แล้ว รอบนี้ core รันกับเพลงใหม่จริง ไม่มีการใช้ผลเก่าที่ไม่รวมเพลงใหม่
+- ทำซ้ำ failure ของ release v0.26.7 ได้: Prelude in E minor จัดตัวหยุดประจุดเป็นตัวหยุดสองตัว ทำให้ event IDs เลื่อน ทั้ง pitch/onset/duration/hand ยังตรงกันทุกตัว
+- แก้การเปรียบเทียบให้คงตรวจทุก field ที่มีผลต่อเสียง และเพิ่ม regression ของห้องรับที่มีตัวหยุดประจุด โดยไม่ได้เปลี่ยน implementation หรือปิดการตรวจ round trip
+- ตรวจ Heroic ทั้งสองฉบับครบ 8 ห้องใน 3/4; ฉบับ C เป็นทำนองแนวเดียว ช่วงจำกัดและเบสค้าง; ฉบับ A♭ มีคอร์ด/จังหวะย่อย พร้อมเครดิต CC BY 4.0 ที่สถาบันกำหนด
+- หน้ารวมมี 13 ขั้น กด Heroic แต่ละฉบับแล้วเปิด piece ID/มือที่ถูกต้อง และ source dialog ยังทำงาน; native snapshots อยู่ที่ `docs/images/classical-*-v0.26.8.png`
+- ตรวจ APK ในเครื่องมี 29 เพลง รวม Heroic สองฉบับและข้อความเครดิต; การตรวจ APK ลงนามหลังเผยแพร่บันทึกแยกต่างหาก
+- ต้องลองบนเครื่องจริง: Heroic ฉบับ C มือขวาทีละ 2 ห้อง, เพิ่มเบสค้าง แล้วลอง MIDI/ฉบับ A♭; ไม่ได้อ้างว่าทดสอบเสียงจริง USB หรือการตีความบนเปียโนแล้ว
+
 ## คลาสสิกไล่ขั้น (v0.26.7)
 - รัน `:core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease` ด้วย versionName 0.26.7 / code 2607
-- Core 197 + Android 42 = 239 tests ผ่าน ไม่มี failures/errors/skips; lint ผ่าน ไม่มี errors (332 warnings เดิม)
+- บันทึกเดิม: Gradle แสดง core 197 + Android 42 ผ่าน แต่ core ใช้ผลแคชที่ยังไม่รวมเพลงใหม่; release ที่รันจริงพบ round-trip test เทียบ event ID ต่างกัน แก้การทดสอบและประกาศ content inputs ใน v0.26.8; lint/build ในเครื่องผ่าน (332 warnings เดิม)
 - ทดสอบว่าเพลงทั้ง 11 ขั้น resolve ได้จริง วาดโน้ตครบ และความยาวทุกห้องของทั้งสองมือตรงกับอัตราจังหวะ
 - ตรวจ Ode to Joy ฉบับเริ่มต้นใช้เฉพาะ C–G ห้าโน้ต ไม่มีจังหวะย่อยเร็ว และ Chopin สองฉบับมี pitch/onset/duration ของทำนองเดียวกัน
 - ทดสอบเปิดเพลงด้วยมือที่แนะนำ สลับทุกเพลง เปิด/ปิดเครดิตโดยไม่เริ่มเล่น และคงรายชื่อ/มือที่บทเรียนกำหนด

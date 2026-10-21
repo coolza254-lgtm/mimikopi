@@ -1,0 +1,33 @@
+{
+  "id": "heroic-polonaise-easy",
+  "title": "Heroic Polonaise · ท่อนหลักฉบับง่ายใน C",
+  "composer": "Frédéric Chopin · Polonaise Op.53 · แอปเรียบเรียงท่อนหลัก",
+  "source": "Public domain composition (Chopin, Op.53). First Editions of Fryderyk Chopin's Music; Copyright 2017-2021 The Fryderyk Chopin Institute (https://nifc.pl); Website: https://chopinscores.org; Digital scores: https://github.com/pl-wnifc/humdrum-chopin-first-editions; License: https://creativecommons.org/licenses/by/4.0/. Encoded by Wojciech Jakubiak-Danek (2019-08-15), edited by Mateusz Mrugas (2020-04-04). แหล่งโน้ตฉบับแรก Breitkopf & Härtel ห้อง 17–24: https://github.com/pl-wnifc/humdrum-chopin-first-editions/blob/95dfb105c1669c72d10b04088566154f12d3dc1c/kern/053-1-BH.krn . แอปเรียบเรียงท่อนหลัก 8 ห้อง ไม่ใช่ฉบับเต็ม ตัดเลขนิ้ว สเลอร์ ไดนามิก เพดัล และเครื่องประดับ ไม่ได้วัดการตีความหรือพลังเสียงของต้นฉบับ การเรียบเรียงใหม่นี้ใช้ CC BY 4.0 เช่นเดียวกับข้อมูลโน้ตต้นทาง แอปย้ายคีย์จาก A♭ เป็น C ย่อทำนองเหลือแนวเดียว ตัดโน้ตผ่านโครมาติกบางตัว ย่อจังหวะประจุด/กลุ่มเร็วเป็นโน้ตดำและเขบ็ตหนึ่งชั้น ย้ายบางโน้ตขึ้นหรือลงอ็อกเทฟเพื่อจำกัดช่วง C4–E5 และเพิ่มเบสค้างเอง ยังมี B♭ ในทำนอง จึงไม่ใช่แบบคีย์ขาวล้วน",
+  "level": "L5",
+  "key": 0,
+  "time": [
+    3,
+    4
+  ],
+  "tempo": 66,
+  "rh": [
+    "A4/q G4/q E4/e F4/e",
+    "A4/e G4/e G4/q E4/e F4/e",
+    "A4/e G4/e A4/e G4/e G4/e Bb4/e",
+    "A4/e E4/e F4/e Bb4/e A4/e F4/e",
+    "Bb4/q A4/q F4/e G4/e",
+    "Bb4/e A4/e A4/q B4/e C5/e",
+    "E5/q D5/q C5/q",
+    "B4/q A4/q F4/q"
+  ],
+  "lh": [
+    "C3/h.",
+    "C3/h.",
+    "C3/h.",
+    "A2/h.",
+    "D3/h.",
+    "D3/h.",
+    "G2/h.",
+    "D3/h."
+  ]
+}

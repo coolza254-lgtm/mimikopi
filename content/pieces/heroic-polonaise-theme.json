@@ -1,0 +1,33 @@
+{
+  "id": "heroic-polonaise-theme",
+  "title": "Heroic Polonaise · ท่อนหลักฉบับฝึกใน A♭",
+  "composer": "Frédéric Chopin · Polonaise Op.53 · แอปเรียบเรียงท่อนหลัก",
+  "source": "Public domain composition (Chopin, Op.53). First Editions of Fryderyk Chopin's Music; Copyright 2017-2021 The Fryderyk Chopin Institute (https://nifc.pl); Website: https://chopinscores.org; Digital scores: https://github.com/pl-wnifc/humdrum-chopin-first-editions; License: https://creativecommons.org/licenses/by/4.0/. Encoded by Wojciech Jakubiak-Danek (2019-08-15), edited by Mateusz Mrugas (2020-04-04). แหล่งโน้ตฉบับแรก Breitkopf & Härtel ห้อง 17–24: https://github.com/pl-wnifc/humdrum-chopin-first-editions/blob/95dfb105c1669c72d10b04088566154f12d3dc1c/kern/053-1-BH.krn . แอปเรียบเรียงท่อนหลัก 8 ห้อง ไม่ใช่ฉบับเต็ม ตัดเลขนิ้ว สเลอร์ ไดนามิก เพดัล และเครื่องประดับ ไม่ได้วัดการตีความหรือพลังเสียงของต้นฉบับ การเรียบเรียงใหม่นี้ใช้ CC BY 4.0 เช่นเดียวกับข้อมูลโน้ตต้นทาง แอปคงคีย์ A♭ และจังหวะหลักของทำนอง ตัดโน้ตประดับ ย่อกลุ่มทริเปิลและโน้ตสามชั้นบางช่วงเป็นเขบ็ตหนึ่งชั้น ยุบเสียงซ้อนบางจุด ลดอ็อกเทฟและการกระโดดมือซ้าย ทั้งสองฉบับจบท่อนก่อนจบวลีใหญ่ ไม่ได้เป็นการรับรองว่าเล่นต้นฉบับได้",
+  "level": "L8",
+  "key": -4,
+  "time": [
+    3,
+    4
+  ],
+  "tempo": 72,
+  "rh": [
+    "Db5+F5/e. C5+Eb5/s C5+Eb5/q r/e Ab4+C5/s Bb4+Db5/s",
+    "Db5+F5/s C5+Eb5/s C5+Eb5/s B4+D5/s C5+Eb5/q r/e Ab4+C5/s Bb4+Db5/s",
+    "Db5+F5/s C5+Eb5/s C5+Eb5/s B4+D5/s Db5+F5/s C5+Eb5/s C5+Eb5/s B4+D5/s C5+Eb5/e Eb4+Bb4+Gb5/e",
+    "Eb4+A4+F5/e F4+Ab4+C5/e F4+Bb4+Db5/e Gb4/e F4/e Db4/e",
+    "Eb5+Gb5/e. Db5+F5/s Db5+F5/q r/e Bb4+Db5/s C5+Eb5/s",
+    "Eb5+Gb5/s Db5+F5/s Db5+F5/s C5+E5/s Db5+F5/q r/e G4+Db5+G5/s Ab4+Ab5/s",
+    "C5+C6/e Eb5+G5/e Bb4+Bb5/e C5+Eb5/e Ab4+Ab5/e Bb4+Eb5/e",
+    "G4+G5/e Bb4+D5/e F4+F5/e G4+Bb4/e Db4+Db5/e F4+Ab4/e"
+  ],
+  "lh": [
+    "Ab2/e Eb3/e Ab3+C4/e Eb3/e Ab2/e Eb2/e",
+    "Ab2/e Eb3/e Ab3+C4/e Eb3/e Ab2/e Eb2/e",
+    "Ab2/e Eb3/e Ab3+C4/e Eb3/e Ab2/e Gb2+Bb2+Eb3/e",
+    "F2/e F3+A3+C4/e Bb2+F3+Bb3/e Gb2/e F2/e Db3/e",
+    "Bb2/e F3/e Bb3+Db4/e F3/e Bb2/e F2/e",
+    "Bb2/e F3/e Bb3+Db4/e F3/e Bb2/e Bb2/e",
+    "Eb2/e G3+Db4+Eb4/e Eb3/e Eb3+C4/e Eb3/e Eb3+Bb3/e",
+    "Bb2/e D3+Ab3+Bb3/e Eb3/e G3+Bb3/e F2/e Ab3/e"
+  ]
+}

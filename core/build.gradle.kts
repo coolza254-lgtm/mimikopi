@@ -20,3 +20,10 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit)
 }
+
+// Tests read the editable practice library directly; content changes must invalidate cached results.
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    inputs.dir(rootProject.layout.projectDirectory.dir("content"))
+        .withPropertyName("practiceContent")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}

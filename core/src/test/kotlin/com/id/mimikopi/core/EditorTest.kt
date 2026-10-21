@@ -17,6 +17,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 private fun p(s: String) = SpelledPitch.parse(s)
@@ -77,8 +78,22 @@ class TimelineTest {
         for (f in File("../content/pieces").listFiles()!! + File("../content/exercises").listFiles()!!) {
             val piece = PieceFile.parse(f.readText())
             val back = Timeline.fromPiece(piece).toPieceFile()
-            assertEquals(Score.from(piece).sounding(), Score.from(back).sounding(), f.name)
+            // Re-barring may split rests and assign new event IDs; compare every audible field.
+            assertEquals(Score.from(piece).sounding().map { it.copy(eventId = 0) },
+                Score.from(back).sounding().map { it.copy(eventId = 0) }, f.name)
         }
+    }
+
+    @Test
+    fun rebarredDottedRestChangesOnlyLocalEventIds() {
+        val piece = PieceFile("pickup", "Pickup", "", "Original", "L1",
+            rh = listOf("r/h. B3/e. B4/s"), lh = listOf("r/w"))
+        val before = Score.from(piece).sounding()
+        val back = Timeline.fromPiece(piece).toPieceFile()
+        val after = Score.from(back).sounding()
+        assertEquals(listOf("r/h r/q B3/e. B4/s"), back.rh)
+        assertNotEquals(before.map { it.eventId }, after.map { it.eventId })
+        assertEquals(before.map { it.copy(eventId = 0) }, after.map { it.copy(eventId = 0) })
     }
 }
 

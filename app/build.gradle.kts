@@ -116,3 +116,10 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
 }
+
+// Tests read the editable practice library directly; content changes must invalidate cached results.
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    inputs.dir(rootProject.layout.projectDirectory.dir("content"))
+        .withPropertyName("practiceContent")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}

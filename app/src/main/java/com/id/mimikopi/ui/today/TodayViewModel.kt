@@ -139,7 +139,6 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         return DailyPlan.build(
             PlanInput(
                 minutes = minutes,
-                warmup = PlanContent.warmup(lessons, records),
                 reviewDue = learning.readingDueItems().size,
                 ladder = ladder,
                 sightLevel = PlanContent.sightLevel(lessons, records, level(SkillId.SIGHT)),

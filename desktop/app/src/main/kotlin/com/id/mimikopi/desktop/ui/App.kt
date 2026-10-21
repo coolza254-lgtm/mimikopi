@@ -38,7 +38,6 @@ import com.id.mimikopi.desktop.ui.screens.EarSessionScreen
 import com.id.mimikopi.desktop.ui.screens.MetronomeScreen
 import com.id.mimikopi.desktop.ui.screens.ProgressScreen
 import com.id.mimikopi.desktop.ui.screens.FreePianoScreen
-import com.id.mimikopi.desktop.ui.screens.LatencyScreen
 import com.id.mimikopi.desktop.ui.screens.LessonScreen
 import com.id.mimikopi.desktop.ui.screens.LessonsScreen
 import com.id.mimikopi.desktop.ui.screens.ReaderScreen
@@ -69,7 +68,7 @@ fun App(ctx: AppContext) {
         CompositionLocalProvider(LocalApp provides ctx) {
             val screen = ctx.nav.current
             // Music pages use the whole window; the rail would only take room from the notes.
-            val full = screen is Screen.Reader || screen is Screen.Drill || screen is Screen.Latency || screen is Screen.Ear
+            val full = screen is Screen.Reader || screen is Screen.Drill || screen is Screen.Ear
             Row(Modifier.fillMaxSize().background(Tokens.Palette.Paper)) {
                 if (!full) Rail(ctx)
                 Box(Modifier.weight(1f).fillMaxHeight()) {
@@ -89,7 +88,6 @@ fun App(ctx: AppContext) {
                             is Screen.Lesson -> LessonScreen(screen.id)
                             is Screen.Drill -> DrillScreen(screen.source, screen.via)
                             is Screen.Reader -> ReaderScreen(screen.args)
-                            Screen.Latency -> LatencyScreen()
                             Screen.Recall -> RecallScreen()
                             Screen.Metronome -> MetronomeScreen()
                             is Screen.Skill -> SkillDetailScreen(screen.id)

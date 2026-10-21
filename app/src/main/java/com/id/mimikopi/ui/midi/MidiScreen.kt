@@ -63,7 +63,6 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
     val config by vm.config.collectAsStateWithLifecycle()
     val probe by vm.probe.collectAsStateWithLifecycle()
     val octave by vm.octave.collectAsStateWithLifecycle()
-    val latency by vm.latency.collectAsStateWithLifecycle()
     var showSim by remember { mutableStateOf(false) }
     val bleFound by vm.bleFound.collectAsStateWithLifecycle()
     val bleScanning by vm.bleScanning.collectAsStateWithLifecycle()
@@ -219,7 +218,6 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
         PageCard(title = stringResource(R.string.calib_title)) {
             Body(stringResource(R.string.calib_status, config.octaveOffset,
                 config.velocityProbe?.let { if (it.velocitySensitive) stringResource(R.string.calib_vel_yes) else stringResource(R.string.calib_vel_no) } ?: stringResource(R.string.calib_unknown)))
-            config.latencyMs.forEach { (k, v) -> Body(stringResource(R.string.calib_latency_line, k, "%.0f".format(v)), muted = true) }
 
             Section(stringResource(R.string.probe_title))
             when (val p = probe) {
@@ -238,20 +236,6 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
                 is OctaveUi.Rejected -> Body(stringResource(R.string.octave_rejected, o.note), error = true)
             }
             OutlinedButton(onClick = vm::startOctave, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.octave_start)) }
-
-            Section(stringResource(R.string.latency_title))
-            Body(stringResource(R.string.latency_help), muted = true)
-            when (val l = latency) {
-                LatencyUi.Idle -> Unit
-                is LatencyUi.CountIn -> Body(stringResource(R.string.latency_countin, l.beat))
-                is LatencyUi.Tapping -> Body(stringResource(R.string.latency_tapping, l.clicks, MidiViewModel.CLICKS, l.taps))
-                is LatencyUi.Done -> Body(stringResource(R.string.latency_done, "%.0f".format(l.result.offsetMs), "%.0f".format(l.result.spreadMs), l.result.taps, l.key))
-                LatencyUi.Failed -> Body(stringResource(R.string.latency_failed), error = true)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
-                Button(onClick = vm::startLatency, modifier = Modifier.weight(1f).heightIn(min = Tokens.minTouch)) { Text(stringResource(R.string.latency_start)) }
-                OutlinedButton(onClick = vm::tapPad, modifier = Modifier.weight(1f).heightIn(min = 72.dp)) { Text(stringResource(R.string.latency_tap_pad)) }
-            }
         }
 
         PageCard(title = stringResource(R.string.monitor_title)) {

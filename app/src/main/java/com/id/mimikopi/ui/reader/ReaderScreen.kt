@@ -406,14 +406,12 @@ private fun ResultPanel(
         com.id.mimikopi.ui.components.PrimaryButton(
             text = when {
                 vm.benchDone -> stringResource(R.string.reader_done)
-                next?.checkLatency == true -> "ตรวจและวัดความหน่วง"
                 action != null -> actionLabel(action, ui.options.mode == PlayMode.TEMPO)
                 else -> stringResource(if (vm.nextLabelIsNew()) R.string.reader_new_piece else R.string.reader_again)
             },
             onClick = {
                 when {
                     vm.benchDone -> onBack()
-                    next?.checkLatency == true -> onOpenMidi()
                     action != null -> vm.applyAction(action)
                     else -> vm.start()
                 }

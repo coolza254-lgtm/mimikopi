@@ -16,15 +16,23 @@ interface NoteOutput {
     fun sustain(down: Boolean)
 }
 
-/** How the output is opened (Settings → เสียง). Kept per computer, never synced. */
-data class AudioPrefs(val periodFrames: Int = 256, val exclusive: Boolean = true) {
+/** How the output is opened. The program uses [LOCKED]; the other values remain for tests and the engine's API. */
+data class AudioPrefs(val periodFrames: Int = 256, val exclusive: Boolean = false) {
     fun encode() = "$periodFrames|$exclusive"
 
     companion object {
         val PERIODS = listOf(128, 256, 512)
+
+        /**
+         * The one setting the program uses: WASAPI shared mode with 256-frame periods (about 5 ms at 48 kHz on top of
+         * the system mixer). Exclusive mode would save a few milliseconds but silences every other program (a video
+         * in the browser while learning a song), and the engine's clock already includes the output delay, so
+         * nothing needs measuring.
+         */
+        val LOCKED = AudioPrefs(256, exclusive = false)
         fun decode(s: String?): AudioPrefs {
             val p = s?.split('|') ?: return AudioPrefs()
-            return AudioPrefs(p.getOrNull(0)?.toIntOrNull()?.takeIf { it in PERIODS } ?: 256, p.getOrNull(1)?.toBooleanStrictOrNull() ?: true)
+            return AudioPrefs(p.getOrNull(0)?.toIntOrNull()?.takeIf { it in PERIODS } ?: 256, p.getOrNull(1)?.toBooleanStrictOrNull() ?: false)
         }
     }
 }

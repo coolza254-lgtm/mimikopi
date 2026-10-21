@@ -969,7 +969,6 @@ class ReaderSession(
     private fun coachLines(s: Score, r: PlayResult, slowerBpm: Int, newBpm: Int?, helper: Boolean, drill: Boolean = false): List<CoachLine> {
         if (!r.hasNoteInput) return listOf(CoachLine("รอบนี้ยังไม่มีกดโน้ต จึงไม่เพิ่มเวลาซ้อม ลองเริ่มอีกครั้งแล้วเล่นตามโน้ต"))
         val out = mutableListOf<CoachLine>()
-        val unknownLatency = latencies.values.all { it == 0.0 }
         for (a in Coach.advise(r, slowerBpm)) {
             if (drill) {
                 when (a) {
@@ -984,11 +983,7 @@ class ReaderSession(
                 is Advice.TroubleNote -> CoachLine("โน้ต ${a.pitch.name(NoteNameStyle.BOTH, withOctave = true)} พลาดบ่อย เพิ่มเข้ารายการทบทวนแล้ว (ฝึกได้ที่หน้า \"วันนี้\")")
                 is Advice.ConsistentlyOff -> {
                     val dir = if (a.early) "เร็วกว่า" else "ช้ากว่า"
-                    CoachLine(
-                        if (unknownLatency) "ส่วนใหญ่กด${dir}จังหวะเท่าๆ กัน (ราว ${kotlin.math.abs(a.meanOffsetMs)} ms) อาจเป็นความหน่วงของเครื่อง ลองวัดความหน่วงที่หน้า \"เสียงและ MIDI\" ก่อน"
-                        else "ส่วนใหญ่กด${dir}จังหวะ ลองนับออกเสียงหรือเคาะเท้าไปด้วย",
-                        checkLatency = unknownLatency,
-                    )
+                    CoachLine("ส่วนใหญ่กด${dir}จังหวะ ลองนับออกเสียงหรือเคาะเท้าไปด้วย")
                 }
                 is Advice.Chain -> CoachLine("พลาดตรงรอยต่อบาร์ ${a.fromMeasure + 1}–${a.toMeasure + 1} ฝึกคร่อมรอยต่อช้าลงก่อน", ResultAction.Loop(a.fromMeasure, a.toMeasure, slowerBpm))
                 is Advice.HandAlone -> {

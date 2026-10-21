@@ -246,7 +246,6 @@ private fun ResultBar(r: ReaderSession, ui: ReaderUi) {
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("แก้ก่อน: ${c.text}", fontSize = 16.sp, color = Tokens.Palette.Ink, modifier = Modifier.widthIn(max = 700.dp))
                 if (c.action != null && !r.fixed) SecondaryButton("ฝึกตรงนี้", onClick = { r.applyAction(c.action!!) })
-                if (c.checkLatency) SecondaryButton("วัดความหน่วง", onClick = { app.nav.open(com.id.mimikopi.desktop.ui.Screen.Latency) })
             }
         }
         res.coach.filter { it != next }.forEach { Text("• ${it.text}", fontSize = 15.sp, color = Tokens.Palette.Ink) }

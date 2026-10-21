@@ -46,11 +46,15 @@ object PracticeLog {
     }
 }
 
-/** Parts of a day's practice, in the order they are done. */
+/**
+ * Parts of a day's practice, in the order they are done: from easy to hard, so the day starts with notes already
+ * known. [WARMUP] is no longer planned (a finger drill first was too hard before reading is fluent); it stays so
+ * older stored plans and logs still read.
+ */
 enum class BlockKind(val log: String, val title: String, val why: String) {
     WARMUP("warmup", "วอร์มนิ้ว", "นิ้วพร้อม หัวพร้อม ก่อนเรื่องยาก"),
+    REVIEW("review", "ทวนโน้ตที่รู้แล้ว", "เริ่มจากง่าย ทีละตัว ให้ตาและมือเข้ากัน"),
     CHECK("check", "ทดสอบวัดระดับ", "วัดว่าเก่งขึ้นจริงไหม ทำตอนยังสดอยู่"),
-    REVIEW("review", "ทวนโน้ตและคีย์", "ทวนตามกำหนด ก่อนจะลืม"),
     LADDER("ladder", "ขั้นหลัก", "เรื่องใหม่ของวันนี้ ฝึกจนผ่านเกณฑ์"),
     SIGHT("sight", "อ่านโน้ตใหม่", "โน้ตที่ไม่เคยเห็น เล่นครั้งเดียวแล้วไปต่อ"),
     CHORDS("chords", "คอร์ด", "กดคอร์ดให้คล่องมือ"),
@@ -65,8 +69,6 @@ data class PlanBlock(val kind: BlockKind, val minutes: Int, val target: String? 
 /** What today's practice can contain. */
 data class PlanInput(
     val minutes: Int,
-    /** Warm-up drill ("lessonId/drillIndex"), null when the ladder has none yet. */
-    val warmup: String?,
     val reviewDue: Int,
     /** The ladder has a step or confirmation for today. */
     val ladder: Boolean,
@@ -83,10 +85,10 @@ data class PlanInput(
 )
 
 /**
- * Builds a day's practice from the time the user has (10-60 minutes): a short warm-up, the due test while fresh,
- * the review, the main ladder step (the largest part), new reading, chords, ear, and a song to end with. The weakest
- * skill's part gets more time. Short days keep only the warm-up, the test, the step and the weakest part, so even
- * ten minutes is a real session.
+ * Builds a day's practice from the time the user has (10-60 minutes), easy to hard: the review of notes already
+ * known, the due test, the main ladder step (the largest part), new reading, chords, ear, and a song to end with.
+ * The weakest skill's part gets more time. Short days keep only the test, the step and the weakest part, so even
+ * ten minutes is a real session. There is no separate warm-up: the review is the gentle start.
  */
 object DailyPlan {
     val CHOICES = listOf(10, 20, 30, 45, 60)
@@ -95,8 +97,7 @@ object DailyPlan {
         SkillId.KEYS, SkillId.NOTES -> BlockKind.REVIEW
         SkillId.RHYTHM -> BlockKind.LADDER
         SkillId.SIGHT -> BlockKind.SIGHT
-        // Warm-up has a fixed short duration. Give technique's extra time to the main practice,
-        // where finger/scale drills live, so its boost does not disappear into a fixed block.
+        // Finger and scale drills live in the main practice, so technique's extra time goes there.
         SkillId.TECH -> BlockKind.LADDER
         SkillId.EAR -> BlockKind.EAR
         SkillId.CHORDS -> BlockKind.CHORDS
@@ -107,7 +108,6 @@ object DailyPlan {
         val total = input.minutes.coerceIn(10, 60)
         val weak = blockFor(input.weakest)
         val candidates = buildList {
-            if (input.warmup != null) add(BlockKind.WARMUP to input.warmup)
             if (input.check != null) add(BlockKind.CHECK to input.check)
             if (input.reviewDue > 0) add(BlockKind.REVIEW to null)
             if (input.ladder) add(BlockKind.LADDER to null)
@@ -117,10 +117,10 @@ object DailyPlan {
             add(BlockKind.SONG to null)
         }
         // Short days: the essentials and the weakest part only.
-        val kept = (if (total <= 10) candidates.filter { it.first in setOf(BlockKind.WARMUP, BlockKind.CHECK, BlockKind.LADDER) || it.first == weak }
+        val kept = (if (total <= 10) candidates.filter { it.first in setOf(BlockKind.CHECK, BlockKind.LADDER) || it.first == weak }
             .ifEmpty { candidates.take(2) }
         else if (total <= 20) candidates.filter { it.first != BlockKind.SONG || candidates.size <= 3 } else candidates).toMutableList()
-        val fixed = mapOf(BlockKind.WARMUP to (if (total >= 30) 3 else 2), BlockKind.CHECK to 3)
+        val fixed = mapOf(BlockKind.CHECK to 3)
         // When only fixed activities are available (e.g. a beginner's short day), finish with a song
         // instead of silently leaving most of the chosen time unallocated.
         if (kept.all { it.first in fixed }) kept += BlockKind.SONG to null
@@ -162,8 +162,9 @@ object DailyPlan {
     @Serializable
     data class Stored(val date: String, val minutes: Int, val blocks: List<PlanBlock>)
 
+    /** A stored plan that no longer fits the rules (wrong totals, or an old warm-up block) is null: it is built again. */
     fun parse(text: String?): Stored? = text?.let { runCatching { json.decodeFromString(Stored.serializer(), it) }.getOrNull() }
-        ?.takeIf { s -> s.minutes in CHOICES && s.blocks.isNotEmpty() && s.blocks.all { it.minutes >= 2 } &&
+        ?.takeIf { s -> s.minutes in CHOICES && s.blocks.isNotEmpty() && s.blocks.all { it.minutes >= 2 && it.kind != BlockKind.WARMUP } &&
             s.blocks.map { it.kind }.distinct().size == s.blocks.size && s.blocks.sumOf { it.minutes } == s.minutes }
     fun encode(s: Stored): String = json.encodeToString(Stored.serializer(), s)
 
@@ -179,26 +180,6 @@ object DailyPlan {
 object PlanContent {
     private fun readLevel(l: com.id.mimikopi.core.lesson.Lesson): Int? =
         l.drills.filter { it.type == com.id.mimikopi.core.lesson.ExerciseType.E_READ_PIECE }.maxOfOrNull { it.level.removePrefix("L").toInt() }
-
-    /**
-     * Warm-up: the five-finger or scale drill of the latest step reached that has one ("lessonId/drillIndex"), or the
-     * first step's own when nothing is reached yet.
-     */
-    fun warmup(lessons: List<com.id.mimikopi.core.lesson.Lesson>, records: Map<String, com.id.mimikopi.core.lesson.LessonRecord>): String? {
-        val current = com.id.mimikopi.core.lesson.ProgressRules.current(lessons, records)
-        val reached = lessons.filter { (records[it.id]?.attempts ?: 0) > 0 || it == current }
-        fun find(from: List<com.id.mimikopi.core.lesson.Lesson>): String? {
-            for (l in from.reversed()) {
-                val i = l.drills.indexOfLast {
-                    it.type == com.id.mimikopi.core.lesson.ExerciseType.E_FINGER_PATTERN ||
-                        (it.type == com.id.mimikopi.core.lesson.ExerciseType.E_PIECE && it.pieces.all { p -> p.startsWith("ex-") })
-                }
-                if (i >= 0) return "${l.id}/$i"
-            }
-            return null
-        }
-        return find(reached) ?: find(lessons.take(8))
-    }
 
     /** New reading one level below the highest reading level reached on the ladder (L1 at least), or the sight level held. */
     fun sightLevel(lessons: List<com.id.mimikopi.core.lesson.Lesson>, records: Map<String, com.id.mimikopi.core.lesson.LessonRecord>, sightHeld: Int): Int? {

@@ -44,11 +44,11 @@ class ReaderPracticeTest {
         assertEquals(waiting.section, timed.section)
     }
 
-    @Test fun aPossibleDeviceDelayIsCheckedBeforeRecommendingMorePractice() {
+    @Test fun theNextStepIsTheFirstAdviceThatCanBePractised() {
         val loop = CoachLine("ฝึกบาร์ที่พลาด", ResultAction.Loop(1, 1, 60))
-        val latency = CoachLine("ตรวจความหน่วงก่อน", checkLatency = true)
-        val result = ResultUi("ผล", "", false, listOf(loop, latency), null)
-        assertEquals(latency, result.nextStep)
-        assertEquals(loop, result.copy(coach = listOf(loop)).nextStep)
+        val tip = CoachLine("ส่วนใหญ่กดช้ากว่าจังหวะ ลองนับออกเสียงหรือเคาะเท้าไปด้วย")
+        val result = ResultUi("ผล", "", false, listOf(tip, loop), null)
+        assertEquals(loop, result.nextStep)
+        assertEquals(tip, result.copy(coach = listOf(tip)).nextStep)
     }
 }

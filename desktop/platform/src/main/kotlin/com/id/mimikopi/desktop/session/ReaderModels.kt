@@ -58,7 +58,7 @@ sealed interface ResultAction {
     data class Tempo(val bpm: Int) : ResultAction
 }
 
-data class CoachLine(val text: String, val action: ResultAction? = null, val checkLatency: Boolean = false)
+data class CoachLine(val text: String, val action: ResultAction? = null)
 
 data class ResultUi(
     val headline: String,
@@ -68,7 +68,7 @@ data class ResultUi(
     val progressLine: String?,
 ) {
     /** A device timing check comes before advice to practise around a possible device delay. */
-    val nextStep: CoachLine? get() = coach.firstOrNull { it.checkLatency } ?: coach.firstOrNull { it.action != null } ?: coach.firstOrNull()
+    val nextStep: CoachLine? get() = coach.firstOrNull { it.action != null } ?: coach.firstOrNull()
 }
 
 /** A key pressed that the score did not ask for, drawn on the score for a moment. */

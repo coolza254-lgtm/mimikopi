@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.id.mimikopi.core.backup.BackupCheck
 import com.id.mimikopi.core.music.NoteNameStyle
-import com.id.mimikopi.desktop.audio.AudioPrefs
 import com.id.mimikopi.desktop.audio.PackProgress
 import com.id.mimikopi.desktop.input.ComputerKeyboard
 import com.id.mimikopi.desktop.learning.SettingKeys
@@ -63,7 +62,6 @@ fun SettingsScreen() {
     val audio by s.piano.status.collectAsState()
     val ports by s.midi.ports.collectAsState()
     val lowC by s.keysLowC.collectAsState()
-    val config by s.inputConfig.config.collectAsState()
     val nameStyle by s.nameStyle.collectAsState()
     var packState by remember { mutableStateOf<String?>(null) }
     var packBusy by remember { mutableStateOf(false) }
@@ -72,29 +70,18 @@ fun SettingsScreen() {
     var pendingRestore by remember { mutableStateOf<com.id.mimikopi.core.backup.BackupFile?>(null) }
     var midiSound by remember { mutableStateOf(s.hub.soundThrough) }
     var sound by remember { mutableStateOf(s.piano.sound) }
-    val prefs = s.piano.prefs
 
     Page {
-        LargeTitle("ตั้งค่า", "เสียง · เปียโน MIDI · ความหน่วง · ข้อมูลในเครื่อง")
+        LargeTitle("ตั้งค่า", "เสียง · เปียโน MIDI · ข้อมูลในเครื่อง")
 
         GroupHeader("เสียงของโปรแกรม")
         Group {
             GroupRow("สถานะ", when {
                 audio.error != null -> audio.error
-                audio.open -> "${if (audio.exclusive) "WASAPI exclusive" else "WASAPI shared"} · ${audio.sampleRate} Hz · บัฟเฟอร์ ${audio.periodFrames}×${audio.periods}" +
-                    (audio.bufferMs?.let { " ≈ ${"%.1f".format(it)} ms" } ?: "")
+                audio.open -> "พร้อม · หน่วงราว ${audio.bufferMs?.let { "%.0f".format(it) } ?: "–"} ms"
                 else -> "เปิดเมื่อหน้าที่ใช้เสียงเปิดอยู่"
             })
             GroupDivider()
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("โหมด", modifier = Modifier.width(140.dp))
-                Segmented(listOf(true, false), prefs.exclusive, { if (it) "Exclusive (หน่วงน้อย)" else "Shared (ใช้ร่วมโปรแกรมอื่น)" },
-                    { s.setAudioPrefs(prefs.copy(exclusive = it)) }, Modifier.weight(1f))
-            }
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("บัฟเฟอร์", modifier = Modifier.width(140.dp))
-                Segmented(AudioPrefs.PERIODS, prefs.periodFrames, { "$it" }, { s.setAudioPrefs(prefs.copy(periodFrames = it)) }, Modifier.weight(1f))
-            }
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("ความดัง", modifier = Modifier.width(140.dp))
                 Slider(sound.volume, { sound = sound.copy(volume = it); s.setPianoSound(sound) }, modifier = Modifier.weight(1f))
@@ -143,7 +130,7 @@ fun SettingsScreen() {
                 }
             })
         }
-        GroupFooter("Exclusive ให้ความหน่วงต่ำสุดแต่โปรแกรมอื่นจะไม่มีเสียงระหว่างนั้น ถ้าเปิดไม่ได้จะใช้ Shared ให้เอง · เปลี่ยนโหมดหรือบัฟเฟอร์แล้วควรวัดความหน่วงใหม่")
+        GroupFooter("ตั้งค่าเสียงให้หน่วงน้อยที่สุดเองแล้ว ไม่ต้องวัดหรือปรับ · โปรแกรมอื่นยังมีเสียงได้ตามปกติ")
 
         GroupHeader("เปียโน MIDI")
         Group {
@@ -159,22 +146,6 @@ fun SettingsScreen() {
                 trailing = { Toggle("", midiSound) { midiSound = it; s.setMidiSound(it) } })
         }
         GroupFooter("ต่อ MIDI แล้ว หน้าฝึกจะซ่อนคีย์บนจอให้โน้ตใหญ่ขึ้น โจทย์ เฉลย ตัวอย่าง และคลิกยังออกจากลำโพงคอมพิวเตอร์")
-
-        GroupHeader("ความหน่วง")
-        Group {
-            val route = s.routeKey()
-            val measured = config.latencyMs.filterKeys { it.endsWith("|$route") }
-            GroupRow("วัดความหน่วงของเส้นทางเสียงนี้", "กดตามคลิก 16 ครั้ง · ผลต่อแหล่งกด (MIDI / แป้นพิมพ์ / เมาส์) และโหมดเสียง",
-                onClick = { app.nav.open(Screen.Latency) })
-            measured.forEach { (k, v) ->
-                GroupDivider()
-                GroupRow(k.substringBefore('|').let { sourceName(it) }, "เส้นทาง $route", value = "${"%.0f".format(v)} ms")
-            }
-            if (measured.isEmpty()) {
-                GroupDivider()
-                GroupRow("ยังไม่ได้วัดสำหรับ $route", "การตัดสินจังหวะยังไม่หักความหน่วง ผลอาจเลื่อนไปทางช้า")
-            }
-        }
 
         GroupHeader("เล่นด้วยแป้นพิมพ์คอมพิวเตอร์")
         Group {

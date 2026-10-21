@@ -68,7 +68,7 @@ class Services(
         learning.load()
         pieces.load()
         progress.load()
-        piano.prefs = AudioPrefs.decode(db.get(SettingKeys.PC_AUDIO))
+        piano.prefs = AudioPrefs.LOCKED
         piano.sound = PianoSound.parse(db.get(SettingKeys.PIANO_SOUND))
         hub.soundThrough = db.get(SettingKeys.PC_MIDI_SOUND) == "true"
         hub.velocity = VelocityMode.parse(db.get(SettingKeys.VELOCITY_MODE))
@@ -92,24 +92,18 @@ class Services(
         db.put(SettingKeys.PC_MIDI_SOUND, on.toString())
     }
 
-    fun setAudioPrefs(prefs: AudioPrefs) {
-        db.put(SettingKeys.PC_AUDIO, prefs.encode())
-        piano.reopen(prefs)
-    }
-
     fun setPianoSound(sound: PianoSound) {
         piano.sound = sound
         db.put(SettingKeys.PIANO_SOUND, sound.encode())
     }
 
     /**
-     * The output path latency is measured for: exclusive or shared mode and the buffer size change how late the
-     * program's clicks are heard, so each combination has its own measurement (like Android's output routes).
+     * Extra delay to subtract for [source]: none. The output is locked ([AudioPrefs.LOCKED]) and the engine's clock
+     * already counts the time until a sound is heard; USB MIDI, the computer keyboard and the mouse add only a few
+     * milliseconds, well inside the timing windows. There is nothing for the user to measure or set.
      */
-    fun routeKey(): String = piano.prefs.let { "PC-${if (piano.status.value.exclusive) "EX" else "SH"}-${it.periodFrames}" }
-
-    /** Measured delay of [source] on the current output path, or null when not measured. */
-    fun latencyMs(source: InputSource): Double? = inputConfig.config.value.latencyMs[InputConfig.latencyKey(source, routeKey())]
+    @Suppress("UNUSED_PARAMETER")
+    fun latencyMs(source: InputSource): Double? = null
 
     /** Everything stored was replaced or merged (an import): read it again. */
     fun reloadAll() {

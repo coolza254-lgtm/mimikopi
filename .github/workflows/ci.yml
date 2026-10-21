@@ -61,17 +61,25 @@ jobs:
               print(f"  [{r.get('level', '?')}] {r['ruleId']}: {path}:{line} {r['message']['text']}")
           PY
 
+      # CI artifacts are optional copies; a storage quota must not override test/lint/build results.
+      # Signed release APK publication remains mandatory in release.yml.
       - name: Upload debug APK
+        id: debug-artifact
+        continue-on-error: true
         uses: actions/upload-artifact@v5
         with:
+          retention-days: 7
           name: mimikopi-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       - name: Upload reports and Room schema
+        id: report-artifact
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v5
         with:
+          retention-days: 7
           name: reports-${{ github.sha }}
           path: |
             core/build/reports/tests/
@@ -79,3 +87,10 @@ jobs:
             app/build/reports/lint-results-debug.*
             app/schemas/
           if-no-files-found: ignore
+
+      - name: Report optional artifact upload failures
+        if: always() && (steps.debug-artifact.outcome == 'failure' || steps.report-artifact.outcome == 'failure')
+        run: |
+          echo "::warning::Optional CI artifacts could not be uploaded. Check upload errors and the Actions storage quota. Test, lint and build results are reported separately; signed APKs are published by the Release workflow."
+          echo "### Optional artifact uploads failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Check the upload steps and Actions storage quota. Test/lint/build results above remain authoritative. Signed APK downloads use GitHub Releases." >> "$GITHUB_STEP_SUMMARY"

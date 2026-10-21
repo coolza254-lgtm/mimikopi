@@ -22,6 +22,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -159,8 +161,7 @@ private fun TopBar(r: ReaderSession, ui: ReaderUi, midi: Boolean) {
         SecondaryButton("‹ กลับ", onClick = app.nav::back)
         Text(r.title(), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f))
-        Text(if (midi) "MIDI · คีย์บนจอซ่อน" else "ไม่มี MIDI · คลิก/แป้นพิมพ์", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
-        SecondaryButton(if (app.isFullscreen()) "ออกจากเต็มจอ (F11)" else "เต็มจอ (F11)", onClick = app.toggleFullscreen)
+        SecondaryButton(if (app.isFullscreen()) "ออกจากเต็มจอ · F11" else "เต็มจอ · F11", onClick = app.toggleFullscreen)
     }
     ui.message?.let { m ->
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -183,50 +184,55 @@ private fun PlayingBar(r: ReaderSession, ui: ReaderUi, midi: Boolean) {
             fontSize = 14.sp, color = Tokens.Palette.InkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         if (ui.options.falling && !r.fixed) SecondaryButton(if (ui.options.fallingKeyLabels) "ชื่อบนคีย์: เปิด" else "ชื่อบนคีย์",
             onClick = { r.setFallingKeyLabels(!ui.options.fallingKeyLabels) })
-        else if (ui.phase != Phase.LISTENING) SecondaryButton(if (ui.showNames) "ชื่อโน้ต: เปิด" else "ชื่อโน้ต", onClick = r::toggleNames)
         StopButton(r::stop)
     }
 }
 
+/**
+ * Before a run: only what this kind of practice needs. A lesson step or a test has fixed settings, so it shows just
+ * Start (and Listen where allowed); a song shows the mode, the hands and the tempo, with the rest under "more".
+ */
 @Composable
 private fun SetupBar(r: ReaderSession, ui: ReaderUi) {
     val score = r.score ?: return
     val test = r.source is ReaderSession.Source.Benchmark || r.source is ReaderSession.Source.Check || r.source is ReaderSession.Source.Exam
     val canPace = !r.fixed || r.source is ReaderSession.Source.NewReading
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    var more by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Segmented(listOf(PlayMode.WAIT, PlayMode.TEMPO), ui.options.mode, { if (it == PlayMode.WAIT) "รอ (อ่านทีละตัว)" else "ตามจังหวะ" },
-                r::setMode, Modifier.width(300.dp), enabled = canPace)
-            Segmented(HandChoice.entries.filter { h -> h.hands.all { hand -> score.events.any { it.hand == hand } } }.ifEmpty { listOf(HandChoice.RIGHT) },
-                ui.options.hands, { it.title }, r::setHands, Modifier.width(300.dp), enabled = !r.fixed)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SecondaryButton("−", onClick = { r.changeBpm(-5) }, enabled = canPace && ui.options.mode == PlayMode.TEMPO)
-                Text("${ui.bpm} bpm", fontSize = 16.sp, modifier = Modifier.padding(horizontal = 10.dp))
-                SecondaryButton("+", onClick = { r.changeBpm(5) }, enabled = canPace && ui.options.mode == PlayMode.TEMPO)
+            PrimaryButton(if (r.nextLabelIsNew()) "เริ่มโน้ตชุดใหม่ · Space" else "เริ่ม · Space", onClick = r::start, modifier = Modifier.widthIn(min = 200.dp, max = 260.dp))
+            if (!test) SecondaryButton("ฟังตัวอย่าง", onClick = r::listen)
+            if (canPace) Segmented(listOf(PlayMode.WAIT, PlayMode.TEMPO), ui.options.mode, { if (it == PlayMode.WAIT) "รอจนกดถูก" else "ตามจังหวะ" },
+                r::setMode, Modifier.width(260.dp))
+            if (!r.fixed) Segmented(HandChoice.entries.filter { h -> h.hands.all { hand -> score.events.any { it.hand == hand && !it.isRest } } }.ifEmpty { listOf(HandChoice.RIGHT) },
+                ui.options.hands, { it.title }, r::setHands, Modifier.width(260.dp))
+            if (canPace && ui.options.mode == PlayMode.TEMPO) Row(verticalAlignment = Alignment.CenterVertically) {
+                SecondaryButton("−", onClick = { r.changeBpm(-5) })
+                Text("${ui.bpm} bpm", fontSize = 16.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(horizontal = 10.dp))
+                SecondaryButton("+", onClick = { r.changeBpm(5) })
             }
+            Box(Modifier.weight(1f))
+            if (!r.fixed) SecondaryButton(if (more) "ซ่อนตัวเลือก" else "ตัวเลือกเพิ่ม", onClick = { more = !more })
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (!r.fixed) {
             val whole = ui.section == (0 until score.measures)
-            Text(if (whole) "ทั้งเพลง ${score.measures} ห้อง" else "ห้อง ${ui.section.first + 1}–${ui.section.last + 1}" +
-                (if (ui.pendingSectionStart != null) " · คลิกห้องสุดท้ายของช่วง" else ""), fontSize = 15.sp)
-            if (!r.fixed && !whole) SecondaryButton("ทั้งเพลง", onClick = r::wholePiece)
-            if (!r.fixed) Text("คลิกห้องบนโน้ตเพื่อเลือกช่วง", fontSize = 13.sp, color = Tokens.Palette.Dim)
-            if (!r.fixed && ui.options.mode == PlayMode.TEMPO) Toggle("ความเร็วตามแผน", ui.options.useRamp, r::setUseRamp)
-            if (r.source !is ReaderSession.Source.Exam && score.events.any { it.hand == Hand.LEFT } && score.events.any { it.hand == Hand.RIGHT })
+            Text(if (whole) "ทั้งเพลง ${score.measures} ห้อง · คลิกห้องบนโน้ตเพื่อฝึกเฉพาะช่วง" else "ห้อง ${ui.section.first + 1}–${ui.section.last + 1}" +
+                (if (ui.pendingSectionStart != null) " · คลิกห้องสุดท้ายของช่วง" else ""), fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+        }
+        if (more && !r.fixed) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            if (ui.section != (0 until score.measures)) SecondaryButton("ทั้งเพลง", onClick = r::wholePiece)
+            Toggle("โน้ตตก", ui.options.falling, r::setFalling)
+            if (score.events.any { it.hand == Hand.LEFT && !it.isRest } && score.events.any { it.hand == Hand.RIGHT && !it.isRest })
                 Toggle("โปรแกรมเล่นมืออื่น", ui.options.playOtherHand, r::setPlayOtherHand)
             if (ui.options.mode == PlayMode.TEMPO) Toggle("คลิก", ui.options.metronome, r::setMetronome)
-            if (!r.fixed) Toggle("โน้ตตก", ui.options.falling, r::setFalling)
-            if (!r.fixed && ui.options.falling) Toggle("ชื่อโน้ตบนคีย์", ui.options.fallingKeyLabels, r::setFallingKeyLabels)
+            if (ui.options.mode == PlayMode.TEMPO) Toggle("ความเร็วตามแผน", ui.options.useRamp, r::setUseRamp)
+            if (ui.options.falling) Toggle("ชื่อโน้ตบนคีย์", ui.options.fallingKeyLabels, r::setFallingKeyLabels)
             else Toggle("คีย์บนจอ", ui.options.showKeyboard, r::setShowKeyboard)
+            Toggle("ชื่อโน้ต (นับเป็นตัวช่วย)", ui.showNames, { r.toggleNames() })
         }
         if (ui.hotMeasures.isNotEmpty() && !r.fixed) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("จุดที่พลาดบ่อย:", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
-            ui.hotMeasures.take(4).forEach { m -> SecondaryButton("ห้อง ${m + 1}", onClick = { r.practiseMeasures(m, m) }) }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PrimaryButton(if (r.nextLabelIsNew()) "เริ่มโน้ตชุดใหม่ (Space)" else "เริ่ม (Space)", onClick = r::start, modifier = Modifier.widthIn(max = 300.dp))
-            if (!test) SecondaryButton("ฟังตัวอย่าง", onClick = r::listen)
-            SecondaryButton(if (ui.showNames) "ชื่อโน้ต: เปิด (นับเป็นตัวช่วย)" else "แสดงชื่อโน้ต", onClick = r::toggleNames)
+            Text("ห้องที่พลาดบ่อย:", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+            ui.hotMeasures.take(3).forEach { m -> SecondaryButton("ห้อง ${m + 1}", onClick = { r.practiseMeasures(m, m) }) }
         }
     }
 }

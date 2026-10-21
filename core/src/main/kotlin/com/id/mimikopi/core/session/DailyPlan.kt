@@ -181,6 +181,32 @@ object PlanContent {
     private fun readLevel(l: com.id.mimikopi.core.lesson.Lesson): Int? =
         l.drills.filter { it.type == com.id.mimikopi.core.lesson.ExerciseType.E_READ_PIECE }.maxOfOrNull { it.level.removePrefix("L").toInt() }
 
+    /**
+     * What today's plan can contain, from the ladder, the review due, the skill tests taken and the date: the one
+     * place both apps get it from, so a plan is the same on the phone and the computer.
+     */
+    fun input(
+        minutes: Int,
+        lessons: List<com.id.mimikopi.core.lesson.Lesson>,
+        records: Map<String, com.id.mimikopi.core.lesson.LessonRecord>,
+        checks: List<com.id.mimikopi.core.progress.CheckRecord>,
+        reviewDue: Int,
+        today: java.time.LocalDate,
+    ): PlanInput {
+        fun level(s: SkillId) = com.id.mimikopi.core.progress.SkillBook.status(s, checks, today).level
+        val rules = com.id.mimikopi.core.lesson.ProgressRules
+        return PlanInput(
+            minutes = minutes,
+            reviewDue = reviewDue,
+            ladder = rules.nextToLearn(lessons, records) != null || rules.awaitingConfirmation(lessons, records, today).isNotEmpty(),
+            sightLevel = sightLevel(lessons, records, level(SkillId.SIGHT)),
+            earLevel = EAR_ROUND,
+            chords = level(SkillId.KEYS) >= 2 || level(SkillId.CHORDS) >= 1,
+            check = com.id.mimikopi.core.progress.SkillBook.dueCheck(checks, today)?.let { st -> st.nextTest?.let { com.id.mimikopi.core.progress.SkillBook.key(st.skill, it) } },
+            weakest = com.id.mimikopi.core.progress.SkillBook.weakest(checks, today),
+        )
+    }
+
     /** New reading one level below the highest reading level reached on the ladder (L1 at least), or the sight level held. */
     fun sightLevel(lessons: List<com.id.mimikopi.core.lesson.Lesson>, records: Map<String, com.id.mimikopi.core.lesson.LessonRecord>, sightHeld: Int): Int? {
         if (sightHeld > 0) return sightHeld.coerceAtMost(5)

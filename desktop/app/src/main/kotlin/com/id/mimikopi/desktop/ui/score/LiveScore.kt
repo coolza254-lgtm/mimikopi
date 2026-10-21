@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.ui.score
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -56,9 +57,10 @@ fun LiveScore(
         // A one-hand piece has one staff (about half as tall), so more lines fit at the same note size.
         val staves = remember(score) { ScoreLayout.staves(score) }
         val tall = remember(score) { ScoreLayout.of(score).spacesTall.toFloat() }
-        val perLine = 380.dp * (tall / 24f)
+        // Staff spaces of at most 18 dp: large and clear, while a line still holds two to four bars.
+        val perLine = 18.dp * tall
         val shown = (lines ?: (maxHeight / perLine).toInt()).coerceIn(1, 3)
-        val systemHeight: Dp = (maxHeight / shown).coerceAtLeast(110.dp)
+        val systemHeight: Dp = (maxHeight / shown).coerceIn(110.dp, perLine)
         val pageWidth = maxWidth
         val density = LocalDensity.current
         val widthSpaces = with(density) { pageWidth.toPx() / (systemHeight.toPx() / tall) } - 3f
@@ -93,7 +95,8 @@ fun LiveScore(
                 }
             }
         }
-        LazyColumn(modifier = Modifier.fillMaxSize(), state = list, horizontalAlignment = Alignment.CenterHorizontally) {
+        LazyColumn(modifier = Modifier.fillMaxSize(), state = list, horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center) {
             items(systems.size) { i ->
                 val sys = systems[i]
                 val shift = sys.startBeat

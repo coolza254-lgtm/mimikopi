@@ -114,7 +114,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
             progress.load()
             services.pieces.load()
             val today = LocalDate.now()
-            val minutes = dao.get(ProgressStore.MINUTES)?.toIntOrNull()?.takeIf { it in DailyPlan.CHOICES } ?: 30
+            val minutes = dao.get(ProgressStore.MINUTES)?.toIntOrNull()?.takeIf { it in DailyPlan.CHOICES } ?: 20
             val stored = DailyPlan.parse(dao.get(ProgressStore.PLAN))
             val plan = if (stored != null && stored.date == today.toString() && stored.minutes == minutes) stored.blocks
             else build(minutes, today).also { dao.put(SettingEntity(ProgressStore.PLAN, DailyPlan.encode(DailyPlan.Stored(today.toString(), minutes, it)))) }
@@ -130,25 +130,8 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private suspend fun build(minutes: Int, today: LocalDate): List<PlanBlock> {
-        val checks = progress.checks.value
-        val lessons = learning.lessons
-        val records = learning.records.value
-        fun level(s: SkillId) = SkillBook.status(s, checks, today).level
-        val ladder = ProgressRules.nextToLearn(lessons, records) != null || ProgressRules.awaitingConfirmation(lessons, records, today).isNotEmpty()
-        return DailyPlan.build(
-            PlanInput(
-                minutes = minutes,
-                reviewDue = learning.readingDueItems().size,
-                ladder = ladder,
-                sightLevel = PlanContent.sightLevel(lessons, records, level(SkillId.SIGHT)),
-                earLevel = PlanContent.EAR_ROUND,
-                chords = level(SkillId.KEYS) >= 2 || level(SkillId.CHORDS) >= 1,
-                check = SkillBook.dueCheck(checks, today)?.let { s -> s.nextTest?.let { SkillBook.key(s.skill, it) } },
-                weakest = SkillBook.weakest(checks, today),
-            ),
-        )
-    }
+    private suspend fun build(minutes: Int, today: LocalDate): List<PlanBlock> =
+        DailyPlan.build(PlanContent.input(minutes, learning.lessons, learning.records.value, progress.checks.value, learning.readingDueItems().size, today))
 
     private suspend fun publish(plan: List<PlanBlock>, minutes: Int, today: LocalDate) {
         val earState = com.id.mimikopi.core.ear.EarProgress.parse(dao.get(com.id.mimikopi.core.ear.EarProgress.KEY))

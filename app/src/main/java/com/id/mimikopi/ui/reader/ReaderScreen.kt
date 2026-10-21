@@ -296,8 +296,6 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
             FilterChip(selected = ui.options.mode == PlayMode.WAIT, onClick = { vm.setMode(PlayMode.WAIT) }, label = { Text(stringResource(R.string.reader_mode_wait)) })
             FilterChip(selected = ui.options.mode == PlayMode.TEMPO, onClick = { vm.setMode(PlayMode.TEMPO) }, label = { Text(stringResource(R.string.reader_mode_tempo)) })
             Spacer(Modifier.width(Tokens.Space.xs))
-            FilterChip(selected = ui.options.falling, onClick = { vm.setFalling(!ui.options.falling) }, label = { Text(stringResource(R.string.reader_falling)) })
-            Spacer(Modifier.width(Tokens.Space.xs))
             for ((choice, label) in listOf(HandChoice.RIGHT to R.string.reader_hand_right, HandChoice.LEFT to R.string.reader_hand_left, HandChoice.BOTH to R.string.reader_hand_both)) {
                 FilterChip(selected = ui.options.hands == choice, onClick = { vm.setHands(choice) }, label = { Text(stringResource(label)) })
             }
@@ -309,12 +307,15 @@ private fun SetupControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
                 Text(stringResource(R.string.reader_bpm_target, ui.targetBpm), style = MaterialTheme.typography.labelSmall, color = Tokens.Palette.InkMuted)
             }
             TextButton(onClick = { vm.changeBpm(5) }, enabled = manualTempo) { Text(stringResource(R.string.reader_faster)) }
-            Text(
-                if (ui.section.first == ui.section.last) stringResource(R.string.reader_section_one, ui.section.first + 1)
-                else stringResource(R.string.reader_section, ui.section.first + 1, ui.section.last + 1),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            TextButton(onClick = vm::wholePiece) { Text(stringResource(R.string.reader_whole_piece)) }
+            // The section shows only once one is chosen (tap bars on the music); the whole piece needs no label.
+            if (ui.section != (0 until score.measures)) {
+                Text(
+                    if (ui.section.first == ui.section.last) stringResource(R.string.reader_section_one, ui.section.first + 1)
+                    else stringResource(R.string.reader_section, ui.section.first + 1, ui.section.last + 1),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                TextButton(onClick = vm::wholePiece) { Text(stringResource(R.string.reader_whole_piece)) }
+            }
             TextButton(onClick = onOptions) { Text(stringResource(R.string.reader_more)) }
         }
         Row(

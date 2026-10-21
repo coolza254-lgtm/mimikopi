@@ -42,17 +42,26 @@ fun PagedScoreView(
     hideNotes: Boolean = false,
 ) {
     BoxWithConstraints(modifier) {
-        // Previews wrap at a readable phone size; live playback uses the landscape strip.
-        val systemHeight = (maxHeight / 1.5f).coerceIn(160.dp, 320.dp)
+        // Previews wrap at a readable phone size; live playback uses the landscape strip. A one-hand piece has one
+        // staff, so its lines are shorter for the same note size.
+        val staves = remember(score) { ScoreLayout.staves(score) }
+        val tall = remember(score) { ScoreLayout.of(score).spacesTall.toFloat() }
+        val systemHeight = ((maxHeight / 1.5f) * (tall / 24f)).coerceIn(110.dp, 320.dp)
         val pageWidth = maxWidth
         val density = LocalDensity.current
-        val widthSpaces = with(density) { pageWidth.toPx() / (systemHeight.toPx() / 24f) } - 3f
+        val widthSpaces = with(density) { pageWidth.toPx() / (systemHeight.toPx() / tall) } - 3f
         // Whole steps of 8 spaces (rounded down, so lines still fit): resizing a window re-engraves now and then, not per pixel.
         val lineSpaces = (widthSpaces / 8f).toInt() * 8
         val systems = remember(score, lineSpaces) {
             ScoreLayout.systems(score, lineSpaces.toDouble()).map { r ->
                 val slice = score.slice(r.first, r.last)
-                PageSystem(r, slice, ScoreLayout.of(slice), score.measureStart(r.first), score.measureStart(r.last + 1))
+                // Lines fill the width like printed music (a short last line keeps natural spacing); the time
+                // signature is printed on the first line only and the final double bar at the piece's real end.
+                val end = r.last == score.measures - 1
+                val natural = ScoreLayout.line(slice, finalBar = end, timeSignature = r.first == 0, staves = staves)
+                val layout = if (end && natural.width < lineSpaces * 0.5) natural
+                else ScoreLayout.justified(slice, lineSpaces.toDouble(), finalBar = end, timeSignature = r.first == 0, staves = staves)
+                PageSystem(r, slice, layout, score.measureStart(r.first), score.measureStart(r.last + 1))
             }
         }
         val list = rememberLazyListState()

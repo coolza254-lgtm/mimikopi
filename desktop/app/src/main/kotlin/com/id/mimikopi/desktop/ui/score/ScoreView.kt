@@ -4,6 +4,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -37,11 +39,10 @@ import com.id.mimikopi.desktop.ui.components.Bravura
 import com.id.mimikopi.desktop.ui.theme.Tokens
 import kotlinx.coroutines.delay
 
-private const val SPACES_TALL = 24f
-private const val TOP_PAD = 6f // staff spaces above the treble staff's top line
 private const val CURSOR_AT = 0.3f // fraction of the width where the cursor sits while following
 private const val WRONG_MARK_NANOS = 700_000_000L
-private const val MARK_GRACE_NANOS = 100_000_000L // redraw a little past a wrong key's time, so the frame clearing it is drawn
+private const val MARK_GRACE_NANOS = 100_000_000L
+private const val GLOW_NANOS = 350_000_000L // a note played right glows this long // redraw a little past a wrong key's time, so the frame clearing it is drawn
 
 /**
  * Draws a [ScoreLayout] (one long grand-staff strip) scaled to the box height. While [following],
@@ -75,6 +76,11 @@ fun ScoreView(
     firstBarNumber: Int = 1,
     /** Page view: draw the cursor only while it is inside this strip (every system but the last). */
     cursorOnlyInside: Boolean = false,
+    /**
+     * A long strip that scrolls: a small number over every bar line. Otherwise (a line of a page) the number is
+     * printed once, at the start of the line, as in printed music.
+     */
+    everyBarNumber: Boolean = false,
 ) {
     val measurer = rememberTextMeasurer(cacheSize = 64)
     val texts = remember(measurer) { TextCache() }
@@ -92,6 +98,14 @@ fun ScoreView(
     // Last scroll offset in px, shared between drawing and gestures.
     val scroll = remember { floatArrayOf(0f) }
     val spacePx = remember { floatArrayOf(1f) }
+    // When each note was first judged right, for its short glow; a new run (no results) starts again.
+    val glowAt = remember(layout) { HashMap<NoteKey, Long>() }
+    val resultsNow by rememberUpdatedState(results)
+    SideEffect {
+        if (resultsNow.isEmpty()) glowAt.clear()
+        val now = System.nanoTime()
+        for ((k, r) in resultsNow) if (r == NoteResult.CORRECT && k !in glowAt) glowAt[k] = now
+    }
 
     // While playing, redraw on the frames where the cursor moved or a wrong key is fading out; otherwise state
     // changes redraw it (and once more when a wrong key still shown at the stop has had its time).
@@ -100,7 +114,8 @@ fun ScoreView(
             var drawn = Double.NaN
             while (true) withFrameNanos { f ->
                 val beat = beatNow(f)
-                if (beat != drawn || marksNow.any { f - it.atNanos <= WRONG_MARK_NANOS + MARK_GRACE_NANOS }) {
+                if (beat != drawn || marksNow.any { f - it.atNanos <= WRONG_MARK_NANOS + MARK_GRACE_NANOS } ||
+                    glowAt.values.any { f - it <= GLOW_NANOS + MARK_GRACE_NANOS }) {
                     drawn = beat
                     frame = f
                 }
@@ -122,7 +137,7 @@ fun ScoreView(
                     val x = (pos.x + scroll[0]) / sp - 1f
                     val st = scoreTap
                     if (st != null) {
-                        val yScore = pos.y / sp + (ScoreLayout.TOP_Y.toFloat() - TOP_PAD)
+                        val yScore = pos.y / sp + (layout.top - ScoreLayout.PAD_ABOVE).toFloat()
                         val hand = if (yScore < (ScoreLayout.TREBLE_Y + ScoreLayout.BASS_Y) / 2) Hand.RIGHT else Hand.LEFT
                         val position = Math.round((ScoreLayout.staffY(hand) - yScore) * 2).toInt()
                         st(layout.beatAtX(x.toDouble()), hand, position)
@@ -135,7 +150,7 @@ fun ScoreView(
                 if (!following) detectHorizontalDragGestures { _, dx -> manualOffset = (manualOffset - dx).coerceAtLeast(0f) }
             },
     ) {
-        val space = size.height / SPACES_TALL
+        val space = size.height / layout.spacesTall.toFloat()
         spacePx[0] = space
         texts.at(space)
         val ink = Tokens.Palette.Ink
@@ -151,7 +166,7 @@ fun ScoreView(
         }
         scroll[0] = offset
         fun px(x: Double) = x.toFloat() * space - offset + space
-        fun py(y: Double) = (y.toFloat() - (ScoreLayout.TOP_Y.toFloat() - TOP_PAD)) * space
+        fun py(y: Double) = (y.toFloat() - (layout.top - ScoreLayout.PAD_ABOVE).toFloat()) * space
         val visible = -space * 4..size.width + space * 4
 
         // Section and problem-spot tints behind the music.
@@ -161,12 +176,22 @@ fun ScoreView(
             val x1 = px(m.x1)
             if (x1 < 0 || x0 > size.width) continue
             val tint = when {
-                loop != null && m.index in loop -> Tokens.Palette.Ink.copy(alpha = 0.10f)
-                m.index in hotMeasures -> Tokens.Palette.Ink.copy(alpha = 0.06f)
+                loop != null && m.index in loop -> Tokens.Palette.Pink.copy(alpha = 0.14f)
+                m.index in hotMeasures -> Tokens.Palette.Yellow.copy(alpha = 0.16f)
                 else -> null
             }
-            if (tint != null) drawRect(tint, Offset(x0, py(ScoreLayout.TOP_Y - 3)), Size(x1 - x0, py(ScoreLayout.BOTTOM_Y + 3) - py(ScoreLayout.TOP_Y - 3)))
-            text(measurer, texts.bars, barNumbers[mi], x0 + space * 0.2f, py(ScoreLayout.TOP_Y - 2.6), space * 1.2f, Tokens.Palette.InkMuted)
+            if (tint != null) drawRect(tint, Offset(x0, py(layout.top - 3)), Size(x1 - x0, py(layout.bottom + 3) - py(layout.top - 3)))
+            if (mi == 0) text(measurer, texts.bars, barNumbers[mi], px(0.0), py(layout.top - 2.8), space * 1.1f, Tokens.Palette.Dim)
+            else if (everyBarNumber) texts.bars.getOrPut(barNumbers[mi]) { measurer.measure(barNumbers[mi], TextStyle(fontSize = (space * 0.95f).toSp())) }.let { t ->
+                drawText(t, color = Tokens.Palette.Dim, topLeft = Offset(x0 - t.size.width / 2f, py(layout.top - 1.0) - t.size.height))
+            }
+        }
+
+        // The play position: a soft band behind the notes being read, like a finger following the page.
+        if (editorCursor == null && (!cursorOnlyInside || (beat > -1e-6 && beat < score.totalBeats - 1e-6))) {
+            val cx = px(layout.xAt(beat))
+            drawRoundRect(Tokens.Palette.AccentSoft, Offset(cx - space * 0.9f, py(layout.top - 2.6)),
+                Size(space * 3.0f, py(layout.bottom + 2.6) - py(layout.top - 2.6)), androidx.compose.ui.geometry.CornerRadius(space * 0.8f))
         }
 
         for (l in layout.lines) {
@@ -186,6 +211,12 @@ fun ScoreView(
             val color = colorFor(result) ?: ink
             glyph(texts.glyphs.getOrPut(g.codepoint) { measurer.measure(g.codepoint.toString(), glyphStyle) }, x, py(g.y), color)
             val key = g.note ?: continue
+            // Just played right: a green ring grows and fades around the notehead.
+            glowAt[key]?.let { at ->
+                val age = (frame - at).toFloat() / GLOW_NANOS
+                if (age in 0f..1f) drawCircle(Tokens.Palette.Correct.copy(alpha = 1f - age), radius = space * (0.9f + age * 0.8f),
+                    center = Offset(x + space * 0.59f, py(g.y)), style = Stroke(space * 0.18f))
+            }
             val marker = when (result) {
                 NoteResult.EARLY -> "←"
                 NoteResult.LATE -> "→"
@@ -223,14 +254,20 @@ fun ScoreView(
             drawPath(tiePath, Tokens.Palette.Ink, style = tieStroke)
         }
 
-        // Wrong keys: hollow white rings where that pitch would sit, at the beat it was played.
+        // Wrong keys: a clear red cross where that pitch would sit, at the beat it was played, fading out.
         val now = frame
+        val oneStaff = layout.bottom - layout.top < ScoreLayout.BOTTOM_Y - ScoreLayout.TOP_Y
         for (w in wrongMarks) {
-            if (now - w.atNanos > WRONG_MARK_NANOS) continue
-            val hand = if (w.midi >= 60) Hand.RIGHT else Hand.LEFT
+            val age = (now - w.atNanos).toFloat() / WRONG_MARK_NANOS
+            if (age !in 0f..1f) continue
+            val hand = if (oneStaff) (if (layout.top == ScoreLayout.TOP_Y) Hand.RIGHT else Hand.LEFT) else if (w.midi >= 60) Hand.RIGHT else Hand.LEFT
             val pos = Staff.position(SpelledPitch.fromMidiSharp(w.midi), score.clefFor(hand))
             val cx = px(layout.xAt(w.beat)) + space * 0.6f
-            drawCircle(Tokens.Palette.Ink, radius = space * 0.6f, center = Offset(cx, py(ScoreLayout.yOf(hand, pos))), style = Stroke(space * 0.22f))
+            val cy = py(ScoreLayout.yOf(hand, pos))
+            val r = space * 0.75f
+            val red = Tokens.Palette.Wrong.copy(alpha = if (age < 0.7f) 1f else (1f - age) / 0.3f)
+            drawLine(red, Offset(cx - r, cy - r), Offset(cx + r, cy + r), strokeWidth = space * 0.3f, cap = StrokeCap.Round)
+            drawLine(red, Offset(cx + r, cy - r), Offset(cx - r, cy + r), strokeWidth = space * 0.3f, cap = StrokeCap.Round)
         }
 
         if (editorCursor != null) {
@@ -239,18 +276,14 @@ fun ScoreView(
             val cy = py(ScoreLayout.staffY(hand))
             drawRect(Tokens.Palette.Ink.copy(alpha = 0.15f), Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f))
             drawRect(Tokens.Palette.Ink, Offset(cx - space * 0.5f, cy - space * 3.5f), Size(space * 2.3f, space * 7f), style = Stroke(space * 0.15f))
-        } else if (!cursorOnlyInside || (beat > -1e-6 && beat < score.totalBeats - 1e-6)) {
-            // The play position: a thin line through both staves, like a finger following the page.
-            drawLine(Tokens.Palette.Ink, Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.TOP_Y - 2.5)),
-                Offset(px(layout.xAt(beat)) - space * 0.3f, py(ScoreLayout.BOTTOM_Y + 2.5)), strokeWidth = (space * 0.14f).coerceAtLeast(1.5f))
         }
     }
 }
 
 private fun colorFor(result: NoteResult?): Color? = when (result) {
-    NoteResult.CORRECT -> Tokens.Palette.Dim // played: fades, like the design
-    NoteResult.EARLY, NoteResult.LATE -> Tokens.Palette.InkMuted
-    NoteResult.MISSED, NoteResult.CORRECTED -> Tokens.Palette.Ink
+    NoteResult.CORRECT -> Tokens.Palette.Correct.copy(alpha = 0.75f) // played right: soft green, still readable
+    NoteResult.EARLY, NoteResult.LATE, NoteResult.CORRECTED -> Tokens.Palette.Timing
+    NoteResult.MISSED -> Tokens.Palette.Wrong
     else -> null
 }
 

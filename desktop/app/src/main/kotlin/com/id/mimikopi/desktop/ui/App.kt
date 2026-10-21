@@ -50,19 +50,28 @@ import com.id.mimikopi.desktop.ui.screens.TodayScreen
 import com.id.mimikopi.desktop.ui.theme.MimikopiTheme
 import com.id.mimikopi.desktop.ui.theme.Tokens
 
-/** The look chosen in Settings: DARK (the phone's default), LIGHT or SYSTEM. */
+/** The look chosen in Settings: LIGHT (the pastel default), DARK or SYSTEM. */
 object Look {
-    var mode by mutableStateOf("DARK")
+    var mode by mutableStateOf("LIGHT")
+
+    /** Stored once the pastel look became the default: an older "dark" choice is moved to it a single time. */
+    const val PASTEL_KEY = "ui.theme.pastel"
 }
 
 @Composable
 fun App(ctx: AppContext) {
     val s = ctx.services
-    remember { Look.mode = s.db.get(SettingKeys.THEME_MODE) ?: "DARK" }
+    remember {
+        if (s.db.get(Look.PASTEL_KEY) == null) {
+            s.db.put(Look.PASTEL_KEY, "1")
+            if (s.db.get(SettingKeys.THEME_MODE) == "DARK") s.db.put(SettingKeys.THEME_MODE, "LIGHT")
+        }
+        Look.mode = s.db.get(SettingKeys.THEME_MODE) ?: "LIGHT"
+    }
     val dark = when (Look.mode) {
-        "LIGHT" -> false
+        "DARK" -> true
         "SYSTEM" -> isSystemInDarkTheme()
-        else -> true
+        else -> false
     }
     MimikopiTheme(dark) {
         CompositionLocalProvider(LocalApp provides ctx) {

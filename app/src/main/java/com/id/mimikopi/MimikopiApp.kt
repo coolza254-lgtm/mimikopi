@@ -38,8 +38,12 @@ class MimikopiApp : Application() {
     val privateSongs: com.id.mimikopi.recall.PrivateSongRepository by lazy { com.id.mimikopi.recall.PrivateSongRepository(database.settingsDao()) }
     val session: com.id.mimikopi.learning.SessionTracker by lazy { com.id.mimikopi.learning.SessionTracker(learning) }
 
-    /** The chosen look (dark by default until the stored choice is read). */
-    val themeMode = kotlinx.coroutines.flow.MutableStateFlow(com.id.mimikopi.ui.theme.ThemeMode.DARK)
+    /** The chosen look (the light pastel one by default until the stored choice is read). */
+    val themeMode = kotlinx.coroutines.flow.MutableStateFlow(com.id.mimikopi.ui.theme.ThemeMode.LIGHT)
+
+    private companion object {
+        const val PASTEL_KEY = "ui.theme.pastel"
+    }
 
     fun setThemeMode(mode: com.id.mimikopi.ui.theme.ThemeMode) {
         themeMode.value = mode
@@ -55,7 +59,15 @@ class MimikopiApp : Application() {
         // MIDI devices are listened for app-wide, so a connected piano works on every practice screen.
         midiInput.start()
         appScope.launch {
-            database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.THEME_MODE)
+            val settings = database.settingsDao()
+            // The pastel look became the default: an older "dark" choice moves to it once (it can be chosen again).
+            if (settings.get(PASTEL_KEY) == null) {
+                settings.put(com.id.mimikopi.data.db.SettingEntity(PASTEL_KEY, "1"))
+                if (settings.get(com.id.mimikopi.data.db.SettingKeys.THEME_MODE) == com.id.mimikopi.ui.theme.ThemeMode.DARK.name) {
+                    settings.put(com.id.mimikopi.data.db.SettingEntity(com.id.mimikopi.data.db.SettingKeys.THEME_MODE, com.id.mimikopi.ui.theme.ThemeMode.LIGHT.name))
+                }
+            }
+            settings.get(com.id.mimikopi.data.db.SettingKeys.THEME_MODE)
                 ?.let { runCatching { com.id.mimikopi.ui.theme.ThemeMode.valueOf(it) }.getOrNull() }?.let { themeMode.value = it }
             midiInput.octaveOffset = inputConfig.load().octaveOffset
             inputHub.soundThrough = database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_SOUND_THROUGH)?.toBooleanStrictOrNull() ?: true

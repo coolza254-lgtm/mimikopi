@@ -53,11 +53,15 @@ fun LiveScore(
 ) {
     val beatNow by rememberUpdatedState(cursorBeat)
     BoxWithConstraints(modifier) {
-        val shown = (lines ?: (maxHeight / 380.dp).toInt()).coerceIn(1, 3)
-        val systemHeight: Dp = (maxHeight / shown).coerceAtLeast(150.dp)
+        // A one-hand piece has one staff (about half as tall), so more lines fit at the same note size.
+        val staves = remember(score) { ScoreLayout.staves(score) }
+        val tall = remember(score) { ScoreLayout.of(score).spacesTall.toFloat() }
+        val perLine = 380.dp * (tall / 24f)
+        val shown = (lines ?: (maxHeight / perLine).toInt()).coerceIn(1, 3)
+        val systemHeight: Dp = (maxHeight / shown).coerceAtLeast(110.dp)
         val pageWidth = maxWidth
         val density = LocalDensity.current
-        val widthSpaces = with(density) { pageWidth.toPx() / (systemHeight.toPx() / 24f) } - 3f
+        val widthSpaces = with(density) { pageWidth.toPx() / (systemHeight.toPx() / tall) } - 3f
         // Whole steps of 8 spaces: resizing the window re-engraves now and then, not every pixel.
         val lineSpaces = ((widthSpaces / 8f).toInt() * 8).coerceAtLeast(24)
         val systems = remember(score, lineSpaces) {
@@ -66,8 +70,9 @@ fun LiveScore(
                 // Lines fill the width like engraved music; a short last line keeps natural spacing, and only the
                 // piece's own end gets the final double bar.
                 val end = r.last == score.measures - 1
-                val natural = ScoreLayout.of(slice)
-                val layout = if (end && natural.width < lineSpaces * 0.5) natural else ScoreLayout.justified(slice, lineSpaces.toDouble(), finalBar = end)
+                val natural = ScoreLayout.line(slice, finalBar = end, timeSignature = r.first == 0, staves = staves)
+                val layout = if (end && natural.width < lineSpaces * 0.5) natural
+                else ScoreLayout.justified(slice, lineSpaces.toDouble(), finalBar = end, timeSignature = r.first == 0, staves = staves)
                 System(r, slice, layout, score.measureStart(r.first), score.measureStart(r.last + 1))
             }
         }

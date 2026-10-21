@@ -70,7 +70,8 @@ fun GroupFooter(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun Group(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Tokens.Palette.Group), content = content)
+    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Tokens.Palette.Group)
+        .border(1.dp, Tokens.Palette.Hair, RoundedCornerShape(20.dp)), content = content)
 }
 
 @Composable
@@ -109,12 +110,12 @@ fun GroupRow(
 fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Box(
         modifier.fillMaxWidth().heightIn(min = 54.dp).clip(RoundedCornerShape(27.dp))
-            .background(if (enabled) Tokens.Palette.Ink else Tokens.Palette.Line)
+            .background(if (enabled) Tokens.Palette.Accent else Tokens.Palette.Line)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (enabled) Tokens.Palette.OnInk else Tokens.Palette.InkMuted)
+        Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (enabled) Tokens.Palette.OnAccent else Tokens.Palette.InkMuted)
     }
 }
 
@@ -141,12 +142,12 @@ fun StopButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 fun <T> Segmented(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    Row(modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Tokens.Palette.Group).padding(2.dp)) {
+    Row(modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Tokens.Palette.Hair).padding(2.dp)) {
         options.forEach { o ->
             val on = o == selected
             Box(
                 Modifier.weight(1f).heightIn(min = 36.dp).clip(RoundedCornerShape(8.dp))
-                    .then(if (on) Modifier.background(Tokens.Palette.Paper).border(1.dp, Tokens.Palette.Line, RoundedCornerShape(8.dp)) else Modifier)
+                    .then(if (on) Modifier.background(Tokens.Palette.Group).border(1.dp, Tokens.Palette.Line, RoundedCornerShape(8.dp)) else Modifier)
                     .then(if (enabled) Modifier.clickable { onSelect(o) } else Modifier),
                 contentAlignment = Alignment.Center,
             ) {
@@ -160,7 +161,7 @@ fun <T> Segmented(options: List<T>, selected: T, label: (T) -> String, onSelect:
 @Composable
 fun LevelBars(level: Int, max: Int, modifier: Modifier = Modifier, width: Dp = 14.dp) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-        repeat(max) { i -> Box(Modifier.width(width).height(4.dp).clip(RoundedCornerShape(2.dp)).background(if (i < level) Tokens.Palette.Ink else Tokens.Palette.Line)) }
+        repeat(max) { i -> Box(Modifier.width(width).height(4.dp).clip(RoundedCornerShape(2.dp)).background(if (i < level) Tokens.Palette.Accent else Tokens.Palette.Line)) }
     }
 }
 
@@ -169,8 +170,8 @@ fun StepMark(done: Boolean, current: Boolean) {
     Box(
         Modifier.size(24.dp).then(
             when {
-                done -> Modifier.background(Tokens.Palette.Ink, CircleShape)
-                current -> Modifier.border(2.dp, Tokens.Palette.Ink, CircleShape)
+                done -> Modifier.background(Tokens.Palette.Correct, CircleShape)
+                current -> Modifier.border(2.dp, Tokens.Palette.Accent, CircleShape)
                 else -> Modifier.border(1.5.dp, Tokens.Palette.Faint, CircleShape)
             },
         ),

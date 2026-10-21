@@ -163,7 +163,7 @@ fun SettingsScreen() {
         Group {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("สี", modifier = Modifier.width(140.dp))
-                Segmented(listOf("DARK", "LIGHT", "SYSTEM"), Look.mode, { when (it) { "DARK" -> "ดำ"; "LIGHT" -> "ขาว"; else -> "ตามระบบ" } },
+                Segmented(listOf("LIGHT", "DARK", "SYSTEM"), Look.mode, { when (it) { "DARK" -> "มืด"; "LIGHT" -> "สว่าง"; else -> "ตามระบบ" } },
                     { Look.mode = it; s.db.put(SettingKeys.THEME_MODE, it) }, Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

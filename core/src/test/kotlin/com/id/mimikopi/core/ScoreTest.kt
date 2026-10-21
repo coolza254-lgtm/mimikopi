@@ -161,7 +161,7 @@ class ScoreLayoutTest {
 
     @Test
     fun noteheadsDotsFlagsAndRests() {
-        val s = piece(listOf("C5/h. r/e D5/e"), listOf("r/w"))
+        val s = piece(listOf("C5/h. r/e D5/e", "r/w"), listOf("C3/w", "C3/w"))
         val l = ScoreLayout.of(s)
         val cps = l.glyphs.map { it.codepoint }
         assertTrue(ScoreLayout.HEAD_HALF in cps)
@@ -169,6 +169,45 @@ class ScoreLayoutTest {
         assertTrue(ScoreLayout.REST_EIGHTH in cps)
         assertTrue(ScoreLayout.FLAG_8_DOWN in cps)
         assertTrue(ScoreLayout.REST_WHOLE in cps)
+    }
+
+    @Test
+    fun aOneHandExerciseHasOneLargeStaffAndARowOfFingers() {
+        val s = piece(listOf("C4/q@1 G4/q@5 E4/q@3 D4/q@2", "E4/w@3"), listOf("r/w", "r/w"))
+        val l = ScoreLayout.of(s)
+        // Only the treble staff: no F clef, no rests for the silent hand, half the height of the grand staff.
+        assertTrue(ScoreLayout.F_CLEF !in l.glyphs.map { it.codepoint })
+        assertTrue(ScoreLayout.REST_WHOLE !in l.glyphs.map { it.codepoint })
+        assertEquals(ScoreLayout.TOP_Y, l.top)
+        assertEquals(ScoreLayout.TREBLE_Y + 2.0, l.bottom)
+        assertTrue(l.spacesTall < 15.0, "${l.spacesTall}")
+        assertEquals(5, l.lines.count { it.y1 == it.y2 && it.thickness == ScoreLayout.STAFF_LINE_THICKNESS })
+        // Finger numbers sit in one straight row although the G's stem rises above the staff.
+        assertEquals(1, l.labels.map { it.y }.distinct().size, "${l.labels}")
+        // Whole-measure rests of a hand that plays are centred in the bar.
+        val both = ScoreLayout.of(piece(listOf("C5/w", "r/w"), listOf("C3/w", "C3/w")))
+        val rest = both.glyphs.first { it.codepoint == ScoreLayout.REST_WHOLE }
+        val bar = both.measures[1]
+        assertTrue(rest.x > bar.x0 + 1.5 && rest.x < bar.x1 - 1.5, "$rest in $bar")
+        // Later lines of a page do not repeat the time signature.
+        val noTime = ScoreLayout.justified(s, 60.0, timeSignature = false)
+        assertTrue(noTime.glyphs.none { it.codepoint in ScoreLayout.TIME_DIGIT_0..(ScoreLayout.TIME_DIGIT_0 + 9) })
+    }
+
+    @Test
+    fun beamsSlopeWithTheNotesAndEveryStemReachesTheBeam() {
+        val s = piece(listOf("C5/e E5/e G5/e B5/e r/h"), listOf("C3/w"))
+        val l = ScoreLayout.of(s)
+        val beam = l.lines.first { it.thickness == ScoreLayout.BEAM_THICKNESS }
+        assertTrue(beam.y2 < beam.y1, "a rising run gets a rising beam: $beam")
+        assertTrue(beam.y1 - beam.y2 <= 1.0 + 1e-9, "at most one space: $beam")
+        val beams = l.lines.filter { it.thickness == ScoreLayout.BEAM_THICKNESS }
+        val stems = l.lines.filter { it.thickness == ScoreLayout.STEM_THICKNESS }
+        for (st in stems) {
+            val b = beams.first { st.x1 >= it.x1 - 0.1 && st.x1 <= it.x2 + 0.1 }
+            assertTrue(kotlin.math.abs(st.y2 - (b.y1 + (b.y2 - b.y1) * (st.x1 - b.x1) / (b.x2 - b.x1))) < 0.3, "$st meets $b")
+        }
+        assertTrue(stems.all { kotlin.math.abs(it.y2 - it.y1) >= ScoreLayout.STEM_LENGTH - 1e-9 }, "$stems")
     }
 
     @Test

@@ -104,7 +104,7 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
                 }) { mod ->
                 ScoreView(score!!, layout!!, vm::cursorAt, playing, ui.results, ui.wrongMarks,
                     ui.section.takeUnless { it.first == 0 && it.last == score.measures - 1 }, ui.hotMeasures,
-                    ui.showNames, vm.nameStyle, vm::onMeasureTap, mod)
+                    ui.showNames, vm.nameStyle, vm::onMeasureTap, mod, everyBarNumber = true)
             }
         }
         return

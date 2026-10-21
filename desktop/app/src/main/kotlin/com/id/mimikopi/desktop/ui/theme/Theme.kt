@@ -13,19 +13,19 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Black and white only (M15). Filled buttons are ink with paper text; everything else is lines and type.
+// Pastel: filled buttons are the deep pink with white text, selected chips soft pink; everything else is lines and type.
 private fun colors(dark: Boolean): ColorScheme {
     val p = Tokens.Palette
     val base = if (dark) darkColorScheme() else lightColorScheme()
     return base.copy(
-        primary = p.Ink, onPrimary = p.OnInk, primaryContainer = p.Ink, onPrimaryContainer = p.OnInk,
-        secondary = p.Ink, onSecondary = p.OnInk, secondaryContainer = p.Ink, onSecondaryContainer = p.OnInk,
-        tertiary = p.Ink, onTertiary = p.OnInk,
+        primary = p.Accent, onPrimary = p.OnAccent, primaryContainer = p.AccentSoft, onPrimaryContainer = p.Ink,
+        secondary = p.Accent, onSecondary = p.OnAccent, secondaryContainer = p.AccentSoft, onSecondaryContainer = p.Ink,
+        tertiary = p.Accent, onTertiary = p.OnAccent,
         background = p.Paper, onBackground = p.Ink, surface = p.Paper, onSurface = p.Ink,
         surfaceContainer = p.Paper, surfaceContainerLow = p.Paper, surfaceContainerLowest = p.Paper,
         surfaceContainerHigh = p.Raised, surfaceContainerHighest = p.Raised,
         surfaceVariant = p.Paper, onSurfaceVariant = p.InkMuted,
-        outline = p.Ink, outlineVariant = p.Line, error = p.Ink, onError = p.OnInk,
+        outline = p.Line, outlineVariant = p.Hair, error = p.Wrong, onError = p.OnAccent,
     )
 }
 

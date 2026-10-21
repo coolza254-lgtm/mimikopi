@@ -38,6 +38,7 @@ sealed interface Open {
     data object ChordHome : Open
     /** A level test; [score] (reader) or ear, otherwise a drill. */
     data class Check(val key: String, val run: CheckRun) : Open
+    data object PrivateSongs : Open
     data object Songs : Open
     data class Skill(val skill: SkillId) : Open
     data object Skills : Open

@@ -25,12 +25,16 @@ class SongsViewModel(app: Application) : AndroidViewModel(app) {
 
 @Composable
 fun SongsScreen(onPlay: (String, String) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: () -> Unit,
-    onOpenLibrary: () -> Unit, onTarget: (String) -> Unit, vm: SongsViewModel = viewModel()) {
+    onOpenLibrary: () -> Unit, onOpenPrivate: () -> Unit, onTarget: (String) -> Unit, vm: SongsViewModel = viewModel()) {
     val progress by vm.progress.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
             TabHeader("เพลง", "1 เพลงเป้าหมาย", onOpenMidi, onOpenSettings)
             Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                com.id.mimikopi.ui.components.PageCard(title = "เพลงส่วนตัว · ฝึกจำจาก YouTube", onClick = onOpenPrivate) {
+                    androidx.compose.material3.Text("แบ่งช่วง → หยุดวิดีโอแล้วลองเอง → เช็กจุดติด → ทวนข้ามวัน", color = com.id.mimikopi.ui.theme.Tokens.Palette.Ink)
+                    androidx.compose.material3.Text("เก็บในเครื่อง · เริ่มได้โดยยังไม่มีโน้ตทั้งเพลง", color = com.id.mimikopi.ui.theme.Tokens.Palette.InkMuted)
+                }
                 HeroicDashboard(progress, onTarget, onPlay, onOpenLibrary)
             }
         }

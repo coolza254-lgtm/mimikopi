@@ -81,6 +81,10 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
                     Text("เปิดแผนและเริ่มช่วงถัดไป →", color = Tokens.Palette.Ink)
                 }
                 Spacer(Modifier.height(16.dp))
+                com.id.mimikopi.ui.components.PageCard(title = "เพลงส่วนตัว · ลองเล่นจากความจำ", onClick = { onOpen(Open.PrivateSongs) }) {
+                    Text("แบ่งช่วงจาก YouTube แล้วลองเองก่อนดูคำตอบ · ข้อมูลอยู่ในเครื่อง", color = Tokens.Palette.Ink)
+                }
+                Spacer(Modifier.height(16.dp))
                 Text("เวลาเสริมพื้นฐานวันนี้", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Tokens.Palette.Ink)
                 Spacer(Modifier.height(8.dp))
                 Segmented(DailyPlan.CHOICES, ui.minutesChosen, { "$it" }, vm::choose)

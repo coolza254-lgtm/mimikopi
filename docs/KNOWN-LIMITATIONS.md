@@ -2,6 +2,18 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Private recall practice (v0.28.0)
+- Private songs contain user-entered metadata, video time ranges, cues and self-assessed attempts, not verified sheet music.
+  MIDI/touch press counts are activity evidence, never note accuracy. No automatic transcription or pitch/timing grade is claimed.
+- First-trial-before-viewing is explicitly attested by the user, separately from playing independently after a recent demonstration.
+  The app does not inspect other apps or know whether the user previously watched a video externally.
+- Video links open externally at a start timestamp; the user stops playback at the end. No video/audio download or embedding.
+- Details retain the latest 64 attempts per phrase; long-term independent/cold-recall days are retained separately.
+  Edited source/time/cues create a new reference revision. Previous revision results never pass for the new one.
+- Private project import/export is its own JSON format, not MIDI/MusicXML. Data is local, part of manual/local backups,
+  and deliberately absent from LAN sync. Android system cloud backup remains disabled.
+- New feature behavior still needs real phone/MIDI/audio-device checks. Future note editing and automatic checks remain separate work.
+
 ## Heroic-only practice plan (v0.27.0)
 - The library contains one composition, two eight-bar study arrangements, covering source measures 17–24.
   Thirty targets cover exact sections/hands/modes, not the full composition or original performance difficulty.

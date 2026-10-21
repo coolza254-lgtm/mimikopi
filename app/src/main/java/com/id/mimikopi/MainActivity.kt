@@ -191,6 +191,7 @@ private fun openPage(nav: NavController, app: MimikopiApp, o: Open, selectTab: (
                 },
             )
         }
+        Open.PrivateSongs -> nav.navigate("private-songs")
         Open.Songs -> selectTab(Routes.SONGS)
         is Open.Skill -> nav.navigate("skill/${o.skill.name}")
         Open.Skills -> selectTab(Routes.SKILLS)
@@ -251,8 +252,9 @@ private fun AppNavigation() {
             FreePianoScreen(onOpenMidi = openMidi, onOpenSettings = openSettings, soundSetup = { onReady -> PianoSoundSetup(onReady) })
         }
         composable(Routes.SONGS) {
-            SongsScreen(onPlay = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onOpenMidi = openMidi, onOpenSettings = openSettings, onOpenLibrary = { nav.navigate("pieces") }, onTarget = { nav.navigate(Routes.heroicTarget(it)) })
+            SongsScreen(onPlay = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onOpenMidi = openMidi, onOpenSettings = openSettings, onOpenLibrary = { nav.navigate("pieces") }, onOpenPrivate = { nav.navigate("private-songs") }, onTarget = { nav.navigate(Routes.heroicTarget(it)) })
         }
+        composable("private-songs") { com.id.mimikopi.ui.recall.RecallScreen(onBack = back, onMidi = openMidi, onSound = { nav.navigate(Routes.PIANO) }) }
         composable(Routes.SKILL) { e ->
             val skill = e.arguments?.getString("skill")?.let { runCatching { SkillId.valueOf(it) }.getOrNull() } ?: SkillId.KEYS
             SkillDetailScreen(skill, onBack = back, onOpen = open)

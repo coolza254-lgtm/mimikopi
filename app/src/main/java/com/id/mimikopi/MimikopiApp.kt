@@ -35,6 +35,7 @@ class MimikopiApp : Application() {
     val bleScanner: com.id.mimikopi.midi.BleMidiScanner by lazy { com.id.mimikopi.midi.BleMidiScanner(this) }
     val learning: com.id.mimikopi.learning.LearningRepository by lazy { com.id.mimikopi.learning.LearningRepository(this, database) }
     val pieces: com.id.mimikopi.pieces.PieceRepository by lazy { com.id.mimikopi.pieces.PieceRepository(this, database) }
+    val privateSongs: com.id.mimikopi.recall.PrivateSongRepository by lazy { com.id.mimikopi.recall.PrivateSongRepository(database.settingsDao()) }
     val session: com.id.mimikopi.learning.SessionTracker by lazy { com.id.mimikopi.learning.SessionTracker(learning) }
 
     /** The chosen look (dark by default until the stored choice is read). */

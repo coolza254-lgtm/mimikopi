@@ -87,4 +87,43 @@ class ClassicalRepertoireTest {
         }
     }
 
+    @Test fun moonlightIntroPreservesThreeNotesPerPulseAndAddsOctaveBassInTheOriginalKey() {
+        val easy = score("moonlight-intro-easy")
+        val originalKey = score("moonlight-intro-c-sharp")
+        for (s in listOf(easy, originalKey)) {
+            assertEquals(4, s.measures)
+            assertEquals(6.0, s.measureBeats)
+            assertEquals(12, s.beatsPerMeasure)
+            assertEquals(8, s.beatUnit)
+            val right = s.events.filter { it.hand == Hand.RIGHT }
+            assertEquals(48, right.size)
+            right.forEachIndexed { i, e ->
+                assertEquals(i * .5, e.onset)
+                assertEquals(.5, e.duration)
+                assertEquals(1, e.pitches.size)
+            }
+            val bass = s.sounding().filter { it.hand == Hand.LEFT && it.onset == 0.0 }
+            assertTrue(bass.all { it.duration == 6.0 }, "Initial bass must sustain the whole compound bar")
+        }
+        val easyPitches = easy.events.filter { it.hand == Hand.RIGHT }.flatMap { it.pitches }.map { it.midi }
+        val keyPitches = originalKey.events.filter { it.hand == Hand.RIGHT }.flatMap { it.pitches }.map { it.midi }
+        assertEquals(keyPitches.map { it + 8 }, easyPitches)
+        assertTrue(originalKey.events.filter { it.hand == Hand.LEFT }.all { it.pitches.size == 2 })
+        assertTrue(easy.events.filter { it.hand == Hand.LEFT }.all { it.pitches.size == 1 })
+    }
+
+    @Test fun moonlightThemeSeparatesMelodyFromContinuousLeftHandAndRetainsShareAlikeCredit() {
+        val theme = score("moonlight-first-theme")
+        assertEquals(8, theme.measures)
+        assertEquals(96, theme.events.count { it.hand == Hand.LEFT })
+        assertTrue(theme.events.filter { it.hand == Hand.LEFT }.all { it.duration == .5 && it.pitches.size == 1 })
+        assertEquals(4.5, theme.sounding().first { it.hand == Hand.RIGHT }.onset)
+        for (id in listOf("moonlight-intro-easy", "moonlight-intro-c-sharp", "moonlight-first-theme")) {
+            val source = score(id).source
+            for (credit in listOf("Stewart Holmes", "2007", "Mutopia", "https://creativecommons.org/licenses/by-sa/2.5/", "12/8", "ไม่ใช่ท่อนเต็ม")) {
+                assertTrue(credit in source, "$id: missing $credit")
+            }
+        }
+    }
+
 }

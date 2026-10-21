@@ -1,5 +1,16 @@
 # ผลตรวจรอบปรับการฝึกบนมือถือ
 
+## Moonlight Sonata I (v0.26.9)
+- รัน `:core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease` ด้วย versionName 0.26.9 / code 2609 สำเร็จ
+- Core 200 + Android 46 = 246 tests ผ่าน ไม่มี failures/errors/skips; lint ไม่มี errors; release APK สร้างได้
+- ตรวจสามฉบับมีความยาวทุกห้องตรง 12/8 วาดหัวโน้ตครบ ช่วงต้นมี 12 โน้ตต่อห้องตรง onset ทุกครึ่งจังหวะโน้ตดำ และเบสค้างห้องแรกไม่ถูกนับซ้ำ
+- เปรียบเทียบระดับเสียงช่วงต้นสองคีย์ครบทุกโน้ต ตรวจเบสเดี่ยว/อ็อกเทฟและทำนองแรก 8 ห้องที่คอร์ดแตกมือซ้ายต่อเนื่อง
+- ตรวจเมโทรนอม 6/8, 9/8, 12/8 ว่าเคาะหนึ่งครั้งต่อสามเขบ็ต รวมทั้งหน่วยเวลาของ native ticks ตรงกับพิกัดโน้ต; 4/4, 3/4, 2/2 และ 3/8 ยังสัมพันธ์กับความยาวห้อง
+- หน้ารวม 16 ขั้นเปิด Moonlight ด้วยมือที่แนะนำได้จริง ภาพ native Compose: `docs/images/classical-moonlight-*-v0.26.9.png`
+- ตรวจ APK ในเครื่องมี 32 เพลง รวม Moonlight ทั้งสามฉบับ; เครดิต Stewart Holmes/Mutopia และ CC BY-SA 2.5 อยู่ใน source ออฟไลน์
+- เปิดดู PDF อ้างอิงครบ 5 หน้า ตั้งแต่ห้อง 1 ถึง 69 ไม่มีโน้ตถูกตัดขอบ; เป็นฉบับพิมพ์ใหม่จาก LilyPond ที่ปรับ syntax ไม่ใช่สแกนต้นฉบับ เลขนิ้วสับเปลี่ยนบางตัวอาจไม่แสดงตามคำเตือนของ renderer
+- ต้องลองบนโทรศัพท์และ MIDI จริง: นับเข้าสี่ครั้ง/สามโน้ตต่อเคาะ เบสค้าง การวนช่วง และสมดุลเสียงทำนองกับคอร์ดแตก ยังไม่ได้ตรวจทางกายภาพหรืออ้างว่าเล่นต้นฉบับเต็มได้
+
 ## Heroic Polonaise และการตรวจไฟล์เพลง (v0.26.8)
 - รัน `:core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease` ด้วย versionName 0.26.8 / code 2608
 - Core 198 + Android 44 = 242 tests ผ่าน ไม่มี failures/errors/skips; lint ไม่มี errors (332 warnings เดิม); release APK สร้างได้ในเครื่อง

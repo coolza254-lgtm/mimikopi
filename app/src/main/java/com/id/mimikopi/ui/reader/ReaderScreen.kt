@@ -125,7 +125,10 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
             val test = vm.source is ReaderViewModel.Source.Benchmark || vm.source is ReaderViewModel.Source.Check || vm.source is ReaderViewModel.Source.Exam
             ReadingScoreSetup(ui, connected, canSetPace = !vm.fixed || vm.source is ReaderViewModel.Source.NewReading,
                 canSetHands = !vm.fixed, canListen = !test, vm::setMode, vm::setHands, vm::changeBpm,
-                vm::start, vm::listen, { showOptions = true }, onOpenMidi, { vm.setFalling(true) }) { mod ->
+                vm::start, vm::listen, { showOptions = true }, onOpenMidi, { vm.setFalling(true) },
+                countInClicks = com.id.mimikopi.core.score.MeterPulse.of(score).countInClicks,
+                rhythmHint = if (score.beatUnit == 8 && score.beatsPerMeasure >= 6 && score.beatsPerMeasure % 3 == 0)
+                    "${score.beatsPerMeasure / 3} จังหวะหลักต่อห้อง · เล่น 3 โน้ตต่อหนึ่งจังหวะ · ตัวเลข bpm คิดตามโน้ตดำ" else null) { mod ->
                 PagedScoreView(score, vm::cursorAt, false, ui.results, ui.wrongMarks,
                     loop = ui.section.takeUnless { it.first == 0 && it.last == score.measures - 1 }, hotMeasures = ui.hotMeasures,
                     showNames = ui.showNames, nameStyle = vm.nameStyle, onMeasureTap = vm::onMeasureTap,

@@ -75,7 +75,7 @@ fun SongsScreen(onPlay: (pieceId: String, hand: String) -> Unit, onOpenMidi: () 
                 color = Tokens.Palette.InkMuted, modifier = Modifier.padding(start = 24.dp, top = 6.dp))
             Column(Modifier.padding(horizontal = 24.dp).padding(top = 22.dp, bottom = 24.dp)) {
                 PageCard(title = "คลาสสิก · ง่ายไปยาก", onClick = onOpenLibrary) {
-                    Text("13 ขั้นพร้อมแนวทางฝึก · มี Heroic Polonaise สองฉบับ จากทำนองง่ายไปถึงคอร์ดสองมือ", style = MaterialTheme.typography.bodyMedium)
+                    Text("16 ขั้นพร้อมแนวทางฝึก · Moonlight แบบแบ่งช่วง และ Heroic Polonaise จากง่ายไปถึงคอร์ดสองมือ", style = MaterialTheme.typography.bodyMedium)
                     Text("ดูชุดฝึกและที่มาของโน้ต →", style = MaterialTheme.typography.labelLarge)
                 }
                 Spacer(Modifier.height(12.dp))

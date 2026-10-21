@@ -2,6 +2,16 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Moonlight Sonata I (v0.26.9)
+- Three segmented studies cover measures 1–4 (transposed/simple bass, then original key/octave bass) and
+  measures 5–12 (simplified melody and rearranged accompaniment). They do not cover all 69 measures.
+- The one-voice-per-staff reader cannot represent the original overlapping voices and triplets. Studies use
+  12/8 with durations scaled by 1.5; quarter-note BPM remains the UI unit, with a compound-meter hint.
+  The metronome/count-in now follow the four main pulses while judging and playback retain quarter coordinates.
+- A separately rendered full reference PDF retains the original voices/meter. It is not an importable judged score.
+  Source engraving and adaptations are CC BY-SA 2.5, credited to Stewart Holmes / Mutopia (2007).
+- Automatic tests do not validate physical MIDI, audio-device latency, pedal technique or musical interpretation.
+
 ## Heroic Polonaise (v0.26.8)
 - Two eight-bar arrangements use Op.53 measures 17–24, licensed CC BY 4.0 from the Fryderyk Chopin Institute's
   first-edition data. The C version simplifies rhythm, chromatic passing notes and registers; Bb remains.

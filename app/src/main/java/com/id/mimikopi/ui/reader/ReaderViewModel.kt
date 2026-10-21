@@ -38,6 +38,7 @@ import com.id.mimikopi.core.practice.isClean
 import com.id.mimikopi.core.score.Hand
 import com.id.mimikopi.core.score.NoteKey
 import com.id.mimikopi.core.score.Score
+import com.id.mimikopi.core.score.MeterPulse
 import com.id.mimikopi.core.score.ScoreLayout
 import com.id.mimikopi.data.db.SettingEntity
 import com.id.mimikopi.data.db.SettingKeys
@@ -623,12 +624,15 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     private suspend fun runTempo(j: PlayAlongJudge) {
         val s = j.score
-        val beatNanos = (j.beatMs * 1e6).toLong()
-        val countIn = if (s.beatsPerMeasure >= 3) s.beatsPerMeasure else s.beatsPerMeasure * 2
-        val pattern = IntArray(s.beatsPerMeasure) { if (it == 0) 0 else 2 }
+        val pulse = MeterPulse.of(s)
+        val quarterNanos = (j.beatMs * 1e6).toLong()
+        val beatNanos = (pulse.clickMillis(j.setup.bpm) * 1e6).toLong()
+        val countIn = pulse.countInClicks
+        val pattern = pulse.levels
+        val clickBpm = pulse.nativeBpm(j.setup.bpm)
         _ui.update { it.copy(phase = Phase.COUNT_IN, countIn = countIn) }
         piano.drainMetronomeTicks()
-        piano.setMetronome(true, j.setup.bpm, 1, pattern, 0.9f)
+        piano.setMetronome(true, clickBpm, pulse.ticksPerBeat, pattern, 0.9f)
         val stamps = mutableListOf<FrameTimestamp>()
         val ticks = mutableListOf<Long>()
         val began = System.nanoTime()
@@ -649,7 +653,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         }
         val downbeat = t0
         j.start(downbeat / 1_000_000)
-        startClock(downbeat, beatNanos, j.startBeat, j.endBeat)
+        startClock(downbeat, quarterNanos, j.startBeat, j.endBeat)
         if (_ui.value.options.playOtherHand) scheduleAccompaniment(j, j.startBeat, j.endBeat, downbeat)
         var metronomeOff = false
         while (true) {
@@ -662,7 +666,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 _ui.update { it.copy(phase = Phase.PLAYING, countIn = null) }
             }
             if (!metronomeOff && !_ui.value.options.metronome && now > downbeat - beatNanos / 2) {
-                piano.setMetronome(false, j.setup.bpm, 1, pattern, 0f)
+                piano.setMetronome(false, clickBpm, pulse.ticksPerBeat, pattern, 0f)
                 metronomeOff = true
             }
             val missed = j.advance(now / 1_000_000)
@@ -677,7 +681,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             if (j.isFinished(now / 1_000_000)) break
             delay(16)
         }
-        piano.setMetronome(false, j.setup.bpm, 1, pattern, 0f)
+        piano.setMetronome(false, clickBpm, pulse.ticksPerBeat, pattern, 0f)
         clockRunning = false
         judge = null
         finish(j)

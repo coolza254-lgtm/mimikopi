@@ -21,7 +21,7 @@ internal fun ReadingScoreSetup(
     ui: ReaderUi, connected: Boolean, canSetPace: Boolean, canSetHands: Boolean,
     canListen: Boolean, onMode: (PlayMode) -> Unit, onHands: (HandChoice) -> Unit,
     onBpm: (Int) -> Unit, onStart: () -> Unit, onListen: () -> Unit, onOptions: () -> Unit,
-    onMidi: () -> Unit, onFalling: () -> Unit, score: @Composable (Modifier) -> Unit,
+    onMidi: () -> Unit, onFalling: () -> Unit, countInClicks: Int = 4, rhythmHint: String? = null, score: @Composable (Modifier) -> Unit,
 ) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp)
         .testTag("reading-score-setup"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -33,7 +33,7 @@ internal fun ReadingScoreSetup(
                 FilterChip(selected = ui.options.mode == PlayMode.WAIT, onClick = { onMode(PlayMode.WAIT) }, label = { Text("รอให้กดถูก") }, modifier = Modifier.testTag("reading-mode-wait"))
                 FilterChip(selected = ui.options.mode == PlayMode.TEMPO, onClick = { onMode(PlayMode.TEMPO) }, label = { Text("ตามจังหวะ") }, modifier = Modifier.testTag("reading-mode-tempo"))
             }
-            Text(if (ui.options.mode == PlayMode.WAIT) "โน้ตจะรอคุณ กดผิดแล้วลองใหม่ได้ · รอบนี้ไม่ตัดสินจังหวะ" else "โน้ตเดินตามเวลา · นับเข้า 4 จังหวะก่อนเริ่ม", color = Tokens.Palette.InkMuted, fontSize = 13.sp)
+            Text(if (ui.options.mode == PlayMode.WAIT) "โน้ตจะรอคุณ กดผิดแล้วลองใหม่ได้ · รอบนี้ไม่ตัดสินจังหวะ" else "โน้ตเดินตามเวลา · นับเข้า $countInClicks จังหวะก่อนเริ่ม", color = Tokens.Palette.InkMuted, fontSize = 13.sp)
             if (ui.options.mode == PlayMode.TEMPO) Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton(onClick = { onBpm(-5) }, modifier = Modifier.testTag("reading-slower")) { Text("−5") }
                 Text("${ui.bpm} bpm", color = Tokens.Palette.Ink, modifier = Modifier.padding(horizontal = 16.dp))
@@ -45,6 +45,7 @@ internal fun ReadingScoreSetup(
                 FilterChip(selected = ui.options.hands == h, onClick = { onHands(h) }, label = { Text(name) })
             }
         }
+        rhythmHint?.let { Text(it, color = Tokens.Palette.InkMuted, fontSize = 13.sp) }
         ui.message?.let { Text(it, color = Tokens.Palette.Ink, fontSize = 14.sp) }
         ui.previewLeft?.let { Text("ดูโน้ตก่อนเริ่ม · เหลือ $it วินาที", color = Tokens.Palette.Ink) }
         Button(onClick = onStart, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).testTag("reading-score-start")) {

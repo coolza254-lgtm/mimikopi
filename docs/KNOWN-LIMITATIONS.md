@@ -2,6 +2,13 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Mobile performance and lesson history (v0.29.0)
+- Score playback requests sensor landscape, hides system bars and restores the prior policy on exit. Android may override orientation on large-screen/multi-window configurations; physical phone rotation/cutout/navigation still needs device validation.
+- History reads the existing attempts table without a schema reset. New completed lesson runs include mode/completion metadata; older rows with unknown completion remain visible but excluded from comparisons.
+- Question drills save their scored results when the round finishes. Leaving a question round before completion does not invent an accuracy result. Reader runs stopped after judged input retain their result and are marked incomplete when notes remained.
+- Comparisons require the same exercise, hand, mode, tempo, section, timing criteria and recorded input source. Generated seeds may vary. Raw attempt changes do not establish durable skill gains.
+- Existing library-piece attempts cannot retrospectively be assigned to a lesson without their original navigation context. New launches from lesson piece selectors preserve that context.
+
 ## Private recall practice (v0.28.0)
 - Private songs contain user-entered metadata, video time ranges, cues and self-assessed attempts, not verified sheet music.
   MIDI/touch press counts are activity evidence, never note accuracy. No automatic transcription or pitch/timing grade is claimed.

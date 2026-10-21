@@ -58,6 +58,7 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: Les
     val lesson = vm.lesson
     val record by vm.record.collectAsStateWithLifecycle()
     val status by vm.status.collectAsStateWithLifecycle()
+    val history by vm.history.collectAsStateWithLifecycle()
     val marked by vm.marked.collectAsStateWithLifecycle()
     val keyboard by vm.keyboard.collectAsStateWithLifecycle()
     val countAnswer by vm.countAnswer.collectAsStateWithLifecycle()
@@ -112,6 +113,7 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: Les
             }
             Text(stringResource(R.string.lesson_pass, lesson.passText), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         }
+        LessonHistory(lesson, history)
         if (lesson.tryIt.isNotEmpty()) PageCard(title = stringResource(R.string.lesson_try)) {
             lesson.tryIt.forEachIndexed { i, step ->
                 Text("${i + 1}. ${step.text}", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.s))

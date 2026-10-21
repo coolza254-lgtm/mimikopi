@@ -464,9 +464,9 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 exerciseId = if (review) "REVIEW" else if (notePractice) "READING_PRACTICE" else if (practice) "CHORDS:${d.type}" else "${l?.id}:${d.type}:$drillIndex",
                 paramsJson = if (notePractice) _readingSettings.value.let { settings ->
                     """{"seed":$seed,"clef":"${settings.clef}","range":"${settings.range}","accidentals":${settings.accidentals},"items":${settings.items},"inputSources":[${readingSources.joinToString { "\"${it.name}\"" }}]}"""
-                } else """{"seed":$seed,"drill":$drillIndex,"lesson":"${l?.id ?: "review"}"}""",
+                } else """{"seed":$seed,"drill":$drillIndex,"lesson":"${l?.id ?: "review"}","completed":true,"inputSources":"${readingSources.map { it.name }.sorted().joinToString("+")}","mode":"ANSWER"}""",
                 startedAt = startedAt, tempoBpm = null, noteAccuracy = acc, timingWithinTol = null,
-                clean = met, helperUses = helperUses, events = events.toList(), sessionId = services.session.currentId(),
+                clean = met, helperUses = helperUses, events = events.toList(), sessionId = services.session.currentId(), hand = d.hand,
             )
             val passedNow = if (l != null) repo.recordDrill(l, drillIndex, met == true, helperUses > 0) else false
             val coach = mutableListOf<String>()
@@ -566,7 +566,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
 
         repo.saveAttempt(
             exerciseId = "${l.id}:${d.type}:$drillIndex",
-            paramsJson = """{"seed":$seed,"bpm":$bpm,"beats":${d.beats},"latencyMs":${latency ?: 0.0}}""",
+            paramsJson = """{"seed":$seed,"bpm":$bpm,"beats":${d.beats},"latencyMs":${latency ?: 0.0},"completed":true,"mode":"PULSE"}""",
             startedAt = startedAt, tempoBpm = bpm.toDouble(), noteAccuracy = null, timingWithinTol = stats.within,
             clean = met, helperUses = 0,
             events = offsets.map { AttemptEvent(expectedPitch = null, actualPitch = null, offsetMs = it.toLong()) },
@@ -796,9 +796,9 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         val met = if (isPassDrill) Scoring.chordChangePassed(changeCount, l.pass) else null
         repo.saveAttempt(
             exerciseId = "${l.id}:${d.type}:$drillIndex",
-            paramsJson = """{"seed":$seed,"drill":$drillIndex,"lesson":"${l.id}","count":$changeCount,"seconds":$seconds}""",
+            paramsJson = """{"seed":$seed,"drill":$drillIndex,"lesson":"${l.id}","count":$changeCount,"seconds":$seconds,"completed":true,"mode":"CHORD_CHANGE"}""",
             startedAt = startedAt, tempoBpm = null, noteAccuracy = null, timingWithinTol = null,
-            clean = met, helperUses = helperUses, events = events.toList(), sessionId = services.session.currentId(),
+            clean = met, helperUses = helperUses, events = events.toList(), sessionId = services.session.currentId(), hand = d.hand,
         )
         val passedNow = repo.recordDrill(l, drillIndex, met == true, helperUses > 0)
         val coach = mutableListOf<String>()

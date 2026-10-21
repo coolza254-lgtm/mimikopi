@@ -56,7 +56,7 @@ internal fun NoteReadingSetup(
 @Composable
 internal fun NoteReadingQuestion(
     q: DrillUi.Question, connected: Boolean, names: Boolean, nameStyle: NoteNameStyle, range: IntRange,
-    choices: List<SpelledPitch>?, pressed: Set<Int>, onKey: (Int, Boolean) -> Unit, onAnswer: (Int) -> Unit, onNext: () -> Unit, onNames: () -> Unit,
+    choices: List<SpelledPitch>?, pressed: Set<Int>, onKey: (Int, Boolean) -> Unit, onAnswer: (Int) -> Unit, onNext: () -> Unit, onNames: () -> Unit, onStop: (() -> Unit)? = null,
 ) {
     val item = (q.prompt as Prompt.Note).item
     fun pitchName(p: SpelledPitch) = p.name(nameStyle, true) + if (nameStyle == NoteNameStyle.SOLFEGE) " ($p)" else ""
@@ -65,15 +65,19 @@ internal fun NoteReadingQuestion(
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(if (q.retry) "ทวนข้อที่พลาด" else "ข้อ ${q.index} / ${q.total}", color = Tokens.Palette.InkMuted, modifier = Modifier.weight(1f))
             FilterChip(selected = names, onClick = onNames, label = { Text("จุดอ้างอิง") })
+            onStop?.let { Button(onClick = it, modifier = Modifier.padding(start = 8.dp).heightIn(min = 48.dp).testTag("reading-stop")) { Text("หยุด") } }
         }
         LinearProgressIndicator(progress = { q.firstAnswered.toFloat() / q.total.coerceAtLeast(1) }, color = Tokens.Palette.Ink, trackColor = Tokens.Palette.Line, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp))
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-            val wide = maxWidth >= 700.dp
-            val staff: @Composable () -> Unit = {
+            val wide = maxWidth > maxHeight
+            val answerHeight = maxHeight * .55f
+            val staff: @Composable (Modifier) -> Unit = { modifier ->
+                Column(modifier) {
                 Text(if (item.clef == Clef.TREBLE) "กุญแจซอล" else "กุญแจฟา", color = Tokens.Palette.InkMuted, fontSize = 13.sp)
-                StaffView(item.clef, item.pitch, Modifier.fillMaxWidth().height(if (wide) 145.dp else 180.dp).testTag("reading-staff"), ink = color)
+                StaffView(item.clef, item.pitch, Modifier.fillMaxWidth().weight(1f).testTag("reading-staff"), ink = color)
                 if (names) Text(if (item.clef == Clef.TREBLE) "เส้นล่างสุด E4 · ช่องว่างจากล่าง F A C E\nโดกลาง C4 อยู่เส้นน้อยใต้บรรทัด" else "เส้นล่างสุด G2 · ช่องว่างจากล่าง A C E G\nโดกลาง C4 อยู่เส้นน้อยเหนือบรรทัด",
                     color = Tokens.Palette.InkMuted, fontSize = 13.sp, lineHeight = 21.sp)
+                }
             }
             val answer: @Composable () -> Unit = {
                 when (q.feedback) {
@@ -90,10 +94,13 @@ internal fun NoteReadingQuestion(
                     ReadingNameAnswers(choices, q.feedback == null, onAnswer)
                 }
             }
-            if (wide) Row(Modifier.fillMaxSize().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(28.dp)) {
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) { staff() }
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) { answer() }
-            } else Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { staff(); answer() }
+            if (wide) Row(Modifier.fillMaxSize().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                staff(Modifier.weight(if (connected) 2f else 1f).fillMaxHeight())
+                Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) { answer() }
+            } else Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                staff(Modifier.weight(1f).fillMaxWidth())
+                Column(Modifier.heightIn(max = answerHeight).verticalScroll(rememberScrollState())) { answer() }
+            }
         }
         if (q.feedback == Feedback.WRONG && q.canContinue) {
             Button(onClick = onNext, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).heightIn(min = 50.dp).testTag("reading-next")) { Text("เข้าใจแล้ว · ข้อถัดไป") }
@@ -101,8 +108,37 @@ internal fun NoteReadingQuestion(
         }
         if (choices == null || connected) ReadingKeyboard(connected, range, nameStyle, names, pressed, onKey,
             marked = if (q.feedback == Feedback.WRONG) setOf(item.pitch.midi) else emptySet(),
-            enabled = q.feedback == null || q.canContinue)
+            enabled = q.feedback == null || q.canContinue, performance = true)
         Text("ถูกครั้งแรก ${q.firstCorrect} / ${q.firstAnswered} · ${if (q.feedback == Feedback.CORRECT) "กำลังไปข้อถัดไป" else "ตอบเสียงและอ็อกเทฟให้ตรง"}",
-            color = Tokens.Palette.InkMuted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp))
+            color = Tokens.Palette.InkMuted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+    }
+}
+
+/** Questions use the right pane; a touch keyboard appears only when the set actually asks for playing. */
+@Composable
+internal fun IntervalReadingQuestion(
+    q: DrillUi.Interval, connected: Boolean, names: Boolean, nameStyle: NoteNameStyle, range: IntRange,
+    pressed: Set<Int>, onKey: (Int, Boolean) -> Unit, onNames: () -> Unit, onStop: () -> Unit,
+    answers: @Composable () -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("ชุด ${q.index} / ${q.total}", modifier = Modifier.weight(1f), color = Tokens.Palette.InkMuted)
+            FilterChip(selected = names, onClick = onNames, label = { Text("ชื่อบนคีย์") })
+            Button(onClick = onStop, modifier = Modifier.heightIn(min = 48.dp).testTag("reading-stop")) { Text("หยุด") }
+        }
+        Row(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            com.id.mimikopi.ui.components.StaffSequenceView(q.clef, q.notes, q.pair?.let { setOf(it, it + 1) } ?: emptySet(),
+                if (q.pair == null) q.played else 0, Modifier.weight(2f).fillMaxHeight().testTag("interval-staff"))
+            Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (q.pair != null) "โน้ต ${q.pair + 1} ไป ${q.pair + 2} เคลื่อนอย่างไร?" else "เล่นโน้ตชุดนี้ตามลำดับ", style = MaterialTheme.typography.titleMedium)
+                q.correction?.let { Text("คำตอบ: $it", color = MaterialTheme.colorScheme.error) }
+                if (q.feedback == Feedback.CORRECT) Text("ถูก", color = Tokens.Palette.Ink)
+                if (q.feedback == Feedback.WRONG && q.pair == null) Text("ลองอีกครั้ง", color = MaterialTheme.colorScheme.error)
+                if (q.pair != null) answers()
+            }
+        }
+        if (q.pair == null) ReadingKeyboard(connected, range, nameStyle, names, pressed, onKey, performance = true)
     }
 }

@@ -1,6 +1,7 @@
 package com.id.mimikopi.ui.reader
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,14 +25,7 @@ import com.id.mimikopi.core.score.ScoreLayout
 /** One line of the page view: its bars, the slice of the score and its engraving. */
 private class PageSystem(val bars: IntRange, val score: Score, val layout: ScoreLayout, val startBeat: Double, val endBeat: Double)
 
-/**
- * The score wrapped into systems that fit the width (same line breaking as the PDF), stacked vertically like a
- * printed sheet. [paper]: the size of printed music, the page no wider than a sheet, several lines on screen;
- * otherwise large lines for a phone on the music stand. While playing, the page turns (the current line goes to the
- * top) when the cursor reaches the last line that is fully on screen, so the lines ahead can be read in advance; only
- * the line with the cursor redraws every frame. Each system is a [ScoreView] of the slice; note ids are kept by
- * slicing, so results and taps map back to the piece.
- */
+/** Large wrapped systems for setup and result review. Live performance uses a full-height scrolling strip. */
 @Composable
 fun PagedScoreView(
     score: Score,
@@ -46,12 +40,11 @@ fun PagedScoreView(
     onMeasureTap: (Int) -> Unit,
     modifier: Modifier = Modifier,
     hideNotes: Boolean = false,
-    paper: Boolean = true,
 ) {
     BoxWithConstraints(modifier) {
-        // Printed size: a grand staff about as tall as on paper; large: about one and a half systems on screen.
-        val systemHeight = if (paper) 170.dp else (maxHeight / 1.5f).coerceIn(160.dp, 320.dp)
-        val pageWidth = if (paper) minOf(maxWidth, 1000.dp) else maxWidth
+        // Previews wrap at a readable phone size; live playback uses the landscape strip.
+        val systemHeight = (maxHeight / 1.5f).coerceIn(160.dp, 320.dp)
+        val pageWidth = maxWidth
         val density = LocalDensity.current
         val widthSpaces = with(density) { pageWidth.toPx() / (systemHeight.toPx() / 24f) } - 3f
         // Whole steps of 8 spaces (rounded down, so lines still fit): resizing a window re-engraves now and then, not per pixel.
@@ -81,7 +74,7 @@ fun PagedScoreView(
                 }
             }
         }
-        LazyColumn(state = list, horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+        LazyColumn(modifier = Modifier.fillMaxSize(), state = list, horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
             items(systems.size) { i ->
                 val sys = systems[i]
                 val shift = sys.startBeat

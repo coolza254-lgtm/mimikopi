@@ -41,7 +41,8 @@ class PieceListViewModel(app: Application, args: SavedStateHandle) : AndroidView
     private val repo = (app as MimikopiApp).pieces
     /** Opened from a lesson's repertoire drill: only its pieces, played with its hand. */
     val lesson: Lesson? = args.get<String>("lesson")?.let { (app as MimikopiApp).learning.lesson(it) }
-    val drill: Drill? = args.get<String>("drill")?.toIntOrNull()?.let { lesson?.drills?.getOrNull(it) }
+    val drillIndex: Int? = args.get<String>("drill")?.toIntOrNull()
+    val drill: Drill? = drillIndex?.let { lesson?.drills?.getOrNull(it) }
     val hand: String? = drill?.hand
     val pieces = drill?.pieces?.mapNotNull { repo.pieceOrExercise(it) } ?: repo.pieces
     val progress = repo.progress
@@ -52,9 +53,9 @@ class PieceListViewModel(app: Application, args: SavedStateHandle) : AndroidView
 }
 
 @Composable
-fun PieceListScreen(onBack: () -> Unit, onOpenPiece: (String, String?) -> Unit, vm: PieceListViewModel = viewModel()) {
+fun PieceListScreen(onBack: () -> Unit, onOpenPiece: (String, String?, String?, Int?) -> Unit, vm: PieceListViewModel = viewModel()) {
     val progress by vm.progress.collectAsStateWithLifecycle()
-    PieceLibrary(vm.pieces, progress, vm.lesson?.let { "${it.id} ${it.title}" }, vm.lesson?.passText, vm.hand, onBack, onOpenPiece)
+    PieceLibrary(vm.pieces, progress, vm.lesson?.let { "${it.id} ${it.title}" }, vm.lesson?.passText, vm.hand, onBack, { id, hand -> onOpenPiece(id, hand, vm.lesson?.id, vm.drillIndex) })
 }
 
 /** Also used by render tests without starting the audio, database or MIDI services. */

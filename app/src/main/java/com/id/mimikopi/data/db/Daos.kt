@@ -57,6 +57,9 @@ interface BackupDao {
 
 @Dao
 interface LearningDao {
+    @Query("SELECT * FROM attempts WHERE exercise_id LIKE :lessonId || ':%' ORDER BY started_at DESC, id DESC")
+    fun lessonAttempts(lessonId: String): kotlinx.coroutines.flow.Flow<List<AttemptEntity>>
+
     @Query("SELECT * FROM item_stats")
     suspend fun itemStats(): List<ItemStatEntity>
 

@@ -13,7 +13,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 
-/** Owns immersive mode only while the landscape falling player is on screen. */
+/** Owns immersive mode only while a player is on screen. */
 @Composable
 internal fun ReaderFullscreen(enabled: Boolean) {
     val window = LocalActivity.current?.window
@@ -62,4 +62,20 @@ internal class ReaderFullscreenSession(private val window: Window) : AutoCloseab
             }
         }
     }
+}
+
+/** Use both landscape directions and restore the caller's policy when the score is dismissed. */
+@Composable
+internal fun ReaderLandscape(enabled: Boolean) {
+    val activity = LocalActivity.current
+    DisposableEffect(activity, enabled) {
+        val session = if (enabled && activity != null) ReaderLandscapeSession(activity) else null
+        onDispose { session?.close() }
+    }
+}
+
+internal class ReaderLandscapeSession(private val activity: android.app.Activity) : AutoCloseable {
+    private val previous = activity.requestedOrientation
+    init { activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE }
+    override fun close() { activity.requestedOrientation = previous }
 }

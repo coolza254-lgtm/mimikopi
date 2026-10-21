@@ -82,8 +82,8 @@ data class ReaderOptions(
     val loopListen: Boolean = false,
     /** Page view (the default): the score wrapped into lines like a printed sheet, instead of one long strip. */
     val pageView: Boolean = true,
-    /** Page view at the size of printed music (several lines on screen); off = large lines for a phone on the stand. */
-    val paperSize: Boolean = true,
+    /** Legacy backup field only; playback always uses a large landscape strip. */
+    val paperSize: Boolean = false,
     /** Falling notes over a keyboard instead of the score (songs only); a run with it does not count toward passing. */
     val falling: Boolean = false,
     /** Independent of score helpers; can be changed during a run. */
@@ -355,7 +355,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     private var judge: PlayAlongJudge? = null
     private var latencies: Map<InputSource, Double> = emptyMap()
     private var helperUsedThisRun = false
+    private val originLesson = args.get<String>("originLesson")?.let(learning::lesson)
+    private val originDrill = args.get<String>("originDrill")?.toIntOrNull()
     private var runStartedAt = 0L
+    private val runInputSources = mutableSetOf<InputSource>()
     private var hitPitch = mutableMapOf<NoteKey, Int>()
 
     // Cursor clock, read by the score view every frame.
@@ -444,7 +447,6 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     fun setHideNotes(on: Boolean) = updateOptions { it.copy(hideNotes = on) }
     fun setLoopListen(on: Boolean) = updateOptions { it.copy(loopListen = on) }
     fun setPageView(on: Boolean) = updateOptions { it.copy(pageView = on) }
-    fun setPaperSize(on: Boolean) = updateOptions { it.copy(paperSize = on) }
     fun setFalling(on: Boolean) = updateOptions { it.copy(falling = on) }
     fun setFallingKeyLabels(on: Boolean) = updateOptions(duringRun = true) { it.copy(fallingKeyLabels = on) }
 
@@ -599,6 +601,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         // Falling notes are played without reading the score: like note names, the run does not count toward passing.
         helperUsedThisRun = u.showNames || (u.options.falling && !fixed)
         runStartedAt = System.currentTimeMillis()
+        runInputSources.clear()
         _ui.update { it.copy(results = emptyMap(), wrongMarks = emptyList(), fallingFeedback = emptyList(), result = null, pendingSectionStart = null, message = null) }
         runJob?.cancel()
         runJob = viewModelScope.launch {
@@ -779,6 +782,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         if (phase != Phase.PLAYING && phase != Phase.COUNT_IN) return
         when (e) {
             is InputEvent.NoteOn -> {
+                if (phase == Phase.PLAYING) runInputSources += e.source
                 val latency = latencies[e.source] ?: 0.0
                 val beforeGroup = j.currentGroup()
                 val atMs = ((e.timeNanos - latency * 1e6) / 1e6).toLong()
@@ -972,7 +976,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                     val met = required && need != null && count >= need && !metThisSitting && !helper
                     learning.saveAttempt(
                         exerciseId = "${l.id}:${src.drill.type}:${src.index}",
-                        paramsJson = """{"seed":$seed,"drill":${src.index},"lesson":"${l.id}","bpm":${result.setup.bpm}}""",
+                        paramsJson = """{"seed":$seed,"drill":${src.index},"lesson":"${l.id}","bpm":${result.setup.bpm},"mode":"${result.setup.mode}","completed":${!stoppedEarly},"inputPresent":${result.hasNoteInput},"inputSources":"${runInputSources.map { it.name }.sorted().joinToString("+")}","from":${result.setup.fromMeasure},"to":${result.setup.toMeasure},"toleranceMs":${result.setup.toleranceMs}}""",
                         startedAt = runStartedAt, tempoBpm = if (result.timingJudged) result.setup.bpm else null,
                         noteAccuracy = result.summary?.noteAccuracy, timingWithinTol = if (result.timingJudged) result.summary?.fractionWithinTiming else null,
                         clean = if (result.timingJudged) clean else null, helperUses = if (helper) 1 else 0,
@@ -1123,8 +1127,9 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             )
         } + r.wrongPresses.map { AttemptEvent(expectedPitch = null, actualPitch = it.midi, expectedOnsetMs = ((it.beat - j.startBeat) * j.beatMs).toLong()) }
         learning.saveAttempt(
-            exerciseId = "piece:${s.id}:${r.setup.mode}",
-            paramsJson = """{"from":${r.setup.fromMeasure},"to":${r.setup.toMeasure},"bpm":${r.setup.bpm},"toleranceMs":${r.setup.toleranceMs}}""",
+            exerciseId = originDrill?.let { index -> originLesson?.takeIf { s.id in it.drills.getOrNull(index)?.pieces.orEmpty() }
+                ?.let { "${it.id}:${it.drills[index].type}:$index" } } ?: "piece:${s.id}:${r.setup.mode}",
+            paramsJson = """{"from":${r.setup.fromMeasure},"to":${r.setup.toMeasure},"bpm":${r.setup.bpm},"toleranceMs":${r.setup.toleranceMs},"piece":"${s.id}","mode":"${r.setup.mode}","completed":${!stoppedEarly},"inputPresent":${r.hasNoteInput},"inputSources":"${runInputSources.map { it.name }.sorted().joinToString("+")}"}""",
             startedAt = runStartedAt,
             tempoBpm = if (r.timingJudged) r.setup.bpm else null,
             noteAccuracy = sum.noteAccuracy,

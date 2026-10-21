@@ -129,7 +129,7 @@ class ReadingLayoutTest {
         var pressed by mutableStateOf(emptySet<Int>())
         content {
             Column(Modifier.fillMaxSize()) {
-                PagedScoreView(score, { 0.0 }, false, emptyMap(), emptyList(), null, emptyList(), false, NoteNameStyle.BOTH, {}, Modifier.weight(1f).fillMaxWidth(), paper = false)
+                PagedScoreView(score, { 0.0 }, false, emptyMap(), emptyList(), null, emptyList(), false, NoteNameStyle.BOTH, {}, Modifier.weight(1f).fillMaxWidth())
                 ReadingRunBar("โหมดรอ · กดสองมือพร้อมกันได้", {})
                 ReadingKeyboard(false, 48..72, NoteNameStyle.BOTH, false, pressed, { note, down ->
                     events += note to down
@@ -168,7 +168,7 @@ class ReadingLayoutTest {
         content {
             ReadingScoreSetup(ui, false, true, false, true, { ui = ui.copy(options = ui.options.copy(mode = it)) }, {},
                 { ui = ui.copy(bpm = ui.bpm + it) }, { started++ }, {}, {}, {}, {}) { mod ->
-                PagedScoreView(score, { 0.0 }, false, emptyMap(), emptyList(), null, emptyList(), false, NoteNameStyle.BOTH, {}, mod, paper = false)
+                PagedScoreView(score, { 0.0 }, false, emptyMap(), emptyList(), null, emptyList(), false, NoteNameStyle.BOTH, {}, mod)
             }
         }
         compose.onNodeWithTag("reading-mode-wait").assertIsSelected()

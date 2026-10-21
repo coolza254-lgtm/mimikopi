@@ -36,6 +36,8 @@ class LessonViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     private val piano = services.piano
 
     val lesson: Lesson? = args.get<String>("lessonId")?.let { repo.lesson(it) }
+    val history = services.database.learningDao().lessonAttempts(lesson?.id ?: "")
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val pressed = hub.pressed
 
     val record: StateFlow<LessonRecord?> = repo.records.combine(MutableStateFlow(lesson?.id)) { r, id -> id?.let { r[it] } }

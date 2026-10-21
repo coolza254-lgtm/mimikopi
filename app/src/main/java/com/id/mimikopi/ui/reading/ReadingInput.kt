@@ -21,11 +21,11 @@ import com.id.mimikopi.ui.theme.Tokens
 fun ReadingKeyboard(
     connected: Boolean, range: IntRange, nameStyle: NoteNameStyle, showNames: Boolean,
     pressed: Set<Int>, onKey: (Int, Boolean) -> Unit,
-    marked: Set<Int> = emptySet(), enabled: Boolean = true, twoHands: Boolean = false,
+    marked: Set<Int> = emptySet(), enabled: Boolean = true, twoHands: Boolean = false, performance: Boolean = false,
 ) {
     if (connected) {
         Text(if (enabled) "● ต่อ MIDI · เล่นโน้ตบนเปียโนได้เลย" else "● ต่อ MIDI · รอเสียงจบก่อนเล่น", color = Tokens.Palette.InkMuted, fontSize = 13.sp,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).testTag("reading-midi"))
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = if (performance) 0.dp else 12.dp).testTag("reading-midi"))
         return
     }
     val pages = remember(range) { readingKeyPages(range) }
@@ -51,7 +51,7 @@ fun ReadingKeyboard(
         }
     }
     Column(Modifier.fillMaxWidth().background(Tokens.Palette.Paper).testTag("reading-phone")) {
-        if (pages.size > 1) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        if (pages.size > 1 && !(compact && performance)) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text(if (split) "คีย์สองช่วง · กดพร้อมกันได้" else "คีย์บนมือถือ", color = Tokens.Palette.InkMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
             TextButton(onClick = { split = !split }, enabled = enabled, modifier = Modifier.heightIn(min = if (compact) 32.dp else 40.dp).testTag("reading-split")) {
                 Text(if (split) "ใช้ช่วงเดียว" else "แยกสองช่วง", fontSize = 12.sp)
@@ -77,7 +77,7 @@ private fun ReadingKeyBank(
     onKey: (Int, Boolean) -> Unit, enabled: Boolean, compact: Boolean,
 ) {
     Column {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        if (pages.size > 1) Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             TextButton(onClick = { onPage(page - 1) }, enabled = page > 0 && enabled,
                 contentPadding = PaddingValues(horizontal = 4.dp), modifier = Modifier.heightIn(min = if (compact) 32.dp else 40.dp).testTag("reading-octave-down$bank")) { Text("ต่ำลง", fontSize = 12.sp) }
             Text("${SpelledPitch.fromMidiSharp(pages[page].first)}–${SpelledPitch.fromMidiSharp(pages[page].last)}", fontSize = 12.sp,

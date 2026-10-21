@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -75,6 +76,27 @@ class FallingFullscreenTest {
         val normalCanvas = compose.onNodeWithTag("falling-canvas").getUnclippedBoundsInRoot()
         assertTrue(normalCanvas.top > viewport.top, "The regular portrait/setup layout retains its toolbar")
         compose.onNodeWithTag("falling-key-labels").assertIsOff()
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h850dp-port-xhdpi")
+    fun portraitFallingPlaybackAlsoUsesTheFullCanvas() {
+        var stopped = false
+        compose.setContent {
+            MimikopiTheme(dark = true) {
+                FallingViewport(true, false, {}, "โหมดรอ", { stopped = true }, Modifier.fillMaxSize()) { modifier ->
+                    FallingNotesView(listOf(FallingNote(60, 1.0, 2.0, true, "C")), { 0.0 }, false,
+                        48..84, emptySet(), { null }, modifier)
+                }
+            }
+        }
+        assertEquals(compose.onNodeWithTag("falling-viewport").getUnclippedBoundsInRoot(),
+            compose.onNodeWithTag("falling-canvas").getUnclippedBoundsInRoot())
+        compose.onNodeWithTag("falling-stop").assertIsDisplayed().performClick()
+        assertTrue(stopped)
+        val bitmap = compose.onRoot(useUnmergedTree = true).captureToImage().asAndroidBitmap()
+        File("build/render").mkdirs()
+        File("build/render/falling-fullscreen-portrait.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
     }
 
     @Test fun leavingFullscreenRestoresTheWindowCutoutPolicy() {

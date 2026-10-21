@@ -10,8 +10,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.AnimatedContentTransitionScope
-import android.content.res.Configuration
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.foundation.layout.Box
@@ -138,8 +136,11 @@ private object Routes {
     const val REVIEW = "review/{review}"
     const val PIECES = "pieces?lesson={lesson}&drill={drill}"
     fun piecesFor(lessonId: String, drill: Int) = "pieces?lesson=$lessonId&drill=$drill"
-    const val READER = "reader/{pieceId}?hand={hand}&target={target}"
-    fun reader(id: String, hand: String?) = if (hand == null) "reader/$id" else "reader/$id?hand=$hand"
+    const val READER = "reader/{pieceId}?hand={hand}&target={target}&originLesson={originLesson}&originDrill={originDrill}"
+    fun reader(id: String, hand: String?, lesson: String? = null, drill: Int? = null): String {
+        val query = listOfNotNull(hand?.let { "hand=$it" }, lesson?.let { "originLesson=$it" }, drill?.let { "originDrill=$it" })
+        return "reader/$id" + if (query.isEmpty()) "" else "?" + query.joinToString("&")
+    }
     fun heroicTarget(id: String): String {
         val t = com.id.mimikopi.core.playalong.HeroicPlan.target(id) ?: error("Unknown study target")
         return "reader/${t.piece}?target=${t.id}"
@@ -163,7 +164,7 @@ private fun openLessonDrill(nav: NavController, app: MimikopiApp, lessonId: Stri
     when {
         d.type == ExerciseType.E_PIECE && d.pieces.size > 1 -> nav.navigate(Routes.piecesFor(lessonId, index))
         // A piece the lesson counts by the piece rule: practise it in the reader with its own progress.
-        d.type == ExerciseType.E_PIECE && lesson.pass.piecesPassed != null -> nav.navigate(Routes.reader(d.pieces.first(), d.hand))
+        d.type == ExerciseType.E_PIECE && lesson.pass.piecesPassed != null -> nav.navigate(Routes.reader(d.pieces.first(), d.hand, lessonId, index))
         d.type.isScore -> nav.navigate(Routes.withVia("scoredrill/$lessonId/$index", via))
         else -> nav.navigate(Routes.withVia("drill/$lessonId/$index", via))
     }
@@ -229,9 +230,11 @@ private fun AppNavigation() {
     val openSettings = { nav.navigate(Routes.SETTINGS) }
     Scaffold(
         containerColor = com.id.mimikopi.ui.theme.Tokens.Palette.Paper,
-        // The reader owns its safe padding. Landscape falling playback can draw behind hidden system bars/cutouts.
-        contentWindowInsets = if (route == Routes.READER && LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE)
-            WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
+        // Playing screens own their insets, including portrait and fixed exercise/exam routes.
+        contentWindowInsets = if (route in setOf(Routes.READER, Routes.SCORE_DRILL, Routes.NEW_READING,
+                Routes.CHECK_SCORE, Routes.EXAM_PLAY, Routes.NOTE_READING, Routes.DRILL, Routes.REVIEW,
+                Routes.CHECK_DRILL, Routes.CHORD_DRILL)) WindowInsets(0, 0, 0, 0)
+            else ScaffoldDefaults.contentWindowInsets,
         bottomBar = { if (showBar) BottomNav(route, selectTab) },
     ) { inner ->
     Box(Modifier.fillMaxSize()) {
@@ -308,9 +311,9 @@ private fun AppNavigation() {
         composable(Routes.DRILL, arguments = listOf(optional("via"))) { DrillScreen(onBack = back) }
         composable(Routes.REVIEW) { DrillScreen(onBack = back) }
         composable(Routes.PIECES, arguments = listOf(optional("lesson"), optional("drill"))) {
-            PieceListScreen(onBack = back, onOpenPiece = { id, hand -> nav.navigate(Routes.reader(id, hand)) })
+            PieceListScreen(onBack = back, onOpenPiece = { id, hand, lesson, drill -> nav.navigate(Routes.reader(id, hand, lesson, drill)) })
         }
-        composable(Routes.READER, arguments = listOf(optional("hand"), optional("target"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
+        composable(Routes.READER, arguments = listOf(optional("hand"), optional("target"), optional("originLesson"), optional("originDrill"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
         composable(Routes.SCORE_DRILL, arguments = listOf(optional("via"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
         composable(Routes.SETTINGS) {
             SettingsScreen(

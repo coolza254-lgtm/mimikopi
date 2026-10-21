@@ -33,9 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.res.painterResource
@@ -89,12 +87,26 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
     // would stop the run (and an exam take would not count).
     val playing = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING
     val busy = playing || ui.previewLeft != null
-    val fullscreen = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
-        playing && ui.options.falling && !vm.fixed && piece != null
+    val fullscreen = busy && piece != null
+    val stopPlayer: () -> Unit = if (ui.previewLeft != null) onBack else vm::stop
+    ReaderLandscape((playing || ui.previewLeft != null) && !(ui.options.falling && !vm.fixed))
     ReaderFullscreen(fullscreen)
-    BackHandler(enabled = fullscreen) { vm.stop() }
+    BackHandler(enabled = fullscreen) { stopPlayer() }
     if (fullscreen) {
-        FallingScore(piece!!, ui, vm, playing, Modifier.fillMaxSize().keepScreenOn(), fullscreen = true)
+        if (ui.options.falling && !vm.fixed) {
+            FallingScore(piece!!, ui, vm, playing, Modifier.fillMaxSize().keepScreenOn(), fullscreen = true)
+        } else {
+            ScorePlayerViewport(ui.previewLeft?.let { "ดูโน้ตก่อนเริ่ม · เหลือ $it วินาที" } ?: runStatus(ui), connected, stopPlayer,
+                keyboard = {
+                    if (ui.previewLeft == null) ReadingKeyboard(false, if (vm.transposeKey != null) piece!!.keyRange else readingInputRange(score!!, ui.options.hands.hands),
+                        vm.nameStyle, ui.showNames, pressed, touch,
+                        enabled = ui.phase == Phase.PLAYING, twoHands = ui.options.hands == HandChoice.BOTH, performance = true)
+                }) { mod ->
+                ScoreView(score!!, layout!!, vm::cursorAt, playing, ui.results, ui.wrongMarks,
+                    ui.section.takeUnless { it.first == 0 && it.last == score.measures - 1 }, ui.hotMeasures,
+                    ui.showNames, vm.nameStyle, vm::onMeasureTap, mod)
+            }
+        }
         return
     }
     Column(
@@ -132,7 +144,7 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
                 PagedScoreView(score, vm::cursorAt, false, ui.results, ui.wrongMarks,
                     loop = ui.section.takeUnless { it.first == 0 && it.last == score.measures - 1 }, hotMeasures = ui.hotMeasures,
                     showNames = ui.showNames, nameStyle = vm.nameStyle, onMeasureTap = vm::onMeasureTap,
-                    modifier = mod, paper = false)
+                    modifier = mod)
             }
             return@Column
         }
@@ -175,7 +187,6 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
             nameStyle = vm.nameStyle,
             onMeasureTap = vm::onMeasureTap,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            paper = ui.options.paperSize,
         ) else ScoreView(
             score = score,
             layout = layout,
@@ -452,8 +463,6 @@ private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -
                 OptionRow(R.string.reader_opt_other_hand, R.string.reader_opt_other_hand_body, o.playOtherHand, vm::setPlayOtherHand)
                 if (!fixed) OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)
                 if (!fixed) OptionRow(R.string.reader_opt_ramp, R.string.reader_opt_ramp_body, o.useRamp, vm::setUseRamp)
-                OptionRow(R.string.reader_opt_page, R.string.reader_opt_page_body, o.pageView, vm::setPageView)
-                if (o.pageView) OptionRow(R.string.reader_opt_paper, R.string.reader_opt_paper_body, o.paperSize, vm::setPaperSize)
                 if (!fixed) OptionRow(R.string.reader_opt_loop, R.string.reader_opt_loop_body, o.loopListen, vm::setLoopListen)
             }
         },

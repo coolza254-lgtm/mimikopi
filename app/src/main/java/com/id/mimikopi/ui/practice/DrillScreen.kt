@@ -6,6 +6,13 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.ui.keepScreenOn
+import com.id.mimikopi.ui.reader.ReaderFullscreen
+import com.id.mimikopi.ui.reader.ReaderLandscape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -83,11 +90,14 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
 
+    val activeNotation = (ui as? DrillUi.Question)?.prompt is Prompt.Note || ui is DrillUi.Interval
+    ReaderFullscreen(activeNotation)
+    ReaderLandscape(activeNotation)
     Scaffold(
-        modifier = Modifier.paper(),
+        modifier = Modifier.paper().then(if (activeNotation) Modifier.keepScreenOn() else Modifier),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
-            TopAppBar(
+            if (activeNotation) Unit else TopAppBar(
                 title = { Text(if (vm.readingOnly) "อ่านโน้ตทีละตัว" else stringResource(R.string.drill_title), style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.action_back)) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
@@ -120,7 +130,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                 }
                 is DrillUi.Question -> if (s.prompt is Prompt.Note) {
                     NoteReadingQuestion(s, connected, showNames, vm.nameStyle, vm.keyRange,
-                        if (vm.notePractice) vm.readingPitches else null, pressed, touch, vm::answerReadingName, vm::continueReading, vm::toggleNames)
+                        if (vm.notePractice) vm.readingPitches else null, pressed, touch, vm::answerReadingName, vm::continueReading, vm::toggleNames, onStop = onBack)
                 } else {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
                         DrillProgress(s.index, s.total)
@@ -142,25 +152,9 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                     }
                     KeyHint(marked = if (s.feedback == Feedback.WRONG) s.prompt.answerKeys(vm.keyRange) else emptySet(), nameStyle = vm.nameStyle, range = vm.keyRange, showNames = showNames)
                 }
-                is DrillUi.Interval -> {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
-                        DrillProgress(s.index, s.total)
-                        FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })
-                    }
-                    Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = Tokens.Space.m), horizontalAlignment = Alignment.CenterHorizontally) {
-                        StaffSequenceView(s.clef, s.notes, s.pair?.let { setOf(it, it + 1) } ?: emptySet(), if (s.pair == null) s.played else 0,
-                            Modifier.widthIn(max = 520.dp).fillMaxWidth().height(150.dp))
-                        Text(
-                            if (s.pair != null) stringResource(R.string.drill_interval_ask, s.pair + 1, s.pair + 2) else stringResource(R.string.drill_interval_play),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        s.correction?.let { Text(stringResource(R.string.drill_interval_correction, it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge) }
-                        if (s.feedback == Feedback.CORRECT) Text(stringResource(R.string.drill_correct), style = MaterialTheme.typography.bodyLarge)
-                        if (s.feedback == Feedback.WRONG && s.pair == null) Text(stringResource(R.string.drill_wrong), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
-                        if (s.pair != null) IntervalAnswers(s, vm)
-                    }
-                    KeyHint(marked = emptySet(), nameStyle = vm.nameStyle, range = vm.keyRange, showNames = showNames)
-                }
+                is DrillUi.Interval -> com.id.mimikopi.ui.reading.IntervalReadingQuestion(
+                    s, connected, showNames, vm.nameStyle, vm.keyRange, pressed, touch, vm::toggleNames, onBack,
+                    answers = { IntervalAnswers(s, vm) })
                 is DrillUi.ChordAsk -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
                         Text(

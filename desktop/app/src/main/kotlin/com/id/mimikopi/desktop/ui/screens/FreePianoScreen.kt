@@ -27,6 +27,7 @@ import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.desktop.session.FreePianoSession
 import com.id.mimikopi.desktop.ui.LocalApp
+import com.id.mimikopi.desktop.ui.Screen
 import com.id.mimikopi.desktop.ui.components.LargeTitle
 import com.id.mimikopi.desktop.ui.components.PianoKeys
 import com.id.mimikopi.desktop.ui.components.SecondaryButton
@@ -77,6 +78,7 @@ fun FreePianoScreen() {
             SecondaryButton("−5", { vm.setMetronome(ui.metronome, ui.bpm - 5) })
             Text("${ui.bpm} bpm", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             SecondaryButton("+5", { vm.setMetronome(ui.metronome, ui.bpm + 5) })
+            SecondaryButton("เครื่องเคาะเต็มรูปแบบ ›", { vm.setMetronome(false); app.nav.open(Screen.Metronome) })
         }
         Box(Modifier.weight(1f))
         val shown = pressed.sorted().joinToString("  ") { SpelledPitch.fromMidiSharp(it).name(NoteNameStyle.BOTH, withOctave = true) }

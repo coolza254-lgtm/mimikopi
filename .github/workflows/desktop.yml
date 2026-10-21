@@ -99,12 +99,14 @@ jobs:
         run: python desktop/tools/test_report.py
 
       - name: MSI installer and app folder
+        id: package
         run: ./gradlew -p desktop :app:packageMsi :app:createDistributable -PversionName="$VERSION_NAME"
 
       - name: Print packaging logs
-        if: failure()
+        if: failure() && steps.package.outcome == 'failure'
+        shell: bash
         run: |
-          for f in desktop/app/build/compose/logs/*/*.txt; do echo "=== $f"; tail -n 60 "$f"; done
+          for f in desktop/app/build/compose/logs/*/*.txt; do [[ -f "$f" ]] || continue; echo "=== $f"; tail -n 60 "$f"; done
 
       - name: Check the package
         run: |

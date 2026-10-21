@@ -10,9 +10,13 @@ import com.id.mimikopi.desktop.audio.Piano
 import com.id.mimikopi.desktop.data.AppDirs
 import com.id.mimikopi.desktop.data.Database
 import com.id.mimikopi.desktop.session.ReaderArgs
+import com.id.mimikopi.desktop.ui.screens.EarHomeScreen
 import com.id.mimikopi.desktop.ui.screens.LessonScreen
+import com.id.mimikopi.desktop.ui.screens.MetronomeScreen
+import com.id.mimikopi.desktop.ui.screens.ProgressScreen
 import com.id.mimikopi.desktop.ui.screens.ReaderScreen
 import com.id.mimikopi.desktop.ui.screens.SettingsScreen
+import com.id.mimikopi.desktop.ui.screens.SkillsScreen
 import com.id.mimikopi.desktop.ui.screens.SongsScreen
 import com.id.mimikopi.desktop.ui.screens.TodayScreen
 import com.id.mimikopi.desktop.ui.theme.MimikopiTheme
@@ -75,4 +79,8 @@ class ScreenshotTest {
     @Test fun readerLesson() = shoot("reader-lesson-1.5") { ReaderScreen(ReaderArgs(lessonId = "1.5", drill = 0)) }
     @Test fun songs() = shoot("songs") { SongsScreen() }
     @Test fun settings() = shoot("settings") { SettingsScreen() }
+    @Test fun progress() = shoot("progress") { ProgressScreen() }
+    @Test fun ear() = shoot("ear") { EarHomeScreen() }
+    @Test fun skills() = shoot("skills") { SkillsScreen() }
+    @Test fun metronome() = shoot("metronome") { MetronomeScreen() }
 }

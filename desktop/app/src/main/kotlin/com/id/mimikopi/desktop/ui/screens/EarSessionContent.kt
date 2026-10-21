@@ -73,10 +73,10 @@ fun EarSessionContent(
                 EarAnswerArea(ui, midi, c, onChoose, onUndo)
             }
         }
-        if (ui.message != null) Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
-            Text(ui.message, color = c.ink, fontSize = 14.sp)
+        ui.message?.let { message -> Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+            Text(message, color = c.ink, fontSize = 14.sp)
             TextButton(onClick = onRetry) { Text("ลองเปิดเสียงใหม่", color = c.accent) }
-        }
+        } }
         EarFooter(ui, midi, c, onReplay, onCadence, onNext)
     }
 }

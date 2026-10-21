@@ -31,6 +31,8 @@ object SettingKeys {
     const val PC_MIDI_SOUND = "pc.midiSound"
     /** PC: the computer keyboard's lowest C. */
     const val PC_KEYS_LOW_C = "pc.keys.lowC"
+    /** PC: the last click-timing self-test on this computer's output. */
+    const val PC_CLICK_TEST = "pc.metronome.selfTest"
     /** PC: the window's size and fullscreen state. */
     const val PC_WINDOW = "pc.window"
 }

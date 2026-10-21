@@ -16,6 +16,7 @@ enum class Tab(val title: String, val mark: String) {
     SKILLS("ทักษะ", "◆"),
     SONGS("เพลง", "♪"),
     EAR("ฝึกหู", "◉"),
+    PROGRESS("พัฒนาการ", "↗"),
     PIANO("เปียโน", "▥"),
     SETTINGS("ตั้งค่า", "⚙"),
 }
@@ -27,6 +28,7 @@ sealed interface Screen {
     data class Reader(val args: ReaderArgs) : Screen
     data object Latency : Screen
     data object Recall : Screen
+    data object Metronome : Screen
     data class Skill(val id: com.id.mimikopi.core.progress.SkillId) : Screen
     data class Ear(val args: com.id.mimikopi.desktop.session.EarArgs) : Screen
 }

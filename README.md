@@ -32,6 +32,14 @@ Locally (needs JDK 17+ and the Android SDK with API 36):
 ./gradlew :app:assembleDebug    # debug APK (application id com.id.mimikopi.debug)
 ```
 
+Windows desktop (separate Gradle build that shares `core/`, see [`docs/DESKTOP.md`](docs/DESKTOP.md)):
+
+```sh
+./gradlew -p desktop :core:test test   # core + desktop tests and page screenshots
+./gradlew -p desktop :app:run          # run the program (needs desktop/native built with CMake)
+./gradlew -p desktop :app:packageMsi   # MSI installer (Windows)
+```
+
 ## Modules
 
 | Module | What |
@@ -39,6 +47,7 @@ Locally (needs JDK 17+ and the Android SDK with API 36):
 | `core/` | Pure Kotlin/JVM: music theory, timing rules, spaced repetition, pass rules, data models. No Android imports. |
 | `app/` | Android app: Compose UI, Room database, diagnostics, platform services. |
 | `content/` | Editable lesson and config files (JSON/Markdown). |
+| `desktop/` | Windows desktop: `platform` (JVM services), `app` (Compose Desktop), `native` (miniaudio/WASAPI). |
 | `tools/` | Brand asset generators, later the sample-pack builder. |
 
 ## Releasing

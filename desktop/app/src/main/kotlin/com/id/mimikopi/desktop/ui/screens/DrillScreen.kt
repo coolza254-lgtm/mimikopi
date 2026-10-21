@@ -207,8 +207,9 @@ private fun IntervalPanel(session: DrillSession, q: DrillUi.Interval, showNames:
     StaffSequenceView(q.clef, q.notes, q.pair?.let { setOf(it, it + 1) } ?: emptySet(), if (q.pair == null) q.played else 0,
         Modifier.widthIn(max = 820.dp).fillMaxWidth().height(260.dp))
     if (showNames) Text(q.notes.joinToString("  ") { session.noteLabel(it) }, fontSize = 18.sp, color = Tokens.Palette.InkMuted)
-    if (q.pair != null) {
-        Text("โน้ตคู่ที่ ${q.pair + 1}: ไปอย่างไร", fontSize = 20.sp, color = Tokens.Palette.Ink)
+    val pair = q.pair
+    if (pair != null) {
+        Text("โน้ตคู่ที่ ${pair + 1}: ไปอย่างไร", fontSize = 20.sp, color = Tokens.Palette.Ink)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (q.answerMode == "INTERVAL") {
                 if (q.withRepeat) SecondaryButton("ซ้ำ", onClick = { session.answerInterval(Motion(MotionKind.REPEAT, Direction.SAME, 0)) })

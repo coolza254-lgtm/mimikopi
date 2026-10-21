@@ -47,7 +47,7 @@ jobs:
           cmake --build desktop/native/build -j4
 
       - name: Core and desktop tests
-        run: ./gradlew --stacktrace -p desktop :core:test test
+        run: ./gradlew -p desktop :core:test test
 
       - name: Test report
         if: always()
@@ -81,14 +81,14 @@ jobs:
           ls -l desktop/native/dist/windows
 
       - name: Tests on Windows
-        run: ./gradlew --stacktrace -p desktop :core:test test -PversionName="$VERSION_NAME"
+        run: ./gradlew -p desktop :core:test test -PversionName="$VERSION_NAME"
 
       - name: Test report
         if: always()
         run: python desktop/tools/test_report.py
 
       - name: MSI installer and app folder
-        run: ./gradlew --stacktrace -p desktop :app:packageMsi :app:createDistributable -PversionName="$VERSION_NAME"
+        run: ./gradlew -p desktop :app:packageMsi :app:createDistributable -PversionName="$VERSION_NAME"
 
       - name: Check the package
         run: |

@@ -23,7 +23,10 @@ import com.id.mimikopi.desktop.midi.MidiInput
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -114,7 +117,15 @@ class Services(
         inputConfig.reload()
     }
 
+    /** Waits (a few seconds at most) for saves still running in [appScope], so closing never loses a result. */
+    fun awaitPendingWrites(timeoutMs: Long = 5_000) {
+        runBlocking {
+            withTimeoutOrNull(timeoutMs) { appScope.coroutineContext[Job]?.children?.toList()?.forEach { it.join() } }
+        }
+    }
+
     override fun close() {
+        awaitPendingWrites()
         runCatching { session.finish() }
         midi.close()
         piano.close()

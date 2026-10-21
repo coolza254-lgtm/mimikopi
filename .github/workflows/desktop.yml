@@ -19,6 +19,10 @@ on:
       version:
         description: "Version without the v, e.g. 0.30.0"
         required: false
+      prerelease:
+        description: "Also attach the MSI and app ZIP to a pre-release of this (private) repository"
+        type: boolean
+        default: false
 
 concurrency:
   group: desktop-${{ github.ref }}
@@ -71,6 +75,9 @@ jobs:
   windows:
     runs-on: windows-latest
     timeout-minutes: 45
+    # Write access is used only by the pre-release step, which runs only when started by hand with prerelease set.
+    permissions:
+      contents: write
     defaults:
       run:
         shell: bash
@@ -149,3 +156,15 @@ jobs:
       - name: Report a failed installer upload
         if: steps.upload.outcome == 'failure'
         run: echo "::warning::The installer was built and checked but could not be uploaded (see the upload step, usually the Actions storage quota)."
+
+      # A test build for trying on a real Windows machine: a pre-release (never "latest") in this private repository,
+      # not in the public releases repository the phone app updates from.
+      - name: Pre-release for testing
+        if: github.event_name == 'workflow_dispatch' && inputs.prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="desktop-v$VERSION_NAME-${GITHUB_SHA::7}"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false \
+            --title "Mimikopi Desktop $VERSION_NAME (test build ${GITHUB_SHA::7})" \
+            --notes "Test build for Windows from ${GITHUB_SHA}. Unsigned: SmartScreen warns on first start. See docs/DESKTOP.md for what is verified."

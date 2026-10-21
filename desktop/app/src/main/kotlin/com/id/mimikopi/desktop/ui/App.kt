@@ -33,11 +33,17 @@ import androidx.compose.ui.unit.sp
 import com.id.mimikopi.desktop.learning.SettingKeys
 import com.id.mimikopi.desktop.ui.components.StatusDot
 import com.id.mimikopi.desktop.ui.screens.DrillScreen
+import com.id.mimikopi.desktop.ui.screens.EarHomeScreen
+import com.id.mimikopi.desktop.ui.screens.EarSessionScreen
+import com.id.mimikopi.desktop.ui.screens.FreePianoScreen
 import com.id.mimikopi.desktop.ui.screens.LatencyScreen
 import com.id.mimikopi.desktop.ui.screens.LessonScreen
 import com.id.mimikopi.desktop.ui.screens.LessonsScreen
 import com.id.mimikopi.desktop.ui.screens.ReaderScreen
+import com.id.mimikopi.desktop.ui.screens.RecallScreen
 import com.id.mimikopi.desktop.ui.screens.SettingsScreen
+import com.id.mimikopi.desktop.ui.screens.SkillDetailScreen
+import com.id.mimikopi.desktop.ui.screens.SkillsScreen
 import com.id.mimikopi.desktop.ui.screens.SongsScreen
 import com.id.mimikopi.desktop.ui.screens.TodayScreen
 import com.id.mimikopi.desktop.ui.theme.MimikopiTheme
@@ -61,7 +67,7 @@ fun App(ctx: AppContext) {
         CompositionLocalProvider(LocalApp provides ctx) {
             val screen = ctx.nav.current
             // Music pages use the whole window; the rail would only take room from the notes.
-            val full = screen is Screen.Reader || screen is Screen.Drill || screen is Screen.Latency
+            val full = screen is Screen.Reader || screen is Screen.Drill || screen is Screen.Latency || screen is Screen.Ear
             Row(Modifier.fillMaxSize().background(Tokens.Palette.Paper)) {
                 if (!full) Rail(ctx)
                 Box(Modifier.weight(1f).fillMaxHeight()) {
@@ -71,13 +77,19 @@ fun App(ctx: AppContext) {
                             is Screen.Home -> when (screen.tab) {
                                 Tab.TODAY -> TodayScreen()
                                 Tab.LESSONS -> LessonsScreen()
+                                Tab.SKILLS -> SkillsScreen()
                                 Tab.SONGS -> SongsScreen()
+                                Tab.EAR -> EarHomeScreen()
+                                Tab.PIANO -> FreePianoScreen()
                                 Tab.SETTINGS -> SettingsScreen()
                             }
                             is Screen.Lesson -> LessonScreen(screen.id)
                             is Screen.Drill -> DrillScreen(screen.source, screen.via)
                             is Screen.Reader -> ReaderScreen(screen.args)
                             Screen.Latency -> LatencyScreen()
+                            Screen.Recall -> RecallScreen()
+                            is Screen.Skill -> SkillDetailScreen(screen.id)
+                            is Screen.Ear -> EarSessionScreen(screen.args)
                         }
                     }
                 }

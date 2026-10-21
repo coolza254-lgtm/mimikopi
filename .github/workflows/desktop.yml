@@ -53,6 +53,17 @@ jobs:
         if: always()
         run: python3 desktop/tools/test_report.py
 
+      # The build session that writes this code cannot download artifacts: print the page renders into the log.
+      - name: Print screenshots
+        if: always()
+        run: |
+          for f in desktop/app/build/screenshots/*.png; do
+            [[ -f "$f" ]] || continue
+            echo "=== SHOT $(basename "$f")"
+            base64 -w 0 "$f"; echo
+            echo "=== END"
+          done
+
   windows:
     runs-on: windows-latest
     timeout-minutes: 45
@@ -89,6 +100,11 @@ jobs:
 
       - name: MSI installer and app folder
         run: ./gradlew -p desktop :app:packageMsi :app:createDistributable -PversionName="$VERSION_NAME"
+
+      - name: Print packaging logs
+        if: failure()
+        run: |
+          for f in desktop/app/build/compose/logs/*/*.txt; do echo "=== $f"; tail -n 60 "$f"; done
 
       - name: Check the package
         run: |

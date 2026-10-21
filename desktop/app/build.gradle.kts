@@ -44,6 +44,11 @@ val copySharedResources = tasks.register<Copy>("copySharedResources") {
 }
 tasks.named("processResources") { dependsOn(copySharedResources) }
 
+// Tests that open the piano use the CMake-built library (desktop/native/build).
+tasks.withType<Test>().configureEach {
+    systemProperty("mimikopi.native.dir", rootProject.layout.projectDirectory.dir("native/build").asFile.absolutePath)
+}
+
 compose.desktop {
     application {
         mainClass = "com.id.mimikopi.desktop.MainKt"
@@ -52,7 +57,8 @@ compose.desktop {
             targetFormats(TargetFormat.Msi)
             packageName = "Mimikopi"
             packageVersion = packageVersionFor(appVersionName)
-            description = "ミミコピ ฝึกเปียโน"
+            // ASCII only: WiX writes these into the MSI with a Windows codepage.
+            description = "Mimikopi piano practice"
             vendor = "Mimikopi"
             modules("java.desktop", "java.sql", "java.net.http", "jdk.unsupported")
             // The native audio library (desktop/native, built by CMake) ships beside the jars.

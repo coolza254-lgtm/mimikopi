@@ -84,6 +84,10 @@ fun SongsScreen() {
                 Text(f?.let { "${it.composer} · ${it.source}" } ?: "ไม่พบไฟล์เพลง", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
             }
         }
+        PageCard(title = "เพลงส่วนตัว · ฝึกจำจากวิดีโอ") {
+            Text("แบ่งวลีจากลิงก์วิดีโอ ลองเล่นเองโดยไม่ดู จดจุดติด แล้วทวนข้ามวัน · ประเมินเอง · เก็บในเครื่องนี้เท่านั้น", color = Tokens.Palette.InkMuted)
+            TextButton(onClick = { app.nav.open(Screen.Recall) }) { Text("เปิดเพลงส่วนตัว") }
+        }
         Text("ก้าวต่อไปของเพลงเต็ม: บทนำ ส่วนอื่น และเทคนิคอ็อกเทฟ ยังไม่รวมในผลแผนนี้ โปรแกรมไม่ได้วัดนิ้ว เพดัล น้ำหนักเสียง หรือรับรองว่าเล่นต้นฉบับได้",
             fontSize = 13.sp, color = Tokens.Palette.InkMuted)
     }

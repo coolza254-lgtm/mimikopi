@@ -17,20 +17,9 @@ import java.time.LocalDate
 /** The two practice ladders (M15). */
 enum class Skill { READING }
 
-/** One part of today's practice in a ladder, done top to bottom. */
-enum class TodayKind { CONFIRM, REVIEW, REPEAT, STEP }
-
-data class TodayItem(
-    val kind: TodayKind,
-    val title: String,
-    /** The step or rung it opens (null for the review). */
-    val lessonId: String?,
-    val done: Boolean,
-    /** Run today without meeting the criterion yet. */
-    val notYet: Boolean = false,
-    /** Ran it before: open the drill directly instead of the step page. */
-    val tried: Boolean = false,
-)
+/** One part of today's practice in a ladder (shared with the computer program, in core). */
+typealias TodayKind = com.id.mimikopi.core.session.TodayKind
+typealias TodayItem = com.id.mimikopi.core.session.TodayItem
 
 data class LadderRow(val lesson: Lesson, val passDays: Int, val status: LessonStatus, val current: Boolean)
 
@@ -75,39 +64,11 @@ class SkillViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             repo.load()
             val today = LocalDate.now()
-            val t = today.toString()
             repo.reopenFailedConfirmations(today)
             val records = repo.records.value
             val ladder = ladder()
-            val items = mutableListOf<TodayItem>()
-
-            // Confirmations: due ones, and those confirmed today (ticked).
-            for (l in ladder) {
-                val r = records[l.id] ?: continue
-                if (l.pass.days < 2) continue
-                val due = r.passDays.size in 1 until l.pass.days && r.passDays.all { it < t }
-                val confirmedToday = r.passDays.size >= 2 && t in r.passDays && r.passDays.any { it < t }
-                if (due || confirmedToday) items += TodayItem(TodayKind.CONFIRM, l.title, l.id, done = confirmedToday,
-                    notYet = due && t in r.triedDays, tried = true)
-            }
-            if (repo.readingDueItems().isNotEmpty()) items += TodayItem(TodayKind.REVIEW, "", null, done = false)
-            // Repetition: one older, confirmed step, chosen by the date (practice makes it stick).
-            val older = ladder.filter { l ->
-                val r = records[l.id]
-                r != null && r.passDays.size >= 2 && l.pass.piecesPassed == null && l.drills.first().type != ExerciseType.E_PULSE &&
-                    items.none { it.lessonId == l.id }
-            }
-            if (older.size >= 3) {
-                val l = older[Math.floorMod(today.toEpochDay().toInt(), older.size)]
-                items += TodayItem(TodayKind.REPEAT, l.title, l.id, done = t in records[l.id]!!.triedDays, tried = true)
-            }
-            // New steps met today (ticked), then the next one.
-            ladder.filter { records[it.id]?.passDays == setOf(t) }.forEach { items += TodayItem(TodayKind.STEP, it.title, it.id, done = true, tried = true) }
+            val items = com.id.mimikopi.core.session.LadderToday.items(ladder, records, repo.readingDueItems().isNotEmpty(), today)
             val step = ProgressRules.nextToLearn(ladder, records)
-            if (step != null) {
-                val r = records[step.id]
-                items += TodayItem(TodayKind.STEP, step.title, step.id, done = false, notYet = r?.triedDays?.contains(t) == true, tried = (r?.attempts ?: 0) > 0)
-            }
 
             _ui.value = SkillUi(
                 today = items,

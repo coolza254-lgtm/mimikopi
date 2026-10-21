@@ -20,6 +20,7 @@ import com.id.mimikopi.desktop.learning.ProgressStore
 import com.id.mimikopi.desktop.learning.SessionTracker
 import com.id.mimikopi.desktop.learning.SettingKeys
 import com.id.mimikopi.desktop.midi.MidiInput
+import com.id.mimikopi.desktop.recall.PrivateSongs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -52,6 +53,7 @@ class Services(
     val midi = MidiInput(hub) { inputConfig.config.value.octaveOffset }
     val transfer = DataTransfer(db, dirs, appVersion) { learning.leitner.intervalDays(it) }
     val samples = SamplePacks(dirs.samples, appVersion)
+    val privateSongs = PrivateSongs(db)
     /** Work that must finish even when the page that started it closes (saving a result). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -115,6 +117,7 @@ class Services(
         pieces.reload()
         progress.reload()
         inputConfig.reload()
+        runCatching { privateSongs.reload() }
     }
 
     /** Waits (a few seconds at most) for saves still running in [appScope], so closing never loses a result. */

@@ -2,13 +2,22 @@
 
 ## ตรวจอัตโนมัติ
 - `:core:test`: 197 tests ไม่มี failures/errors/skips
-- `:app:testDebugUnitTest`: 8 tests ไม่มี failures/errors/skips (รวม Android Canvas native rendering 4 tests)
+- `:app:testDebugUnitTest`: 10 tests ไม่มี failures/errors/skips (รวม Android Canvas/Compose rendering และหน้าต่างเต็มจอ 6 tests)
 - `:app:lintDebug`: ผ่าน ไม่มี errors; warnings เดิม 332 รายการยังมีอยู่
 - `:app:assembleDebug`: สร้าง APK สำหรับทดสอบแยกจากแอป release (`com.id.mimikopi.debug`)
 - Regression tests ใหม่ทำให้โค้ดเดิม fail ก่อนแก้เรื่องผลรวมแผนรายวันและการนับซ้ำในการวัดความหน่วง
 - ตรวจเวลารวม/ลำดับ/ขั้นต่ำสองนาทีของทุกชุดกิจกรรม 128 แบบ × 8 สถานะทักษะอ่อน × 5 ระยะเวลา
 - ตรวจ corrective practice ว่าบาร์ มือ และ bpm ตรงกับปุ่ม และ tempo ramp ไม่ทับค่าชั่วคราว
 - ตรวจว่าข้อสงสัยเรื่องความหน่วงมาก่อนคำแนะนำให้ฝึกซ้ำ และรอบที่ไม่มี note input ไม่ใช่หลักฐานเวลาซ้อม
+
+## โน้ตไหลเต็มจอ v0.26.3
+- วัด layout ของ Compose จริงที่ขนาดแนวนอน 640×280 dp (ภาพ 1280×560 px): canvas มีขอบเขตตรงกับ viewport ทุกด้าน
+- กดสวิตช์ชื่อและปุ่มหยุดด้วย Compose UI test ได้จริง และขยาย font scale เป็น 1.6 แล้วยังเห็นปุ่มหยุดอยู่ในจอ
+- เมื่อกลับเป็น layout ปกติ แถบเครื่องมือกลับมาและค่าชื่อบนคีย์ยังอยู่
+- ทดสอบเปิด/ปิด immersive window session ว่าคืน display cutout policy ของหน้าต่างเดิม
+- ภาพจาก Compose จริง: `docs/images/falling-fullscreen-v0.26.3.png`
+- โหมดนี้ทำงานเฉพาะโน้ตไหลแนวนอนช่วงนับเข้า/เล่น/ฟัง กด Back เพื่อหยุดได้ และปัดขอบจอเพื่อเรียก system bars ชั่วคราว
+- ยังต้องลองหมุนจอ การกลับจากพื้นหลัง และระบบนำทางแบบปุ่ม/gesture บนโทรศัพท์จริงของผู้ใช้
 
 ## โน้ตไหล v0.26.2
 - ใช้ renderer เดียวกับแอปวาดจริงด้วย Robolectric native Android Canvas (API 35) ไม่ใช่ภาพ mock

@@ -2,6 +2,13 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Landscape falling player (v0.26.3)
+- Falling playback/count-in/listen in landscape uses the full canvas with overlay controls. Status/navigation bars hide
+  temporarily and can be revealed by swiping the edge. Normal layout and the window's cutout policy return on exit.
+- Controls avoid the display cutout; the music itself draws to the screen edges. Back stops the take rather than navigating away.
+- Compose layout/click tests and a window restoration test pass on Robolectric API 35. Physical orientation changes,
+  gesture/three-button navigation and vendor cutout behaviour still need phone validation.
+
 ## Falling notes graphics (v0.26.2)
 - Library-song piano roll now uses a dark stage with blue left-hand and green right-hand bars, a matching keyboard,
   and transient hit/timing/wrong/miss effects from the existing judge. It remains a helper and cannot pass reading criteria.

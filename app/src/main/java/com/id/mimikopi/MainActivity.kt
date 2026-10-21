@@ -10,6 +10,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.AnimatedContentTransitionScope
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -217,6 +221,9 @@ private fun AppNavigation() {
     val openSettings = { nav.navigate(Routes.SETTINGS) }
     Scaffold(
         containerColor = com.id.mimikopi.ui.theme.Tokens.Palette.Paper,
+        // The reader owns its safe padding. Landscape falling playback can draw behind hidden system bars/cutouts.
+        contentWindowInsets = if (route == Routes.READER && LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE)
+            WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
         bottomBar = { if (showBar) BottomNav(route, selectTab) },
     ) { inner ->
     Box(Modifier.fillMaxSize()) {

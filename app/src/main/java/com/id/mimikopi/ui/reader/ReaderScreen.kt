@@ -34,9 +34,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.graphics.Color
+import android.content.res.Configuration
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.keepScreenOn
 import androidx.compose.ui.res.painterResource
@@ -84,7 +84,16 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
     val layout = piece?.layout
     // The screen stays on while a run or the exam's look-first countdown is going: a screen that turns itself off
     // would stop the run (and an exam take would not count).
-    val busy = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING || ui.previewLeft != null
+    val playing = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING
+    val busy = playing || ui.previewLeft != null
+    val fullscreen = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
+        playing && ui.options.falling && !vm.fixed && piece != null
+    ReaderFullscreen(fullscreen)
+    BackHandler(enabled = fullscreen) { vm.stop() }
+    if (fullscreen) {
+        FallingScore(piece!!, ui, vm, playing, Modifier.fillMaxSize().keepScreenOn(), fullscreen = true)
+        return
+    }
     Column(
         Modifier
             .fillMaxSize()
@@ -92,7 +101,6 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
             .background(MaterialTheme.colorScheme.background)
             .safeDrawingPadding(),
     ) {
-        val playing = ui.phase == Phase.PLAYING || ui.phase == Phase.COUNT_IN || ui.phase == Phase.LISTENING
         // While playing the title bar steps aside so the notes get the whole height (stop is in the controls).
         if (!playing) Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
@@ -189,7 +197,7 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
 
 /** The song as falling notes; key names can be hidden independently of the bar labels. */
 @Composable
-private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: ReaderViewModel, playing: Boolean, modifier: Modifier) {
+private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: ReaderViewModel, playing: Boolean, modifier: Modifier, fullscreen: Boolean = false) {
     val score = piece.score
     val pressed by vm.pressed.collectAsStateWithLifecycle()
     val barStyle = if (vm.nameStyle == NoteNameStyle.SOLFEGE) NoteNameStyle.SOLFEGE else NoteNameStyle.LETTER
@@ -221,16 +229,8 @@ private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: R
     val keyNames = remember(keyRange, barStyle) { keyRange.associateWith { SpelledPitch.fromMidiSharp(it).name(barStyle) } }
     val touch = rememberTouchPlayer()
     val connected = midiConnected()
-    Column(modifier.background(Color(0xFF202428))) {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("● ซ้าย", color = Color(0xFF78AFE1), fontSize = 12.sp)
-            Text("● ขวา", color = Color(0xFFA1EF52), fontSize = 12.sp)
-            Spacer(Modifier.weight(1f))
-            Text("ชื่อบนคีย์", color = Color.White, fontSize = 12.sp)
-            Switch(checked = ui.options.fallingKeyLabels, onCheckedChange = vm::setFallingKeyLabels,
-                modifier = Modifier.semantics { contentDescription = "แสดงชื่อโน้ตบนคีย์" })
-        }
+    FallingViewport(fullscreen, ui.options.fallingKeyLabels, vm::setFallingKeyLabels,
+        status = runStatus(ui), onStop = vm::stop, modifier = modifier) { canvasModifier ->
         FallingNotesView(
             notes = notes,
             cursor = vm::cursorAt,
@@ -238,7 +238,7 @@ private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: R
             keyRange = keyRange,
             pressed = pressed,
             keyLabel = { m -> if (ui.options.fallingKeyLabels) keyNames[m] else null },
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            modifier = canvasModifier,
             window = (score.beatsPerMeasure * 2.0).coerceAtLeast(6.0),
             smooth = ui.options.mode == PlayMode.WAIT,
             lines = bars,
@@ -338,6 +338,14 @@ private fun FixedControls(ui: ReaderUi, vm: ReaderViewModel, onOptions: () -> Un
     }
 }
 
+@Composable
+private fun runStatus(ui: ReaderUi): String = when {
+    ui.phase == Phase.COUNT_IN -> stringResource(R.string.reader_count_in, ui.countIn ?: 0)
+    ui.phase == Phase.LISTENING -> stringResource(R.string.reader_listening, ui.bpm)
+    ui.options.mode == PlayMode.WAIT -> stringResource(R.string.reader_playing_wait)
+    else -> stringResource(R.string.reader_playing_tempo, ui.bpm)
+}
+
 /** While playing: one small floating pill (status, then a white stop button) so the notes keep the height. */
 @Composable
 private fun RunControls(ui: ReaderUi, vm: ReaderViewModel) {
@@ -349,12 +357,7 @@ private fun RunControls(ui: ReaderUi, vm: ReaderViewModel) {
             horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val status = when {
-                ui.phase == Phase.COUNT_IN -> stringResource(R.string.reader_count_in, ui.countIn ?: 0)
-                ui.phase == Phase.LISTENING -> stringResource(R.string.reader_listening, ui.bpm)
-                ui.options.mode == PlayMode.WAIT -> stringResource(R.string.reader_playing_wait)
-                else -> stringResource(R.string.reader_playing_tempo, ui.bpm)
-            }
+            val status = runStatus(ui)
             Text(status, fontFamily = Tokens.Fonts.mono, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, maxLines = 1)
             Button(onClick = vm::stop, shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)) { Text(stringResource(R.string.reader_stop)) }
         }

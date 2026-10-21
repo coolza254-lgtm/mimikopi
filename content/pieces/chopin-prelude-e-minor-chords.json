@@ -1,0 +1,35 @@
+{
+  "id": "chopin-prelude-e-minor-chords",
+  "title": "Chopin · Prelude in E minor · คอร์ดเคลื่อน (ท่อนเปิด)",
+  "composer": "Frédéric Chopin · Op.28 No.4 · แบบฝึกคอร์ดมือซ้าย",
+  "source": "Public domain composition. ฉบับโน้ตอ้างอิง: Mutopia; Magnus Lewis-Smith; revised Javier Ruiz-Alma; Peters 1879; Mutopia-2016/10/28-468; Public Domain. แอปใช้ท่อนเปิด 8 ห้องพร้อมห้องรับ เติมพัก 3 จังหวะหน้าห้องรับ เขียนเป็น 4/4 แทน 2/2 โดยคงความยาวโน้ต ไม่ใส่เพดัล ไดนามิก หรือ rubato จึงไม่ใช่ฉบับเต็มหรือการประเมินการตีความเพลง คงชุดเสียงคอร์ดเขบ็ตหนึ่งชั้นของท่อนเปิดจากแหล่งอ้างอิง แหล่งอ้างอิง: https://github.com/MutopiaProject/MutopiaProject/blob/2144afd6f52d56c5b6995b8b589ef1268b3139f0/ftp/ChopinFF/O28/Chop-28-4/Chop-28-4.ly การเรียบเรียงใหม่ของแอปเผยแพร่ภายใต้ CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/",
+  "level": "L7",
+  "key": 1,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 60,
+  "rh": [
+    "r/h. B3/e. B4/s",
+    "B4/h. C5/q",
+    "B4/h. C5/q",
+    "B4/h. C5/q",
+    "B4/h. Bb4/q",
+    "A4/h. B4/q",
+    "A4/h. B4/q",
+    "A4/h. B4/e. A4/s",
+    "A4/h. G#4/q"
+  ],
+  "lh": [
+    "r/w",
+    "G3+B3+E4/e G3+B3+E4/e G3+B3+E4/e G3+B3+E4/e G3+B3+E4/e G3+B3+E4/e G3+B3+E4/e G3+B3+E4/e",
+    "F#3+A3+E4/e F#3+A3+E4/e F#3+A3+E4/e F#3+A3+E4/e F#3+A3+D#4/e F#3+A3+D#4/e F#3+A3+D#4/e F#3+A3+D#4/e",
+    "F3+A3+D#4/e F3+A3+D#4/e F3+A3+D#4/e F3+A3+D#4/e F3+A3+D4/e F3+A3+D4/e F3+G#3+D4/e F3+G#3+D4/e",
+    "E3+G#3+D4/e E3+G#3+D4/e E3+G#3+D4/e E3+G#3+D4/e E3+G3+D4/e E3+G3+D4/e E3+G3+C#4/e E3+G3+C#4/e",
+    "E3+G3+C4/e E3+G3+C4/e E3+G3+C4/e E3+G3+C4/e E3+F#3+C4/e E3+F#3+C4/e E3+F#3+C4/e E3+F#3+C4/e",
+    "E3+F#3+C4/e E3+F#3+C4/e E3+F#3+C4/e E3+F#3+C4/e D#3+F#3+C4/e D#3+F#3+C4/e D#3+F#3+C4/e D#3+F#3+C4/e",
+    "D3+F#3+C4/e D3+F#3+C4/e D3+F#3+C4/e D3+F#3+C4/e D3+F#3+C4/e D3+F#3+C4/e D3+F#3+C4/e D3+F#3+C4/e",
+    "D3+F3+C4/e D3+F3+C4/e D3+F3+C4/e D3+F3+C4/e D3+F3+B3/e D3+F3+B3/e D3+F3+B3/e D3+F3+B3/e"
+  ]
+}

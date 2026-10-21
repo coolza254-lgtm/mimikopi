@@ -1,0 +1,33 @@
+{
+  "id": "ode-to-joy-first",
+  "title": "Ode to Joy · เริ่มห้าโน้ต (ท่อนย่อ)",
+  "composer": "Ludwig van Beethoven · แอปย่อจังหวะและมือซ้าย",
+  "source": "Public domain composition. ฉบับโน้ตอ้างอิง: Mutopia; Peter Chubb, Mutopia-2009/08/05-528; Public Domain. แอปใช้ทำนอง 8 ห้องแรก ย้ายจาก G เป็น C ย่อจังหวะประจุดเป็นโน้ตดำ เพิ่มเบสค้างแบบง่าย เริ่มฝึกมือขวาก่อนได้ ไม่ใช่โน้ตซิมโฟนีฉบับเต็ม แหล่งอ้างอิง: https://github.com/MutopiaProject/MutopiaProject/blob/2144afd6f52d56c5b6995b8b589ef1268b3139f0/ftp/BeethovenLv/ode/ode.ly การเรียบเรียงใหม่ของแอปเผยแพร่ภายใต้ CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/",
+  "level": "L1",
+  "key": 0,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 60,
+  "rh": [
+    "E4/q E4/q F4/q G4/q",
+    "G4/q F4/q E4/q D4/q",
+    "C4/q C4/q D4/q E4/q",
+    "E4/q D4/q D4/h",
+    "E4/q E4/q F4/q G4/q",
+    "G4/q F4/q E4/q D4/q",
+    "C4/q C4/q D4/q E4/q",
+    "D4/q C4/q C4/h"
+  ],
+  "lh": [
+    "C3/w",
+    "r/w",
+    "C3/w",
+    "G2/w",
+    "C3/w",
+    "r/w",
+    "G2/w",
+    "C3/w"
+  ]
+}

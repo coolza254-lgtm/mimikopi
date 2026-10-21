@@ -309,7 +309,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="home_reader_body">อ่านโน้ตบรรทัดคู่ เล่นตามแบบรอหรือตามจังหวะ วนท่อน แยกมือ แอพบอกโน้ตที่ถูก เร็ว ช้า หรือพลาด</string>
     <string name="pieces_title">อ่านโน้ตและเล่นตาม</string>
     <string name="pieces_intro">เลือกเพลงที่จะฝึก เริ่มจากโหมด "รอ" (แอพรอจนกดถูก) แล้วค่อยไปโหมด "ตามจังหวะ" ฝึกทีละท่อนช้าๆ ดีกว่าเล่นทั้งเพลงวนๆ</string>
-    <string name="pieces_source_note">เพลงในแอพเป็นทำนองสาธารณะ (public domain) ที่แอพเรียบเรียงใหม่แบบง่าย ไม่มีโน้ตหรือเนื้อร้องที่มีลิขสิทธิ์</string>
+    <string name="pieces_source_note">เพลงใช้บทประพันธ์สาธารณสมบัติ ฉบับโน้ตอ้างอิงบางชิ้นใช้ใบอนุญาต Creative Commons ดูเครดิต เงื่อนไข และสิ่งที่ย่อได้ที่ “ที่มาและการเรียบเรียง” ของแต่ละเพลง</string>
     <string name="pieces_meta">ระดับ %1$s · %2$d/%3$d · เป้าหมาย %4$d bpm · %5$d บาร์</string>
     <string name="pieces_status_new">ยังไม่ได้ฝึก</string>
     <string name="pieces_status_runs">ฝึกแล้ว %1$d รอบ</string>

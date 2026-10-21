@@ -1,5 +1,16 @@
 # ผลตรวจรอบปรับการฝึกบนมือถือ
 
+## คลาสสิกไล่ขั้น (v0.26.6)
+- รัน `:core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease` ด้วย versionName 0.26.6 / code 2606
+- Core 197 + Android 42 = 239 tests ผ่าน ไม่มี failures/errors/skips; lint ผ่าน ไม่มี errors (332 warnings เดิม)
+- ทดสอบว่าเพลงทั้ง 11 ขั้น resolve ได้จริง วาดโน้ตครบ และความยาวทุกห้องของทั้งสองมือตรงกับอัตราจังหวะ
+- ตรวจ Ode to Joy ฉบับเริ่มต้นใช้เฉพาะ C–G ห้าโน้ต ไม่มีจังหวะย่อยเร็ว และ Chopin สองฉบับมี pitch/onset/duration ของทำนองเดียวกัน
+- ทดสอบเปิดเพลงด้วยมือที่แนะนำ สลับทุกเพลง เปิด/ปิดเครดิตโดยไม่เริ่มเล่น และคงรายชื่อ/มือที่บทเรียนกำหนด
+- ตรวจเครดิต ใบอนุญาต และข้อความการดัดแปลงของฉบับ CC BY / CC BY-SA; ตรวจ text layout ของหัวข้อการ์ดธีมมืดให้ใช้สีขาว
+- ตรวจไฟล์ใน APK มี 27 เพลง รวม Chopin สองฉบับและเครดิตใน source; release ที่ลงนามตรวจแยกหลังเผยแพร่
+- ภาพ render: `docs/images/classical-*-v0.26.6.png`; ภาพจำลองไม่ใช่หลักฐานว่าทดสอบบนโทรศัพท์/เปียโนจริงแล้ว
+- ต้องลองบนเครื่องจริง: ขั้น 1 มือขวาบนมือถือ, Chopin เบสง่ายก่อนคอร์ดเคลื่อน, เปลี่ยนมือ/วน 2–4 ห้อง และเทียบเมื่อใช้ MIDI
+
 ## ตรวจอัตโนมัติ
 - `:core:test`: 197 tests ไม่มี failures/errors/skips
 - `:app:testDebugUnitTest`: 35 tests ไม่มี failures/errors/skips (รวมเสียง/การรับ MIDI และ Android Canvas/Compose rendering)

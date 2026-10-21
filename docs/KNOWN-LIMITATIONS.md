@@ -2,6 +2,18 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Classical repertoire (v0.26.6)
+- Eleven suggested steps cover simplified excerpts, not complete original works or official grades. All steps
+  remain available; their order is an estimate for these arrangements, independent of tested skill levels.
+- Six new files use checked Mutopia sources; per-piece source text and docs/CLASSICAL-REPERTOIRE.md retain
+  attribution, source revision, license and changes. Canon uses CC BY 3.0; K.545 uses CC BY-SA 3.0.
+- Chopin Op.28 No.4 has an identical melody in two versions, with single bass notes or source chord pulses.
+  These are the opening eight bars plus a padded pickup, expressed in 4/4 with quarter-note bpm rather than 2/2.
+  No dynamics, rubato or pedal are evaluated; the excerpt stops before the complete musical resolution.
+- Existing excerpts keep their previous notes and source caveats. The new ordering does not imply that older
+  memory-transcribed pieces have been newly compared against printed editions. Phone and acoustic MIDI practice
+  still require physical-device validation, particularly for wide left-hand reaches and fast passages.
+
 ## Note-reading practice (v0.26.5)
 - Skills → ฝึกอ่านโน้ต opens single-note recognition or continuous melody reading. Single-note free practice
   has small explicit pools, exact pitch/octave name answers on the phone and physical-key answers on MIDI.

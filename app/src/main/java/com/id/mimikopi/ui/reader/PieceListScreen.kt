@@ -1,6 +1,21 @@
 package com.id.mimikopi.ui.reader
 
 import android.app.Application
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+import com.id.mimikopi.core.score.Score
+import com.id.mimikopi.pieces.ClassicalRepertoire
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,27 +54,73 @@ class PieceListViewModel(app: Application, args: SavedStateHandle) : AndroidView
 @Composable
 fun PieceListScreen(onBack: () -> Unit, onOpenPiece: (String, String?) -> Unit, vm: PieceListViewModel = viewModel()) {
     val progress by vm.progress.collectAsStateWithLifecycle()
-    ScreenScaffold(title = vm.lesson?.let { "${it.id} ${it.title}" } ?: stringResource(R.string.pieces_title), onBack = onBack) {
-        val lesson = vm.lesson
-        if (lesson != null) {
-            Text(stringResource(R.string.lesson_pass, lesson.passText), style = MaterialTheme.typography.bodyMedium)
+    PieceLibrary(vm.pieces, progress, vm.lesson?.let { "${it.id} ${it.title}" }, vm.lesson?.passText, vm.hand, onBack, onOpenPiece)
+}
+
+/** Also used by render tests without starting the audio, database or MIDI services. */
+@Composable
+internal fun PieceLibrary(
+    pieces: List<Score>,
+    progress: Map<String, PieceProgress>,
+    lessonTitle: String? = null,
+    lessonPass: String? = null,
+    hand: String? = null,
+    onBack: () -> Unit,
+    onOpenPiece: (String, String?) -> Unit,
+) {
+    var classical by rememberSaveable { mutableStateOf(true) }
+    var sourceId by rememberSaveable { mutableStateOf<String?>(null) }
+    val steps = ClassicalRepertoire.steps.associateBy { it.id }
+    val suggested = classical && lessonTitle == null
+    val visible = if (suggested) ClassicalRepertoire.steps.mapNotNull { step -> pieces.find { it.id == step.id } } else pieces
+    ScreenScaffold(title = lessonTitle ?: stringResource(R.string.pieces_title), onBack = onBack) {
+        if (lessonPass != null) {
+            Text(stringResource(R.string.lesson_pass, lessonPass), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
         } else {
-            Text(stringResource(R.string.pieces_intro), style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = classical, onClick = { classical = true }, label = { Text("คลาสสิก · ไล่ขั้น") }, modifier = Modifier.testTag("classical-filter"))
+                FilterChip(selected = !classical, onClick = { classical = false }, label = { Text("ทุกเพลง") }, modifier = Modifier.testTag("all-pieces-filter"))
+            }
+            Text(if (suggested) "เริ่มทีละมือในโหมดรอให้กดถูก แล้วค่อยรวมมือและเพิ่มความเร็ว แต่ละเพลงเป็นฉบับฝึกหรือท่อนย่อ" else stringResource(R.string.pieces_intro), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
+            if (suggested) Text("ฝึกด้วยคีย์บนมือถือหรือ MIDI ได้ · เลือกข้ามขั้นได้ทุกเพลง", style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         }
-        for (s in vm.pieces) {
+        for ((index, s) in visible.withIndex()) {
+            val step = if (suggested) steps[s.id] else null
             val p = progress[s.id] ?: PieceProgress(s.id)
-            PageCard(title = s.title, onClick = { onOpenPiece(s.id, vm.hand) }) {
+            val startHand = hand ?: step?.startHand
+            PageCard(title = if (suggested) "${index + 1}. ${s.title}" else s.title,
+                modifier = Modifier.testTag("piece-${s.id}"), onClick = { onOpenPiece(s.id, startHand) }) {
                 Text(s.composer, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                step?.let {
+                    Text(it.focus, style = MaterialTheme.typography.bodyMedium)
+                    Text(if (it.startHand == "LEFT") "เปิดด้วยมือซ้าย · เปลี่ยนเป็นสองมือได้ก่อนเริ่ม" else "เปิดด้วยมือขวา · เปลี่ยนเป็นสองมือได้ก่อนเริ่ม", style = MaterialTheme.typography.bodySmall)
+                }
                 Text(
                     stringResource(R.string.pieces_meta, s.level, s.beatsPerMeasure, s.beatUnit, s.tempo, s.measures),
                     style = MaterialTheme.typography.bodySmall,
                     color = Tokens.Palette.InkMuted,
                 )
-                val passed = PieceRules.isPassed(p, vm.hand ?: "BOTH")
-                Text(status(p, vm.hand), style = MaterialTheme.typography.bodySmall, color = if (passed) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
+                val passed = PieceRules.isPassed(p, hand ?: "BOTH")
+                Text(status(p, hand), style = MaterialTheme.typography.bodySmall, color = if (passed) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
+                TextButton(onClick = { sourceId = s.id }, modifier = Modifier.testTag("source-${s.id}")) { Text("ที่มาและการเรียบเรียง") }
             }
         }
         Text(stringResource(R.string.pieces_source_note), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+    }
+    pieces.find { it.id == sourceId }?.let { score ->
+        AlertDialog(
+            onDismissRequest = { sourceId = null },
+            title = { Text("ที่มาและการเรียบเรียง") },
+            text = {
+                SelectionContainer {
+                    Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()).testTag("piece-source")) {
+                        Text(score.title, style = MaterialTheme.typography.titleSmall)
+                        Text(score.source)
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { sourceId = null }) { Text("ปิด") } },
+        )
     }
 }
 

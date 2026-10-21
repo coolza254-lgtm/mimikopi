@@ -1,6 +1,11 @@
 package com.id.mimikopi.ui.progress
 
 import android.app.Application
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -116,6 +121,19 @@ fun ProgressScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ProgressViewM
             LargeTitle("พัฒนาการ", "ดูย้อนหลังว่าเก่งขึ้นจริงไหม", onBack = onBack)
             if (!ui.loaded) return@Column
             Column(Modifier.padding(horizontal = PageMargin)) {
+                // The three numbers to read first, each against the week or month before; the details follow below.
+                val today = LocalDate.now()
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val thisWeek = ui.weeks.lastOrNull()?.second ?: 0
+                    val lastWeek = ui.weeks.getOrNull(ui.weeks.size - 2)?.second ?: 0
+                    SummaryTile("ฝึกสัปดาห์นี้", "$thisWeek นาที", change(thisWeek - lastWeek, "นาที"), Modifier.weight(1f))
+                    val levelThen = ui.levels.lastOrNull { !it.first.isAfter(today.minusDays(30)) }?.second ?: 0
+                    SummaryTile("ระดับรวม", "${ui.total}", change(ui.total - levelThen, "ใน 30 วัน"), Modifier.weight(1f))
+                    val earNow = ui.ear.lastOrNull()?.second
+                    val earBefore = ui.ear.dropLast(1).lastOrNull { it.second != null }?.second
+                    SummaryTile("หู ถูกครั้งแรก", earNow?.let { "${(it * 100).toInt()}%" } ?: "–",
+                        if (earNow != null && earBefore != null) change(((earNow - earBefore) * 100).toInt(), "%") else null, Modifier.weight(1f))
+                }
                 GroupHeader("ระดับรวม 4 เดือนล่าสุด")
                 Group {
                     Column(Modifier.padding(16.dp)) {
@@ -195,3 +213,19 @@ fun ProgressScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ProgressViewM
         }
     }
 }
+
+/** "↑ 12 นาที" with whether it went up, or null when nothing changed. */
+private fun change(delta: Int, unit: String): Pair<String, Boolean>? =
+    if (delta == 0) null else ("${if (delta > 0) "↑" else "↓"} ${kotlin.math.abs(delta)} $unit") to (delta > 0)
+
+@Composable
+private fun SummaryTile(title: String, value: String, delta: Pair<String, Boolean>?, modifier: Modifier) {
+    Column(modifier.clip(RoundedCornerShape(18.dp)).background(Tokens.Palette.Group)
+        .border(1.dp, Tokens.Palette.Hair, RoundedCornerShape(18.dp)).padding(12.dp)) {
+        Text(title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted, maxLines = 1)
+        Text(value, fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, maxLines = 1)
+        Text(delta?.first ?: "เท่าเดิม", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            color = when (delta?.second) { true -> Tokens.Palette.Correct; false -> Tokens.Palette.Timing; null -> Tokens.Palette.InkMuted })
+    }
+}
+

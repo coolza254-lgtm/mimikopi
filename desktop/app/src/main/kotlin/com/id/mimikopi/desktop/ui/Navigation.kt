@@ -28,6 +28,7 @@ sealed interface Screen {
     data class Reader(val args: ReaderArgs) : Screen
     data object Recall : Screen
     data object Metronome : Screen
+    data object Chords : Screen
     data class Skill(val id: com.id.mimikopi.core.progress.SkillId) : Screen
     data class Ear(val args: com.id.mimikopi.desktop.session.EarArgs) : Screen
 }

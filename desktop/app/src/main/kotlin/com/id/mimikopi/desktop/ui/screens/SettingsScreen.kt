@@ -267,6 +267,19 @@ fun SettingsScreen() {
         }
         dataReport.forEach { Text(it, fontSize = 14.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(horizontal = 16.dp)) }
         GroupFooter("ข้อมูลอยู่ในเครื่องนี้เท่านั้น ไม่มีบัญชี ไม่มีเซิร์ฟเวอร์ · เพลงส่วนตัวไม่ถูกรวมอัตโนมัติ · เวอร์ชัน ${s.appVersion}")
+
+        GroupHeader("เกี่ยวกับและเครดิต")
+        Group {
+            GroupRow("ミミコピ (Mimikopi) สำหรับ Windows", "รุ่น ${s.appVersion} · ข้อมูลอยู่ในเครื่องนี้ ไม่มีบัญชี ไม่มีเซิร์ฟเวอร์")
+            GroupDivider()
+            GroupRow("เสียงเปียโน: Salamander Grand Piano V3", "Alexander Holm · CC BY 3.0 · ตัดและแปลงไฟล์สำหรับโปรแกรมนี้")
+            GroupDivider()
+            GroupRow("ตัวโน้ต: Bravura (SMuFL)", "Steinberg Media Technologies · SIL Open Font License 1.1")
+            GroupDivider()
+            GroupRow("เสียงออกลำโพง: miniaudio", "David Reid · Public domain / MIT No Attribution")
+            GroupDivider()
+            GroupRow("Kotlin, Compose Multiplatform, kotlinx, sqlite-jdbc", "JetBrains, Xerial และผู้ร่วมพัฒนา · Apache License 2.0")
+        }
     }
 }
 

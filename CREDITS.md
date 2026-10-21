@@ -38,3 +38,9 @@
 - **Bravura** (Steinberg Media Technologies GmbH), SMuFL music font, SIL Open Font License 1.1 with Reserved
   Font Name "Bravura". Shipped unmodified (`app/src/main/res/font/bravura.otf`) from
   https://github.com/steinbergmedia/bravura (redist/otf). Licence confirmed from the repository's LICENSE.txt.
+
+## Windows desktop (`desktop/`)
+- **miniaudio** v0.11.25 (David Reid), public domain or MIT No Attribution, vendored as
+  `desktop/native/third_party/miniaudio/miniaudio.h`.
+- **Compose Multiplatform** (JetBrains) and **sqlite-jdbc** (Xerial), Apache License 2.0.
+- The desktop program uses the same Bravura font and the same Salamander pack (downloaded on request) as the phone.

@@ -35,6 +35,7 @@ import com.id.mimikopi.desktop.ui.components.StatusDot
 import com.id.mimikopi.desktop.ui.screens.DrillScreen
 import com.id.mimikopi.desktop.ui.screens.EarHomeScreen
 import com.id.mimikopi.desktop.ui.screens.EarSessionScreen
+import com.id.mimikopi.desktop.ui.screens.ChordsScreen
 import com.id.mimikopi.desktop.ui.screens.MetronomeScreen
 import com.id.mimikopi.desktop.ui.screens.ProgressScreen
 import com.id.mimikopi.desktop.ui.screens.FreePianoScreen
@@ -99,6 +100,7 @@ fun App(ctx: AppContext) {
                             is Screen.Reader -> ReaderScreen(screen.args)
                             Screen.Recall -> RecallScreen()
                             Screen.Metronome -> MetronomeScreen()
+                            Screen.Chords -> ChordsScreen()
                             is Screen.Skill -> SkillDetailScreen(screen.id)
                             is Screen.Ear -> EarSessionScreen(screen.args)
                         }

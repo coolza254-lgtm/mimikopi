@@ -99,7 +99,7 @@ fun SkillsScreen() {
             GroupDivider()
             GroupRow("ฝึกหู", "โน้ต ทำนอง คอร์ด ทางเดินคอร์ด", onClick = { app.nav.home(Tab.EAR) })
             GroupDivider()
-            GroupRow("คอร์ด", "กดคอร์ดตามชื่อ · เปลี่ยนคอร์ดตามเวลา", onClick = { app.nav.open(Screen.Drill(DrillSource.Chords(false))) })
+            GroupRow("คอร์ด", "กดคอร์ดตามชื่อ · เปลี่ยนคอร์ดตามเวลา · วิธีจับคอร์ด", onClick = { app.nav.open(Screen.Chords) })
         }
         GroupFooter("ฝึกส่วนไหนก็นับเวลาเข้าแผนวันนี้")
     }

@@ -1,5 +1,12 @@
 package com.id.mimikopi.desktop.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -72,6 +79,19 @@ fun ProgressScreen() {
 
     Page {
         LargeTitle("พัฒนาการ", "ดูย้อนหลังว่าเก่งขึ้นจริงไหม")
+        // The three numbers to read first, each against the week or month before; the details follow below.
+        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+            val thisWeek = weeks.lastOrNull()?.second ?: 0
+            val lastWeek = weeks.getOrNull(weeks.size - 2)?.second ?: 0
+            SummaryTile("เวลาฝึกสัปดาห์นี้", "$thisWeek นาที", change(thisWeek - lastWeek, "นาที", "จากสัปดาห์ก่อน"), Modifier.weight(1f))
+            val levelThen = levels.lastOrNull { !it.first.isAfter(today.minusDays(30)) }?.second ?: 0
+            SummaryTile("ระดับรวม", "$total", change(total - levelThen, "ระดับ", "ใน 30 วัน"), Modifier.weight(1f))
+            val heard = earWeeks.mapNotNull { it.second }
+            val earNow = earWeeks.lastOrNull()?.second
+            val earBefore = earWeeks.dropLast(1).lastOrNull { it.second != null }?.second
+            SummaryTile("หู: ถูกครั้งแรก", earNow?.let { "${(it * 100).toInt()}%" } ?: if (heard.isEmpty()) "–" else "${(heard.last() * 100).toInt()}%",
+                if (earNow != null && earBefore != null) change(((earNow - earBefore) * 100).toInt(), "%", "จากสัปดาห์ก่อน") else null, Modifier.weight(1f))
+        }
         GroupHeader("ระดับรวม 4 เดือนล่าสุด")
         Group {
             Column(Modifier.padding(16.dp)) {
@@ -128,6 +148,24 @@ fun ProgressScreen() {
                     val last = exams.last()
                     Text("ล่าสุด ${Exams.grade(last.grade)?.name ?: ""} ${last.total}/${Exams.MAX} · ${Exams.band(last.total).title}",
                         fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
+                    // One bar per part of the latest exam, filled to its share of the part's marks: the weak part at a glance.
+                    Column(Modifier.padding(top = 12.dp)) {
+                        com.id.mimikopi.core.exam.ExamPart.entries.forEach { part ->
+                            val m = last.mark(part)?.marks ?: 0
+                            Row(Modifier.padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(part.title, fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.width(140.dp))
+                                androidx.compose.foundation.layout.Box(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Tokens.Palette.Line)) {
+                                    androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth(m.toFloat() / part.max).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Tokens.Palette.Accent))
+                                }
+                                Text("$m/${part.max}", fontSize = 13.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(start = 10.dp).width(48.dp))
+                            }
+                        }
+                    }
+                }
+                exams.asReversed().take(10).forEach { e ->
+                    GroupDivider()
+                    GroupRow("${Exams.grade(e.grade)?.name ?: ""} · ${e.total}/${Exams.MAX}", Exams.band(e.total).title,
+                        value = runCatching { shortDate(LocalDate.parse(e.day)) }.getOrDefault(e.day))
                 }
             }
             GroupFooter("คะแนนรวม 150 ผ่าน 100 ดี 120 ดีเยี่ยม 130 เทียบกันได้เฉพาะเกรดเดียวกัน")
@@ -144,3 +182,19 @@ fun ProgressScreen() {
         GroupFooter("ดูจาก ${Mistakes.DAYS} วันล่าสุด: การเล่นเพลงและแบบฝึก การอ่านโน้ต และฝึกหู")
     }
 }
+
+/** "+12 นาที จากสัปดาห์ก่อน" with whether it went up, or null when nothing changed. */
+private fun change(delta: Int, unit: String, since: String): Pair<String, Boolean>? =
+    if (delta == 0) null else ("${if (delta > 0) "↑" else "↓"} ${kotlin.math.abs(delta)} $unit $since") to (delta > 0)
+
+@Composable
+private fun SummaryTile(title: String, value: String, delta: Pair<String, Boolean>?, modifier: Modifier) {
+    Column(modifier.clip(RoundedCornerShape(20.dp)).background(Tokens.Palette.Group)
+        .border(1.dp, Tokens.Palette.Hair, RoundedCornerShape(20.dp)).padding(18.dp)) {
+        Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted)
+        Text(value, fontSize = 32.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+        Text(delta?.first ?: "เท่าเดิม", fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            color = when (delta?.second) { true -> Tokens.Palette.Correct; false -> Tokens.Palette.Timing; null -> Tokens.Palette.InkMuted })
+    }
+}
+

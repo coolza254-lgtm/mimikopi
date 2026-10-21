@@ -247,7 +247,7 @@ private fun AppNavigation() {
             FreePianoScreen(onOpenMidi = openMidi, onOpenSettings = openSettings, soundSetup = { onReady -> PianoSoundSetup(onReady) })
         }
         composable(Routes.SONGS) {
-            SongsScreen(onPlay = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onOpenMidi = openMidi, onOpenSettings = openSettings)
+            SongsScreen(onPlay = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onOpenMidi = openMidi, onOpenSettings = openSettings, onOpenLibrary = { nav.navigate("pieces") })
         }
         composable(Routes.SKILL) { e ->
             val skill = e.arguments?.getString("skill")?.let { runCatching { SkillId.valueOf(it) }.getOrNull() } ?: SkillId.KEYS

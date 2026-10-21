@@ -43,6 +43,7 @@ import com.id.mimikopi.MimikopiApp
 import com.id.mimikopi.R
 import com.id.mimikopi.core.playalong.PieceRules
 import com.id.mimikopi.core.score.Score
+import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.Hairline
 import com.id.mimikopi.ui.components.TabHeader
 import com.id.mimikopi.ui.components.paper
@@ -61,7 +62,7 @@ class SongsViewModel(app: Application) : AndroidViewModel(app) {
  * Tapping a song opens a three-part choice of hands.
  */
 @Composable
-fun SongsScreen(onPlay: (pieceId: String, hand: String) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: () -> Unit, vm: SongsViewModel = viewModel()) {
+fun SongsScreen(onPlay: (pieceId: String, hand: String) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: () -> Unit, onOpenLibrary: () -> Unit, vm: SongsViewModel = viewModel()) {
     val progress by vm.progress.collectAsStateWithLifecycle()
     var open by remember { mutableStateOf<String?>(null) }
     val hands = listOf("RIGHT" to R.string.reader_hand_right, "LEFT" to R.string.reader_hand_left, "BOTH" to R.string.reader_hand_both)
@@ -73,6 +74,11 @@ fun SongsScreen(onPlay: (pieceId: String, hand: String) -> Unit, onOpenMidi: () 
             if (passedCount > 0) Text(stringResource(R.string.songs_passed_count, passedCount, vm.pieces.size), fontFamily = Tokens.Fonts.mono, fontSize = 12.sp,
                 color = Tokens.Palette.InkMuted, modifier = Modifier.padding(start = 24.dp, top = 6.dp))
             Column(Modifier.padding(horizontal = 24.dp).padding(top = 22.dp, bottom = 24.dp)) {
+                PageCard(title = "คลาสสิก · ง่ายไปยาก", onClick = onOpenLibrary) {
+                    Text("11 ขั้นพร้อมแนวทางฝึก · เริ่มจากห้าโน้ต แล้วค่อยเพิ่ม Chopin และ Mozart", style = MaterialTheme.typography.bodyMedium)
+                    Text("ดูชุดฝึกและที่มาของโน้ต →", style = MaterialTheme.typography.labelLarge)
+                }
+                Spacer(Modifier.height(12.dp))
                 vm.pieces.forEachIndexed { i, s ->
                     val p = progress[s.id]
                     val isOpen = open == s.id

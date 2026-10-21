@@ -2,7 +2,7 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
-## Classical repertoire (v0.26.6)
+## Classical repertoire (v0.26.7)
 - Eleven suggested steps cover simplified excerpts, not complete original works or official grades. All steps
   remain available; their order is an estimate for these arrangements, independent of tested skill levels.
 - Six new files use checked Mutopia sources; per-piece source text and docs/CLASSICAL-REPERTOIRE.md retain

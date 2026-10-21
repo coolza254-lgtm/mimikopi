@@ -2,6 +2,16 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Heroic-only practice plan (v0.27.0)
+- The library contains one composition, two eight-bar study arrangements, covering source measures 17–24.
+  Thirty targets cover exact sections/hands/modes, not the full composition or original performance difficulty.
+- Reading completion is separate from tempo qualification. Tempo targets require clean runs without helpers,
+  at/above the target BPM, on two distinct days. Idle and interrupted runs cannot qualify.
+- Three repertoire lessons now use foundational exercises. New multi-song grade exams and their continuation
+  controls were removed; their historical scores and backup models remain readable.
+- Piano technique, pedalling, dynamics and physical MIDI/audio-device behavior still need real-device checking.
+- The sections below describe historical releases; Moonlight and other repertoire are absent in this version.
+
 ## Moonlight Sonata I (v0.26.9)
 - Three segmented studies cover measures 1–4 (transposed/simple bass, then original key/octave bass) and
   measures 5–12 (simplified melody and rearranged accompaniment). They do not cover all 69 measures.

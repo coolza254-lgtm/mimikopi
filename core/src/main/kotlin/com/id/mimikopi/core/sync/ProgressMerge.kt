@@ -170,6 +170,16 @@ object ProgressMerge {
                     (x.handPassDays[h].orEmpty() + y.handPassDays[h].orEmpty()).distinct().sorted()
                 },
                 bestCleanBpm = listOfNotNull(x.bestCleanBpm, y.bestCleanBpm).maxOrNull(),
+                studyTargets = (x.studyTargets.keys + y.studyTargets.keys).associateWith { target ->
+                    val left = x.studyTargets[target]
+                    val right = y.studyTargets[target]
+                    if (left == null || right == null) (left ?: right)!! else {
+                        val chosen = listOf(left, right).maxWith(compareBy<com.id.mimikopi.core.playalong.StudyEvidence> { it.lastDay ?: "" }
+                            .thenBy { it.attempts }.thenBy { json.encodeToString(com.id.mimikopi.core.playalong.StudyEvidence.serializer(), it) })
+                        chosen.copy(attempts = maxOf(left.attempts, right.attempts), days = (left.days + right.days).distinct().sorted(),
+                            bestCleanBpm = listOfNotNull(left.bestCleanBpm, right.bestCleanBpm).maxOrNull())
+                    }
+                },
             )
         }
 

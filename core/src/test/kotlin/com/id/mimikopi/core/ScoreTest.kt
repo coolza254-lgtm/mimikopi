@@ -76,7 +76,7 @@ class BundledPiecesTest {
 
     @Test
     fun allPiecesParseAndAreSafeToBundle() {
-        assertTrue(files.size >= 5)
+        assertEquals(setOf("heroic-polonaise-easy", "heroic-polonaise-theme"), files.map { it.nameWithoutExtension }.toSet())
         for (f in files) {
             val p = PieceFile.parse(f.readText())
             assertEquals(f.nameWithoutExtension, p.id)

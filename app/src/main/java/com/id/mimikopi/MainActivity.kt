@@ -138,8 +138,12 @@ private object Routes {
     const val REVIEW = "review/{review}"
     const val PIECES = "pieces?lesson={lesson}&drill={drill}"
     fun piecesFor(lessonId: String, drill: Int) = "pieces?lesson=$lessonId&drill=$drill"
-    const val READER = "reader/{pieceId}?hand={hand}"
+    const val READER = "reader/{pieceId}?hand={hand}&target={target}"
     fun reader(id: String, hand: String?) = if (hand == null) "reader/$id" else "reader/$id?hand=$hand"
+    fun heroicTarget(id: String): String {
+        val t = com.id.mimikopi.core.playalong.HeroicPlan.target(id) ?: error("Unknown study target")
+        return "reader/${t.piece}?target=${t.id}"
+    }
     const val SCORE_DRILL = "scoredrill/{lessonId}/{drill}?via={via}"
     const val EAR_SESSION = "ear/session?focus={focus}"
     fun earSession(focus: String?) = if (focus == null) "ear/session" else "ear/session?focus=$focus"
@@ -247,7 +251,7 @@ private fun AppNavigation() {
             FreePianoScreen(onOpenMidi = openMidi, onOpenSettings = openSettings, soundSetup = { onReady -> PianoSoundSetup(onReady) })
         }
         composable(Routes.SONGS) {
-            SongsScreen(onPlay = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onOpenMidi = openMidi, onOpenSettings = openSettings, onOpenLibrary = { nav.navigate("pieces") })
+            SongsScreen(onPlay = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onOpenMidi = openMidi, onOpenSettings = openSettings, onOpenLibrary = { nav.navigate("pieces") }, onTarget = { nav.navigate(Routes.heroicTarget(it)) })
         }
         composable(Routes.SKILL) { e ->
             val skill = e.arguments?.getString("skill")?.let { runCatching { SkillId.valueOf(it) }.getOrNull() } ?: SkillId.KEYS
@@ -292,7 +296,7 @@ private fun AppNavigation() {
         composable(Routes.METRONOME) { MetronomeScreen(onBack = back) }
         composable(Routes.MIDI) { MidiScreen(onBack = back) }
         composable(Routes.PROGRESS) { com.id.mimikopi.ui.progress.ProgressScreen(onBack = back, onOpen = open) }
-        composable(Routes.GOAL) { com.id.mimikopi.ui.progress.GoalScreen(onBack = back, onOpen = open) }
+        composable(Routes.GOAL) { com.id.mimikopi.ui.progress.GoalScreen(onBack = back, onTarget = { nav.navigate(Routes.heroicTarget(it)) }, onFree = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onSource = { nav.navigate("pieces") }) }
         composable(Routes.EXAMS) { com.id.mimikopi.ui.exam.ExamHomeScreen(onBack = back, onOpen = open) }
         composable(Routes.EXAM_GRADE) { com.id.mimikopi.ui.exam.ExamGradeScreen(onBack = back, onOpen = open) }
         composable(Routes.EXAM_RESULT) { com.id.mimikopi.ui.exam.ExamResultScreen(onBack = back, onOpen = open) }
@@ -304,7 +308,7 @@ private fun AppNavigation() {
         composable(Routes.PIECES, arguments = listOf(optional("lesson"), optional("drill"))) {
             PieceListScreen(onBack = back, onOpenPiece = { id, hand -> nav.navigate(Routes.reader(id, hand)) })
         }
-        composable(Routes.READER, arguments = listOf(optional("hand"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
+        composable(Routes.READER, arguments = listOf(optional("hand"), optional("target"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
         composable(Routes.SCORE_DRILL, arguments = listOf(optional("via"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
         composable(Routes.SETTINGS) {
             SettingsScreen(

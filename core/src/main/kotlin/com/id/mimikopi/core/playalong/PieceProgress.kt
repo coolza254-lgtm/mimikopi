@@ -36,6 +36,8 @@ data class PieceProgress(
     /** Tempo ramp per practice target: "<hands>|<from>-<to>". */
     val ramps: Map<String, RampState> = emptyMap(),
     val bestCleanBpm: Int? = null,
+    /** Exact study-target evidence, preserved in the existing backup format. */
+    val studyTargets: Map<String, StudyEvidence> = emptyMap(),
 )
 
 data class RunUpdate(val progress: PieceProgress, val newBpm: Int?, val passedToday: Boolean, val piecePassed: Boolean)

@@ -1,140 +1,17 @@
 package com.id.mimikopi.ui.progress
 
-import android.app.Application
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.id.mimikopi.MimikopiApp
-import com.id.mimikopi.core.ear.EarKind
-import com.id.mimikopi.core.exercise.ChordPractice
-import com.id.mimikopi.core.goal.IdolGoal
-import com.id.mimikopi.core.progress.SkillBook
-import com.id.mimikopi.core.progress.SkillId
-import com.id.mimikopi.core.progress.SkillStatus
-import com.id.mimikopi.data.db.SettingEntity
-import com.id.mimikopi.ui.components.Group
-import com.id.mimikopi.ui.components.GroupDivider
-import com.id.mimikopi.ui.components.GroupFooter
-import com.id.mimikopi.ui.components.GroupHeader
-import com.id.mimikopi.ui.components.GroupRow
-import com.id.mimikopi.ui.components.LargeTitle
-import com.id.mimikopi.ui.components.PageMargin
-import com.id.mimikopi.ui.components.PageMaxWidth
-import com.id.mimikopi.ui.components.paper
-import com.id.mimikopi.ui.theme.Tokens
-import com.id.mimikopi.ui.today.Open
-import com.id.mimikopi.ui.today.ProgressStore
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import java.time.LocalDate
+import com.id.mimikopi.ui.components.ScreenScaffold
+import com.id.mimikopi.ui.songs.HeroicDashboard
+import com.id.mimikopi.ui.songs.SongsViewModel
 
-class GoalViewModel(app: Application) : AndroidViewModel(app) {
-    private val services = app as MimikopiApp
-    private val _statuses = MutableStateFlow<List<SkillStatus>?>(null)
-    val statuses: StateFlow<List<SkillStatus>?> = _statuses.asStateFlow()
-
-    fun refresh() {
-        viewModelScope.launch {
-            services.progress.load()
-            val today = LocalDate.now()
-            _statuses.value = SkillId.entries.map { SkillBook.status(it, services.progress.checks.value, today) }
-        }
-    }
-
-    /** Opens a chord drill in the songs' style: written where the chord runner reads the Today chord part. */
-    fun drill(practice: ChordPractice, go: () -> Unit) {
-        viewModelScope.launch {
-            services.database.settingsDao().put(SettingEntity(ProgressStore.CHORDS_TODAY, ChordPractice.encode(practice)))
-            go()
-        }
-    }
-}
-
-/**
- * The goal: the first idol songs the user wants to play, each with what it asks for against the levels from tests
- * and what is still missing, then practice in the songs' style. No notes or lyrics of the songs (copyright); the song
- * facts come from the web and are marked as not checked.
- */
 @Composable
-fun GoalScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: GoalViewModel = viewModel()) {
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
-    val statuses by vm.statuses.collectAsStateWithLifecycle()
-
-    Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-        Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth()) {
-            LargeTitle("เป้าหมาย", "เล่นเพลง Hello! Project และเพลงไอดอลได้เอง", onBack = onBack)
-            val st = statuses ?: return@Column
-            Column(Modifier.padding(horizontal = PageMargin)) {
-                GroupFooter(
-                    "แอพไม่มีโน้ตหรือเนื้อร้องของเพลงจริง (ลิขสิทธิ์) เป้าหมายคือฝึกจนแกะและเล่นเองได้ " +
-                        "ตัวเลขข้างล่างเทียบกับระดับจากแบบทดสอบ ส่วนระดับที่แต่ละเพลงต้องการเป็นค่าประเมินของแอพ ไม่ใช่เกรดทางการ",
-                    modifier = Modifier.padding(top = 12.dp),
-                )
-                IdolGoal.SONGS.forEach { song ->
-                    val ready = IdolGoal.readiness(song, st)
-                    val gaps = IdolGoal.gaps(song, st)
-                    GroupHeader("${song.title} · ${song.artist}")
-                    Group {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(if (gaps.isEmpty()) "ทักษะถึงแล้ว" else "พร้อม ${(ready * 100).toInt()}%", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                            Box(Modifier.padding(top = 8.dp).fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Tokens.Palette.Line)) {
-                                Box(Modifier.fillMaxWidth(ready.toFloat().coerceIn(0f, 1f)).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Tokens.Palette.Ink))
-                            }
-                            Text(song.why, fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
-                            Text("ข้อมูลเพลง (ยังไม่ได้ยืนยัน): " + song.facts.joinToString(" · "), fontSize = 13.sp, lineHeight = 18.sp,
-                                color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
-                        }
-                        if (gaps.isEmpty()) {
-                            GroupDivider()
-                            GroupRow("ลองแกะเพลงนี้ด้วยหูได้แล้ว", subtitle = "ฟังหาคีย์ แกะทางเดินคอร์ดท่อนฮุก แล้วแกะทำนองทีละวลี", onClick = { onOpen(Open.Ear(EarKind.MELODY.name)) })
-                        }
-                        gaps.forEach { g ->
-                            GroupDivider()
-                            GroupRow(g.skill.title, subtitle = "ตอนนี้ระดับ ${g.have} ต้องการ ${g.need}", onClick = { onOpen(Open.Skill(g.skill)) })
-                        }
-                    }
-                }
-
-                GroupHeader("ฝึกแบบเพลงไอดอล")
-                Group {
-                    IdolGoal.DRILLS.forEachIndexed { i, d ->
-                        if (i > 0) GroupDivider()
-                        GroupRow(d.title, subtitle = d.about + " · เปลี่ยนคอร์ดให้ได้มากที่สุดใน 1 นาที", onClick = { vm.drill(d.practice) { onOpen(Open.ChordsToday) } })
-                    }
-                    GroupDivider()
-                    GroupRow("ฟังทางเดินคอร์ด", subtitle = "แยก Axis 小室進行 王道進行 Canon ด้วยหู", onClick = { onOpen(Open.Ear(EarKind.PROGRESSION.name)) })
-                    GroupDivider()
-                    GroupRow("แกะทำนอง", subtitle = "ฟังวลีสั้นแล้วเล่นกลับ ทักษะหลักของการแกะเพลง", onClick = { onOpen(Open.Ear(EarKind.MELODY.name)) })
-                }
-                GroupFooter("ทางเดินคอร์ดไม่มีลิขสิทธิ์ เพลงป็อปญี่ปุ่นจำนวนมากใช้ทางเดินเหล่านี้")
-                Spacer(Modifier.height(40.dp))
-            }
-        }
+fun GoalScreen(onBack: () -> Unit, onTarget: (String) -> Unit, onFree: (String, String) -> Unit,
+    onSource: () -> Unit, vm: SongsViewModel = viewModel()) {
+    val progress by vm.progress.collectAsStateWithLifecycle()
+    ScreenScaffold("เป้าหมาย · Heroic Polonaise", onBack) {
+        HeroicDashboard(progress, onTarget, onFree, onSource)
     }
 }

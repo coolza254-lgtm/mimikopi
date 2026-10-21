@@ -102,7 +102,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         // A finished run changes the log and often the tests too: one refresh for both (the latest wins).
-        viewModelScope.launch { merge(progress.log, progress.checks).collect { if (_ui.value.loaded) refresh() } }
+        viewModelScope.launch { merge(progress.log, progress.checks, services.pieces.progress).collect { if (_ui.value.loaded) refresh() } }
     }
 
     /** Rebuilds the page; a refresh still running is replaced (returning to the page right after a run asks again). */
@@ -111,6 +111,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         refreshJob = viewModelScope.launch {
             learning.load()
             progress.load()
+            services.pieces.load()
             val today = LocalDate.now()
             val minutes = dao.get(ProgressStore.MINUTES)?.toIntOrNull()?.takeIf { it in DailyPlan.CHOICES } ?: 30
             val stored = DailyPlan.parse(dao.get(ProgressStore.PLAN))
@@ -162,7 +163,8 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         }
         val (days, mins) = PracticeLog.week(log, today)
         val statuses = SkillId.entries.map { SkillBook.status(it, checks, today) }
-        val goal = com.id.mimikopi.core.goal.IdolGoal.SONGS.firstOrNull { com.id.mimikopi.core.goal.IdolGoal.gaps(it, statuses).isNotEmpty() }
+        val heroic = com.id.mimikopi.core.playalong.HeroicPlan
+        val done = heroic.targets.count { it.completed(heroic.evidence(it, services.pieces.progress.value)) }
         _ui.value = TodayUi(
             loaded = true,
             dateText = thaiDate(today),
@@ -179,8 +181,8 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
             weakest = SkillBook.weakest(checks, today)?.let { w -> statuses.first { it.skill == w } },
             untested = statuses.count { it.lastTested == null },
             fixes = com.id.mimikopi.core.progress.Mistakes.summarize(progress.mistakes.value, earState, today).take(2),
-            goalSong = goal?.title,
-            goalReady = goal?.let { com.id.mimikopi.core.goal.IdolGoal.readiness(it, statuses) } ?: 1.0,
+            goalSong = "ท่อนหลัก: ทำได้ $done จาก ${heroic.targets.size} เป้าหมายฝึก",
+            goalReady = 0.0,
         )
     }
 
@@ -194,7 +196,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         BlockKind.SIGHT -> "ระดับ L${b.target}"
         BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, progress.checks.value, LocalDate.now()).level).summary()
         BlockKind.EAR -> "ขั้น ${earStage.n} ${earStage.title}"
-        BlockKind.SONG -> "เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น"
+        BlockKind.SONG -> "Heroic Polonaise · ฝึกตามแผนทีละช่วง"
     } + " · ${b.minutes} นาที"
 
     /** What a block opens; the chord part first writes its practice for the drill to read. */

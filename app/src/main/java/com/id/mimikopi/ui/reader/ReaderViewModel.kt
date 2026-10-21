@@ -162,6 +162,9 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     }
 
     /** The practice log kind of this sitting's runs, when the Today plan says (e.g. "warmup"). */
+    private val studyTarget = com.id.mimikopi.core.playalong.HeroicPlan.target(args.get<String>("target"))
+        ?.takeIf { it.piece == args.get<String>("pieceId") }
+
     private val via: String? = args.get<String>("via")
 
     data class LoadedPiece(val score: Score, val layout: ScoreLayout, val keyRange: IntRange)
@@ -348,6 +351,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     private var previewJob: Job? = null
     /** The run was ended with the stop button before the music's end (an exam part then gets no minimum marks). */
     private var stoppedEarly = false
+    private var studyInterrupted = false
     private var judge: PlayAlongJudge? = null
     private var latencies: Map<InputSource, Double> = emptyMap()
     private var helperUsedThisRun = false
@@ -375,6 +379,9 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             val missing = withContext(Dispatchers.IO) { services.samplePacks.installed() == null }
             _ui.update { it.copy(options = fixedOptions(options), packMissing = missing) }
             refreshProgress()
+            studyTarget?.let { t ->
+                _ui.update { it.withStudyTarget(t) }
+            }
             applyRampTempo()
             startPreview()
         }
@@ -562,6 +569,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         }
         if (newSightLook()) return
         stoppedEarly = false
+        studyInterrupted = false
         if (newPieceNext) {
             seed = System.currentTimeMillis()
             loadPiece()
@@ -612,6 +620,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val j = judge
         judge = null
         if (j != null && (phase == Phase.PLAYING) && j.outcomes().values.any { it.result != NoteResult.PENDING }) {
+            studyInterrupted = true
             // Early only when notes were still to come (not when stopped during the last held note).
             stoppedEarly = j.outcomes().values.any { it.result == NoteResult.PENDING }
             finish(j)
@@ -833,16 +842,27 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         }
         val u = _ui.value
         val helper = helperUsedThisRun
-        viewModelScope.launch {
+        val interrupted = stoppedEarly || studyInterrupted
+        services.appScope.launch {
+            pieces.load()
             val before = pieces.progressOf(s.id)
             val slower = before.ramps[rampKey()]?.history?.lastOrNull() ?: (u.bpm * 0.9).roundToInt().coerceAtLeast(30)
             val update = PieceRules.afterRun(before, s, result, helper, u.options.useRamp && u.options.mode == PlayMode.TEMPO,
                 learning.config.tempoRamp, learning.config.cleanRun)
-            pieces.save(update.progress)
+            val studied = com.id.mimikopi.core.playalong.HeroicPlan.record(update.progress, result, helper, interrupted)
+            pieces.save(studied)
             saveAttempt(s, j, result, helper)
             val coach = coachLines(s, result, slower, update.newBpm, helper)
             enrolTrouble(j, result)
-            val progressLine = when {
+            val studyLine = studyTarget?.let { t -> (studied.studyTargets[t.id] ?: com.id.mimikopi.core.playalong.StudyEvidence()).let { e ->
+                when {
+                    result.setup.fromMeasure != t.from || result.setup.toMeasure != t.to || result.setup.hands != t.hands || result.setup.mode != t.mode -> "บันทึกการฝึกแล้ว · ช่วง/มือ/โหมดที่เปลี่ยนไม่นับแทนเป้าหมายเดิม"
+                    t.completed(e) -> "เป้าหมายท่อนนี้ทำได้ตามเกณฑ์แล้ว · กลับหน้าเพลงเพื่อฝึกขั้นถัดไป"
+                    t.mode == PlayMode.WAIT -> "บันทึกการอ่านช่วงนี้แล้ว · ยังไม่วัดจังหวะ"
+                    else -> "แผนท่อนนี้: สะอาดต่อเนื่อง ${e.streak}/3 รอบ · ทำได้ ${e.days.size}/2 วัน"
+                }
+            } }
+            val progressLine = studyLine ?: when {
                 update.piecePassed && update.passedToday -> "ผ่านเพลงนี้แล้ว (เล่นสะอาด 3 รอบติดที่ความเร็วเป้าหมาย ใน 2 วันที่ต่างกัน)"
                 update.passedToday -> "วันนี้เล่นสะอาดครบ 3 รอบติดที่ความเร็วเป้าหมายแล้ว ต้องทำอีกครั้งในวันอื่นเพื่อผ่านเพลงนี้"
                 else -> null
@@ -850,7 +870,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             _ui.update {
                 it.copy(
                     phase = Phase.RESULT,
-                    result = resultUi(result, coach, progressLine),
+                    result = resultUi(result, coach, if (s.id.startsWith("heroic-polonaise-")) progressLine?.replace("เพลงนี้", "ฉบับฝึกท่อนหลักนี้") else progressLine),
                     bpm = update.newBpm ?: it.bpm,
                     countIn = null,
                 )

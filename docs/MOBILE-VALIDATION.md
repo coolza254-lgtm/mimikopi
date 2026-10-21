@@ -1,5 +1,19 @@
 # ผลตรวจรอบปรับการฝึกบนมือถือ
 
+## Heroic-only plan (v0.27.0)
+- รัน `:core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease` ด้วย versionName 0.27.0 / code 2700 สำเร็จ
+- Core 208 + Android 43 = 251 tests ไม่มี failures/errors/skips; lint ไม่มี errors; release APK สร้างได้
+- ตรวจ APK ในเครื่องมีเพียง Heroic easy/theme สองไฟล์ของเพลงเดียว เพลงอื่น 30 ไฟล์ถูกนำออกจริง ไม่ได้เพียงซ่อนรายการ
+- บท 2.23, 3.15, 4.19 อ้างเฉพาะแบบฝึกพื้นฐานที่มีจริง; dependency tests และการจัดห้อง/round trip ของทุกไฟล์ที่เหลือผ่าน
+- ตรวจ 30 targets resolve เป็นโน้ตที่เล่นได้จริง ช่วง/มือ/โหมดแยกกัน ความเร็วต่ำกว่าขั้นสุดท้ายไม่ผ่านแทน และ passDays/bestCleanBpm เก่าไม่ทำให้ผ่านแผนใหม่
+- ทดสอบรอบสะอาด 3 ครั้งในวันเดียวและยืนยันอีกวัน แก้ไม่ให้ streak ค้างข้ามคืน; เมื่อวันนี้ครบแล้วเสนอช่วงอื่น และวันถัดไปกลับมาทวน
+- ตรวจ helper, กดผิด/เกิน, ความเร็วต่ำกว่าเป้า, รอบหยุดกลางทาง และเปิดเล่นทิ้งไว้ไม่ผ่านเป้าหมาย
+- ตรวจ serialize ข้อมูลใหม่/อ่าน PieceProgress เก่า และ sync รวมวัน/ความเร็วโดยไม่บวกจำนวนครั้ง พร้อมทดสอบ commutativity และ idempotence
+- ตรวจการใช้เป้าหมายทับค่าที่จำไว้: ช่วง มือ โหมด bpm ปิด ramp/โน้ตไหล/ชื่อโน้ต/เล่นแทน โดยคงรูปแบบหน้าและคีย์บนจอที่เลือก
+- Native Compose tests เปิดเป้าหมายถัดไป/เป้าหมายที่เลือกเองได้ตรง ID อ่านผลที่วัดจริงในธีมมืด เปิด/ปิด source และเปิดแบบฝึกพื้นฐานในบทเรียนได้
+- ภาพจริงจาก native render: `docs/images/heroic-plan-phone-v0.27.0.png`, `heroic-plan-dark-v0.27.0.png`
+- การตรวจ APK ลงนาม/การเผยแพร่บันทึกแยกหลัง GitHub Actions; ยังไม่ได้ลอง MIDI, เสียง/latency หรือการเล่นกับเปียโนจริง
+
 ## Moonlight Sonata I (v0.26.9)
 - รัน `:core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease` ด้วย versionName 0.26.9 / code 2609 สำเร็จ
 - Core 200 + Android 46 = 246 tests ผ่าน ไม่มี failures/errors/skips; lint ไม่มี errors; release APK สร้างได้

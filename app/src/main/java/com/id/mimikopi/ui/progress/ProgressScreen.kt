@@ -163,10 +163,10 @@ fun ProgressScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ProgressViewM
                 }
                 GroupFooter("ข้อยากขึ้นตามขั้นที่เปิด เปอร์เซ็นต์จึงอาจลดลงตอนเข้าขั้นใหม่ ดูระดับหูประกอบ")
 
-                GroupHeader("สอบเกรด")
+                GroupHeader("ผลสอบเดิม")
                 Group {
                     if (ui.exams.isEmpty()) {
-                        GroupRow("ยังไม่ได้สอบ", subtitle = "การสอบวัดทุกด้านพร้อมกัน: เพลง สเกล อ่านโน้ตใหม่ และการฟัง", onClick = { onOpen(Open.Exams) })
+                        GroupRow("ติดตาม Heroic Polonaise", subtitle = "ดูผลตามช่วง มือ และความเร็ว", onClick = { onOpen(Open.Goal) })
                     } else {
                         Column(Modifier.padding(16.dp)) {
                             val recent = ui.exams.takeLast(12)

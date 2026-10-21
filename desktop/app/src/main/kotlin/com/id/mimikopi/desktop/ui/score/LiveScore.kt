@@ -63,7 +63,12 @@ fun LiveScore(
         val systems = remember(score, lineSpaces) {
             ScoreLayout.systems(score, lineSpaces.toDouble()).map { r ->
                 val slice = score.slice(r.first, r.last)
-                System(r, slice, ScoreLayout.of(slice), score.measureStart(r.first), score.measureStart(r.last + 1))
+                // Lines fill the width like engraved music; a short last line keeps natural spacing, and only the
+                // piece's own end gets the final double bar.
+                val end = r.last == score.measures - 1
+                val natural = ScoreLayout.of(slice)
+                val layout = if (end && natural.width < lineSpaces * 0.5) natural else ScoreLayout.justified(slice, lineSpaces.toDouble(), finalBar = end)
+                System(r, slice, layout, score.measureStart(r.first), score.measureStart(r.last + 1))
             }
         }
         val list = rememberLazyListState()

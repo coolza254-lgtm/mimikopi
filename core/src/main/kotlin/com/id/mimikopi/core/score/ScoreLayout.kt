@@ -141,6 +141,20 @@ data class ScoreLayout(
         fun of(score: Score): ScoreLayout = Engraver(score).run()
 
         /**
+         * One line (system) of [score] spread to [width] staff spaces, as engraved music fills its lines: only the gaps
+         * between note columns grow, glyphs keep their size. A line already as wide as [width] is left as it is. Without
+         * [finalBar] the last bar ends with a plain bar line (a line that the piece continues after).
+         */
+        fun justified(score: Score, width: Double, finalBar: Boolean = true): ScoreLayout {
+            val natural = Engraver(score, 1.0, finalBar).run()
+            val doubled = Engraver(score, 2.0, finalBar).run().width
+            if (natural.width >= width || doubled <= natural.width) return natural
+            // Width is linear in the spacing factor: only the gaps scale.
+            val factor = 1.0 + (width - natural.width) / (doubled - natural.width)
+            return Engraver(score, factor, finalBar).run()
+        }
+
+        /**
          * Measure ranges that fit systems (lines) of [width] staff spaces, for printing. Each system repeats the clef,
          * key and time signature prefix; a measure wider than a whole line gets a line of its own.
          */
@@ -165,7 +179,8 @@ data class ScoreLayout(
     }
 }
 
-private class Engraver(private val score: Score) {
+/** [spacing] scales the gaps between note columns (1 = natural spacing); [finalBar] ends the last bar with the final double bar. */
+private class Engraver(private val score: Score, private val spacing: Double = 1.0, private val finalBar: Boolean = true) {
     private val glyphs = mutableListOf<ScoreLayout.Glyph>()
     private val lines = mutableListOf<ScoreLayout.Line>()
     private val measures = mutableListOf<ScoreLayout.MeasureBox>()
@@ -208,7 +223,7 @@ private class Engraver(private val score: Score) {
                 x += gapFor(next - onset)
                 if (group.any { it.duration % 1.0 != 0.0 && it.duration > 1.0 }) x += 0.4 // room for dots
             }
-            if (onsets.isEmpty()) x += 4.0
+            if (onsets.isEmpty()) x += 4.0 * spacing
             for (g in groups) drawBeams(g)
             val repeatEnd = m in score.repeatEnd
             if (repeatEnd) x += 1.6
@@ -220,7 +235,7 @@ private class Engraver(private val score: Score) {
                 repeatDots(x - 1.6)
                 lines += ScoreLayout.Line(x - 0.85, ScoreLayout.TOP_Y, x - 0.85, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
                 lines += ScoreLayout.Line(x - 0.25, ScoreLayout.TOP_Y, x - 0.25, ScoreLayout.BOTTOM_Y, ScoreLayout.THICK_BARLINE)
-            } else if (last) {
+            } else if (last && finalBar) {
                 lines += ScoreLayout.Line(x - 0.75, ScoreLayout.TOP_Y, x - 0.75, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
                 lines += ScoreLayout.Line(x - 0.25, ScoreLayout.TOP_Y, x - 0.25, ScoreLayout.BOTTOM_Y, ScoreLayout.THICK_BARLINE)
             } else {
@@ -300,7 +315,7 @@ private class Engraver(private val score: Score) {
     }
 
     /** Horizontal room after an onset, growing with the time until the next onset (sub-linear, like engravers do). */
-    private fun gapFor(beats: Double): Double = 1.6 + 2.4 * sqrt(beats)
+    private fun gapFor(beats: Double): Double = spacing * (1.6 + 2.4 * sqrt(beats))
 
     private fun shownAccidental(
         carry: MutableMap<Hand, MutableMap<Pair<Letter, Int>, Int>>,

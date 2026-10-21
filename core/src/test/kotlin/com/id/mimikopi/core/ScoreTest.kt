@@ -96,6 +96,23 @@ class BundledPiecesTest {
 
 class ScoreLayoutTest {
     @Test
+    fun justifiedLinesFillTheWidthAndKeepStemsOnTheirNotes() {
+        val s = piece(listOf("C4/q D4/q E4/h", "F4/w"), listOf("C3/w", "C3/w"))
+        val natural = ScoreLayout.of(s)
+        val wide = ScoreLayout.justified(s, natural.width * 2, finalBar = false)
+        assertEquals(natural.width * 2, wide.width, 1e-6)
+        // The stem sits at the same offset from its notehead: gaps grow, glyphs do not.
+        val e = s.events.first { it.hand == Hand.RIGHT }
+        fun stemOffset(l: ScoreLayout) = l.lines.first { it.eventId == e.id && it.x1 == it.x2 }.x1 - l.noteheads().first { it.eventId == e.id }.x
+        assertEquals(stemOffset(natural), stemOffset(wide), 1e-9)
+        // A line the piece continues after ends with a plain bar line, the piece's own end with the final double bar.
+        assertTrue(wide.lines.none { it.thickness == ScoreLayout.THICK_BARLINE })
+        assertTrue(natural.lines.any { it.thickness == ScoreLayout.THICK_BARLINE })
+        // Already wide enough: unchanged.
+        assertEquals(natural.width, ScoreLayout.justified(s, natural.width / 2).width, 1e-9)
+    }
+
+    @Test
     fun anchorsIncreaseAndCursorInterpolates() {
         val s = piece(listOf("C4/q D4/q E4/h", "F4/w"), listOf("C3/w", "C3/w"))
         val l = ScoreLayout.of(s)

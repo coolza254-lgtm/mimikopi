@@ -71,7 +71,7 @@ cmake --build desktop/native/build --config Release
 | Native audio: loads the library, plays notes, sampler, null backend | unit test on Linux and Windows (WASAPI library built with MSVC) | pass |
 | Salamander sample pack (real, 79 MB) | opt-in test `MIMIKOPI_PACK_TEST=1` | passed on Linux |
 | Page appearance | offscreen screenshots (`ScreenshotTest`) in both themes, 1280×800 | images are generated in CI |
-| MSI / app folder | built on `windows-latest` CI | see the latest CI run |
+| MSI / app folder | built on `windows-latest` CI, then checked: the exe and the audio DLL are in the app folder, and SHA-256 is printed | builds (MSI about 79 MB, app ZIP about 77 MB); not yet installed on a real machine |
 
 **Not yet tested on a real machine** (needs Windows with a real sound card and a real MIDI piano):
 

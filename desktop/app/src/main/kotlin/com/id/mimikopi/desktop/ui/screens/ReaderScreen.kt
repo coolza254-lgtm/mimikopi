@@ -30,15 +30,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.id.mimikopi.core.music.NoteNameStyle
+import com.id.mimikopi.core.music.SpelledPitch
+import com.id.mimikopi.core.playalong.NoteResult
 import com.id.mimikopi.core.playalong.PlayMode
 import com.id.mimikopi.core.score.Hand
+import com.id.mimikopi.core.score.NoteKey
+import com.id.mimikopi.core.score.Score
+import com.id.mimikopi.desktop.input.ComputerKeyboard
 import com.id.mimikopi.desktop.session.HandChoice
 import com.id.mimikopi.desktop.session.Phase
 import com.id.mimikopi.desktop.session.ReaderArgs
 import com.id.mimikopi.desktop.session.ReaderSession
 import com.id.mimikopi.desktop.session.ReaderUi
 import com.id.mimikopi.desktop.ui.LocalApp
+import com.id.mimikopi.desktop.ui.components.FallingNote
+import com.id.mimikopi.desktop.ui.components.FallingNotesView
+import com.id.mimikopi.desktop.ui.components.FallingState
 import com.id.mimikopi.desktop.ui.components.PianoKeys
+import com.id.mimikopi.desktop.ui.components.fallingKeyRange
 import com.id.mimikopi.desktop.ui.components.PrimaryButton
 import com.id.mimikopi.desktop.ui.components.SecondaryButton
 import com.id.mimikopi.desktop.ui.components.Segmented
@@ -98,8 +108,10 @@ fun ReaderScreen(args: ReaderArgs) {
                 else -> SetupBar(r, ui)
             }
         }
+        val falling = ui.options.falling && !r.fixed
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            LiveScore(
+            if (falling) FallingScore(r, ui, p.score, p.keyRange, running, midi, lowC, Modifier.fillMaxSize())
+            else LiveScore(
                 score = p.score,
                 cursorBeat = r::cursorAt,
                 playing = running,
@@ -124,7 +136,8 @@ fun ReaderScreen(args: ReaderArgs) {
                 }
             }
         }
-        if (!midi && ui.options.showKeyboard && ui.phase != Phase.RESULT) {
+        // Falling notes draw their own keys (playable with the mouse and the computer keyboard).
+        if (!falling && !midi && ui.options.showKeyboard && ui.phase != Phase.RESULT) {
             PianoKeys(
                 range = keyboardRange(p.keyRange),
                 pressed = pressed,
@@ -168,7 +181,9 @@ private fun PlayingBar(r: ReaderSession, ui: ReaderUi, midi: Boolean) {
         }
         Text("$what · ${ui.options.hands.title} · ${ui.bpm} bpm · ห้อง ${ui.section.first + 1}–${ui.section.last + 1}" + (if (midi) " · MIDI" else ""),
             fontSize = 14.sp, color = Tokens.Palette.InkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        if (ui.phase != Phase.LISTENING) SecondaryButton(if (ui.showNames) "ชื่อโน้ต: เปิด" else "ชื่อโน้ต", onClick = r::toggleNames)
+        if (ui.options.falling && !r.fixed) SecondaryButton(if (ui.options.fallingKeyLabels) "ชื่อบนคีย์: เปิด" else "ชื่อบนคีย์",
+            onClick = { r.setFallingKeyLabels(!ui.options.fallingKeyLabels) })
+        else if (ui.phase != Phase.LISTENING) SecondaryButton(if (ui.showNames) "ชื่อโน้ต: เปิด" else "ชื่อโน้ต", onClick = r::toggleNames)
         StopButton(r::stop)
     }
 }
@@ -200,7 +215,9 @@ private fun SetupBar(r: ReaderSession, ui: ReaderUi) {
             if (r.source !is ReaderSession.Source.Exam && score.events.any { it.hand == Hand.LEFT } && score.events.any { it.hand == Hand.RIGHT })
                 Toggle("โปรแกรมเล่นมืออื่น", ui.options.playOtherHand, r::setPlayOtherHand)
             if (ui.options.mode == PlayMode.TEMPO) Toggle("คลิก", ui.options.metronome, r::setMetronome)
-            Toggle("คีย์บนจอ", ui.options.showKeyboard, r::setShowKeyboard)
+            if (!r.fixed) Toggle("โน้ตตก", ui.options.falling, r::setFalling)
+            if (!r.fixed && ui.options.falling) Toggle("ชื่อโน้ตบนคีย์", ui.options.fallingKeyLabels, r::setFallingKeyLabels)
+            else Toggle("คีย์บนจอ", ui.options.showKeyboard, r::setShowKeyboard)
         }
         if (ui.hotMeasures.isNotEmpty() && !r.fixed) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("จุดที่พลาดบ่อย:", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
@@ -248,4 +265,63 @@ fun Toggle(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
         Switch(checked = on, onCheckedChange = onChange)
         Text(label, fontSize = 14.sp, color = Tokens.Palette.Ink)
     }
+}
+
+/**
+ * The song as falling notes over a keyboard (as on the phone): bars coloured by hand fall to the keys, judged keys
+ * light up hit / early / late / wrong. On the computer the keys also show the computer-keyboard letters while no MIDI
+ * piano is connected, and they play with the mouse. A run in this mode does not count toward passing the piece.
+ */
+@Composable
+private fun FallingScore(r: ReaderSession, ui: ReaderUi, score: Score, keyRange: IntRange, playing: Boolean, midi: Boolean, lowC: Int, modifier: Modifier) {
+    val app = LocalApp.current
+    val pressed by r.pressed.collectAsState()
+    val barStyle = if (r.nameStyle == NoteNameStyle.SOLFEGE) NoteNameStyle.SOLFEGE else NoteNameStyle.LETTER
+    // Each heard note (ties merged) with its key in the judge's results, its hand and its bar (named once per style).
+    val base = remember(score, barStyle) {
+        val events = score.events.associateBy { it.id }
+        score.sounding().map { n ->
+            val ev = events.getValue(n.eventId)
+            val i = ev.pitches.indexOfFirst { it.midi == n.midi }.coerceAtLeast(0)
+            val pitch = ev.pitches.getOrNull(i) ?: SpelledPitch.fromMidiSharp(n.midi)
+            Triple(NoteKey(n.eventId, i), n.hand, FallingNote(n.midi, n.onset, n.duration, left = n.hand == Hand.LEFT, label = pitch.name(barStyle)))
+        }
+    }
+    val results = ui.results
+    val hands = ui.options.hands.hands
+    val notes = remember(base, results, hands) {
+        base.map { (key, hand, note) ->
+            val state = when (results[key]) {
+                NoteResult.CORRECT, NoteResult.EARLY, NoteResult.LATE, NoteResult.CORRECTED -> FallingState.DONE
+                NoteResult.MISSED -> FallingState.MISSED
+                else -> if (hand in hands) FallingState.WAITING else FallingState.BACKGROUND
+            }
+            if (state == note.state) note else note.copy(state = state)
+        }
+    }
+    val bars = remember(score) { (0..score.measures).map { score.measureStart(it) } }
+    val range = remember(keyRange) { fallingKeyRange(keyRange.first, keyRange.last) }
+    val labels = remember(range, barStyle, midi, lowC, ui.options.fallingKeyLabels) {
+        range.associateWith { m ->
+            listOfNotNull(
+                SpelledPitch.fromMidiSharp(m).name(barStyle).takeIf { ui.options.fallingKeyLabels },
+                if (midi) null else ComputerKeyboard.labelFor(m, lowC),
+            ).joinToString("\n").ifEmpty { null }
+        }
+    }
+    FallingNotesView(
+        notes = notes,
+        cursor = r::cursorAt,
+        animate = playing,
+        keyRange = range,
+        pressed = pressed,
+        keyLabel = { m -> labels[m] },
+        modifier = modifier,
+        window = (score.beatsPerMeasure * 2.0).coerceAtLeast(6.0),
+        smooth = ui.options.mode == PlayMode.WAIT,
+        lines = bars,
+        feedback = ui.fallingFeedback,
+        totalBeats = score.measureStart(score.measures),
+        onKey = if (midi) null else { n, down -> app.services.hub.dispatch(keyEvent(n, down)) },
+    )
 }

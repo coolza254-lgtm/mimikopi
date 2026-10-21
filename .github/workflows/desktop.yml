@@ -136,7 +136,7 @@ jobs:
       - name: Print Windows screenshots
         if: always()
         run: |
-          for f in desktop/app/build/screenshots/{reader-heroic,lesson-1.5,today}-light.png; do
+          for f in desktop/app/build/screenshots/{reader-heroic,reader-falling,lesson-1.5,today}-light.png; do
             [[ -f "$f" ]] || continue
             echo "=== SHOT win-$(basename "$f")"
             base64 -w 0 "$f"; echo

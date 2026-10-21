@@ -76,6 +76,20 @@ class ScreenshotTest {
     @Test fun today() = shoot("today") { TodayScreen() }
     @Test fun lesson() = shoot("lesson-1.5") { LessonScreen("1.5") }
     @Test fun reader() = shoot("reader-heroic") { ReaderScreen(ReaderArgs(pieceId = "heroic-polonaise-theme")) }
+    @Test fun readerFalling() {
+        // Reader options are one stored row; falling notes on for this shot only.
+        val key = com.id.mimikopi.desktop.learning.SettingKeys.READER_OPTIONS
+        val before = services.db.get(key)
+        services.db.put(key, kotlinx.serialization.json.Json.encodeToString(com.id.mimikopi.desktop.session.ReaderOptions.serializer(),
+            com.id.mimikopi.desktop.session.ReaderOptions(falling = true)))
+        try {
+            shoot("reader-falling") { ReaderScreen(ReaderArgs(pieceId = "heroic-polonaise-theme")) }
+        } finally {
+            services.awaitPendingWrites()
+            if (before != null) services.db.put(key, before) else services.db.put(key, kotlinx.serialization.json.Json.encodeToString(
+                com.id.mimikopi.desktop.session.ReaderOptions.serializer(), com.id.mimikopi.desktop.session.ReaderOptions()))
+        }
+    }
     @Test fun readerLesson() = shoot("reader-lesson-1.5") { ReaderScreen(ReaderArgs(lessonId = "1.5", drill = 0)) }
     @Test fun songs() = shoot("songs") { SongsScreen() }
     @Test fun settings() = shoot("settings") { SettingsScreen() }

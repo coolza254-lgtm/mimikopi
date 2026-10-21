@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * App-wide owner of the piano engine. Screens acquire/release it so the exclusive low-latency
  * stream is open only while something can play, and the pack is loaded once per process.
  */
-class PianoController(private val engineFactory: () -> PianoEngine, private val packs: SamplePackManager) {
+class PianoController(private val engineFactory: () -> PianoEngine, private val packs: SamplePackManager) : NoteOutput {
     companion object {
         /** The engine's own master gain, heard at the usual volume. */
         const val ENGINE_GAIN = 0.35f
@@ -76,9 +76,9 @@ class PianoController(private val engineFactory: () -> PianoEngine, private val 
         users = 0
     }
 
-    fun noteOn(note: Int, velocity: Int) = engine?.noteOn(note, velocity) ?: Unit
-    fun noteOff(note: Int) = engine?.noteOff(note) ?: Unit
-    fun sustain(down: Boolean) = engine?.sustain(down) ?: Unit
+    override fun noteOn(note: Int, velocity: Int) = engine?.noteOn(note, velocity) ?: Unit
+    override fun noteOff(note: Int) = engine?.noteOff(note) ?: Unit
+    override fun sustain(down: Boolean) = engine?.sustain(down) ?: Unit
     fun allNotesOff() = engine?.allNotesOff() ?: Unit
 
     fun setMetronome(on: Boolean, bpm: Double, ticksPerBeat: Int, levels: IntArray, volume: Float) =

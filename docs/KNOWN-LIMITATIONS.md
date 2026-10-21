@@ -2,6 +2,21 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Ear training sequence and MIDI layout (v0.26.4)
+- Layout B is the user's selected direction. Cadence-to-question silence is 900 ms; answers open only after the
+  question and its tail. Feedback waits for keys and sustain to be released continuously for 450 ms and at least
+  500 ms after the answer. Replays/next questions also wait for release. Playback has one owner and cannot layer.
+- The app suppresses its own input echo for every input source while this screen is active, without changing the
+  user's sound-through setting. It cannot silence a physical piano's own speakers or measure its acoustic decay.
+- Degree/bass/melody answers accept any octave. Other choice questions map their displayed options to physical
+  C, D, E, F, G, A, B, then black keys when needed; this is a selection shortcut, not a chord-performance test.
+  C advances only after feedback is finished. Disconnecting MIDI restores touch answers.
+- Existing exercise notes, rhythm tempos and scoring criteria are preserved. Timing compensation now uses each
+  input source's saved calibration for the current output route, rather than applying the USB value to every source.
+- Unit tests cover serial playback, cancellation, the release interval, echo suppression and all choice mappings.
+  Native Compose snapshots cover phone/MIDI, landscape and dark mode. Acoustic timing, USB/BLE hot-plug,
+  sustain behaviour and background/resume still need validation on the user's phone and physical piano.
+
 ## Landscape falling player (v0.26.3)
 - Falling playback/count-in/listen in landscape uses the full canvas with overlay controls. Status/navigation bars hide
   temporarily and can be revealed by swiping the edge. Normal layout and the window's cutout policy return on exit.

@@ -330,6 +330,7 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
         InputSource.USB_MIDI -> "USB"
         InputSource.BLE_MIDI -> "BLE"
         InputSource.SIMULATED -> "SIM"
+        InputSource.COMPUTER_KEYS -> "PC "
     }
 
     override fun onCleared() {

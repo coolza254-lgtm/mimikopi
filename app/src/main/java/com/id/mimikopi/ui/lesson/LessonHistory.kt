@@ -9,52 +9,39 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.id.mimikopi.core.backup.AttemptRow
 import com.id.mimikopi.core.lesson.Lesson
+import com.id.mimikopi.core.progress.AttemptHistory
+import com.id.mimikopi.core.progress.HistoryAttempt
 import com.id.mimikopi.data.db.AttemptEntity
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.theme.Tokens
-import kotlinx.serialization.json.*
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.math.roundToInt
 
-/** Unknown legacy completion is kept visible but never promoted into comparable evidence. */
+/** Android rows read through core's shared history rules (also used by the computer program). */
 internal class LessonAttempt(val row: AttemptEntity) {
-    private val params = runCatching { Json.parseToJsonElement(row.paramsJson).jsonObject }.getOrNull()
-    fun value(key: String): String? = (params?.get(key) as? JsonPrimitive)?.contentOrNull
-    val drillIndex = row.exerciseId.substringAfterLast(':').toIntOrNull()
-    val complete = (params?.get("completed") as? JsonPrimitive)?.booleanOrNull
-    val mode = value("mode")
-    val assisted get() = row.helperUses > 0
-    val comparable get() = complete == true && !assisted && mode != null && value("inputPresent") != "false"
-    // Seed deliberately varies for generated exercises. Pace, hand, section and timing criteria must match.
-    val conditions get() = listOf(row.exerciseId, mode, row.hand, row.tempoBpm?.toString(),
-        value("from"), value("to"), value("bpm"), value("toleranceMs"), value("beats"), value("seconds"), value("timingMode"), value("latencyMs"), value("inputSources"), value("piece"))
+    private val shared = HistoryAttempt(AttemptRow(row.id, row.sessionId, row.exerciseId, row.paramsJson, row.startedAtMillis, row.hand,
+        row.tempoBpm, row.noteAccuracy, row.timingWithinTol, row.stumbles, row.clean, row.helperUses))
+    fun value(key: String): String? = shared.value(key)
+    val drillIndex get() = shared.drillIndex
+    val complete get() = shared.complete
+    val mode get() = shared.mode
+    val assisted get() = shared.assisted
+    val comparable get() = shared.comparable
+    val conditions get() = shared.conditions
+    val core: HistoryAttempt get() = shared
 }
 
 internal data class LessonComparison(val first: LessonAttempt, val latest: LessonAttempt)
 internal fun lessonComparison(rows: List<LessonAttempt>): LessonComparison? {
-    val usable = rows.filter { it.comparable }.sortedWith(compareBy({ it.row.startedAtMillis }, { it.row.id }))
-    val latest = usable.lastOrNull() ?: return null
-    val matches = usable.filter { it.conditions == latest.conditions }
-    return if (matches.size < 2) null else LessonComparison(matches.first(), matches.last())
+    val c = AttemptHistory.comparison(rows.map { it.core }) ?: return null
+    return LessonComparison(rows.first { it.core === c.first }, rows.first { it.core === c.latest })
 }
-private fun fraction(value: Double?) = value?.takeIf { it.isFinite() && it in 0.0..1.0 }?.let { "${(it * 100).roundToInt()}%" }
-private fun handLabel(hand: String?) = when (hand) {
-    "R", "RIGHT" -> "มือขวา"
-    "L", "LEFT" -> "มือซ้าย"
-    "RL", "BOTH", "RIGHT+LEFT", "LEFT+RIGHT" -> "สองมือ"
-    else -> "ไม่ได้ระบุมือ"
-}
-private fun modeLabel(mode: String?) = when (mode) {
-    "WAIT" -> "โหมดรอ · ไม่ตัดสินจังหวะ"
-    "TEMPO" -> "ตามจังหวะ"
-    "ANSWER" -> "ตอบคำถาม"
-    "PULSE" -> "เคาะจังหวะ"
-    "CHORD_CHANGE" -> "เปลี่ยนคอร์ด"
-    else -> "ประวัติเดิม"
-}
+private fun fraction(value: Double?) = AttemptHistory.fraction(value)
+private fun handLabel(hand: String?) = AttemptHistory.handLabel(hand)
+private fun modeLabel(mode: String?) = AttemptHistory.modeLabel(mode)
 
 @Composable
 internal fun LessonHistory(lesson: Lesson, history: List<AttemptEntity>) {

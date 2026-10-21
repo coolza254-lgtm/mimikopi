@@ -24,7 +24,7 @@ target_include_directories(mimikopi_audio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../audio/src/main/cpp  # effects.h, shared with Android
     ${JNI_INCLUDE_DIRS}
 )
-target_compile_definitions(mimikopi_audio PRIVATE _USE_MATH_DEFINES)
+target_compile_definitions(mimikopi_audio PRIVATE _USE_MATH_DEFINES NOMINMAX _CRT_SECURE_NO_WARNINGS)
 if(MSVC)
     # One self-contained DLL: no Visual C++ runtime to install on the user's computer.
     set_property(TARGET mimikopi_audio PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")

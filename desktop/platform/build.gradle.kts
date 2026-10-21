@@ -7,10 +7,27 @@ kotlin {
     jvmToolchain(21)
 }
 
+// Lessons, pieces, exercises and the learning config are the Android app's files, bundled as they are, plus a list
+// of them (a folder inside a jar cannot be listed).
+val contentIndex = tasks.register("contentIndex") {
+    val content = layout.projectDirectory.dir("../../content")
+    val out = layout.buildDirectory.dir("generated/contentIndex")
+    inputs.dir(content).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir(out)
+    doLast {
+        val base = content.asFile
+        val files = base.walkTopDown().filter { it.isFile && it.name.endsWith(".json") }
+            .map { it.relativeTo(base).invariantSeparatorsPath }.sorted().toList()
+        val dir = out.get().asFile.resolve("content")
+        dir.mkdirs()
+        dir.resolve("index.txt").writeText(files.joinToString("\n", postfix = "\n"))
+    }
+}
+
 sourceSets {
     main {
-        // Lessons, pieces, exercises and the learning config are the Android app's files, bundled as they are.
         resources.srcDir("../../content")
+        resources.srcDir(contentIndex)
     }
 }
 

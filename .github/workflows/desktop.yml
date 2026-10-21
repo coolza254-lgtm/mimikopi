@@ -41,6 +41,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v5
 
+      # The program uses the system font like the phone; Windows has Thai (Leelawadee UI), the runner does not.
+      - name: Thai font for the page renders
+        run: sudo apt-get install -y --no-install-recommends fonts-thai-tlwg > /dev/null
+
       - name: Native audio library
         run: |
           cmake -S desktop/native -B desktop/native/build -DCMAKE_BUILD_TYPE=Release
@@ -121,10 +125,27 @@ jobs:
           sha256sum out/* | tee out/SHA256SUMS.txt
           ls -l out
 
+      # Rendered with Windows' own fonts: what the program looks like on the target system.
+      - name: Print Windows screenshots
+        if: always()
+        run: |
+          for f in desktop/app/build/screenshots/{reader-heroic,lesson-1.5,today}-light.png; do
+            [[ -f "$f" ]] || continue
+            echo "=== SHOT win-$(basename "$f")"
+            base64 -w 0 "$f"; echo
+            echo "=== END"
+          done
+
       - name: Upload installer
+        id: upload
+        continue-on-error: true
         uses: actions/upload-artifact@v5
         with:
           name: mimikopi-desktop-${{ env.VERSION_NAME }}-${{ github.sha }}
           path: out/
           retention-days: 14
           if-no-files-found: error
+
+      - name: Report a failed installer upload
+        if: steps.upload.outcome == 'failure'
+        run: echo "::warning::The installer was built and checked but could not be uploaded (see the upload step, usually the Actions storage quota)."

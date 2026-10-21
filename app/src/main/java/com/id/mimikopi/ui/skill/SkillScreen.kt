@@ -72,11 +72,12 @@ fun SkillScreen(
     var showLadder by remember { mutableStateOf(false) }
 
     val open: (TodayItem) -> Unit = { item ->
+        val lessonId = item.lessonId
         when {
             item.kind == TodayKind.REVIEW -> onReview()
-            item.lessonId == null -> Unit
-            item.tried -> onOpenDrill(item.lessonId)
-            else -> onOpenStep(item.lessonId)
+            lessonId == null -> Unit
+            item.tried -> onOpenDrill(lessonId)
+            else -> onOpenStep(lessonId)
         }
     }
 

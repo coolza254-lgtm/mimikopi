@@ -121,7 +121,9 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
 @Composable
 fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Box(
+        // The outline keeps it visible inside a Group card, which has the same fill.
         modifier.heightIn(min = 44.dp).clip(RoundedCornerShape(22.dp)).background(Tokens.Palette.Group)
+            .border(1.dp, Tokens.Palette.Line, RoundedCornerShape(22.dp))
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (enabled) Tokens.Palette.Ink else Tokens.Palette.Dim) }

@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -101,35 +102,36 @@ fun PianoKeys(
         },
     ) {
         val g = KeyGeometry(range, size.width, size.height)
-        val ink = Tokens.Palette.Ink
-        val paper = Tokens.Palette.Paper
+        // Keys look like keys in both looks (as on the phone): white and black, pressed ones grey.
+        val whiteKey = if (Tokens.dark) Color(0xFFE6E6E6) else Color(0xFFFFFFFF)
+        val keyText = Color(0xFF5E5E5E)
         val labelStyle = TextStyle(fontSize = (g.whiteW * 0.28f).coerceIn(9f, 16f).toSp())
         for (n in g.whites) {
             val x = g.whiteX(n)
             val on = n in pressed
             val mark = n in marked
-            drawRoundRect(if (on) ink else if (mark) Tokens.Palette.Line else paper, Offset(x + 1f, 0f), Size(g.whiteW - 2f, size.height), CornerRadius(6f, 6f))
-            drawRoundRect(Tokens.Palette.Faint, Offset(x + 1f, 0f), Size(g.whiteW - 2f, size.height), CornerRadius(6f, 6f), style = Stroke(1f))
+            drawRoundRect(if (on) Color(0xFF8C8C8C) else if (mark) Color(0xFFCFCFCF) else whiteKey, Offset(x + 1f, 0f), Size(g.whiteW - 2f, size.height), CornerRadius(6f, 6f))
+            drawRoundRect(if (mark) Color(0xFF000000) else Color(0xFF9E9E9E), Offset(x + 1f, 0f), Size(g.whiteW - 2f, size.height), CornerRadius(6f, 6f), style = Stroke(if (mark) 2f else 1f))
             val text = buildList {
                 labels?.let { add(SpelledPitch.fromMidiSharp(n).name(it)) }
                 computerKeysLowC?.let { ComputerKeyboard.labelFor(n, it)?.let(::add) }
             }.joinToString("\n")
             if (text.isNotEmpty()) {
                 val t = measurer.measure(text, labelStyle)
-                drawText(t, color = if (on) paper else Tokens.Palette.InkMuted, topLeft = Offset(x + (g.whiteW - t.size.width) / 2f, size.height - t.size.height - 6f))
+                drawText(t, color = if (on) Color.White else keyText, topLeft = Offset(x + (g.whiteW - t.size.width) / 2f, size.height - t.size.height - 6f))
             }
-            if (n == 60) drawCircle(Tokens.Palette.InkMuted, radius = 3f, center = Offset(x + g.whiteW / 2f, size.height * 0.68f))
+            if (n == 60) drawCircle(keyText, radius = 3f, center = Offset(x + g.whiteW / 2f, size.height * 0.68f))
         }
         for (n in range) {
             if (n % 12 !in BLACK || n - 1 !in range) continue
             val x = g.blackX(n)
             val on = n in pressed
             val mark = n in marked
-            drawRoundRect(if (on) Tokens.Palette.InkMuted else ink, Offset(x, 0f), Size(g.blackW, g.blackH), CornerRadius(4f, 4f))
-            if (mark && !on) drawRoundRect(paper, Offset(x + g.blackW * 0.3f, g.blackH * 0.7f), Size(g.blackW * 0.4f, g.blackH * 0.12f), CornerRadius(3f, 3f))
+            drawRoundRect(if (on) Color(0xFF7A7A7A) else Color(0xFF151515), Offset(x, 0f), Size(g.blackW, g.blackH), CornerRadius(4f, 4f))
+            if (mark && !on) drawRoundRect(Color.White, Offset(x + 3f, 3f), Size(g.blackW - 6f, g.blackH - 6f), CornerRadius(3f, 3f), style = Stroke(2f))
             computerKeysLowC?.let { ComputerKeyboard.labelFor(n, it) }?.let { label ->
                 val t = measurer.measure(label, labelStyle)
-                drawText(t, color = paper, topLeft = Offset(x + (g.blackW - t.size.width) / 2f, g.blackH - t.size.height - 4f))
+                drawText(t, color = Color.White, topLeft = Offset(x + (g.blackW - t.size.width) / 2f, g.blackH - t.size.height - 4f))
             }
         }
     }

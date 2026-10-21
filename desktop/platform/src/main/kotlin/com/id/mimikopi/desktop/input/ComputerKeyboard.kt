@@ -32,8 +32,15 @@ object ComputerKeyboard {
     fun labelFor(note: Int, lowC: Int): String? {
         val offset = note - lowC
         val code = OFFSETS.entries.filter { it.value == offset }.minByOrNull { if (it.key in TOP_ROW) 1 else 0 }?.key ?: return null
-        return KeyEvent.getKeyText(code)
+        return SYMBOLS[code] ?: KeyEvent.getKeyText(code)
     }
+
+    /** Short labels for the punctuation keys (getKeyText gives words like "Semicolon" that do not fit on a key). */
+    private val SYMBOLS = mapOf(
+        KeyEvent.VK_COMMA to ",", KeyEvent.VK_PERIOD to ".", KeyEvent.VK_SLASH to "/", KeyEvent.VK_SEMICOLON to ";",
+        KeyEvent.VK_QUOTE to "'", KeyEvent.VK_OPEN_BRACKET to "[", KeyEvent.VK_CLOSE_BRACKET to "]", KeyEvent.VK_MINUS to "-",
+        KeyEvent.VK_EQUALS to "=", KeyEvent.VK_BACK_SLASH to "\\",
+    )
 
     private val TOP_ROW = setOf(KeyEvent.VK_Q, KeyEvent.VK_2, KeyEvent.VK_W, KeyEvent.VK_3, KeyEvent.VK_E)
 

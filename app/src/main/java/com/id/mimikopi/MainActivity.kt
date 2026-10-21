@@ -110,6 +110,8 @@ private object Routes {
     // Pages opened from the tabs.
     const val SKILL = "skill/{skill}"
     const val LADDER = "ladder"
+    const val READING = "reading"
+    const val NOTE_READING = "reading/drill/{practice}"
     const val EAR = "ear"
     const val CHORDS = "chords"
     const val CHORD_DRILL = "chorddrill/{practice}"
@@ -167,6 +169,7 @@ private fun openLessonDrill(nav: NavController, app: MimikopiApp, lessonId: Stri
 private fun openPage(nav: NavController, app: MimikopiApp, o: Open, selectTab: (String) -> Unit) {
     when (o) {
         is Open.LessonDrill -> openLessonDrill(nav, app, o.lessonId, o.index, o.via)
+        Open.Reading -> nav.navigate(Routes.READING)
         Open.Review -> nav.navigate(Routes.REVIEW_NOW)
         Open.Ladder -> nav.navigate(Routes.LADDER)
         is Open.Sight -> nav.navigate("newread/${o.level}")
@@ -272,6 +275,12 @@ private fun AppNavigation() {
         }
         composable(Routes.EAR_SESSION, arguments = listOf(optional("focus"))) { EarSessionScreen(onBack = back) }
         composable(Routes.CHECK_EAR, arguments = listOf(optional("check"))) { EarSessionScreen(onBack = back) }
+        composable(Routes.READING) {
+            com.id.mimikopi.ui.reading.ReadingHomeScreen(back,
+                onSingle = { nav.navigate("reading/drill/notes") },
+                onMelody = { level -> nav.navigate("newread/$level") }, onMidi = openMidi)
+        }
+        composable(Routes.NOTE_READING) { DrillScreen(onBack = back) }
         composable(Routes.CHORDS) { ChordHomeScreen(onStart = { nav.navigate("chorddrill/chords") }, onOpenMidi = openMidi, onOpenSettings = openSettings, onBack = back) }
         composable(Routes.CHORD_DRILL) { DrillScreen(onBack = back) }
         composable(Routes.CHECK_DRILL, arguments = listOf(optional("check"))) { DrillScreen(onBack = back) }

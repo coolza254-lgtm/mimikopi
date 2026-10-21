@@ -107,7 +107,7 @@ fun rememberTouchPlayer(): (note: Int, down: Boolean) -> Unit {
         { note, down ->
             val now = System.nanoTime()
             if (down) { held += note; hub.dispatch(InputEvent.NoteOn(note, TOUCH_VELOCITY, now, InputSource.TOUCH)) }
-            else { held -= note; hub.dispatch(InputEvent.NoteOff(note, now, InputSource.TOUCH)) }
+            else if (held.remove(note)) { hub.dispatch(InputEvent.NoteOff(note, now, InputSource.TOUCH)) }
         }
     }
 }
@@ -124,7 +124,7 @@ fun Modifier.touchKeys(key: Any, hit: (x: Float, y: Float, width: Float, height:
         awaitPointerEventScope {
             val fingers = mutableMapOf<PointerId, Int>()
             val holds = IntArray(128)
-            while (true) {
+            try { while (true) {
                 val event = awaitPointerEvent()
                 val w = size.width.toFloat()
                 val h = size.height.toFloat()
@@ -138,6 +138,8 @@ fun Modifier.touchKeys(key: Any, hit: (x: Float, y: Float, width: Float, height:
                     }
                     change.consume()
                 }
+            } } finally {
+                holds.forEachIndexed { note, count -> if (count > 0) play(note, false) }
             }
         }
     }
@@ -151,6 +153,14 @@ fun TouchKeyboard(range: IntRange, marked: Set<Int>, showNames: Boolean, nameSty
     val app = LocalContext.current.applicationContext as MimikopiApp
     val pressed by app.inputHub.pressed.collectAsState()
     val play = rememberTouchPlayer()
+    TouchKeyboardSurface(range, marked, showNames, nameStyle, pressed, play, modifier)
+}
+
+/** The actual touch geometry and Canvas, independent of the application container. */
+@Composable
+fun TouchKeyboardSurface(range: IntRange, marked: Set<Int>, showNames: Boolean, nameStyle: NoteNameStyle,
+    pressed: Set<Int>, play: (Int, Boolean) -> Unit, modifier: Modifier,
+) {
     val measurer = rememberTextMeasurer()
     val whites = remember(range) { KeyboardLayout(range.first, range.last, 1f, 1f).whiteKeys.size }
     // The layout for the current size, kept between touches and frames; built again only when the keys are resized.

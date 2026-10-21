@@ -101,6 +101,8 @@ fun SkillsScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
             Group {
                 GroupRow("ขั้นหลัก", subtitle = "บทเรียนทีละขั้น: อ่านโน้ต จังหวะ นิ้ว เพลงสั้น", onClick = { onOpen(Open.Ladder) })
                 GroupDivider()
+                GroupRow("ฝึกอ่านโน้ต", subtitle = "ทีละตัวหรือทำนอง · ใช้มือถือหรือ MIDI", onClick = { onOpen(Open.Reading) })
+                GroupDivider()
                 GroupRow("ทวนโน้ตและคีย์", subtitle = "ตัวที่ถึงกำหนดทวน", onClick = { onOpen(Open.Review) })
                 GroupDivider()
                 GroupRow("อ่านโน้ตใหม่", subtitle = "โน้ตที่ไม่เคยเห็น เล่นครั้งแรก", onClick = { onOpen(Open.Sight(sight.coerceIn(1, 5))) })
@@ -239,9 +241,10 @@ private fun practice(skill: SkillId, s: SkillStatus): List<Pair<String, Open>> {
     val review = "ทวนโน้ตและคีย์" to Open.Review
     val metronome = "เครื่องเคาะจังหวะ" to Open.Metronome
     return when (skill) {
-        SkillId.KEYS, SkillId.NOTES -> listOf(review, ladder)
+        SkillId.KEYS -> listOf(review, ladder)
+        SkillId.NOTES -> listOf("ฝึกอ่านโน้ต: ทีละตัวและทำนอง" to Open.Reading, review, ladder)
         SkillId.RHYTHM, SkillId.TECH -> listOf(ladder, metronome)
-        SkillId.SIGHT -> listOf("อ่านโน้ตใหม่ ระดับ L${s.level.coerceIn(1, 5)}" to Open.Sight(s.level.coerceIn(1, 5)), ladder)
+        SkillId.SIGHT -> listOf("ฝึกอ่านโน้ต: ทีละตัวและทำนอง" to Open.Reading, "อ่านโน้ตใหม่ ระดับ L${s.level.coerceIn(1, 5)}" to Open.Sight(s.level.coerceIn(1, 5)), ladder)
         SkillId.EAR -> listOf("ฝึกหู (รอบปรับตามจุดอ่อน)" to Open.Ear(), "หน้าฝึกหู: เส้นทางและภาพรวม" to Open.EarHome)
         SkillId.CHORDS -> listOf("คอร์ด: ฝึกกด เปลี่ยนคอร์ด วิธีจับ" to Open.ChordHome)
     }

@@ -1,7 +1,6 @@
 package com.id.mimikopi.ui.reader
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,14 +59,15 @@ import com.id.mimikopi.ui.components.FallingNote
 import com.id.mimikopi.ui.components.FallingNotesView
 import com.id.mimikopi.ui.components.FallingState
 import com.id.mimikopi.ui.components.DEFAULT_KEY_RANGE
-import com.id.mimikopi.ui.components.KeyHint
 import com.id.mimikopi.ui.components.midiConnected
 import com.id.mimikopi.ui.components.rememberTouchPlayer
 import com.id.mimikopi.ui.theme.Tokens
+import com.id.mimikopi.ui.reading.ReadingScoreSetup
+import com.id.mimikopi.ui.reading.ReadingKeyboard
 
 /**
  * Reader / play-along screen, laid out for landscape on the music stand: a thin top bar, the score strip,
- * one row of controls (or the result). Played from the MIDI piano only; while playing the notes take the full height.
+ * simple setup and a focused player. Answers come from MIDI or the touch keyboard; while playing the notes take the full height.
  */
 @Composable
 fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel = viewModel()) {
@@ -75,6 +75,9 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
     com.id.mimikopi.ui.components.AnswerHaptics(ui.result?.clean)
     val piece by vm.piece.collectAsStateWithLifecycle()
     var showOptions by remember { mutableStateOf(false) }
+    val connected = midiConnected()
+    val pressed by vm.pressed.collectAsStateWithLifecycle()
+    val touch = rememberTouchPlayer()
 
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
@@ -117,6 +120,19 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
             Spacer(Modifier.width(Tokens.Space.s))
         }
         if (score == null || layout == null) return@Column
+
+        if (ui.phase == Phase.IDLE && !ui.options.falling) {
+            val test = vm.source is ReaderViewModel.Source.Benchmark || vm.source is ReaderViewModel.Source.Check || vm.source is ReaderViewModel.Source.Exam
+            ReadingScoreSetup(ui, connected, canSetPace = !vm.fixed || vm.source is ReaderViewModel.Source.NewReading,
+                canSetHands = !vm.fixed, canListen = !test, vm::setMode, vm::setHands, vm::changeBpm,
+                vm::start, vm::listen, { showOptions = true }, onOpenMidi, { vm.setFalling(true) }) { mod ->
+                PagedScoreView(score, vm::cursorAt, false, ui.results, ui.wrongMarks,
+                    loop = ui.section.takeUnless { it.first == 0 && it.last == score.measures - 1 }, hotMeasures = ui.hotMeasures,
+                    showNames = ui.showNames, nameStyle = vm.nameStyle, onMeasureTap = vm::onMeasureTap,
+                    modifier = mod, paper = false)
+            }
+            return@Column
+        }
 
         if (ui.phase == Phase.RESULT) {
             ui.result?.let {
@@ -186,9 +202,11 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
         }
 
         // Falling notes draw their own keys (playable without a piano).
-        if (ui.phase != Phase.RESULT) KeyHint(
-            marked = emptySet(), nameStyle = vm.nameStyle, range = piece?.keyRange ?: DEFAULT_KEY_RANGE, showNames = ui.showNames,
-            keyboard = !(ui.options.falling && !vm.fixed),
+        if (ui.phase != Phase.RESULT && !(ui.options.falling && !vm.fixed)) ReadingKeyboard(
+            connected, if (vm.transposeKey != null) piece?.keyRange ?: DEFAULT_KEY_RANGE else readingInputRange(score, ui.options.hands.hands),
+            vm.nameStyle, ui.showNames, pressed, touch,
+            enabled = ui.phase != Phase.LISTENING && ui.phase != Phase.COUNT_IN,
+            twoHands = ui.options.hands == HandChoice.BOTH,
         )
     }
 
@@ -346,22 +364,10 @@ private fun runStatus(ui: ReaderUi): String = when {
     else -> stringResource(R.string.reader_playing_tempo, ui.bpm)
 }
 
-/** While playing: one small floating pill (status, then a white stop button) so the notes keep the height. */
+/** Stop remains visible even on a narrow screen or with large system text. */
 @Composable
 private fun RunControls(ui: ReaderUi, vm: ReaderViewModel) {
-    Box(Modifier.fillMaxWidth().padding(bottom = Tokens.Space.s), contentAlignment = Alignment.Center) {
-        Row(
-            Modifier
-                .border(1.dp, Tokens.Palette.Line, androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
-                .padding(start = 20.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            val status = runStatus(ui)
-            Text(status, fontFamily = Tokens.Fonts.mono, style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, maxLines = 1)
-            Button(onClick = vm::stop, shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)) { Text(stringResource(R.string.reader_stop)) }
-        }
-    }
+    com.id.mimikopi.ui.reading.ReadingRunBar(runStatus(ui), vm::stop)
 }
 
 @Composable
@@ -436,6 +442,10 @@ private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -
         title = { Text(stringResource(R.string.reader_options_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
+                if (!fixed) {
+                    TextButton(onClick = { vm.wholePiece(); onDismiss() }) { Text("ฝึกทั้งเพลง") }
+                    TextButton(onClick = { vm.setFalling(!o.falling); onDismiss() }) { Text(if (o.falling) "อ่านโน้ตบนบรรทัด" else "แสดงโน้ตไหล") }
+                }
                 OptionRow(R.string.reader_opt_other_hand, R.string.reader_opt_other_hand_body, o.playOtherHand, vm::setPlayOtherHand)
                 if (!fixed) OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)
                 if (!fixed) OptionRow(R.string.reader_opt_ramp, R.string.reader_opt_ramp_body, o.useRamp, vm::setUseRamp)

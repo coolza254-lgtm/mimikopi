@@ -58,12 +58,19 @@ import com.id.mimikopi.ui.components.StaffView
 import com.id.mimikopi.ui.components.StaffSequenceView
 import com.id.mimikopi.ui.components.paper
 import com.id.mimikopi.ui.theme.Tokens
+import com.id.mimikopi.ui.reading.NoteReadingSetup
+import com.id.mimikopi.ui.reading.NoteReadingQuestion
+import com.id.mimikopi.ui.components.midiConnected
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val showNames by vm.showNames.collectAsStateWithLifecycle()
+    val readingSettings by vm.readingSettings.collectAsStateWithLifecycle()
+    val connected = midiConnected()
+    val pressed by vm.pressed.collectAsStateWithLifecycle()
+    val touch = com.id.mimikopi.ui.components.rememberTouchPlayer()
 
     val answer = when (val s = ui) {
         is DrillUi.Question -> s.feedback
@@ -81,7 +88,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.drill_title), style = MaterialTheme.typography.titleLarge) },
+                title = { Text(if (vm.readingOnly) "อ่านโน้ตทีละตัว" else stringResource(R.string.drill_title), style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.action_back)) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
             )
@@ -90,7 +97,8 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
         Column(Modifier.fillMaxSize().padding(padding)) {
             when (val s = ui) {
                 DrillUi.Loading -> Unit
-                is DrillUi.Ready -> Centered {
+                is DrillUi.Ready -> if (s.type == ExerciseType.E_NOTEID) NoteReadingSetup(s, connected,
+                    if (vm.notePractice) readingSettings else null, vm::setReadingPractice, vm::start) else Centered {
                     PageCard(title = s.title) {
                         Text(
                             stringResource(when (s.type) {
@@ -110,7 +118,10 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                         }
                     }
                 }
-                is DrillUi.Question -> {
+                is DrillUi.Question -> if (s.prompt is Prompt.Note) {
+                    NoteReadingQuestion(s, connected, showNames, vm.nameStyle, vm.keyRange,
+                        if (vm.notePractice) vm.readingPitches else null, pressed, touch, vm::answerReadingName, vm::continueReading, vm::toggleNames)
+                } else {
                     Row(Modifier.fillMaxWidth().padding(horizontal = Tokens.Space.m), verticalAlignment = Alignment.CenterVertically) {
                         DrillProgress(s.index, s.total)
                         FilterChip(selected = showNames, onClick = vm::toggleNames, label = { Text(stringResource(R.string.piano_show_names)) })

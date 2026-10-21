@@ -27,6 +27,7 @@ import java.time.LocalDate
 /** Where a page of the app is opened from the Today or Skills pages (each platform maps it to its navigation). */
 sealed interface Open {
     data class LessonDrill(val lessonId: String, val index: Int, val via: String? = null) : Open
+    data object Reading : Open
     data object Review : Open
     data object Ladder : Open
     data class Sight(val level: Int) : Open

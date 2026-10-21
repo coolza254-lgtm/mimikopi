@@ -27,8 +27,11 @@ import com.id.mimikopi.data.db.SettingEntity
 import com.id.mimikopi.data.db.SettingKeys
 import com.id.mimikopi.input.OutputRoute
 import com.id.mimikopi.learning.AttemptEvent
+import com.id.mimikopi.ui.reading.ReadingPractice
+import com.id.mimikopi.ui.reading.ReadingPromptQueue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -66,6 +69,11 @@ sealed interface DrillUi {
         val index: Int,
         val total: Int,
         val feedback: Feedback?,
+        val answeredMidi: Int? = null,
+        val firstCorrect: Int = 0,
+        val firstAnswered: Int = 0,
+        val retry: Boolean = false,
+        val canContinue: Boolean = false,
     ) : DrillUi
     data class Pulse(val bpm: Int, val countIn: Int?, val beat: Int, val beats: Int, val taps: Int) : DrillUi
     /** Interval reading: answer the motion of each neighbouring pair, then play the set. */
@@ -128,6 +136,11 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     private val bench: String? = args.get<String>("benchmark")
     /** Free chord practice from the chord tab ("chords"), or the Today plan's chord part ("chords-today"). */
     private val practice: Boolean = args.get<String>("practice")?.startsWith("chords") == true
+    val notePractice: Boolean = args.get<String>("practice") == "notes"
+    private val _readingSettings = MutableStateFlow(ReadingPractice())
+    val readingSettings: StateFlow<ReadingPractice> = _readingSettings.asStateFlow()
+    val readingPitches: List<SpelledPitch> get() = drill?.pool?.map { NoteIdItem.parse("note:$it").pitch }?.distinct().orEmpty()
+    val readingOnly: Boolean get() = drill?.type == ExerciseType.E_NOTEID
     private val practiceRow: String = if (args.get<String>("practice") == "chords-today") com.id.mimikopi.ui.today.ProgressStore.CHORDS_TODAY else SettingKeys.CHORDS_SETTINGS
     private var chordPractice = ChordPractice()
     /** A level test ("NOTES:3"): fixed drill, judged by the level's criteria, recorded on the skill page. */
@@ -148,6 +161,11 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     private var lesson: Lesson? = null
     private var drill: Drill? = null
     private var holding = false
+    private var active = false
+    private var engineGeneration = 0L
+    private var inputSinceNs = 0L
+    private var pausedAtNs = 0L
+    private var readingTransition: Job? = null
     private var job: Job? = null
     private var helperUses = 0
 
@@ -179,6 +197,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 _ui.value = if (com.id.mimikopi.core.progress.SkillBook.status(check.skill, services.progress.checks.value, java.time.LocalDate.now()).lockedToday)
                     DrillUi.Result("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว", null, false, listOf("ฝึกเรื่องนี้ต่อในวันนี้ แล้วลองใหม่วันอื่น"))
                 else DrillUi.Ready(d.title, d.type, d.items, null)
+            } else if (notePractice) {
+                setReadingPractice(_readingSettings.value)
             } else if (practice) {
                 chordPractice = ChordPractice.parse(services.database.settingsDao().get(practiceRow))
                 val d = chordPractice.drill()
@@ -218,16 +238,49 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     }
 
     fun onStart() {
-        if (holding) return
-        viewModelScope.launch { holding = withContext(Dispatchers.IO) { piano.acquire(needPack = false) } }
+        if (active) return
+        active = true
+        inputSinceNs = System.nanoTime()
+        if (pausedAtNs > 0 && _ui.value is DrillUi.Question) {
+            shownAt += inputSinceNs - maxOf(pausedAtNs, shownAt)
+            startedAt += (inputSinceNs - pausedAtNs) / 1_000_000
+        }
+        pausedAtNs = 0
+        val q = _ui.value as? DrillUi.Question
+        if (q?.feedback != null && !q.canContinue) scheduleReadingNext(if (q.feedback == Feedback.CORRECT) 650 else 1400)
+        val ticket = ++engineGeneration
+        viewModelScope.launch {
+            var acquired = false
+            try {
+                withContext(Dispatchers.IO) { acquired = piano.acquire(needPack = false) }
+                if (!active || ticket != engineGeneration) return@launch
+                holding = acquired
+                acquired = false
+            } finally {
+                if (acquired) withContext(NonCancellable + Dispatchers.IO) { piano.release() }
+            }
+        }
     }
 
     fun onStop() {
+        if (active) pausedAtNs = System.nanoTime()
+        active = false
+        engineGeneration++
+        readingTransition?.cancel()
+        readingTransition = null
         if (!holding) return
         holding = false
         piano.setMetronome(false, 60.0, 1, intArrayOf(0), 0f)
         hub.releaseAll()
-        viewModelScope.launch(Dispatchers.IO) { piano.release() }
+        services.appScope.launch(Dispatchers.IO) { piano.release() }
+    }
+
+    private fun scheduleReadingNext(ms: Long) {
+        readingTransition?.cancel()
+        readingTransition = viewModelScope.launch {
+            delay(ms)
+            if (active) { busy = false; next() }
+        }
     }
 
     /** Note names are a counted helper (learning-system.md 2.4): a drill passed with it is not a full pass. */
@@ -244,12 +297,33 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         }
     }
 
+    fun setReadingPractice(settings: ReadingPractice) {
+        if (!notePractice || _ui.value !is DrillUi.Ready && _ui.value != DrillUi.Loading) return
+        _readingSettings.value = settings
+        drill = settings.drill()
+        val notes = readingPitches.map { it.midi }
+        keyRange = notes.min()..notes.max()
+        _ui.value = DrillUi.Ready(drill!!.title, ExerciseType.E_NOTEID, drill!!.items, null)
+    }
+
+    /** Name answers are a reading exercise, not a keyboard performance test. */
+    fun answerReadingName(midi: Int) {
+        if (notePractice) onInput(InputEvent.NoteOn(midi, 80, System.nanoTime(), InputSource.TOUCH))
+    }
+
+    fun continueReading() {
+        val q = _ui.value as? DrillUi.Question ?: return
+        if (!active || q.prompt !is Prompt.Note || q.feedback != Feedback.WRONG || !q.canContinue) return
+        busy = false
+        next()
+    }
+
     // ---------------- Reading / key drills ----------------
 
-    private val queue = ArrayDeque<Prompt>()
-    private val requeued = mutableSetOf<Prompt>()
+    private val queue = ReadingPromptQueue()
     private val answers = mutableListOf<Answer>()
     private val events = mutableListOf<AttemptEvent>()
+    private val readingSources = mutableSetOf<InputSource>()
     private val misses = mutableMapOf<String, Int>()
     /** Reading confusions of this run as "expected>played" (for the mistakes summary). */
     private val confusions = mutableListOf<String>()
@@ -262,15 +336,18 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     private var busy = false
 
     fun start() {
+        if (!active || _ui.value !is DrillUi.Ready) return
         val d = drill ?: return
+        _ui.value = DrillUi.Loading
+        readingTransition?.cancel()
         startedAt = System.currentTimeMillis()
         seed = startedAt
-        answers.clear(); events.clear(); misses.clear(); confusions.clear(); queue.clear(); requeued.clear()
+        answers.clear(); events.clear(); readingSources.clear(); misses.clear(); confusions.clear(); queue.clear(); busy = false
         helperUses = if (_showNames.value) 1 else 0
         job?.cancel()
         job = viewModelScope.launch {
             if (bench == "noteid") {
-                queue += com.id.mimikopi.core.progress.Benchmarks.noteIdItems().map { Prompt.Note(it) }
+                queue.addAll(com.id.mimikopi.core.progress.Benchmarks.noteIdItems().map { Prompt.Note(it) })
                 total = queue.size
                 next()
                 return@launch
@@ -278,20 +355,20 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             if (bench == "pulse") { runPulse(null, d); return@launch }
             if (review) {
                 val due = repo.readingDueItems()
-                queue += due.map { id ->
+                queue.addAll(due.map { id ->
                     if (id.startsWith("key:")) Prompt.Key(KeyFindItem(Letter.valueOf(id.removePrefix("key:")), null))
                     else Prompt.Note(NoteIdItem.parse(id))
-                }
+                })
                 total = queue.size
                 if (total == 0) return@launch
                 next()
                 return@launch
             }
             val l = lesson
-            if (l != null) repo.enrol(l.srsItems) else if (!practice && check == null) return@launch
+            if (l != null) repo.enrol(l.srsItems) else if (!practice && !notePractice && check == null) return@launch
             when (d.type) {
-                ExerciseType.E_KEYFIND -> queue += Generators.keyFind(d, seed).map { Prompt.Key(it) }
-                ExerciseType.E_NOTEID -> queue += Generators.noteId(d, seed, repo.dueItems("note:")).map { Prompt.Note(it) }
+                ExerciseType.E_KEYFIND -> queue.addAll(Generators.keyFind(d, seed).map { Prompt.Key(it) })
+                ExerciseType.E_NOTEID -> queue.addAll(Generators.noteId(d, seed, if (notePractice) emptyList() else repo.dueItems("note:")).map { Prompt.Note(it) })
                 ExerciseType.E_PULSE -> { runPulse(l, d); return@launch }
                 ExerciseType.E_INTERVAL_READ -> { startIntervals(d); return@launch }
                 ExerciseType.E_CHORD_BUILD -> { startChordBuild(d); return@launch }
@@ -304,29 +381,36 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     }
 
     private fun next() {
-        val p = queue.removeFirstOrNull()
-        if (p == null) {
+        val entry = queue.next()
+        if (entry == null) {
             finishReading()
             return
         }
+        val p = entry.prompt
         current = p
-        currentFirstTry = p !in requeued
+        currentFirstTry = !entry.retry
         shownAt = System.nanoTime()
-        _ui.value = DrillUi.Question(p, (answers.size + 1).coerceAtMost(total), total, null)
+        _ui.value = DrillUi.Question(p, (answers.size + 1).coerceAtMost(total), total, null, firstCorrect = answers.count { it.correct }, firstAnswered = answers.size, retry = entry.retry)
     }
 
     private fun onInput(e: InputEvent) {
+        if (!active || e is InputEvent.NoteOn && e.timeNanos < inputSinceNs) return
         if (_ui.value is DrillUi.ChordAsk) { onChordInput(e); return }
-        if (e !is InputEvent.NoteOn) return
+        if (e !is InputEvent.NoteOn || e.velocity <= 0) return
         (_ui.value as? DrillUi.Interval)?.let { onIntervalPlay(it, e.note); return }
         val q = _ui.value as? DrillUi.Question ?: return
-        if (busy || q.feedback != null) return
+        if (q.feedback == Feedback.WRONG && q.canContinue && e.timeNanos > shownAt + 300_000_000 && hub.pressed.value.size <= 1 && q.prompt.accepts(e.note)) {
+            continueReading()
+            return
+        }
+        if (busy || q.feedback != null || e.timeNanos < shownAt) return
         val p = current ?: return
         val responseMs = ((e.timeNanos - shownAt) / 1_000_000).coerceAtLeast(0)
         val ok = p.accepts(e.note)
         val expected = (p as? Prompt.Note)?.item?.pitch?.midi ?: (p as? Prompt.Key)?.item?.target?.midi
         events += AttemptEvent(expectedPitch = expected, actualPitch = e.note, actualOnsetMs = responseMs, velocity = e.velocity)
         if (currentFirstTry) {
+            readingSources += e.source
             answers += Answer(ok, responseMs, firstTry = true)
             if (bench == null) viewModelScope.launch { repo.review(p.srsId, ok, responseMs) }
         }
@@ -338,18 +422,14 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 else -> Unit
             }
             // learning-system.md section 10: show the right place, ask again at the end of the round (once).
-            if (p !in requeued) {
-                requeued += p
-                queue.addLast(p)
-            }
+            queue.repeatOnce(p)
         }
         busy = true
-        _ui.value = q.copy(feedback = if (ok) Feedback.CORRECT else Feedback.WRONG)
-        viewModelScope.launch {
-            delay(if (ok) 450 else 1400)
-            busy = false
-            next()
-        }
+        val pauseForCorrection = p is Prompt.Note && bench == null && check == null && !ok
+        _ui.value = q.copy(feedback = if (ok) Feedback.CORRECT else Feedback.WRONG, answeredMidi = e.note,
+            firstCorrect = answers.count { it.correct }, firstAnswered = answers.size, canContinue = pauseForCorrection)
+        if (pauseForCorrection) return
+        scheduleReadingNext(if (ok) 650 else 1400)
     }
 
     private fun finishReading() {
@@ -381,8 +461,10 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         }
         viewModelScope.launch {
             repo.saveAttempt(
-                exerciseId = if (review) "REVIEW" else if (practice) "CHORDS:${d.type}" else "${l?.id}:${d.type}:$drillIndex",
-                paramsJson = """{"seed":$seed,"drill":$drillIndex,"lesson":"${l?.id ?: "review"}"}""",
+                exerciseId = if (review) "REVIEW" else if (notePractice) "READING_PRACTICE" else if (practice) "CHORDS:${d.type}" else "${l?.id}:${d.type}:$drillIndex",
+                paramsJson = if (notePractice) _readingSettings.value.let { settings ->
+                    """{"seed":$seed,"clef":"${settings.clef}","range":"${settings.range}","accidentals":${settings.accidentals},"items":${settings.items},"inputSources":[${readingSources.joinToString { "\"${it.name}\"" }}]}"""
+                } else """{"seed":$seed,"drill":$drillIndex,"lesson":"${l?.id ?: "review"}"}""",
                 startedAt = startedAt, tempoBpm = null, noteAccuracy = acc, timingWithinTol = null,
                 clean = met, helperUses = helperUses, events = events.toList(), sessionId = services.session.currentId(),
             )
@@ -396,6 +478,13 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             if (met == true && !passedNow && helperUses == 0) coach += if (l != null && l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อให้ผ่านบทนี้ (ช่วยให้จำได้นาน)"
             if (passedNow) coach += "ผ่านบทนี้แล้ว บทถัดไปปลดล็อก"
             val pct = (acc * 100).toInt()
+            if (notePractice) {
+                val median = answers.map { it.responseMs }.sorted().let { if (it.isEmpty()) 0.0 else it[it.size / 2] / 1000.0 }
+                coach.add(0, "เวลาตอบมัธยฐาน ${"%.1f".format(median)} วินาที · อ่านเสียงและอ็อกเทฟตรงกัน")
+                misses.maxByOrNull { it.value }?.let { coach.add(1, "ฝึกต่อ: ${describe(it.key)} · พลาด ${it.value} ครั้ง") }
+                coach += if (readingSources == setOf(InputSource.TOUCH)) "รอบนี้ฝึกอ่านชื่อโน้ตด้วยปุ่มบนมือถือ" else "รอบนี้ฝึกอ่านโน้ตแล้วหาคีย์ด้วย MIDI"
+                coach += "รอบฝึกอ่านโน้ตนี้ไม่เปลี่ยนระดับทักษะ ทดสอบระดับได้ที่หน้า \"ทักษะ\""
+            }
             val summary = "ถูกตั้งแต่ครั้งแรก $pct% (${answers.count { it.correct }}/${answers.size})"
             saveChordRun(summary)
             _ui.value = DrillUi.Result(summary, met, passedNow, coach)
@@ -726,6 +815,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     private fun logRun() {
         val kind = via ?: when {
             review -> "review"
+            notePractice -> "review"
             practice -> "chords"
             bench != null -> "check"
             else -> "ladder"

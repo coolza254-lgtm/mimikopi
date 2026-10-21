@@ -301,7 +301,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val bpm = when (val src = source) {
             is Source.LessonDrill -> src.drill.bpm
             is Source.Check -> src.drill.bpm
-            is Source.NewReading, is Source.Benchmark -> 60
+            is Source.NewReading -> _ui.value.bpm
+            is Source.Benchmark -> 60
             is Source.Piece, is Source.Exam -> s.tempo
         }
         _ui.update { it.copy(section = 0 until s.measures, bpm = bpm, targetBpm = bpm, results = emptyMap(), wrongMarks = emptyList(), fallingFeedback = emptyList(), pendingSectionStart = null) }
@@ -318,8 +319,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 metronome = true, useRamp = false, showKeyboard = saved.showKeyboard,
             )
         }
-        is Source.NewReading -> ReaderOptions(PlayMode.TEMPO, if (src.level == 2) HandChoice.LEFT else if (src.level == 5) HandChoice.BOTH else HandChoice.RIGHT,
-            playOtherHand = false, metronome = true, useRamp = false, showKeyboard = saved.showKeyboard)
+        is Source.NewReading -> saved.newReadingOptions(src.level)
         is Source.Benchmark -> ReaderOptions(PlayMode.TEMPO, if (benchLevel == 2) HandChoice.LEFT else if (benchLevel == 5) HandChoice.BOTH else HandChoice.RIGHT,
             playOtherHand = false, metronome = true, useRamp = false, showKeyboard = saved.showKeyboard)
         is Source.Piece -> saved.let { o -> src.hand?.let { o.copy(hands = it) } ?: o }
@@ -443,8 +443,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     private fun updateOptions(duringRun: Boolean = false, change: (ReaderOptions) -> ReaderOptions) {
         if (!duringRun && !editable()) return
         val before = _ui.value.options
-        var next = change(before)
-        if (fixed) next = before.copy(showKeyboard = next.showKeyboard, playOtherHand = next.playOtherHand, pageView = next.pageView, paperSize = next.paperSize)
+        val next = before.constrainReadingChange(change(before), fixed, source is Source.NewReading)
         _ui.update { it.copy(options = next) }
         viewModelScope.launch {
             val dao = services.database.settingsDao()
@@ -456,8 +455,9 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
     }
 
     fun changeBpm(delta: Int) {
-        if (!editable() || fixed) return
+        if (!editable() || fixed && source !is Source.NewReading) return
         val s = score ?: return
+        if (!fixed && _ui.value.options.useRamp) updateOptions { it.copy(useRamp = false) }
         _ui.update { it.copy(bpm = (it.bpm + delta).coerceIn(30, maxOf(s.tempo * 2, 160))) }
     }
 
@@ -968,8 +968,9 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                 }
                 is Source.NewReading -> learning.saveAttempt(
                     exerciseId = "NEW_READING:L${src.level}", paramsJson = """{"seed":$seed,"level":${src.level}}""",
-                    startedAt = runStartedAt, tempoBpm = result.setup.bpm, noteAccuracy = result.summary?.noteAccuracy,
-                    timingWithinTol = result.summary?.fractionWithinTiming, clean = clean, helperUses = if (helper) 1 else 0,
+                    startedAt = runStartedAt, tempoBpm = if (result.timingJudged) result.setup.bpm else null, noteAccuracy = result.summary?.noteAccuracy,
+                    timingWithinTol = if (result.timingJudged) result.summary?.fractionWithinTiming else null,
+                    clean = if (result.timingJudged) clean else null, helperUses = if (helper) 1 else 0,
                     events = emptyList(), sessionId = services.session.currentId(), stumbles = result.stumbles,
                 )
                 is Source.Benchmark -> {

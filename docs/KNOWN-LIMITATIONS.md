@@ -2,6 +2,23 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Note-reading practice (v0.26.5)
+- Skills → ฝึกอ่านโน้ต opens single-note recognition or continuous melody reading. Single-note free practice
+  has small explicit pools, exact pitch/octave name answers on the phone and physical-key answers on MIDI.
+  It logs practice/SRS and first-try accuracy, not a keyboard-performance certification or a skill-level promotion.
+- Existing lesson drills and tests continue to answer exact pitches from touch piano/MIDI. Reference guides and
+  key labels remain counted helpers. Original queue entries are now distinct from appended correction entries,
+  so a repeated pitch in the original set still contributes its own first attempt.
+- Free melody reading starts in WAIT, with tempo mode available. WAIT saves no timing accuracy/tempo/clean result;
+  benchmarks, fixed lessons, level tests and exams retain their prescribed settings and criteria.
+- Phone piano keys have explicit octave pages chosen from the whole part, not the next note. Two banks support
+  simultaneous pitches in different octaves; overlapping pitches release only after their last finger releases.
+  They cannot replace a full physical piano for practising touch, fingering, hand movement or wide multi-octave music.
+- Native Compose tests verify actual touch → MIDI pitch mapping, cancelled-finger release, two-bank input through
+  the real WAIT judge, MIDI layout switching, layouts and accessible Stop. USB/BLE connection behaviour, acoustic
+  feedback and comfort of the multi-touch keyboard still need phone/piano testing; complex two-hand phone practice
+  is better suited to portrait/tablet space than a short landscape viewport.
+
 ## Ear training sequence and MIDI layout (v0.26.4)
 - Layout B is the user's selected direction. Cadence-to-question silence is 900 ms; answers open only after the
   question and its tail. Feedback waits for keys and sustain to be released continuously for 450 ms and at least

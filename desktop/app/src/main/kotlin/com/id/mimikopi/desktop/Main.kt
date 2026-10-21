@@ -67,6 +67,10 @@ fun main() {
                     else { lastPlacement = state.placement; state.placement = WindowPlacement.Fullscreen }
                 },
                 isFullscreen = { state.placement == WindowPlacement.Fullscreen },
+                quit = {
+                    services.close()
+                    exitApplication()
+                },
             )
         }
         // Typing keys held now, so key repeat never restarts a held note.

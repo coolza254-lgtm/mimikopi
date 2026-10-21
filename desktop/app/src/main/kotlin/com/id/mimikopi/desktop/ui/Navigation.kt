@@ -58,6 +58,14 @@ class KeyRouting {
     var textInput by mutableStateOf(false)
 }
 
-class AppContext(val services: Services, val nav: Navigator, val keys: KeyRouting, val toggleFullscreen: () -> Unit, val isFullscreen: () -> Boolean)
+class AppContext(
+    val services: Services,
+    val nav: Navigator,
+    val keys: KeyRouting,
+    val toggleFullscreen: () -> Unit,
+    val isFullscreen: () -> Boolean,
+    /** Saves and closes the program (an update installs once it has closed). */
+    val quit: () -> Unit = {},
+)
 
 val LocalApp = staticCompositionLocalOf<AppContext> { error("no app") }

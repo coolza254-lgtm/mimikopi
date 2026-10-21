@@ -33,6 +33,7 @@ import com.id.mimikopi.desktop.ui.components.GroupHeader
 import com.id.mimikopi.desktop.ui.components.GroupRow
 import com.id.mimikopi.desktop.ui.components.LargeTitle
 import com.id.mimikopi.desktop.ui.components.Page
+import com.id.mimikopi.desktop.ui.components.PrimaryButton
 import com.id.mimikopi.desktop.ui.components.SecondaryButton
 import com.id.mimikopi.desktop.ui.components.Segmented
 import com.id.mimikopi.desktop.ui.theme.Tokens
@@ -70,6 +71,10 @@ fun SettingsScreen() {
     var pendingRestore by remember { mutableStateOf<com.id.mimikopi.core.backup.BackupFile?>(null) }
     var midiSound by remember { mutableStateOf(s.hub.soundThrough) }
     var sound by remember { mutableStateOf(s.piano.sound) }
+    var release by remember { mutableStateOf<com.id.mimikopi.core.update.DesktopRelease?>(null) }
+    var updateText by remember { mutableStateOf<String?>(null) }
+    var updateBusy by remember { mutableStateOf(false) }
+    var cancelUpdate by remember { mutableStateOf(false) }
 
     Page {
         LargeTitle("ตั้งค่า", "เสียง · เปียโน MIDI · ข้อมูลในเครื่อง")
@@ -172,6 +177,48 @@ fun SettingsScreen() {
                     s::setNameStyle, Modifier.weight(1f))
             }
         }
+
+        GroupHeader("อัปเดตโปรแกรม")
+        Group {
+            GroupRow("รุ่นที่ใช้อยู่ ${s.appVersion}", updateText ?: "ตรวจหารุ่นใหม่เมื่อกดเท่านั้น", trailing = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val r = release
+                    when {
+                        updateBusy -> SecondaryButton("ยกเลิก", onClick = { cancelUpdate = true })
+                        r != null -> PrimaryButton("ติดตั้งรุ่น ${r.version}", onClick = {
+                            updateBusy = true; cancelUpdate = false
+                            scope.launch {
+                                val result = runCatching {
+                                    withContext(Dispatchers.IO) {
+                                        val msi = s.updater.download(r, { cancelUpdate }) { f -> updateText = "ดาวน์โหลด ${(f * 100).toInt()}%" }
+                                        s.updater.install(msi)
+                                    }
+                                }
+                                updateBusy = false
+                                result.fold({ started ->
+                                    if (started) { updateText = "กำลังติดตั้ง โปรแกรมจะปิดและเปิดใหม่เอง"; app.quit() }
+                                    else updateText = "ติดตั้งอัตโนมัติได้บน Windows เท่านั้น"
+                                }, { updateText = it.message })
+                            }
+                        }, modifier = Modifier.width(200.dp))
+                        else -> SecondaryButton("ตรวจหารุ่นใหม่", onClick = {
+                            updateBusy = true
+                            updateText = "กำลังตรวจ…"
+                            scope.launch {
+                                val result = runCatching { withContext(Dispatchers.IO) { s.updater.check() } }
+                                updateBusy = false
+                                result.fold({ found ->
+                                    release = found
+                                    updateText = found?.let { "มีรุ่นใหม่ ${it.version}" + it.notes.lineSequence().firstOrNull { l -> l.isNotBlank() }?.let { n -> " · $n" }.orEmpty() }
+                                        ?: "ใช้รุ่นล่าสุดอยู่แล้ว"
+                                }, { updateText = it.message })
+                            }
+                        })
+                    }
+                }
+            })
+        }
+        GroupFooter("ดาวน์โหลดจาก GitHub ของโปรเจกต์ ตรวจค่า SHA-256 ก่อนติดตั้งทุกครั้ง · ข้อมูลการฝึกในเครื่องอยู่ครบ")
 
         GroupHeader("ข้อมูลในเครื่อง")
         Group {

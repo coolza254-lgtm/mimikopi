@@ -94,7 +94,8 @@ jobs:
       - name: Version
         env:
           INPUT_VERSION: ${{ inputs.version }}
-        run: echo "VERSION_NAME=${INPUT_VERSION:-0.30.0}" >> "$GITHUB_ENV"
+        # Every build gets its own version (0.31.<run number>), so a newer build always upgrades an older one.
+        run: echo "VERSION_NAME=${INPUT_VERSION:-0.31.${GITHUB_RUN_NUMBER}}" >> "$GITHUB_ENV"
 
       - name: Native audio library (MSVC, WASAPI)
         run: |
@@ -164,7 +165,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="desktop-v$VERSION_NAME-${GITHUB_SHA::7}"
+          TAG="desktop-v$VERSION_NAME"
           gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false \
-            --title "Mimikopi Desktop $VERSION_NAME (test build ${GITHUB_SHA::7})" \
-            --notes "Test build for Windows from ${GITHUB_SHA}. Unsigned: SmartScreen warns on first start. See docs/DESKTOP.md for what is verified."
+            --title "Mimikopi Desktop $VERSION_NAME" \
+            --notes "รุ่นทดสอบสำหรับ Windows จาก ${GITHUB_SHA::7} · ยังไม่ได้เซ็นรับรอง ครั้งแรก SmartScreen จะเตือน · อัปเดตจากในโปรแกรมได้ที่ ตั้งค่า → อัปเดตโปรแกรม"

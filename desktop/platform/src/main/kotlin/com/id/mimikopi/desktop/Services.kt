@@ -53,6 +53,7 @@ class Services(
     val midi = MidiInput(hub) { inputConfig.config.value.octaveOffset }
     val transfer = DataTransfer(db, dirs, appVersion) { learning.leitner.intervalDays(it) }
     val samples = SamplePacks(dirs.samples, appVersion)
+    val updater = com.id.mimikopi.desktop.update.Updater(java.io.File(dirs.root, "updates"), appVersion)
     val privateSongs = PrivateSongs(db)
     /** Work that must finish even when the page that started it closes (saving a result). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

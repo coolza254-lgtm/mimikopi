@@ -276,7 +276,8 @@ private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: R
             pressed = pressed,
             keyLabel = { m -> if (ui.options.fallingKeyLabels) keyNames[m] else null },
             modifier = canvasModifier,
-            window = (score.beatsPerMeasure * 2.0).coerceAtLeast(6.0),
+            // About one bar on screen: tall bars that are easy to read, as in tutorial videos.
+            window = score.beatsPerMeasure.coerceIn(3, 4).toDouble(),
             smooth = ui.options.mode == PlayMode.WAIT,
             lines = bars,
             feedback = ui.fallingFeedback,

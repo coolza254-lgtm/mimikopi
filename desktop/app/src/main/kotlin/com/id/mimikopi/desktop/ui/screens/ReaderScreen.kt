@@ -326,7 +326,8 @@ private fun FallingScore(r: ReaderSession, ui: ReaderUi, score: Score, keyRange:
         pressed = pressed,
         keyLabel = { m -> labels[m] },
         modifier = modifier,
-        window = (score.beatsPerMeasure * 2.0).coerceAtLeast(6.0),
+        // About one bar on screen: tall bars that are easy to read, as in tutorial videos.
+            window = score.beatsPerMeasure.coerceIn(3, 4).toDouble(),
         smooth = ui.options.mode == PlayMode.WAIT,
         lines = bars,
         feedback = ui.fallingFeedback,

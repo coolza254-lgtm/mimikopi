@@ -177,8 +177,8 @@ internal class FallingRenderer(private val range: IntRange, private val measurer
                 val radius = CornerRadius((w * .28f).coerceAtMost(10f))
                 when (n.state) {
                     FallingState.BACKGROUND -> {
-                        drawRoundRect(color.copy(alpha = .22f), Offset(x, t), Size(w, h), radius)
-                        drawRoundRect(color.copy(alpha = .5f), Offset(x, t), Size(w, h), radius, style = Stroke(1.5f))
+                        drawRoundRect(color.copy(alpha = .38f), Offset(x, t), Size(w, h), radius)
+                        drawRoundRect(color.copy(alpha = .6f), Offset(x, t), Size(w, h), radius, style = Stroke(1.5f))
                     }
                     FallingState.MISSED -> drawRoundRect(FallingColors.error.copy(alpha = .7f), Offset(x, t), Size(w, h), radius, style = Stroke(2f))
                     else -> {

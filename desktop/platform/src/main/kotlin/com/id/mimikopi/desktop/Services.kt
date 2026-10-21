@@ -7,6 +7,7 @@ import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.core.piano.PianoSound
 import com.id.mimikopi.desktop.audio.AudioPrefs
 import com.id.mimikopi.desktop.audio.Piano
+import com.id.mimikopi.desktop.audio.SamplePacks
 import com.id.mimikopi.desktop.data.AppDirs
 import com.id.mimikopi.desktop.data.DataTransfer
 import com.id.mimikopi.desktop.data.Database
@@ -22,6 +23,7 @@ import com.id.mimikopi.desktop.midi.MidiInput
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,6 +48,7 @@ class Services(
     val inputConfig = InputConfigStore(db)
     val midi = MidiInput(hub) { inputConfig.config.value.octaveOffset }
     val transfer = DataTransfer(db, dirs, appVersion) { learning.leitner.intervalDays(it) }
+    val samples = SamplePacks(dirs.samples, appVersion)
     /** Work that must finish even when the page that started it closes (saving a result). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -65,6 +68,8 @@ class Services(
         hub.soundThrough = db.get(SettingKeys.PC_MIDI_SOUND) == "true"
         hub.velocity = VelocityMode.parse(db.get(SettingKeys.VELOCITY_MODE))
         if (startMidi) midi.start()
+        // The installed piano sound loads in the background; the built-in tone plays until then.
+        appScope.launch { samples.installed()?.let { samples.load(piano, it) } }
     }
 
     fun setNameStyle(style: NoteNameStyle) {

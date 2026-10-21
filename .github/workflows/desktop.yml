@@ -1,0 +1,112 @@
+name: Desktop
+
+# The Windows program (desktop/): core and desktop tests on Linux, then the native audio library (MSVC), tests and
+# the MSI installer on Windows.
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "desktop/**"
+      - "core/**"
+      - "content/**"
+      - "audio/src/main/cpp/effects.h"
+      - "app/src/main/res/font/**"
+      - "gradle/**"
+      - ".github/workflows/desktop.yml"
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without the v, e.g. 0.30.0"
+        required: false
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Native audio library
+        run: |
+          cmake -S desktop/native -B desktop/native/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build desktop/native/build -j4
+
+      - name: Core and desktop tests
+        run: ./gradlew --stacktrace -p desktop :core:test test
+
+      - name: Test report
+        if: always()
+        run: python3 desktop/tools/test_report.py
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: echo "VERSION_NAME=${INPUT_VERSION:-0.30.0}" >> "$GITHUB_ENV"
+
+      - name: Native audio library (MSVC, WASAPI)
+        run: |
+          cmake -S desktop/native -B desktop/native/build -A x64
+          cmake --build desktop/native/build --config Release
+          ls -l desktop/native/dist/windows
+
+      - name: Tests on Windows
+        run: ./gradlew --stacktrace -p desktop :core:test test -PversionName="$VERSION_NAME"
+
+      - name: Test report
+        if: always()
+        run: python desktop/tools/test_report.py
+
+      - name: MSI installer and app folder
+        run: ./gradlew --stacktrace -p desktop :app:packageMsi :app:createDistributable -PversionName="$VERSION_NAME"
+
+      - name: Check the package
+        run: |
+          MSI=$(ls desktop/app/build/compose/binaries/main/msi/*.msi)
+          APP=desktop/app/build/compose/binaries/main/app/Mimikopi
+          test -f "$APP/Mimikopi.exe"
+          find "$APP" -name mimikopi_audio.dll | grep -q . || { echo "::error::audio DLL missing from the app folder"; exit 1; }
+          find "$APP" -name '*.json' -path '*lessons*' | head -1
+          mkdir -p out
+          cp "$MSI" "out/Mimikopi-$VERSION_NAME.msi"
+          (cd desktop/app/build/compose/binaries/main/app && 7z a -tzip "../../../../../../../out/Mimikopi-$VERSION_NAME-windows-app.zip" Mimikopi > /dev/null)
+          sha256sum out/* | tee out/SHA256SUMS.txt
+          ls -l out
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v5
+        with:
+          name: mimikopi-desktop-${{ env.VERSION_NAME }}-${{ github.sha }}
+          path: out/
+          retention-days: 14
+          if-no-files-found: error

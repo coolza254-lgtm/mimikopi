@@ -23,7 +23,8 @@ dependencies {
 
 // Tests read the editable practice library directly; content changes must invalidate cached results.
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
-    inputs.dir(rootProject.layout.projectDirectory.dir("content"))
+    // Relative to this module, so the desktop build (desktop/) that includes ../core sees the same folder.
+    inputs.dir(layout.projectDirectory.dir("../content"))
         .withPropertyName("practiceContent")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

@@ -231,6 +231,21 @@ object KeySignature {
         else -> 0
     }
 
+    /**
+     * The seven notes of the major key with [fifths], by pitch class (0 = C), spelled as the key spells them: E major
+     * gives F♯ C♯ G♯ D♯, A♭ major gives B♭ E♭ A♭ D♭. A keyboard labels these keys and leaves the others blank.
+     */
+    fun scale(fifths: Int): Map<Int, SpelledPitch> = Letter.entries.associate { l ->
+        val acc = accidentalFor(l, fifths)
+        Math.floorMod(l.semitonesFromC + acc, 12) to SpelledPitch(l, acc, 4)
+    }
+
+    /** "E Major", "A♭ Major": the major key with [fifths] (a minor piece shares it with its relative major). */
+    fun majorName(fifths: Int): String {
+        val tonic = scale(fifths).getValue(Math.floorMod(fifths * 7, 12))
+        return tonic.letter.name + SpelledPitch.accidentalSymbol(tonic.accidental) + " Major"
+    }
+
     /** Staff positions of the key signature glyphs, in drawing order. */
     fun positions(fifths: Int, clef: Clef): List<Int> {
         val trebleSharps = listOf(4, 1, 5, 2, -1, 3, 0)

@@ -232,7 +232,8 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
 private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: ReaderViewModel, playing: Boolean, modifier: Modifier, fullscreen: Boolean = false) {
     val score = piece.score
     val pressed by vm.pressed.collectAsStateWithLifecycle()
-    val barStyle = if (vm.nameStyle == NoteNameStyle.SOLFEGE) NoteNameStyle.SOLFEGE else NoteNameStyle.LETTER
+    // Katakana do-re-mi on the bars (as in the tutorial videos), unless letter names are chosen.
+    val barStyle = if (vm.nameStyle == NoteNameStyle.LETTER) NoteNameStyle.LETTER else NoteNameStyle.SOLFEGE
     // Each heard note (ties merged) with its key in the judge's results, its hand and its bar (named once per style).
     val base = remember(score, barStyle) {
         val events = score.events.associateBy { it.id }
@@ -258,7 +259,11 @@ private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: R
     }
     val bars = remember(score) { (0..score.measures).map { score.measureStart(it) } }
     val keyRange = piece.keyRange
-    val keyNames = remember(keyRange, barStyle) { keyRange.associateWith { SpelledPitch.fromMidiSharp(it).name(barStyle) } }
+    // The keyboard names only the notes of the piece's key, spelled as the key spells them; the other keys stay blank.
+    val keyNames = remember(keyRange, barStyle, score) {
+        val scale = com.id.mimikopi.core.score.KeySignature.scale(score.keyFifths)
+        keyRange.mapNotNull { m -> scale[m % 12]?.let { m to it.name(barStyle) } }.toMap()
+    }
     val touch = rememberTouchPlayer()
     val connected = midiConnected()
     FallingViewport(fullscreen, ui.options.fallingKeyLabels, vm::setFallingKeyLabels,
@@ -277,6 +282,7 @@ private fun FallingScore(piece: ReaderViewModel.LoadedPiece, ui: ReaderUi, vm: R
             feedback = ui.fallingFeedback,
             totalBeats = score.measureStart(score.measures),
             onKey = if (connected) null else touch,
+            caption = com.id.mimikopi.core.score.KeySignature.majorName(score.keyFifths),
         )
     }
 }

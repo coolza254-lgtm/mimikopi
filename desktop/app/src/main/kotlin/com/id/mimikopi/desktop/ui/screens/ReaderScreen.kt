@@ -281,7 +281,8 @@ fun Toggle(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
 private fun FallingScore(r: ReaderSession, ui: ReaderUi, score: Score, keyRange: IntRange, playing: Boolean, midi: Boolean, lowC: Int, modifier: Modifier) {
     val app = LocalApp.current
     val pressed by r.pressed.collectAsState()
-    val barStyle = if (r.nameStyle == NoteNameStyle.SOLFEGE) NoteNameStyle.SOLFEGE else NoteNameStyle.LETTER
+    // Katakana do-re-mi on the bars (as in the tutorial videos), unless letter names are chosen.
+    val barStyle = if (r.nameStyle == NoteNameStyle.LETTER) NoteNameStyle.LETTER else NoteNameStyle.SOLFEGE
     // Each heard note (ties merged) with its key in the judge's results, its hand and its bar (named once per style).
     val base = remember(score, barStyle) {
         val events = score.events.associateBy { it.id }
@@ -306,10 +307,13 @@ private fun FallingScore(r: ReaderSession, ui: ReaderUi, score: Score, keyRange:
     }
     val bars = remember(score) { (0..score.measures).map { score.measureStart(it) } }
     val range = remember(keyRange) { fallingKeyRange(keyRange.first, keyRange.last) }
-    val labels = remember(range, barStyle, midi, lowC, ui.options.fallingKeyLabels) {
+    // The keyboard names only the notes of the piece's key (spelled as the key spells them), plus the computer key
+    // letters while no MIDI piano is connected.
+    val scale = remember(score) { com.id.mimikopi.core.score.KeySignature.scale(score.keyFifths) }
+    val labels = remember(range, barStyle, midi, lowC, ui.options.fallingKeyLabels, scale) {
         range.associateWith { m ->
             listOfNotNull(
-                SpelledPitch.fromMidiSharp(m).name(barStyle).takeIf { ui.options.fallingKeyLabels },
+                scale[m % 12]?.name(barStyle)?.takeIf { ui.options.fallingKeyLabels },
                 if (midi) null else ComputerKeyboard.labelFor(m, lowC),
             ).joinToString("\n").ifEmpty { null }
         }
@@ -328,5 +332,6 @@ private fun FallingScore(r: ReaderSession, ui: ReaderUi, score: Score, keyRange:
         feedback = ui.fallingFeedback,
         totalBeats = score.measureStart(score.measures),
         onKey = if (midi) null else { n, down -> app.services.hub.dispatch(keyEvent(n, down)) },
+        caption = com.id.mimikopi.core.score.KeySignature.majorName(score.keyFifths),
     )
 }

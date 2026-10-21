@@ -60,6 +60,17 @@ class ScoreParseTest {
     }
 
     @Test
+    fun scaleNotesAndKeyNamesForTheFallingKeyboard() {
+        assertEquals("E Major", KeySignature.majorName(4))
+        assertEquals("A♭ Major", KeySignature.majorName(-4))
+        assertEquals("C Major", KeySignature.majorName(0))
+        val e = KeySignature.scale(4)
+        assertEquals(setOf(4, 6, 8, 9, 11, 1, 3), e.keys)
+        assertEquals("ファ♯", e.getValue(6).name(com.id.mimikopi.core.music.NoteNameStyle.SOLFEGE))
+        assertEquals("レ♭", KeySignature.scale(-4).getValue(1).name(com.id.mimikopi.core.music.NoteNameStyle.SOLFEGE))
+    }
+
+    @Test
     fun keySignatureAccidentalsAndPositions() {
         assertEquals(-1, KeySignature.accidentalFor(Letter.B, -1))
         assertEquals(0, KeySignature.accidentalFor(Letter.E, -1))

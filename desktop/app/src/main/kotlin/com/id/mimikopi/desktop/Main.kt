@@ -3,6 +3,7 @@ package com.id.mimikopi.desktop
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,6 +76,10 @@ fun main() {
         }
         // Typing keys held now, so key repeat never restarts a held note.
         val held = remember { HashMap<Int, Int>() }
+        fun releaseHeld() {
+            held.values.forEach { services.hub.dispatch(InputEvent.NoteOff(it, System.nanoTime(), InputSource.COMPUTER_KEYS)) }
+            held.clear()
+        }
         Window(
             onCloseRequest = {
                 services.close()
@@ -94,6 +99,10 @@ fun main() {
                         }
                         true
                     }
+                    up && code in held -> {
+                        services.hub.dispatch(InputEvent.NoteOff(held.remove(code)!!, System.nanoTime(), InputSource.COMPUTER_KEYS))
+                        true
+                    }
                     keys.textInput -> false
                     code == KeyEvent.VK_SPACE && down -> { keys.onSpace?.invoke(); keys.onSpace != null }
                     code == KeyEvent.VK_SPACE -> keys.onSpace != null
@@ -108,16 +117,19 @@ fun main() {
                         services.hub.dispatch(InputEvent.NoteOn(note, ComputerKeyboard.VELOCITY, System.nanoTime(), InputSource.COMPUTER_KEYS))
                         true
                     }
-                    up -> {
-                        val note = held.remove(code) ?: return@handler false
-                        services.hub.dispatch(InputEvent.NoteOff(note, System.nanoTime(), InputSource.COMPUTER_KEYS))
-                        true
-                    }
                     else -> false
                 }
             },
         ) {
             window.minimumSize = java.awt.Dimension(900, 600)
+            // A key let go in another window (Alt+Tab while holding it) sends its key-up there: let the notes go now.
+            DisposableEffect(window) {
+                val focus = object : java.awt.event.WindowAdapter() {
+                    override fun windowLostFocus(e: java.awt.event.WindowEvent) = releaseHeld()
+                }
+                window.addWindowFocusListener(focus)
+                onDispose { window.removeWindowFocusListener(focus) }
+            }
             App(ctx)
         }
     }

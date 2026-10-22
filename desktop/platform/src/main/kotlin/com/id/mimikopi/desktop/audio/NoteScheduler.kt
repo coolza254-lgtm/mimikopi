@@ -33,6 +33,8 @@ class NoteScheduler(private val piano: NoteOutput) : ScheduledNotes {
             if (closed) return
             queue += item.copy(seq = seq++)
             lock.notifyAll()
+            // The thread may be parked until a later note: wake it, or this one could sound up to 20 ms late.
+            thread?.let(LockSupport::unpark)
         }
         ensureThread()
     }

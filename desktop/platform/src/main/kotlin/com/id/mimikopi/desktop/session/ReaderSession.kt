@@ -273,6 +273,7 @@ class ReaderSession(
     }
 
     private var holding = false
+    private var pianoHeld = false
     private var runJob: Job? = null
     private var previewJob: Job? = null
     private var stoppedEarly = false
@@ -327,7 +328,7 @@ class ReaderSession(
         if (!newSightLook()) startPreview()
         if (holding) return
         holding = true
-        piano.acquire()
+        pianoHeld = piano.acquire()
     }
 
     fun onStop() {
@@ -343,7 +344,8 @@ class ReaderSession(
         if (!holding) return
         holding = false
         hub.releaseAll()
-        piano.release()
+        if (pianoHeld) piano.release()
+        pianoHeld = false
     }
 
     /** The page is closed for good. */

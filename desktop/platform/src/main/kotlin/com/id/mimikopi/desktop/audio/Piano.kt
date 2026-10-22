@@ -65,6 +65,7 @@ class Piano(
     private val nullDevice: Boolean = false,
 ) : NoteOutput, AutoCloseable {
     private val handle: Long = if (NativeAudio.available) NativeAudio.nativeCreate() else 0L
+    @Volatile private var closed = false
     private var users = 0
     private var wantOpen = false
     private var restarts = 0
@@ -73,7 +74,7 @@ class Piano(
     private val _status = MutableStateFlow(AudioStatus(error = NativeAudio.loadError?.let { "โหลดระบบเสียงไม่ได้: $it" }))
     val status: StateFlow<AudioStatus> = _status.asStateFlow()
 
-    val available: Boolean get() = handle != 0L
+    val available: Boolean get() = handle != 0L && !closed
 
     private val watchdog = Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "mimikopi-audio-watchdog").apply { isDaemon = true } }
 
@@ -99,14 +100,16 @@ class Piano(
         return offset
     }
 
-    /** Opens the output if nobody had it open. Returns true when sound can play. */
+    /** Opens the output if nobody had it open. Returns true when sound can play; on false nothing is held (no release). */
     @Synchronized
     fun acquire(): Boolean {
         if (!available) return false
         users++
         wantOpen = true
-        if (NativeAudio.nativeRunning(handle)) return true
-        return open()
+        if (NativeAudio.nativeRunning(handle) || open()) return true
+        users--
+        if (users == 0) wantOpen = false
+        return false
     }
 
     @Synchronized
@@ -245,12 +248,20 @@ class Piano(
     /** Tests: renders a block without a device (the engine must not be open). */
     internal fun renderForTest(frames: Int): FloatArray = NativeAudio.nativeRender(handle, frames)
 
+    /** Tests: the most voices sounding at once since the engine was made. */
+    internal fun maxVoicesForTest(): Int = NativeAudio.nativeMetrics(handle)[6].toInt()
+
+    /**
+     * Stops the output for good. The engine itself is left to the process exit rather than deleted: MIDI and scheduler
+     * threads may still be calling into it, and once stopped those calls only queue commands nobody plays.
+     */
+    @Synchronized
     override fun close() {
         watchdog.shutdownNow()
-        if (available) {
-            NativeAudio.nativeStop(handle)
-            NativeAudio.nativeDestroy(handle)
-        }
+        if (!available) return
+        closed = true
+        wantOpen = false
+        NativeAudio.nativeStop(handle)
     }
 
     companion object {

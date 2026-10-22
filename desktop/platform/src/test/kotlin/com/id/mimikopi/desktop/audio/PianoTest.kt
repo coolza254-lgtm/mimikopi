@@ -48,6 +48,35 @@ class PianoTest {
     }
 
     @Test
+    fun notesSentWhileClosedDoNotAllStartWhenTheOutputOpens() {
+        Piano(nullDevice = true).use { p ->
+            for (n in 60..71) { p.noteOn(n, 100); p.noteOff(n) }  // typed on a page that holds no sound
+            assertTrue(p.acquire())
+            Thread.sleep(300)
+            assertEquals(0, p.maxVoicesForTest(), "nothing typed before the output opened plays now")
+            p.noteOn(72, 100)
+            Thread.sleep(300)
+            assertTrue(p.maxVoicesForTest() >= 1, "a note played once open sounds")
+            p.release()
+        }
+    }
+
+    @Test
+    fun aClosedPianoIgnoresLateCallers() {
+        val p = Piano(nullDevice = true)
+        assertTrue(p.acquire())
+        p.close()
+        // A scheduler or MIDI thread still running at exit.
+        p.noteOn(60, 100)
+        p.noteOff(60)
+        p.allNotesOff()
+        assertEquals(false, p.isOpen())
+        assertEquals(false, p.acquire())
+        p.release()
+        p.close()
+    }
+
+    @Test
     fun prefsRoundTrip() {
         assertEquals(AudioPrefs(128, false), AudioPrefs.decode(AudioPrefs(128, false).encode()))
         assertEquals(AudioPrefs(), AudioPrefs.decode("999|maybe"))

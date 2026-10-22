@@ -142,6 +142,11 @@ std::string DesktopEngine::start(int periodFrames, bool preferExclusive, bool nu
         const double latencyMs = rate > 0 ? 1000.0 * periodFrames_ * std::max(periods_, 1) / rate : 0.0;
         latencyNanos_.store(static_cast<int64_t>(latencyMs * 1e6));
         device_ = &holder->device;
+        {
+            // Notes sent while the output was closed (typing on a page without sound) must not all start now.
+            std::lock_guard<std::mutex> producers(producerMutex_);
+            tail_.store(head_.load());
+        }
         running_.store(true);
         if (ma_device_start(&holder->device) != MA_SUCCESS) {
             running_.store(false);
@@ -175,7 +180,10 @@ void DesktopEngine::stop() {
     if (prefetchRunning_.exchange(false) && prefetcher_.joinable()) prefetcher_.join();
     for (auto& v : voices_) v = Voice{};
     pedalDown_ = false;
-    head_.store(tail_.load());
+    {
+        std::lock_guard<std::mutex> producers(producerMutex_);
+        tail_.store(head_.load());
+    }
     activeVoices_.store(0);
 }
 

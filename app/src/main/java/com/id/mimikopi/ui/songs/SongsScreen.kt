@@ -160,7 +160,7 @@ private fun GoalSummary(song: PrivateSong?, today: LocalDate, onOpen: () -> Unit
     PageCard(onClick = onOpen) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Box(Modifier.size(56.dp).clip(CircleShape).background(Tokens.Palette.AccentSoft), contentAlignment = Alignment.Center) {
-                Text("", fontFamily = com.id.mimikopi.ui.components.Bravura, fontSize = 28.sp, color = Tokens.Palette.Accent)
+                ClefGlyph(28.sp)
             }
             Column(Modifier.weight(1f)) {
                 Text("เพลงเป้าหมาย", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)

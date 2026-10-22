@@ -1,5 +1,8 @@
 package com.id.mimikopi.ui.songs
 
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -122,7 +125,17 @@ fun ClefRing(fraction: Float, size: Dp = 68.dp) {
             drawArc(Tokens.Palette.Accent, startAngle = -90f, sweepAngle = 360f * fraction.coerceIn(0f, 1f), useCenter = true)
         }
         Box(Modifier.size(size - 12.dp).clip(CircleShape).background(Tokens.Palette.Group), contentAlignment = Alignment.Center) {
-            Text("", fontFamily = Bravura, fontSize = 26.sp, color = Tokens.Palette.Accent)
+            ClefGlyph(26.sp)
         }
     }
+}
+
+/**
+ * The treble clef centred in its circle. Bravura draws the clef from its baseline far below the line box's middle, so
+ * it is lifted by 0.78 em (from the glyph's bounds, -0.66 to 1.1 em) to sit in the middle.
+ */
+@Composable
+fun ClefGlyph(size: TextUnit) {
+    val lift = with(LocalDensity.current) { (size * 0.78f).toDp() }
+    Text("", fontFamily = Bravura, fontSize = size, color = Tokens.Palette.Accent, modifier = Modifier.offset(y = -lift))
 }

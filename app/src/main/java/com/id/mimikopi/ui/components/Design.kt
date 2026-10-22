@@ -151,9 +151,9 @@ fun <T> Segmented(options: List<T>, selected: T, label: (T) -> String, onSelect:
 
 /** Levels as short bars, the earned ones filled. */
 @Composable
-fun LevelBars(level: Int, max: Int, modifier: Modifier = Modifier, width: Dp = 14.dp) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-        repeat(max) { i -> Box(Modifier.width(width).height(6.dp).clip(RoundedCornerShape(3.dp)).background(if (i < level) Tokens.Palette.Accent else Tokens.Palette.Track)) }
+fun LevelBars(level: Int, max: Int, modifier: Modifier = Modifier, width: Dp = 14.dp, color: Color = Tokens.Palette.Accent, gap: Dp = 3.dp) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.CenterVertically) {
+        repeat(max) { i -> Box(Modifier.width(width).height(6.dp).clip(RoundedCornerShape(3.dp)).background(if (i < level) color else Tokens.Palette.Track)) }
     }
 }
 
@@ -224,10 +224,10 @@ fun Chip(text: String, color: Tokens.SkillColor? = null, selected: Boolean = fal
     ) { Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ink) }
 }
 
-/** A white round icon holder on a skill card (40 dp), the icon in the skill's colour. */
+/** A round icon holder (40 dp), the icon in the skill's colour: white on a skill card, the pastel in a list ([filled]). */
 @Composable
-fun SkillIcon(icon: Int, color: Tokens.SkillColor, size: Dp = 40.dp) {
-    Box(Modifier.size(size).clip(CircleShape).background(Tokens.Palette.Group), contentAlignment = Alignment.Center) {
+fun SkillIcon(icon: Int, color: Tokens.SkillColor, size: Dp = 40.dp, filled: Boolean = false) {
+    Box(Modifier.size(size).clip(CircleShape).background(if (filled) color.fill else Tokens.Palette.Group), contentAlignment = Alignment.Center) {
         Icon(painterResource(icon), contentDescription = null, tint = color.ink, modifier = Modifier.size(size / 2))
     }
 }

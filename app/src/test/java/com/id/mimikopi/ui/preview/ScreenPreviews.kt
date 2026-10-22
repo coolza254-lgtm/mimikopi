@@ -1,5 +1,8 @@
 package com.id.mimikopi.ui.preview
 
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,6 +58,14 @@ class ScreenPreviews {
     }
 
     @Test fun today() = render("01-today", "today") { TodayScreen(onOpen = {}, onOpenMidi = {}, onOpenSettings = {}) }
+    @Test fun keys() = render("03-keys", "piano") {
+        androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.padding(20.dp)) {
+            com.id.mimikopi.ui.components.TouchKeyboardSurface(
+                60..76, emptySet(), true, com.id.mimikopi.core.music.NoteNameStyle.LETTER, setOf(64, 67, 72), { _, _ -> },
+                androidx.compose.ui.Modifier.fillMaxWidth().height(260.dp),
+            )
+        }
+    }
     @Test fun skills() = render("02-skills", "skills") { SkillsScreen(onOpen = {}, onOpenMidi = {}, onOpenSettings = {}) }
     @Test fun songs() = render("04-songs", "songs") {
         SongsScreen(onOpen = {}, onOpenLibrary = {})

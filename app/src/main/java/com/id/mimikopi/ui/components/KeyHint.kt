@@ -1,6 +1,16 @@
 package com.id.mimikopi.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
@@ -153,8 +162,8 @@ fun Modifier.touchKeys(key: Any, hit: (x: Float, y: Float, width: Float, height:
     }
 
 /**
- * The on-screen keyboard: white keys light and black keys dark in both looks (as in the falling notes), held keys
- * grey, [marked] keys outlined, Middle C with a small dot.
+ * The on-screen keyboard (Design J): a dark case with a felt strip, white keys fading at the bottom and graded black
+ * keys in both looks, held keys in the accent's pinks with their name, [marked] keys outlined, Middle C with a dot.
  */
 @Composable
 fun TouchKeyboard(range: IntRange, marked: Set<Int>, showNames: Boolean, nameStyle: NoteNameStyle, modifier: Modifier) {
@@ -179,34 +188,45 @@ fun TouchKeyboardSurface(range: IntRange, marked: Set<Int>, showNames: Boolean, 
         return KeyboardLayout(range.first, range.last, w / whites, h).also { cached[0] = it }
     }
 
-    val whiteKey = if (Tokens.dark) Color(0xFFE6E6E6) else Color(0xFFFFFFFF)
-
-    Canvas(modifier.touchKeys(range, { x, y, w, h -> layoutFor(w, h).hitTest(x, y) }, play)) {
-        val layout = layoutFor(size.width, size.height)
-        val radius = CornerRadius(layout.whiteKeyWidth * 0.12f)
-        for (k in layout.whiteKeys) {
-            val down = k.note in pressed
-            drawRoundRect(if (down) Color(0xFF8C8C8C) else whiteKey, Offset(k.left + 1f, 0f), Size(k.width - 2f, k.bottom), radius)
-            drawRoundRect(
-                if (k.note in marked) Color(0xFF000000) else Color(0xFF9E9E9E),
-                Offset(k.left + 1f, 0f), Size(k.width - 2f, k.bottom), radius,
-                style = Stroke(width = if (k.note in marked) 5f else 1.5f),
-            )
-            if (showNames || k.note in marked) {
-                val label = SpelledPitch.fromMidiSharp(k.note).name(nameStyle, withOctave = k.note % 12 == 0)
-                val text = measurer.measure(label, TextStyle(fontSize = 12.sp, color = Color(0xFF5E5E5E)))
-                drawText(text, topLeft = Offset(k.left + (k.width - text.size.width) / 2, k.bottom - text.size.height - 6f))
-            } else if (k.note == 60) {
-                // A small dot marks Middle C, like a sticker on a real piano.
-                drawCircle(Color(0xFF5E5E5E), radius = layout.whiteKeyWidth * 0.07f, center = Offset(k.left + k.width / 2, k.bottom - layout.whiteKeyWidth * 0.3f))
+    val caseShape = RoundedCornerShape(28.dp)
+    Box(
+        modifier.shadow(Tokens.Elevation.keyboard, caseShape, ambientColor = Tokens.Elevation.tint, spotColor = Tokens.Elevation.tint)
+            .clip(caseShape).background(Tokens.Piano.Case).padding(start = 8.dp, end = 8.dp, top = 14.dp, bottom = 8.dp),
+    ) {
+        // The felt strip above the keys.
+        Box(Modifier.align(Alignment.TopCenter).offset(y = (-8).dp).fillMaxWidth().padding(horizontal = 18.dp).height(3.dp)
+            .clip(RoundedCornerShape(2.dp)).background(Tokens.Piano.Felt))
+        Canvas(Modifier.fillMaxSize().touchKeys(range, { x, y, w, h -> layoutFor(w, h).hitTest(x, y) }, play)) {
+            val layout = layoutFor(size.width, size.height)
+            val radius = CornerRadius(layout.whiteKeyWidth * 0.14f)
+            val white = Brush.verticalGradient(0.75f to Tokens.Piano.WhiteTop, 1f to Tokens.Piano.WhiteBottom)
+            val black = Brush.verticalGradient(listOf(Tokens.Piano.BlackTop, Tokens.Piano.BlackBottom))
+            for (k in layout.whiteKeys) {
+                val down = k.note in pressed
+                val topLeft = Offset(k.left + 1.5f, 0f)
+                val keySize = Size(k.width - 3f, k.bottom)
+                if (down) drawRoundRect(Tokens.Palette.AccentSoft, topLeft, keySize, radius) else drawRoundRect(white, topLeft, keySize, radius)
+                if (k.note in marked) drawRoundRect(Tokens.Palette.Accent, topLeft, keySize, radius, style = Stroke(width = 5f))
+                if (showNames || k.note in marked || down) {
+                    val label = SpelledPitch.fromMidiSharp(k.note).name(nameStyle, withOctave = k.note % 12 == 0)
+                    val strong = down || k.note in marked
+                    val text = measurer.measure(label, TextStyle(fontSize = 12.sp, fontWeight = if (strong) FontWeight.Bold else FontWeight.Normal,
+                        color = if (strong) Tokens.Palette.AccentDeep else Tokens.Palette.InkMuted))
+                    drawText(text, topLeft = Offset(k.left + (k.width - text.size.width) / 2, k.bottom - text.size.height - 8f))
+                } else if (k.note == 60) {
+                    // A small dot marks Middle C, like a sticker on a real piano.
+                    drawCircle(Tokens.Palette.Dim, radius = layout.whiteKeyWidth * 0.07f, center = Offset(k.left + k.width / 2, k.bottom - layout.whiteKeyWidth * 0.3f))
+                }
             }
-        }
-        for (k in layout.blackKeys) {
-            val down = k.note in pressed
-            drawRoundRect(if (down) Color(0xFF7A7A7A) else Color(0xFF151515), Offset(k.left, 0f), Size(k.width, k.bottom), CornerRadius(k.width * 0.15f))
-            if (k.note in marked) drawRoundRect(
-                Color(0xFFFFFFFF), Offset(k.left + 3f, 3f), Size(k.width - 6f, k.bottom - 6f), CornerRadius(k.width * 0.12f), style = Stroke(width = 3f),
-            )
+            for (k in layout.blackKeys) {
+                val down = k.note in pressed
+                val r = CornerRadius(k.width * 0.22f)
+                if (down) drawRoundRect(Tokens.Palette.AccentDeep, Offset(k.left, 0f), Size(k.width, k.bottom), r)
+                else drawRoundRect(black, Offset(k.left, 0f), Size(k.width, k.bottom), r)
+                if (k.note in marked) drawRoundRect(
+                    Tokens.Palette.AccentMid, Offset(k.left + 3f, 3f), Size(k.width - 6f, k.bottom - 6f), CornerRadius(k.width * 0.18f), style = Stroke(width = 3f),
+                )
+            }
         }
     }
 }

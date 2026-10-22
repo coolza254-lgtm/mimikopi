@@ -1,6 +1,14 @@
 package com.id.mimikopi.ui.piano
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import com.id.mimikopi.ui.components.Chip
+import com.id.mimikopi.ui.components.PageCard
+import com.id.mimikopi.ui.components.softShadow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,7 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,11 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.id.mimikopi.R
 import com.id.mimikopi.core.input.VelocityMode
 import com.id.mimikopi.core.music.NoteNameStyle
-import com.id.mimikopi.ui.components.Group
-import com.id.mimikopi.ui.components.GroupDivider
 import com.id.mimikopi.ui.components.GroupFooter
-import com.id.mimikopi.ui.components.GroupHeader
-import com.id.mimikopi.ui.components.GroupRow
 import com.id.mimikopi.ui.components.LargeTitle
 import com.id.mimikopi.ui.components.MidiPill
 import com.id.mimikopi.ui.components.PageMargin
@@ -60,6 +63,7 @@ import kotlin.math.roundToInt
  * or score; the app is just the piano's sound. [soundSetup] shows where the app's piano sound is missing (the phone
  * installs it here; [onReady] is called once it is).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FreePianoScreen(
     onOpenMidi: () -> Unit,
@@ -72,81 +76,72 @@ fun FreePianoScreen(
     val ui by vm.ui.collectAsStateWithLifecycle()
     val connected = midiConnected()
 
+    var showNames by rememberSaveable { mutableStateOf(false) }
+
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 1040.dp).fillMaxWidth()) {
-            LargeTitle("เปียโน", if (connected) "เล่นจากเปียโน MIDI เสียงออกจากแอพ" else "แตะคีย์บนจอ หรือต่อเปียโน MIDI") {
+            LargeTitle(
+                "เปียโน",
+                (if (connected) "เล่นจากเปียโน MIDI" else "เล่นอิสระ ไม่มีคะแนน") + " · วันนี้ ${ui.minutesToday} นาที",
+            ) {
                 MidiPill(onOpenMidi)
                 IconButton(onClick = onOpenSettings) {
                     Icon(painterResource(R.drawable.ic_settings), contentDescription = "ตั้งค่า", tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
                 }
             }
-            Column(Modifier.padding(horizontal = PageMargin)) {
+            Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth().align(Alignment.CenterHorizontally).padding(horizontal = PageMargin)) {
                 if (ui.noSound) {
                     Spacer(Modifier.height(12.dp))
                     soundSetup(vm::soundInstalled)
                 }
-                Spacer(Modifier.height(16.dp))
-                Keys(ui.lowNote, ui.transpose, vm::shiftOctave)
-            }
-            Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth().align(Alignment.CenterHorizontally).padding(horizontal = PageMargin)) {
-                GroupHeader("เสียง")
-                Group {
+                Spacer(Modifier.height(12.dp))
+                PageCard {
                     val s = ui.sound
                     SliderRow("ความดัง", s.volume, "${if (s.db > 0) "+" else ""}${s.db.roundToInt()} dB", { vm.setSound(s.copy(volume = it), false) }) { vm.setSound(ui.sound, true) }
                     if (vm.supportsTone) {
-                        GroupDivider()
-                        SliderRow("ความก้อง", s.reverb, "${(s.reverb * 100).roundToInt()}%", { vm.setSound(s.copy(reverb = it), false) }) { vm.setSound(ui.sound, true) }
-                        GroupDivider()
+                        SliderRow("ความก้อง", s.reverb, "เสียงห้อง ${(s.reverb * 100).roundToInt()}%", { vm.setSound(s.copy(reverb = it), false) }) { vm.setSound(ui.sound, true) }
                         SliderRow("ความนุ่ม", s.warmth, "${(s.warmth * 100).roundToInt()}%", { vm.setSound(s.copy(warmth = it), false) }) { vm.setSound(ui.sound, true) }
                     }
-                }
-                GroupFooter(
-                    (if (vm.supportsTone) "ความก้อง: เสียงห้อง · ความนุ่ม: ลดเสียงแหลม ฟังสบายในหูฟัง · " else "") +
-                        "ใช้กับเสียงของแอพทุกหน้า",
-                )
-
-                GroupHeader("น้ำหนักคีย์")
-                Group {
                     val v = ui.velocity
-                    GroupRow(
-                        "น้ำหนักคีย์มีผลกับเสียง",
-                        subtitle = if (v.on) "กดเบาเสียงเบา กดแรงเสียงดัง" else "ทุกโน้ตดังเท่ากัน",
-                        trailing = { Switch(checked = v.on, onCheckedChange = { on -> vm.setVelocity(if (on) VelocityMode(true, v.fixed) else VelocityMode(false, v.fixed)) }) },
-                    )
+                    FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Chip(if (v.on) "น้ำหนักคีย์มีผล" else "ดังเท่ากัน: ${level(v.fixed)}", selected = v.on) {
+                            vm.setVelocity(VelocityMode(!v.on, v.fixed))
+                        }
+                        Chip("แสดงชื่อโน้ต", selected = showNames) { showNames = !showNames }
+                    }
                     if (!v.on) {
-                        GroupDivider()
-                        Box(Modifier.padding(16.dp)) {
+                        Box(Modifier.padding(top = 12.dp)) {
                             Segmented(VelocityMode.LEVELS, v.fixed.takeIf { it in VelocityMode.LEVELS } ?: VelocityMode.MEDIUM, { level(it) }, { vm.setVelocity(VelocityMode(false, it)) })
                         }
                     }
+                    Row(Modifier.padding(top = 14.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("ทรานสโพส", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                            Text(
+                                when {
+                                    ui.transpose > 0 -> "สูงขึ้น ${ui.transpose} ครึ่งเสียง"
+                                    ui.transpose < 0 -> "ต่ำลง ${-ui.transpose} ครึ่งเสียง"
+                                    else -> "เสียงตรงกับคีย์ที่กด"
+                                },
+                                fontSize = 13.sp, color = Tokens.Palette.InkMuted,
+                            )
+                        }
+                        RoundButton("−", onGroup = true) { vm.transpose(-1) }
+                        Text("${if (ui.transpose > 0) "+" else ""}${ui.transpose}", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.widthIn(min = 40.dp))
+                        RoundButton("+", onGroup = true) { vm.transpose(1) }
+                    }
                 }
-                GroupFooter("ใช้กับทุกหน้า ไม่มีผลกับการตัดสินถูกผิด")
-
-                GroupHeader("ทรานสโพส")
-                Group {
-                    GroupRow(
-                        "เปลี่ยนระดับเสียง",
-                        subtitle = when {
-                            ui.transpose > 0 -> "สูงขึ้น ${ui.transpose} ครึ่งเสียง"
-                            ui.transpose < 0 -> "ต่ำลง ${-ui.transpose} ครึ่งเสียง"
-                            else -> "เสียงตรงกับคีย์ที่กด"
-                        },
-                        trailing = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RoundButton("−", onGroup = true) { vm.transpose(-1) }
-                                Text("${if (ui.transpose > 0) "+" else ""}${ui.transpose}", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink,
-                                    modifier = Modifier.widthIn(min = 32.dp))
-                                RoundButton("+", onGroup = true) { vm.transpose(1) }
-                            }
-                        },
-                    )
-                }
-                GroupFooter("คีย์ที่กดยังเป็นตัวเดิม เปลี่ยนแค่เสียงที่ได้ยิน ใช้เฉพาะหน้านี้ ออกจากหน้านี้แล้วกลับเป็น 0")
-
+            }
+            Column(Modifier.padding(horizontal = PageMargin)) {
+                Spacer(Modifier.height(20.dp))
+                Keys(ui.lowNote, ui.transpose, showNames, vm::shiftOctave)
+            }
+            Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth().align(Alignment.CenterHorizontally).padding(horizontal = PageMargin)) {
                 GroupFooter(
                     "หน้านี้ใช้เสียงจากแอพเสมอ ปิดหรือลดเสียงลำโพงของเปียโน แล้วเสียบหูฟังที่เครื่องนี้ · " +
-                        "เล่นอิสระวันนี้ ${ui.minutesToday} นาที (นับเฉพาะช่วงที่เล่นจริง)",
-                    modifier = Modifier.padding(top = 20.dp),
+                        "เสียงและน้ำหนักคีย์ใช้กับทุกหน้า ทรานสโพสใช้เฉพาะหน้านี้ · นับเวลาเฉพาะช่วงที่เล่นจริง",
+                    modifier = Modifier.padding(top = 8.dp),
                 )
                 Spacer(Modifier.height(40.dp))
             }
@@ -156,44 +151,46 @@ fun FreePianoScreen(
 
 /** The on-screen keys, as many octaves as fit, with arrows to move them; MIDI keys light them too. */
 @Composable
-private fun Keys(lowNote: Int, transpose: Int, onShift: (Int) -> Unit) {
+private fun Keys(lowNote: Int, transpose: Int, showNames: Boolean, onShift: (Int) -> Unit) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val octaves = (maxWidth / 220.dp).toInt().coerceIn(2, 4)
         val low = lowNote.coerceAtMost(108 - 12 * octaves)
         Column {
-            Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                RoundButton("‹") { onShift(-1) }
+            Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                RoundButton("‹", big = true) { onShift(-1) }
                 Text(
-                    "C${low / 12 - 1} – C${(low + 12 * octaves) / 12 - 1}" + if (transpose != 0) "  ·  ทรานสโพส ${if (transpose > 0) "+" else ""}$transpose" else "",
-                    fontSize = 14.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                    "C${low / 12 - 1} – C${(low + 12 * octaves) / 12 - 1}" + if (transpose != 0) "  ·  ${if (transpose > 0) "+" else ""}$transpose" else "",
+                    fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
-                RoundButton("›") { onShift(1) }
+                RoundButton("›", big = true) { onShift(1) }
             }
-            TouchKeyboard(low..low + 12 * octaves, emptySet(), false, NoteNameStyle.LETTER, Modifier.fillMaxWidth().height(if (octaves > 2) 210.dp else 180.dp))
+            TouchKeyboard(low..low + 12 * octaves, emptySet(), showNames, NoteNameStyle.LETTER, Modifier.fillMaxWidth().height(if (octaves > 2) 250.dp else 230.dp))
         }
     }
 }
 
 @Composable
 private fun SliderRow(title: String, value: Float, valueText: String, onChange: (Float) -> Unit, onDone: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(title, fontSize = 16.sp, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
             Text(valueText, fontSize = 15.sp, color = Tokens.Palette.InkMuted)
         }
         Slider(
             value = value, onValueChange = onChange, onValueChangeFinished = onDone,
-            colors = SliderDefaults.colors(thumbColor = Tokens.Palette.Ink, activeTrackColor = Tokens.Palette.Ink, inactiveTrackColor = Tokens.Palette.Line),
+            colors = SliderDefaults.colors(thumbColor = Tokens.Palette.Group, activeTrackColor = Tokens.Palette.Accent, inactiveTrackColor = Tokens.Palette.Track,
+                activeTickColor = Tokens.Palette.Accent, inactiveTickColor = Tokens.Palette.Track),
         )
     }
 }
 
-/** A small round button; [onGroup] when it sits inside a group (then it takes the page colour to stand out). */
+/** A round button: white with a soft shadow on the page ([big]), or the page colour inside a card ([onGroup]). */
 @Composable
-private fun RoundButton(text: String, onGroup: Boolean = false, onClick: () -> Unit) {
+private fun RoundButton(text: String, onGroup: Boolean = false, big: Boolean = false, onClick: () -> Unit) {
     Box(
-        Modifier.size(36.dp).clip(CircleShape).background(if (onGroup) Tokens.Palette.Paper else Tokens.Palette.Group).clickable(onClick = onClick),
+        Modifier.size(if (big) 44.dp else 36.dp).then(if (onGroup) Modifier else Modifier.softShadow(CircleShape, small = true))
+            .clip(CircleShape).background(if (onGroup) Tokens.Palette.Paper else Tokens.Palette.Group).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Text(text, fontSize = 20.sp, color = Tokens.Palette.Ink) }
 }

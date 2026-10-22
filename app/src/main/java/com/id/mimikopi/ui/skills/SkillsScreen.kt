@@ -1,5 +1,20 @@
 package com.id.mimikopi.ui.skills
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
+import com.id.mimikopi.ui.components.PageCard
+import com.id.mimikopi.ui.components.Pill
+import com.id.mimikopi.ui.components.SkillIcon
+import com.id.mimikopi.ui.components.softShadow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -58,65 +74,160 @@ fun SkillsScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
     val ui by vm.ui.collectAsStateWithLifecycle()
 
     Page {
-        LargeTitle("ทักษะ", ui.overall?.let { "ภาพรวม: $it" } ?: "ยังไม่ได้วัด") {
+        LargeTitle("ทักษะ", "วัดจากแบบทดสอบเท่านั้น ไม่ใช่เวลาที่ฝึก") {
             MidiPill(onOpenMidi)
             IconButton(onClick = onOpenSettings) {
                 Icon(painterResource(R.drawable.ic_settings), contentDescription = "ตั้งค่า", tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
             }
         }
         if (!ui.loaded) return@Page
-        Column(Modifier.padding(horizontal = PageMargin)) {
-            Spacer(Modifier.height(12.dp))
-            Group {
-                GroupRow("พัฒนาการ", subtitle = "ระดับย้อนหลัง เวลาฝึก หู และสิ่งที่ควรแก้", onClick = { onOpen(Open.Progress) })
-                GroupDivider()
-                GroupRow("เป้าหมาย: เพลงไอดอล", subtitle = "แต่ละเพลงต้องการอะไร ยังขาดอะไร", onClick = { onOpen(Open.Goal) })
-                GroupDivider()
-                GroupRow("สอบเกรด", subtitle = "Initial ถึงเกรด 5 แบบ ABRSM มีส่วนเพลงป็อป เต็ม 150 คะแนน", onClick = { onOpen(Open.Exams) })
-            }
-            Spacer(Modifier.height(20.dp))
+        Column(Modifier.padding(horizontal = PageMargin), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            Spacer(Modifier.height(0.dp))
+            OverallCard(ui, onOpen)
             Group {
                 ui.statuses.forEachIndexed { i, s ->
-                    if (i > 0) GroupDivider()
-                    GroupRow(
-                        s.skill.title,
-                        subtitle = statusLine(s),
-                        onClick = { onOpen(Open.Skill(s.skill)) },
-                        trailing = {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                LevelBars(s.level, s.maxLevel, width = 7.dp)
-                                Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.Dim, modifier = Modifier.size(16.dp))
-                            }
-                        },
-                    )
+                    if (i > 0) GroupDivider(indent = 72.dp)
+                    SkillRow(s, onClick = { onOpen(Open.Skill(s.skill)) })
                 }
             }
-            GroupFooter(
-                "ระดับได้จากแบบทดสอบสั้นที่มีเกณฑ์ตายตัวเท่านั้น เวลาที่ฝึกหรือขั้นที่ผ่านไม่ทำให้ระดับขึ้น " +
-                    "ถ้าทดสอบระดับที่ถืออยู่ไม่ผ่านสองครั้งติด ระดับจะลดลง ภาพรวมเทียบกับระดับในแอพนี้ ไม่ใช่เกรดสอบดนตรี",
-            )
-
-            GroupHeader("ฝึกเอง")
-            val sight = ui.statuses.firstOrNull { it.skill == SkillId.SIGHT }?.level ?: 0
-            Group {
-                GroupRow("ขั้นหลัก", subtitle = "บทเรียนทีละขั้น: อ่านโน้ต จังหวะ นิ้ว เพลงสั้น", onClick = { onOpen(Open.Ladder) })
-                GroupDivider()
-                GroupRow("ฝึกอ่านโน้ต", subtitle = "ทีละตัวหรือทำนอง · ใช้มือถือหรือ MIDI", onClick = { onOpen(Open.Reading) })
-                GroupDivider()
-                GroupRow("ทวนโน้ตและคีย์", subtitle = "ตัวที่ถึงกำหนดทวน", onClick = { onOpen(Open.Review) })
-                GroupDivider()
-                GroupRow("อ่านโน้ตใหม่", subtitle = "โน้ตที่ไม่เคยเห็น เล่นครั้งแรก", onClick = { onOpen(Open.Sight(sight.coerceIn(1, 5))) })
-                GroupDivider()
-                GroupRow("ฝึกหู", subtitle = "โน้ต ทำนอง คอร์ด ทางเดินคอร์ด เพื่อแกะเพลงเอง", onClick = { onOpen(Open.EarHome) })
-                GroupDivider()
-                GroupRow("คอร์ด", subtitle = "กดคอร์ด เปลี่ยนคอร์ด และวิธีจับ", onClick = { onOpen(Open.ChordHome) })
-                GroupDivider()
-                GroupRow("เครื่องเคาะจังหวะ", onClick = { onOpen(Open.Metronome) })
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SmallCard("พัฒนาการ", "ระดับย้อนหลัง เวลาฝึก", Modifier.weight(1f).fillMaxHeight()) { onOpen(Open.Progress) }
+                SmallCard("ผลสอบเดิม", "สอบเกรดแบบ ABRSM", Modifier.weight(1f).fillMaxHeight()) { onOpen(Open.Exams) }
             }
-            GroupFooter("ฝึกส่วนไหนก็นับเวลาเข้าแผนวันนี้")
-            Spacer(Modifier.height(40.dp))
+
+            Column {
+                GroupHeader("ฝึกเอง")
+                val sight = ui.statuses.firstOrNull { it.skill == SkillId.SIGHT }?.level ?: 0
+                Group {
+                    GroupRow("ขั้นหลัก", subtitle = "บทเรียนทีละขั้น: อ่านโน้ต จังหวะ นิ้ว เพลงสั้น", onClick = { onOpen(Open.Ladder) })
+                    GroupDivider()
+                    GroupRow("ฝึกอ่านโน้ต", subtitle = "ทีละตัวหรือทำนอง · ใช้มือถือหรือ MIDI", onClick = { onOpen(Open.Reading) })
+                    GroupDivider()
+                    GroupRow("ทวนโน้ตและคีย์", subtitle = "ตัวที่ถึงกำหนดทวน", onClick = { onOpen(Open.Review) })
+                    GroupDivider()
+                    GroupRow("อ่านโน้ตใหม่", subtitle = "โน้ตที่ไม่เคยเห็น เล่นครั้งแรก", onClick = { onOpen(Open.Sight(sight.coerceIn(1, 5))) })
+                    GroupDivider()
+                    GroupRow("ฝึกหู", subtitle = "โน้ต ทำนอง คอร์ด ทางเดินคอร์ด เพื่อแกะเพลงเอง", onClick = { onOpen(Open.EarHome) })
+                    GroupDivider()
+                    GroupRow("คอร์ด", subtitle = "กดคอร์ด เปลี่ยนคอร์ด และวิธีจับ", onClick = { onOpen(Open.ChordHome) })
+                    GroupDivider()
+                    GroupRow("เครื่องเคาะจังหวะ", onClick = { onOpen(Open.Metronome) })
+                    GroupDivider()
+                    GroupRow("เป้าหมาย: เพลงไอดอล", subtitle = "แต่ละเพลงต้องการอะไร ยังขาดอะไร", onClick = { onOpen(Open.Goal) })
+                }
+                GroupFooter(
+                    "ฝึกส่วนไหนก็นับเวลาเข้าแผนวันนี้ ระดับขึ้นจากแบบทดสอบสั้นที่มีเกณฑ์ตายตัวเท่านั้น " +
+                        "ถ้าทดสอบระดับที่ถืออยู่ไม่ผ่านสองครั้งติด ระดับจะลดลง",
+                )
+            }
+            Spacer(Modifier.height(20.dp))
         }
     }
+}
+
+/** The overview card: a ring of skills measured, the last 30 days of tests, and the one test to take next. */
+@Composable
+private fun OverallCard(ui: SkillsUi, onOpen: (Open) -> Unit) {
+    val today = LocalDate.now()
+    val measured = ui.statuses.count { it.lastTested != null }
+    val total = ui.statuses.size
+    val month = ui.records.filter { r -> runCatching { LocalDate.parse(r.date) >= today.minusDays(30) }.getOrDefault(false) }
+    val next = ui.statuses.filter { it.nextTest != null && !it.lockedToday }.let { open -> open.firstOrNull { it.due } ?: open.firstOrNull() }
+    PageCard {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            CountRing(measured, total)
+            Column(Modifier.weight(1f)) {
+                Text("ภาพรวม", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
+                Text("วัดแล้ว $measured จาก $total ทักษะ", fontSize = 19.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                Text(
+                    if (month.isEmpty()) "30 วันล่าสุดยังไม่ได้ทดสอบ" else "30 วันล่าสุด: ทดสอบ ${month.size} ครั้ง ผ่าน ${month.count { it.passed }} ครั้ง",
+                    fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted,
+                )
+                ui.overall?.let { Text("ระดับรวม: $it", fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted) }
+            }
+        }
+        if (next != null) {
+            val level = next.nextTest!!
+            val book = SkillBook.level(next.skill, level)
+            Row(
+                Modifier.padding(top = 18.dp).fillMaxWidth().clip(RoundedCornerShape(Tokens.Radius.box)).background(Tokens.Palette.Paper)
+                    .padding(start = 16.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("ทดสอบถัดไป", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
+                    Text("${next.skill.title} · ระดับ $level", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                }
+                PrimaryButton("ทดสอบ", onClick = { onOpen(Open.Check(SkillBook.key(next.skill, level), book.run)) }, modifier = Modifier.width(112.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CountRing(count: Int, total: Int, size: Dp = 64.dp) {
+    val track = Tokens.Palette.AccentSoft
+    val accent = Tokens.Palette.Accent
+    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(size)) {
+            val stroke = 6.dp.toPx()
+            val inset = stroke / 2
+            val arc = androidx.compose.ui.geometry.Size(this.size.width - stroke, this.size.height - stroke)
+            val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
+            drawArc(track, 0f, 360f, useCenter = false, topLeft = topLeft, size = arc, style = Stroke(stroke))
+            if (total > 0 && count > 0) drawArc(accent, -90f, 360f * count / total, useCenter = false, topLeft = topLeft, size = arc, style = Stroke(stroke, cap = StrokeCap.Round))
+        }
+        Text("$count/$total", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+    }
+}
+
+/** One skill in the list: its pastel icon, its level as bars in its colour, and the level or that a test is due. */
+@Composable
+private fun SkillRow(s: SkillStatus, onClick: () -> Unit) {
+    val (icon, color) = look(s.skill)
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        SkillIcon(icon, color, size = 42.dp, filled = true)
+        Column(Modifier.weight(1f)) {
+            Text(s.skill.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+            if (s.lastTested == null) {
+                Text("ยังไม่ได้วัด", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
+            } else {
+                LevelBars(s.level, s.maxLevel, width = 20.dp, color = color.ink, gap = 4.dp, modifier = Modifier.padding(top = 6.dp))
+            }
+        }
+        when {
+            s.lastTested != null && s.due && !s.lockedToday -> Pill("ถึงเวลาทดสอบ")
+            s.lastTested != null -> Text("ระดับ ${s.level}", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+            else -> Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.Dim, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun SmallCard(title: String, subtitle: String, modifier: Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(Tokens.Radius.cardSmall)
+    Column(
+        modifier.softShadow(shape, small = true).clip(shape).background(Tokens.Palette.Group).clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+    ) {
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+        Text(subtitle, fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 2.dp))
+    }
+}
+
+/** The icon and pastel of each skill (Design J). */
+internal fun look(skill: SkillId): Pair<Int, Tokens.SkillColor> = when (skill) {
+    SkillId.KEYS -> R.drawable.ic_nav_piano to Tokens.Skill.Keys
+    SkillId.NOTES -> R.drawable.ic_skill_staff to Tokens.Skill.Reading
+    SkillId.RHYTHM -> R.drawable.ic_skill_note to Tokens.Skill.Rhythm
+    SkillId.SIGHT -> R.drawable.ic_skill_note to Tokens.Skill.Reading
+    SkillId.TECH -> R.drawable.ic_skill_hand to Tokens.Skill.Chords
+    SkillId.EAR -> R.drawable.ic_skill_ear to Tokens.Skill.Ear
+    SkillId.CHORDS -> R.drawable.ic_nav_piano to Tokens.Skill.Chords
 }
 
 /**
@@ -226,13 +337,6 @@ private fun Page(content: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth()) { content() }
     }
-}
-
-private fun statusLine(s: SkillStatus): String {
-    val tested = s.lastTested ?: return "ยังไม่ได้วัด"
-    val parts = mutableListOf("ระดับ ${s.level} จาก ${s.maxLevel}", "ทดสอบ${SkillsViewModel.ago(tested)}")
-    if (s.due) parts += "ถึงเวลาทดสอบ"
-    return parts.joinToString(" · ")
 }
 
 /** Where to practise a skill between tests. */

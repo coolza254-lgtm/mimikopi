@@ -189,19 +189,20 @@ fun TouchKeyboardSurface(range: IntRange, marked: Set<Int>, showNames: Boolean, 
         return KeyboardLayout(range.first, range.last, w / whites, h).also { cached[0] = it }
     }
 
-    val caseShape = RoundedCornerShape(28.dp)
+    val caseShape = RoundedCornerShape(20.dp)
     val density = LocalDensity.current
     val side = with(density) { 6.dp.toPx() }
     val top = with(density) { 10.dp.toPx() }
     Box(
-        modifier.shadow(Tokens.Elevation.keyboard, caseShape, ambientColor = Tokens.Elevation.tint, spotColor = Tokens.Elevation.tint)
+        // Touches on the case (its rounded corners too, so before the clip) count as the nearest key, so the edge keys
+        // are as easy to hit as the rest.
+        modifier.touchKeys(range, { x, y, w, h ->
+            val kw = w - 2 * side
+            val kh = h - top - side
+            layoutFor(kw, kh).hitTest((x - side).coerceIn(0f, kw - 1f), (y - top).coerceIn(0f, kh - 1f))
+        }, play)
+            .shadow(Tokens.Elevation.keyboard, caseShape, ambientColor = Tokens.Elevation.tint, spotColor = Tokens.Elevation.tint)
             .clip(caseShape).background(Tokens.Piano.Case)
-            // Touches on the case count as the nearest key, so the edge keys are as easy to hit as the rest.
-            .touchKeys(range, { x, y, w, h ->
-                val kw = w - 2 * side
-                val kh = h - top - side
-                layoutFor(kw, kh).hitTest((x - side).coerceIn(0f, kw - 1f), (y - top).coerceIn(0f, kh - 1f))
-            }, play)
             .padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp),
     ) {
         // The felt strip above the keys.

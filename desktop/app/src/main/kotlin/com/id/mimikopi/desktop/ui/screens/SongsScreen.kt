@@ -43,7 +43,7 @@ fun SongsScreen() {
         LargeTitle("เพลง", "${app.services.pieces.pieces.size} เพลงในคลัง · เป้าหมาย: piano solo เพลง Hello! Project")
         PageCard(title = "เพลงส่วนตัว · ฝึกจำจากวิดีโอ") {
             Text("แบ่งวลีจากลิงก์วิดีโอ ลองเล่นเองโดยไม่ดู จดจุดติด แล้วทวนข้ามวัน · ประเมินเอง · เก็บในเครื่องนี้เท่านั้น", color = Tokens.Palette.InkMuted)
-            TextButton(onClick = { app.nav.open(Screen.Recall) }) { Text("เปิดเพลงส่วนตัว") }
+            TextButton(onClick = { app.nav.open(Screen.Recall()) }) { Text("เปิดเพลงส่วนตัว") }
         }
         PageCard(title = "คลังเพลง · ง่ายไปยาก") {
             Text("เริ่มทีละมือในโหมดรอ แล้วค่อยรวมมือและเล่นตามจังหวะ · ผ่านเมื่อเล่นสะอาดใน 2 วันที่ต่างกัน", color = Tokens.Palette.InkMuted)

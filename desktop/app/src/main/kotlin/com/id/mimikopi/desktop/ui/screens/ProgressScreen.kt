@@ -131,7 +131,8 @@ fun ProgressScreen() {
         GroupHeader("หู: ถูกครั้งแรกต่อสัปดาห์")
         Group {
             Column(Modifier.padding(16.dp)) {
-                BarChart(earWeeks.map { it.second?.toFloat() }, listOfNotNull(earWeeks.firstOrNull()?.first?.let(::shortDate), "สัปดาห์นี้"))
+                BarChart(earWeeks.map { it.second?.toFloat() }, listOfNotNull(earWeeks.firstOrNull()?.first?.let(::shortDate), "สัปดาห์นี้"),
+                    steps = listOf(Tokens.Skill.Ear.fill, androidx.compose.ui.graphics.Color(0xFFEBCFAE), androidx.compose.ui.graphics.Color(0xFFE2BA8C), Tokens.Skill.Ear.ink))
                 val heard = earWeeks.mapNotNull { it.second }
                 Text(if (heard.isEmpty()) "ยังไม่ได้ฝึกหูในช่วงนี้" else "ล่าสุด ${(heard.last() * 100).toInt()}% · ฝึก ${heard.size} สัปดาห์จาก 12",
                     fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
@@ -194,7 +195,7 @@ private fun SummaryTile(title: String, value: String, delta: Pair<String, Boolea
         Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted)
         Text(value, fontSize = 32.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
         Text(delta?.first ?: "เท่าเดิม", fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            color = when (delta?.second) { true -> Tokens.Palette.Correct; false -> Tokens.Palette.Timing; null -> Tokens.Palette.InkMuted })
+            color = when (delta?.second) { true -> Tokens.Palette.Accent; false -> Tokens.Palette.Timing; null -> Tokens.Palette.InkMuted })
     }
 }
 

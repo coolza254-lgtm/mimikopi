@@ -1,6 +1,16 @@
 package com.id.mimikopi.desktop.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
@@ -68,17 +78,24 @@ fun PianoKeys(
     val measurer = rememberTextMeasurer()
     val key by rememberUpdatedState(onKey)
     val holding = remember { HashMap<Long, Int>() }
-    Canvas(
+    val caseShape = RoundedCornerShape(20.dp)
+    Box(
+        // Touches on the case (its rounded corners too, so before the clip) count as the nearest key.
         modifier.fillMaxWidth().height(height).pointerInput(range) {
+            val side = 6.dp.toPx()
+            val top = 10.dp.toPx()
             awaitPointerEventScope {
                 while (true) {
                     val event = awaitPointerEvent()
-                    val g = KeyGeometry(range, size.width.toFloat(), size.height.toFloat())
+                    val kw = size.width - 2 * side
+                    val kh = size.height - top - side
+                    val g = KeyGeometry(range, kw, kh)
+                    fun at(p: Offset) = g.noteAt((p.x - side).coerceIn(0f, kw - 1f), (p.y - top).coerceIn(0f, kh - 1f))
                     for (c in event.changes) {
                         val id = c.id.value
                         when {
                             event.type == PointerEventType.Press || (c.pressed && !c.previousPressed) -> {
-                                g.noteAt(c.position.x, c.position.y)?.let { n -> holding[id] = n; key(n, true) }
+                                at(c.position)?.let { n -> holding[id] = n; key(n, true) }
                                 c.consume()
                             }
                             !c.pressed && c.previousPressed -> {
@@ -87,7 +104,7 @@ fun PianoKeys(
                             }
                             c.pressed -> {
                                 // Sliding along the keys moves the note (a glissando), like a real keyboard.
-                                val n = g.noteAt(c.position.x, c.position.y)
+                                val n = at(c.position)
                                 val old = holding[id]
                                 if (n != null && n != old) {
                                     old?.let { key(it, false) }
@@ -99,39 +116,51 @@ fun PianoKeys(
                     }
                 }
             }
-        },
-    ) {
-        val g = KeyGeometry(range, size.width, size.height)
-        // Keys look like keys in both looks (as on the phone): white and black, pressed ones grey.
-        val whiteKey = if (Tokens.dark) Color(0xFFE6E6E6) else Color(0xFFFFFFFF)
-        val keyText = Color(0xFF5E5E5E)
-        val labelStyle = TextStyle(fontSize = (g.whiteW * 0.28f).coerceIn(9f, 16f).toSp())
-        for (n in g.whites) {
-            val x = g.whiteX(n)
-            val on = n in pressed
-            val mark = n in marked
-            drawRoundRect(if (on) Color(0xFF8C8C8C) else if (mark) Color(0xFFCFCFCF) else whiteKey, Offset(x + 1f, 0f), Size(g.whiteW - 2f, size.height), CornerRadius(6f, 6f))
-            drawRoundRect(if (mark) Color(0xFF000000) else Color(0xFF9E9E9E), Offset(x + 1f, 0f), Size(g.whiteW - 2f, size.height), CornerRadius(6f, 6f), style = Stroke(if (mark) 2f else 1f))
-            val text = buildList {
-                labels?.let { add(SpelledPitch.fromMidiSharp(n).name(it)) }
-                computerKeysLowC?.let { ComputerKeyboard.labelFor(n, it)?.let(::add) }
-            }.joinToString("\n")
-            if (text.isNotEmpty()) {
-                val t = measurer.measure(text, labelStyle)
-                drawText(t, color = if (on) Color.White else keyText, topLeft = Offset(x + (g.whiteW - t.size.width) / 2f, size.height - t.size.height - 6f))
-            }
-            if (n == 60) drawCircle(keyText, radius = 3f, center = Offset(x + g.whiteW / 2f, size.height * 0.68f))
         }
-        for (n in range) {
-            if (n % 12 !in BLACK || n - 1 !in range) continue
-            val x = g.blackX(n)
-            val on = n in pressed
-            val mark = n in marked
-            drawRoundRect(if (on) Color(0xFF7A7A7A) else Color(0xFF151515), Offset(x, 0f), Size(g.blackW, g.blackH), CornerRadius(4f, 4f))
-            if (mark && !on) drawRoundRect(Color.White, Offset(x + 3f, 3f), Size(g.blackW - 6f, g.blackH - 6f), CornerRadius(3f, 3f), style = Stroke(2f))
-            computerKeysLowC?.let { ComputerKeyboard.labelFor(n, it) }?.let { label ->
-                val t = measurer.measure(label, labelStyle)
-                drawText(t, color = Color.White, topLeft = Offset(x + (g.blackW - t.size.width) / 2f, g.blackH - t.size.height - 4f))
+            .shadow(Tokens.Elevation.keyboard, caseShape, ambientColor = Tokens.Elevation.tint, spotColor = Tokens.Elevation.tint)
+            .clip(caseShape).background(Tokens.Piano.Case).padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp),
+    ) {
+        // The felt strip above the keys.
+        Box(Modifier.align(Alignment.TopCenter).offset(y = (-6).dp).fillMaxWidth().padding(horizontal = 18.dp).height(3.dp)
+            .clip(RoundedCornerShape(2.dp)).background(Tokens.Piano.Felt))
+        Canvas(Modifier.fillMaxSize()) {
+            val g = KeyGeometry(range, size.width, size.height)
+            // Design J keys (as on the phone): white keys fading at the bottom, graded black keys, held keys in the pinks.
+            val white = Brush.verticalGradient(0.75f to Tokens.Piano.WhiteTop, 1f to Tokens.Piano.WhiteBottom)
+            val black = Brush.verticalGradient(listOf(Tokens.Piano.BlackTop, Tokens.Piano.BlackBottom))
+            val keyText = Tokens.Palette.InkMuted
+            val labelStyle = TextStyle(fontSize = (g.whiteW * 0.28f).coerceIn(9f, 16f).toSp())
+            for (n in g.whites) {
+                val x = g.whiteX(n)
+                val on = n in pressed
+                val mark = n in marked
+                val r = CornerRadius(g.whiteW * 0.14f)
+                if (on) drawRoundRect(Tokens.Palette.AccentSoft, Offset(x + 1.5f, 0f), Size(g.whiteW - 3f, size.height), r)
+                else drawRoundRect(white, Offset(x + 1.5f, 0f), Size(g.whiteW - 3f, size.height), r)
+                if (mark) drawRoundRect(Tokens.Palette.Accent, Offset(x + 1.5f, 0f), Size(g.whiteW - 3f, size.height), r, style = Stroke(4f))
+                val text = buildList {
+                    labels?.let { add(SpelledPitch.fromMidiSharp(n).name(it)) }
+                    computerKeysLowC?.let { ComputerKeyboard.labelFor(n, it)?.let(::add) }
+                }.joinToString("\n")
+                if (text.isNotEmpty()) {
+                    val t = measurer.measure(text, labelStyle)
+                    drawText(t, color = if (on || mark) Tokens.Palette.AccentDeep else keyText, topLeft = Offset(x + (g.whiteW - t.size.width) / 2f, size.height - t.size.height - 6f))
+                }
+                if (n == 60) drawCircle(keyText, radius = 3f, center = Offset(x + g.whiteW / 2f, size.height * 0.68f))
+            }
+            for (n in range) {
+                if (n % 12 !in BLACK || n - 1 !in range) continue
+                val x = g.blackX(n)
+                val on = n in pressed
+                val mark = n in marked
+                val r = CornerRadius(g.blackW * 0.22f)
+                if (on) drawRoundRect(Tokens.Palette.AccentDeep, Offset(x, 0f), Size(g.blackW, g.blackH), r)
+                else drawRoundRect(black, Offset(x, 0f), Size(g.blackW, g.blackH), r)
+                if (mark && !on) drawRoundRect(Tokens.Palette.AccentMid, Offset(x + 3f, 3f), Size(g.blackW - 6f, g.blackH - 6f), CornerRadius(g.blackW * 0.18f), style = Stroke(2.5f))
+                computerKeysLowC?.let { ComputerKeyboard.labelFor(n, it) }?.let { label ->
+                    val t = measurer.measure(label, labelStyle)
+                    drawText(t, color = Color.White, topLeft = Offset(x + (g.blackW - t.size.width) / 2f, g.blackH - t.size.height - 4f))
+                }
             }
         }
     }

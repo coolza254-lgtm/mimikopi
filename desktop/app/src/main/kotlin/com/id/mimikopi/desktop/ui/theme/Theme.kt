@@ -23,7 +23,7 @@ private fun colors(dark: Boolean): ColorScheme {
         tertiary = p.Accent, onTertiary = p.OnAccent,
         background = p.Paper, onBackground = p.Ink, surface = p.Paper, onSurface = p.Ink,
         surfaceContainer = p.Paper, surfaceContainerLow = p.Paper, surfaceContainerLowest = p.Paper,
-        surfaceContainerHigh = p.Raised, surfaceContainerHighest = p.Raised,
+        surfaceContainerHigh = p.Raised, surfaceContainerHighest = p.Raised, surfaceBright = p.Group,
         surfaceVariant = p.Paper, onSurfaceVariant = p.InkMuted,
         outline = p.Line, outlineVariant = p.Hair, error = p.Wrong, onError = p.OnAccent,
     )
@@ -33,17 +33,18 @@ private fun colors(dark: Boolean): ColorScheme {
 // Sizes are in sp so they follow the user's font-size setting. Thai needs generous line height.
 private val body = Tokens.Fonts.body
 private val typography = Typography(
-    headlineSmall = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 24.sp, lineHeight = 34.sp, fontWeight = FontWeight.Medium),
-    headlineMedium = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 28.sp, lineHeight = 40.sp, fontWeight = FontWeight.SemiBold),
-    titleLarge = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 22.sp, lineHeight = 32.sp, fontWeight = FontWeight.SemiBold),
-    titleMedium = TextStyle(fontFamily = body, fontSize = 17.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold),
+    displaySmall = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold),
+    headlineSmall = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 25.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold),
+    headlineMedium = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 28.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold),
+    titleLarge = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 20.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold),
+    titleMedium = TextStyle(fontFamily = body, fontSize = 17.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold),
     titleSmall = TextStyle(fontFamily = body, fontSize = 15.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
     bodyLarge = TextStyle(fontFamily = body, fontSize = 16.sp, lineHeight = 26.sp),
     bodyMedium = TextStyle(fontFamily = body, fontSize = 14.sp, lineHeight = 22.sp),
     bodySmall = TextStyle(fontFamily = body, fontSize = 12.sp, lineHeight = 18.sp),
     labelLarge = TextStyle(fontFamily = body, fontSize = 15.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
     labelMedium = TextStyle(fontFamily = body, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold),
-    labelSmall = TextStyle(fontFamily = body, fontSize = 11.sp, lineHeight = 14.sp),
+    labelSmall = TextStyle(fontFamily = body, fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.SemiBold),
 )
 
 private val shapes = Shapes(

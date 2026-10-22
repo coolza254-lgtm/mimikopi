@@ -65,7 +65,7 @@ fun openLink(url: String) {
  * stuck and review across days. Self-assessed (no reference notes judge these songs); stored only on this computer.
  */
 @Composable
-fun RecallScreen() {
+fun RecallScreen(initialSong: String? = null, initialHand: String? = null) {
     val app = LocalApp.current
     val s = app.services
     val scope = rememberCoroutineScope()
@@ -77,10 +77,10 @@ fun RecallScreen() {
     val pressed by s.hub.pressed.collectAsState()
     val ports by s.midi.ports.collectAsState()
     val lowC by s.keysLowC.collectAsState()
-    var songId by remember { mutableStateOf<String?>(null) }
+    var songId by remember { mutableStateOf(initialSong) }
     var form by remember { mutableStateOf<String?>(null) }
     var phraseId by remember { mutableStateOf<String?>(null) }
-    var hand by remember { mutableStateOf(RecallHand.RIGHT) }
+    var hand by remember { mutableStateOf(initialHand?.let { h -> RecallHand.entries.firstOrNull { it.name == h } } ?: RecallHand.RIGHT) }
     var deleting by remember { mutableStateOf(false) }
     val song = songs.firstOrNull { it.id == songId }
     val phrase = song?.phrases?.firstOrNull { it.id == run?.phraseId }

@@ -26,7 +26,8 @@ sealed interface Screen {
     data class Lesson(val id: String) : Screen
     data class Drill(val source: DrillSource, val via: String? = null) : Screen
     data class Reader(val args: ReaderArgs) : Screen
-    data object Recall : Screen
+    /** Private songs, opened on [song] and [hand] (a RecallHand name) when given. */
+    data class Recall(val song: String? = null, val hand: String? = null) : Screen
     data object Metronome : Screen
     data object Chords : Screen
     data class Skill(val id: com.id.mimikopi.core.progress.SkillId) : Screen

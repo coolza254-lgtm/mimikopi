@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,10 +36,14 @@ import androidx.compose.ui.unit.sp
 import com.id.mimikopi.desktop.ui.theme.Tokens
 
 /*
- * The calm building blocks of the pages, the same as the phone's (Android ui/components/Design.kt): large titles,
- * grouped rounded blocks of rows, one filled pill button per page, a segmented control. Black and white; size and
- * weight make the hierarchy. Icons are plain characters so nothing depends on Android drawables.
+ * The building blocks of the pages, the same as the phone's (Android ui/components/Design.kt), Design J: large
+ * titles, white rounded cards lifted by a soft shadow, one dusty-rose capsule button per page, a segmented control on
+ * a track rail. Icons are plain characters so nothing depends on Android drawables.
  */
+
+/** The soft rose-tinted shadow under cards (Design J uses shadows, not borders). */
+fun Modifier.softShadow(shape: androidx.compose.ui.graphics.Shape, small: Boolean = false): Modifier =
+    shadow(if (small) Tokens.Elevation.cardSmall else Tokens.Elevation.card, shape, ambientColor = Tokens.Elevation.tint, spotColor = Tokens.Elevation.tint)
 
 /** Reading width of the text pages; music pages use the whole window. */
 val PageMaxWidth: Dp = 760.dp
@@ -50,8 +55,8 @@ fun Page(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> U
     Box(modifier.fillMaxSize().background(Tokens.Palette.Paper), contentAlignment = Alignment.TopCenter) {
         Column(
             Modifier.widthIn(max = PageMaxWidth).fillMaxWidth().verticalScroll(rememberScrollState())
-                .padding(horizontal = PageMargin, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = PageMargin, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             content = content,
         )
     }
@@ -70,8 +75,8 @@ fun GroupFooter(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun Group(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Tokens.Palette.Group)
-        .border(1.dp, Tokens.Palette.Hair, RoundedCornerShape(20.dp)), content = content)
+    val shape = RoundedCornerShape(Tokens.Radius.cardSmall)
+    Column(modifier.fillMaxWidth().softShadow(shape, small = true).clip(shape).background(Tokens.Palette.Group), content = content)
 }
 
 @Composable
@@ -97,7 +102,7 @@ fun GroupRow(
     ) {
         leading?.invoke()
         Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 16.sp, lineHeight = 22.sp, color = titleColor)
+            Text(title, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold, color = titleColor)
             subtitle?.let { Text(it, fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 2.dp)) }
         }
         value?.let { Text(it, fontSize = 15.sp, color = Tokens.Palette.InkMuted, textAlign = TextAlign.End) }
@@ -109,45 +114,46 @@ fun GroupRow(
 @Composable
 fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Box(
-        modifier.fillMaxWidth().heightIn(min = 54.dp).clip(RoundedCornerShape(27.dp))
-            .background(if (enabled) Tokens.Palette.Accent else Tokens.Palette.Line)
+        modifier.fillMaxWidth().heightIn(min = 54.dp).clip(RoundedCornerShape(Tokens.Radius.button))
+            .background(if (enabled) Tokens.Palette.Accent else Tokens.Palette.Track)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (enabled) Tokens.Palette.OnAccent else Tokens.Palette.InkMuted)
+        Text(text, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = if (enabled) Tokens.Palette.OnAccent else Tokens.Palette.InkMuted)
     }
 }
 
 @Composable
 fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Box(
-        // The outline keeps it visible inside a Group card, which has the same fill.
-        modifier.heightIn(min = 44.dp).clip(RoundedCornerShape(22.dp)).background(Tokens.Palette.Group)
-            .border(1.dp, Tokens.Palette.Line, RoundedCornerShape(22.dp))
+        // The soft shadow keeps it visible inside a white card.
+        modifier.heightIn(min = 44.dp).softShadow(RoundedCornerShape(22.dp), small = true).clip(RoundedCornerShape(22.dp)).background(Tokens.Palette.Group)
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(text, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (enabled) Tokens.Palette.Ink else Tokens.Palette.Dim) }
+    ) { Text(text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = if (enabled) Tokens.Palette.Ink else Tokens.Palette.Dim) }
 }
 
 /** A large, always-visible stop button for music pages (Space / Esc do the same). */
 @Composable
 fun StopButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
-        modifier.heightIn(min = 48.dp).widthIn(min = 120.dp).clip(RoundedCornerShape(24.dp)).background(Tokens.Palette.Ink)
+        modifier.heightIn(min = 48.dp).widthIn(min = 120.dp).clip(RoundedCornerShape(24.dp)).background(Tokens.Palette.Accent)
             .clickable(onClick = onClick).padding(horizontal = 22.dp),
         contentAlignment = Alignment.Center,
-    ) { Text("■  หยุด (Space)", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.OnInk) }
+    ) { Text("❚❚  หยุด (Space)", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.OnAccent) }
 }
 
 @Composable
 fun <T> Segmented(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    Row(modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Tokens.Palette.Hair).padding(2.dp)) {
+    // Design J: a track rail, the chosen option a white capsule with a small shadow.
+    Row(modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Tokens.Palette.Track).padding(3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         options.forEach { o ->
             val on = o == selected
+            val shape = RoundedCornerShape(19.dp)
             Box(
-                Modifier.weight(1f).heightIn(min = 36.dp).clip(RoundedCornerShape(8.dp))
-                    .then(if (on) Modifier.background(Tokens.Palette.Group).border(1.dp, Tokens.Palette.Line, RoundedCornerShape(8.dp)) else Modifier)
+                Modifier.weight(1f).heightIn(min = 38.dp)
+                    .then(if (on) Modifier.shadow(2.dp, shape, ambientColor = Tokens.Elevation.tint, spotColor = Tokens.Elevation.tint).clip(shape).background(Tokens.Palette.Group) else Modifier.clip(shape))
                     .then(if (enabled) Modifier.clickable { onSelect(o) } else Modifier),
                 contentAlignment = Alignment.Center,
             ) {
@@ -159,9 +165,9 @@ fun <T> Segmented(options: List<T>, selected: T, label: (T) -> String, onSelect:
 }
 
 @Composable
-fun LevelBars(level: Int, max: Int, modifier: Modifier = Modifier, width: Dp = 14.dp) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-        repeat(max) { i -> Box(Modifier.width(width).height(4.dp).clip(RoundedCornerShape(2.dp)).background(if (i < level) Tokens.Palette.Accent else Tokens.Palette.Line)) }
+fun LevelBars(level: Int, max: Int, modifier: Modifier = Modifier, width: Dp = 14.dp, color: Color = Tokens.Palette.Accent) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        repeat(max) { i -> Box(Modifier.width(width).height(6.dp).clip(RoundedCornerShape(3.dp)).background(if (i < level) color else Tokens.Palette.Track)) }
     }
 }
 
@@ -170,20 +176,20 @@ fun StepMark(done: Boolean, current: Boolean) {
     Box(
         Modifier.size(24.dp).then(
             when {
-                done -> Modifier.background(Tokens.Palette.Correct, CircleShape)
+                done -> Modifier.background(Tokens.Palette.Accent, CircleShape)
                 current -> Modifier.border(2.dp, Tokens.Palette.Accent, CircleShape)
                 else -> Modifier.border(1.5.dp, Tokens.Palette.Faint, CircleShape)
             },
         ),
         contentAlignment = Alignment.Center,
-    ) { if (done) Text("✓", fontSize = 13.sp, color = Tokens.Palette.OnInk) }
+    ) { if (done) Text("✓", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.OnAccent) }
 }
 
 /** A small rounded label ("นับผ่าน"). */
 @Composable
 fun Pill(text: String) {
-    Box(Modifier.clip(RoundedCornerShape(10.dp)).border(1.dp, Tokens.Palette.Ink, RoundedCornerShape(10.dp)).padding(horizontal = 8.dp, vertical = 2.dp)) {
-        Text(text, fontSize = 12.sp, color = Tokens.Palette.Ink)
+    Box(Modifier.clip(RoundedCornerShape(50)).background(Tokens.Palette.AccentSoft).padding(horizontal = 10.dp, vertical = 3.dp)) {
+        Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.AccentDeep)
     }
 }
 
@@ -192,13 +198,11 @@ fun Pill(text: String) {
 fun LargeTitle(title: String, subtitle: String? = null, onBack: (() -> Unit)? = null, trailing: @Composable () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
         Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (onBack != null) Box(
-                Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onBack).padding(horizontal = 6.dp, vertical = 4.dp),
-            ) { Text("‹ กลับ", fontSize = 16.sp, color = Tokens.Palette.Ink) }
+            if (onBack != null) BackCircle(onBack)
             Spacer(Modifier.weight(1f))
             trailing()
         }
-        Text(title, fontSize = 32.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+        Text(title, fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 6.dp))
         subtitle?.let { Text(it, fontSize = 15.sp, lineHeight = 20.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 2.dp)) }
     }
 }
@@ -207,11 +211,11 @@ fun LargeTitle(title: String, subtitle: String? = null, onBack: (() -> Unit)? = 
 @Composable
 fun PageCard(title: String? = null, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(Tokens.Radius.card)).border(1.dp, Tokens.Palette.Line, RoundedCornerShape(Tokens.Radius.card))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier.fillMaxWidth().softShadow(RoundedCornerShape(Tokens.Radius.card)).clip(RoundedCornerShape(Tokens.Radius.card))
+            .background(Tokens.Palette.Group).padding(horizontal = 24.dp, vertical = 22.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        title?.let { Text(it, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink) }
+        title?.let { Text(it, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink) }
         content()
     }
 }
@@ -226,5 +230,34 @@ fun StatusDot(on: Boolean, text: String, onClick: (() -> Unit)? = null) {
     ) {
         Box(Modifier.size(8.dp).then(if (on) Modifier.background(Tokens.Palette.Positive, CircleShape) else Modifier.border(1.dp, Tokens.Palette.InkMuted, CircleShape)))
         Text(text, fontSize = 13.sp, color = if (on) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
+    }
+}
+
+/** The round back button of Design J: a white 44 dp circle with a soft shadow and a chevron. */
+@Composable
+fun BackCircle(onBack: () -> Unit) {
+    Box(
+        Modifier.size(44.dp).softShadow(CircleShape, small = true).clip(CircleShape).background(Tokens.Palette.Group).clickable(onClick = onBack),
+        contentAlignment = Alignment.Center,
+    ) { Text("‹", fontSize = 26.sp, lineHeight = 26.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(bottom = 3.dp)) }
+}
+
+/** A capsule chip in a skill's pastel (or accentSoft when selected). */
+@Composable
+fun Chip(text: String, color: Tokens.SkillColor? = null, selected: Boolean = false, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    val fill = color?.fill ?: if (selected) Tokens.Palette.AccentSoft else Tokens.Palette.Track
+    val ink = color?.ink ?: if (selected) Tokens.Palette.AccentDeep else Tokens.Palette.InkMuted
+    Box(
+        modifier.heightIn(min = 34.dp).clip(RoundedCornerShape(50)).background(fill)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center,
+    ) { Text(text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ink) }
+}
+
+/** A round icon holder in a skill's colour: white on a pastel card, the pastel in a list ([filled]). */
+@Composable
+fun SkillIcon(mark: String, color: Tokens.SkillColor, size: Dp = 40.dp, filled: Boolean = false) {
+    Box(Modifier.size(size).clip(CircleShape).background(if (filled) color.fill else Tokens.Palette.Group), contentAlignment = Alignment.Center) {
+        Text(mark, fontSize = (size.value * 0.42f).sp, color = color.ink)
     }
 }

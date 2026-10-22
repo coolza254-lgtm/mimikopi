@@ -39,7 +39,8 @@ sourceSets {
 }
 
 val copySharedResources = tasks.register<Copy>("copySharedResources") {
-    from("../../app/src/main/res/font/bravura.otf")
+    // The music font and Design J's text fonts (IBM Plex Sans Thai Looped, Zen Maru Gothic kana) are the Android app's files.
+    from("../../app/src/main/res/font") { include("bravura.otf", "plex_thai_looped_*.ttf", "zen_maru_gothic_bold.ttf") }
     into(layout.buildDirectory.dir("generated/sharedResources/fonts"))
 }
 tasks.named("processResources") { dependsOn(copySharedResources) }

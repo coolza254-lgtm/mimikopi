@@ -93,6 +93,17 @@ data class PlanInput(
 object DailyPlan {
     val CHOICES = listOf(10, 20, 30, 45, 60)
 
+    /**
+     * The part judges timing today, so it needs a piano on a cable (learning-system.md 2.11): a level test that does,
+     * or the ladder when today's step does ([ladderTimed]). New reading, chords, ear practice and songs can all be
+     * done without one (wait mode, no rhythm taps), so one plan serves the phone and the PC.
+     */
+    fun needsCable(block: PlanBlock, ladderTimed: Boolean): Boolean = when (block.kind) {
+        BlockKind.CHECK -> com.id.mimikopi.core.progress.SkillBook.parseKey(block.target)?.judgesTiming == true
+        BlockKind.LADDER -> ladderTimed
+        else -> false
+    }
+
     private fun blockFor(skill: SkillId?): BlockKind? = when (skill) {
         SkillId.KEYS, SkillId.NOTES -> BlockKind.REVIEW
         SkillId.RHYTHM -> BlockKind.LADDER
@@ -205,6 +216,16 @@ object PlanContent {
             check = com.id.mimikopi.core.progress.SkillBook.dueCheck(checks, today)?.let { st -> st.nextTest?.let { com.id.mimikopi.core.progress.SkillBook.key(st.skill, it) } },
             weakest = com.id.mimikopi.core.progress.SkillBook.weakest(checks, today),
         )
+    }
+
+    /**
+     * Today's ladder step judges timing (learning-system.md 2.11): the step to confirm first, else the next to learn,
+     * has a drill in tempo or a pulse. Then the ladder part needs a piano on a cable.
+     */
+    fun ladderTimed(lessons: List<com.id.mimikopi.core.lesson.Lesson>, records: Map<String, com.id.mimikopi.core.lesson.LessonRecord>, today: java.time.LocalDate): Boolean {
+        val rules = com.id.mimikopi.core.lesson.ProgressRules
+        val step = rules.awaitingConfirmation(lessons, records, today).firstOrNull() ?: rules.nextToLearn(lessons, records) ?: return false
+        return step.drills.any { it.judgesTiming }
     }
 
     /** New reading one level below the highest reading level reached on the ladder (L1 at least), or the sight level held. */

@@ -123,7 +123,11 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(top = Tokens.Space.xs),
                         )
-                        Button(onClick = vm::start, modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.m).heightIn(min = Tokens.minTouch)) {
+                        val timed = s.type == ExerciseType.E_PULSE
+                        val cable = com.id.mimikopi.ui.components.cableConnected()
+                        if (timed && !cable) Text(com.id.mimikopi.core.input.TimingInput.NEED_CABLE, style = MaterialTheme.typography.bodyMedium,
+                            color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = Tokens.Space.s))
+                        Button(onClick = vm::start, enabled = !timed || cable, modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.m).heightIn(min = Tokens.minTouch)) {
                             Text(stringResource(R.string.drill_start))
                         }
                     }

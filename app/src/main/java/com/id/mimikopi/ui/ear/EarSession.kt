@@ -172,7 +172,14 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
                 val route = OutputRoute.current(getApplication())
                 InputSource.entries.associateWith { input -> ((cfg.latencyMs[InputConfig.latencyKey(input, route)] ?: 0.0) * 1_000_000).toLong() }
             }.getOrDefault(emptyMap())
-            _ui.value = EarUi(phase = EarPhase.LISTEN, questions = makeRound(), test = testLike, title = title, places = places(), message = _ui.value.message, paused = _ui.value.paused)
+            val noTaps = !services.hasCable()
+            val questions = if (noTaps && focus == EarKind.RHYTHM) emptyList() else makeRound(noTaps)
+            // A test or exam asks its rhythm taps too: without a cable it waits for the PC (or a cable).
+            if (noTaps && (questions.isEmpty() || questions.any { it.kind == EarKind.RHYTHM })) {
+                _ui.value = EarUi(phase = EarPhase.DONE, test = testLike, title = title, message = com.id.mimikopi.core.input.TimingInput.NEED_CABLE)
+                return@launch
+            }
+            _ui.value = EarUi(phase = EarPhase.LISTEN, questions = questions, test = testLike, title = title, places = places(), message = _ui.value.message, paused = _ui.value.paused)
             startedAt = System.currentTimeMillis()
             startIfReady()
         }
@@ -186,14 +193,15 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
         return (FunctionalEar.MAJOR + items.filter { EarCourse.kindOf(it) == EarKind.DEGREE }.map { it.substringAfter(':').toInt() }).distinct().sorted()
     }
 
-    private fun makeRound(): List<EarQuestion> {
+    /** [noTaps]: no piano on a cable, so practice leaves out rhythm taps (learning-system.md 2.11). */
+    private fun makeRound(noTaps: Boolean = !services.hasCable()): List<EarQuestion> {
         examGrade?.let { return Exams.auralRound(it, random) }
         val level = check?.level
         if (level != null) {
             val test = EarCourse.test(level) ?: return emptyList()
             return EarProgress.testRound(test, random)
         }
-        return EarProgress.round(state, System.currentTimeMillis(), random, focus)
+        return EarProgress.round(state, System.currentTimeMillis(), random, focus, without = if (noTaps) setOf(EarKind.RHYTHM) else emptySet())
     }
 
     fun onStart() {

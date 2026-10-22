@@ -68,11 +68,12 @@ object EarProgress {
     /**
      * The items of a round of [count] questions: items still being learned come up most, weak ones next, mastered ones
      * now and then (more when not heard for days), the newest stage a little more. [focus] keeps to one kind. Grouped
-     * into short runs of one kind (up to three), so each question type gets a moment before the next.
+     * into short runs of one kind (up to three), so each question type gets a moment before the next. Kinds in
+     * [without] are left out (rhythm taps when no piano is on a cable, learning-system.md 2.11).
      */
-    fun plan(state: EarState, now: Long, random: Random, count: Int = ROUND, focus: EarKind? = null): List<String> {
+    fun plan(state: EarState, now: Long, random: Random, count: Int = ROUND, focus: EarKind? = null, without: Set<EarKind> = emptySet()): List<String> {
         val stage = currentStage(state)
-        val pool = unlocked(state).filter { focus == null || EarCourse.kindOf(it) == focus }
+        val pool = unlocked(state).filter { (focus == null || EarCourse.kindOf(it) == focus) && EarCourse.kindOf(it) !in without }
         if (pool.isEmpty()) return emptyList()
         fun weight(item: String): Double {
             val s = stat(state, item)
@@ -112,10 +113,10 @@ object EarProgress {
     }
 
     /** The questions of a round (practice): each item at the current stage's keys and range. */
-    fun round(state: EarState, now: Long, random: Random, focus: EarKind? = null): List<EarQuestion> {
+    fun round(state: EarState, now: Long, random: Random, focus: EarKind? = null, without: Set<EarKind> = emptySet()): List<EarQuestion> {
         val stage = currentStage(state)
         val unlocked = unlocked(state)
-        return plan(state, now, random, focus = focus).map { item ->
+        return plan(state, now, random, focus = focus, without = without).map { item ->
             EarCourse.question(item, unlocked, stage.keys, stage.wide, stat(state, item).strength, random)
         }
     }

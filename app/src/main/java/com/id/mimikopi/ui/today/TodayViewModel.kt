@@ -55,7 +55,9 @@ sealed interface Open {
     data class ExamTake(val sitting: String, val part: String) : Open
 }
 
-data class BlockUi(val block: PlanBlock, val title: String, val detail: String, val done: Boolean, val playedSeconds: Int = 0)
+data class BlockUi(val block: PlanBlock, val title: String, val detail: String, val done: Boolean, val playedSeconds: Int = 0,
+    /** Judges timing and no piano is on a cable here: done on the PC (or with a cable) instead. */
+    val needsCable: Boolean = false)
 
 data class TodayUi(
     val loaded: Boolean = false,
@@ -80,7 +82,8 @@ data class TodayUi(
     val goalSong: String? = null,
     val goalReady: Double = 0.0,
 ) {
-    val next: BlockUi? get() = blocks.firstOrNull { !it.done }
+    /** The next part to do here: parts that need a cable wait for the PC (they still count when done there). */
+    val next: BlockUi? get() = blocks.firstOrNull { !it.done && !it.needsCable }
     val allDone: Boolean get() = blocks.isNotEmpty() && blocks.all { it.done }
 }
 
@@ -139,9 +142,12 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         val day = PracticeLog.on(log, today)
         val checks = progress.checks.value
         val reviewDue = learning.readingDueItems().size
+        val cable = services.hasCable()
+        val ladderTimed = PlanContent.ladderTimed(learning.lessons, learning.records.value, today)
         val blocks = plan.map { b ->
             val takenToday = b.target?.let { key -> SkillBook.parseKey(key)?.let { l -> checks.any { it.skill == l.skill && it.level == l.level && it.date == today.toString() } } } ?: false
-            BlockUi(b, b.kind.title, detail(b), DailyPlan.isDone(b, day, takenToday, reviewDue), day.seconds[b.kind.log] ?: 0)
+            BlockUi(b, b.kind.title, detail(b), DailyPlan.isDone(b, day, takenToday, reviewDue), day.seconds[b.kind.log] ?: 0,
+                needsCable = !cable && DailyPlan.needsCable(b, ladderTimed))
         }
         val (days, mins) = PracticeLog.week(log, today)
         val statuses = SkillId.entries.map { SkillBook.status(it, checks, today) }

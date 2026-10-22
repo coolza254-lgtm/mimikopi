@@ -46,6 +46,14 @@ fun midiConnected(): Boolean {
     return devices.any { it.ready }
 }
 
+/** True while a MIDI piano is connected by USB cable: the only input whose timing is judged (learning-system.md 2.11). */
+@Composable
+fun cableConnected(): Boolean {
+    val app = LocalContext.current.applicationContext as MimikopiApp
+    val devices by app.midiInput.devices.collectAsState()
+    return devices.any { it.ready && it.source == com.id.mimikopi.core.input.InputSource.USB_MIDI }
+}
+
 /** Two octaves from C3: the on-screen keyboard where a screen has no range of its own. */
 val DEFAULT_KEY_RANGE = 48..72
 

@@ -48,6 +48,13 @@ data class Criteria(
 data class CheckMetrics(val accuracy: Double? = null, val medianSec: Double? = null, val timing: Double? = null, val count: Int? = null)
 
 data class SkillLevel(val skill: SkillId, val level: Int, val canDo: String, val run: CheckRun, val criteria: Criteria) {
+    /** The test judges timing (a score in tempo, or ear rhythm taps), so it needs a piano on a cable. */
+    val judgesTiming: Boolean get() = when (val r = run) {
+        is CheckRun.ScoreRun -> r.drill.judgesTiming
+        is CheckRun.DrillRun -> r.drill.judgesTiming
+        is CheckRun.EarRun -> com.id.mimikopi.core.ear.EarCourse.test(level)?.items.orEmpty().any { com.id.mimikopi.core.ear.EarCourse.kindOf(it) == com.id.mimikopi.core.ear.EarKind.RHYTHM }
+    }
+
     /** The criteria in words ("ถูก ≥ 90% · เฉลี่ยข้อละ ≤ 2.5 วินาที"). */
     fun criteriaText(): String = listOfNotNull(
         criteria.minAccuracy?.let { "ถูก ≥ ${pct(it)}" },

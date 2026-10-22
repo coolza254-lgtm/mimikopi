@@ -567,6 +567,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             _ui.update { u -> u.copy(message = CLOSED_EXAM) }
             return
         }
+        if (_ui.value.options.mode == PlayMode.TEMPO && !services.hasCable()) {
+            _ui.update { it.copy(message = com.id.mimikopi.core.input.TimingInput.NEED_CABLE) }
+            return
+        }
         if (newSightLook()) return
         stoppedEarly = false
         studyInterrupted = false

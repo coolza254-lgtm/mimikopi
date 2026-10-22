@@ -28,6 +28,9 @@ class MimikopiApp : Application() {
     val inputConfig: InputConfigStore by lazy { InputConfigStore(database.settingsDao()) }
     val midiInput: MidiInputManager by lazy { MidiInputManager(this, inputHub) }
     val pianoNames: com.id.mimikopi.input.PianoNameStore by lazy { com.id.mimikopi.input.PianoNameStore(database.settingsDao()) }
+
+    /** A piano is on a USB cable now, so timing can be judged (learning-system.md 2.11). */
+    fun hasCable(): Boolean = midiInput.devices.value.any { it.ready && it.source == com.id.mimikopi.core.input.InputSource.USB_MIDI }
     /** Practice minutes per day and the level tests (Today and Skills pages). */
     val progress: com.id.mimikopi.ui.today.ProgressStore by lazy {
         com.id.mimikopi.ui.today.ProgressStore({ database.settingsDao().get(it) }, { k, v -> database.settingsDao().put(com.id.mimikopi.data.db.SettingEntity(k, v)) })

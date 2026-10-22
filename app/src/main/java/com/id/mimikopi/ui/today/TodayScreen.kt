@@ -95,6 +95,7 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
                         if (i > 0) GroupDivider(indent = 52.dp)
                         GroupRow(
                             title = b.title, subtitle = b.detail + "\n" + when {
+                                b.needsCable && !b.done -> com.id.mimikopi.core.input.TimingInput.NEED_CABLE_SHORT
                                 b.block.kind == com.id.mimikopi.core.session.BlockKind.CHECK -> if (b.done) "บันทึกผลทดสอบวันนี้แล้ว" else "จบแบบทดสอบเพื่อบันทึกผลจริง"
                                 b.block.kind == com.id.mimikopi.core.session.BlockKind.REVIEW && b.done && b.playedSeconds == 0 -> "ไม่มีข้อทวนค้าง"
                                 else -> "เล่นจริง ${practiceTime(b.playedSeconds)}"
@@ -170,6 +171,13 @@ private fun Hero(ui: TodayUi, onStart: (com.id.mimikopi.core.session.PlanBlock) 
                 Text(next.block.kind.why, fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 2.dp))
                 Spacer(Modifier.height(18.dp))
                 PrimaryButton("เริ่ม${next.title}", onClick = { onStart(next.block) })
+            } else if (!ui.allDone) {
+                // What is left judges timing: it waits for the PC (or a cable) and still counts in this plan there.
+                Text("ส่วนที่เหลือทำบนคอม", fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                Text("${ui.blocks.filter { !it.done }.joinToString { it.title }} ตัดสินจังหวะ ต้องต่อเปียโนด้วยสาย ทำเสร็จบนคอมแล้วนับในแผนเดียวกันหลังซิงค์",
+                    fontSize = 15.sp, lineHeight = 20.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
+                Spacer(Modifier.height(16.dp))
+                SecondaryButton("เล่นเปียโนอิสระ", onPiano)
             } else {
                 Text("ทำครบทุกส่วนแล้ว", fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
                 Text("วันนี้เล่นจริง ${practiceTime(ui.secondsDone)} พักได้ หรือเล่นต่ออิสระ ระดับทักษะเปลี่ยนเมื่อทำแบบทดสอบผ่านเท่านั้น", fontSize = 15.sp, lineHeight = 20.sp,

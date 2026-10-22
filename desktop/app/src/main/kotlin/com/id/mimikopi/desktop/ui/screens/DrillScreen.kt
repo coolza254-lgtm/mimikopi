@@ -160,7 +160,9 @@ private fun ReadyPanel(session: DrillSession, u: DrillUi.Ready, midi: Boolean) {
         Segmented(listOf(false, true), settings.accidentals, { if (it) "มี ♯/♭" else "ไม่มี ♯/♭" }, { session.setReadingPractice(settings.copy(accidentals = it)) }, Modifier.widthIn(max = 520.dp))
     }
     Text(if (midi) "ใช้เปียโน MIDI ตอบ · คีย์บนจอถูกซ่อน" else "ยังไม่ได้ต่อ MIDI · ตอบด้วยคีย์บนจอหรือแป้นพิมพ์", fontSize = 14.sp, color = Tokens.Palette.Dim)
-    PrimaryButton("เริ่ม (Space)", onClick = session::start, modifier = Modifier.widthIn(max = 360.dp))
+    val timed = u.type == ExerciseType.E_PULSE
+    if (timed && !midi) Text(com.id.mimikopi.core.input.TimingInput.NEED_CABLE, fontSize = 15.sp, color = Tokens.Palette.Ink, textAlign = TextAlign.Center)
+    PrimaryButton("เริ่ม (Space)", onClick = session::start, enabled = !timed || midi, modifier = Modifier.widthIn(max = 360.dp))
 }
 
 @Composable

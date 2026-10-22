@@ -338,6 +338,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     fun start() {
         if (!active || _ui.value !is DrillUi.Ready) return
         val d = drill ?: return
+        // The pulse is judged by timing: only from a piano on a cable (the screen says so and keeps Start off).
+        if ((bench == "pulse" || d.judgesTiming) && !services.hasCable()) return
         _ui.value = DrillUi.Loading
         readingTransition?.cancel()
         startedAt = System.currentTimeMillis()

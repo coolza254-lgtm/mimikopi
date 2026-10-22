@@ -43,7 +43,7 @@ class Services(
     val piano: Piano,
     val appVersion: String,
     /** Tests: no MIDI polling. */
-    startMidi: Boolean = true,
+    private val startMidi: Boolean = true,
 ) : AutoCloseable {
     val hub = InputHub(piano)
     val learning = LearningRepository(db)
@@ -82,6 +82,12 @@ class Services(
         // The installed piano sound loads in the background; the built-in tone plays until then.
         appScope.launch { samples.installed()?.let { samples.load(piano, it) } }
     }
+
+    /**
+     * A piano is on a cable (every MIDI port here is), so timing can be judged (learning-system.md 2.11). Tests
+     * without MIDI polling play the cable's part themselves.
+     */
+    fun hasCable(): Boolean = !startMidi || midi.ports.value.any { it.open }
 
     fun pianoName(reported: String): String = PianoNames.display(reported, _pianoNames.value)
 

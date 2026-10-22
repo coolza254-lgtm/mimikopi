@@ -127,7 +127,12 @@ fun TodayScreen() {
         val takenToday = b.target?.let { key -> SkillBook.parseKey(key)?.let { l -> checks.any { it.skill == l.skill && it.level == l.level && it.date == today.toString() } } } ?: false
         DailyPlan.isDone(b, day, takenToday, reviewDue)
     }
-    val current = done.indexOfFirst { !it }
+    // Parts that judge timing wait for a piano on a cable (learning-system.md 2.11).
+    val ports by s.midi.ports.collectAsState()
+    val cable = remember(ports) { s.hasCable() }
+    val ladderTimed = remember(records, today) { PlanContent.ladderTimed(s.learning.lessons, records, today) }
+    val waits = plan.map { !cable && DailyPlan.needsCable(it, ladderTimed) }
+    val current = plan.indices.firstOrNull { !done[it] && !waits[it] } ?: -1
     val week = PracticeLog.lastDays(log, today, 7)
     val ear = remember(log) { EarProgress.parse(s.db.get(EarProgress.KEY)) }
     val fixes = remember(mistakes, ear) { Mistakes.summarize(mistakes, ear, today).take(2) }
@@ -139,9 +144,13 @@ fun TodayScreen() {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     Column {
                         Text("วัน${DAYS[today.dayOfWeek.value - 1]} ${today.dayOfMonth} ${MONTHS_LONG[today.monthValue - 1]}", fontSize = 15.sp, color = Tokens.Palette.InkMuted)
-                        Text(if (current < 0) "ฝึกครบแผนวันนี้แล้ว" else "วันนี้ฝึก $minutes นาที", fontSize = 38.sp, lineHeight = 50.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                        Text(when {
+                            current >= 0 -> "วันนี้ฝึก $minutes นาที"
+                            done.all { it } -> "ฝึกครบแผนวันนี้แล้ว"
+                            else -> "ต่อเปียโนด้วยสายเพื่อทำส่วนที่เหลือ"
+                        }, fontSize = 38.sp, lineHeight = 50.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
                     }
-                    PlanCard(plan, done, current) { b -> PlanRow(s, b, done[plan.indexOf(b)], plan.indexOf(b) == current, plan.indexOf(b) + 1) { open(app, b) } }
+                    PlanCard(plan, done, current) { b -> PlanRow(s, b, done[plan.indexOf(b)], plan.indexOf(b) == current, plan.indexOf(b) + 1, waits[plan.indexOf(b)]) { open(app, b) } }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("เวลาวันนี้", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
                         DailyPlan.CHOICES.forEach { m ->
@@ -170,7 +179,7 @@ private fun PlanCard(plan: List<PlanBlock>, done: List<Boolean>, current: Int, r
 }
 
 @Composable
-private fun PlanRow(s: Services, b: PlanBlock, done: Boolean, now: Boolean, n: Int, onOpen: () -> Unit) {
+private fun PlanRow(s: Services, b: PlanBlock, done: Boolean, now: Boolean, n: Int, needsCable: Boolean, onOpen: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (now) Tokens.Palette.AccentSoft else Tokens.Palette.Group)
             .clickable(onClick = onOpen).padding(horizontal = 18.dp, vertical = if (now) 20.dp else 14.dp),
@@ -188,7 +197,8 @@ private fun PlanRow(s: Services, b: PlanBlock, done: Boolean, now: Boolean, n: I
             if (now) Text("${b.kind.title} · ${b.minutes} นาที", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
             Text(if (now) detail(s, b) else b.kind.title, fontSize = if (now) 21.sp else 17.sp, lineHeight = if (now) 29.sp else 24.sp, fontWeight = if (now) FontWeight.Bold else FontWeight.SemiBold,
                 color = if (done) Tokens.Palette.InkMuted else Tokens.Palette.Ink, textDecoration = if (done) TextDecoration.LineThrough else null)
-            Text(if (now) b.kind.why else detail(s, b), fontSize = 14.sp, color = Tokens.Palette.InkMuted, maxLines = 1)
+            Text(when { now -> b.kind.why; needsCable && !done -> com.id.mimikopi.core.input.TimingInput.NEED_CABLE_SHORT; else -> detail(s, b) },
+                fontSize = 14.sp, color = Tokens.Palette.InkMuted, maxLines = 1)
         }
         if (now) PrimaryButton("เริ่ม", onOpen, Modifier.width(140.dp))
         else Text(if (done) "เสร็จ" else "${b.minutes} นาที", fontSize = 15.sp, fontWeight = if (done) FontWeight.SemiBold else FontWeight.Normal,

@@ -113,4 +113,16 @@ class PlanContentTest {
         for (l in 0..7) assertTrue(com.id.mimikopi.core.session.PlanContent.chords(l).drill().problems().isEmpty())
         assertEquals("course", com.id.mimikopi.core.session.PlanContent.EAR_ROUND)
     }
+
+    @Test
+    fun onlyTimedPartsNeedACable() {
+        assertTrue(DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.CHECK, 3, "RHYTHM:1"), ladderTimed = false))
+        assertTrue(!DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.CHECK, 3, "NOTES:2"), ladderTimed = true))
+        assertTrue(!DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.CHECK, 3, "KEYS:1"), ladderTimed = true))
+        assertTrue(DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.LADDER, 8), ladderTimed = true))
+        assertTrue(!DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.LADDER, 8), ladderTimed = false))
+        for (k in listOf(BlockKind.REVIEW, BlockKind.SIGHT, BlockKind.CHORDS, BlockKind.EAR, BlockKind.SONG)) {
+            assertTrue(!DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(k, 3), ladderTimed = true), "$k")
+        }
+    }
 }

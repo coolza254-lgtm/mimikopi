@@ -135,4 +135,17 @@ class EarCourseTest {
             assertTrue(qs.all { it.tonic in t.keys.tonics || it.kind == EarKind.QUALITY || it.kind == EarKind.RHYTHM })
         }
     }
+
+    @Test
+    fun withoutACableARoundLeavesOutRhythmTaps() {
+        // Stage 1 mastered, so stage 2 (with rh:1) is open.
+        val state = EarState(EarCourse.STAGES[0].adds.associateWith { EarItemStat(asked = 10, right = 10, strength = 1.0, lastAt = now) })
+        assertTrue("rh:1" in EarProgress.unlocked(state))
+        for (seed in 0 until 20) {
+            val qs = EarProgress.round(state, now, Random(seed), without = setOf(EarKind.RHYTHM))
+            assertEquals(EarProgress.ROUND, qs.size)
+            assertTrue(qs.none { it.kind == EarKind.RHYTHM })
+        }
+        assertTrue((0 until 20).any { seed -> EarProgress.round(state, now, Random(seed)).any { it.kind == EarKind.RHYTHM } })
+    }
 }

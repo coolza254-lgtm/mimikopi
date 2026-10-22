@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -189,14 +190,24 @@ fun TouchKeyboardSurface(range: IntRange, marked: Set<Int>, showNames: Boolean, 
     }
 
     val caseShape = RoundedCornerShape(28.dp)
+    val density = LocalDensity.current
+    val side = with(density) { 6.dp.toPx() }
+    val top = with(density) { 10.dp.toPx() }
     Box(
         modifier.shadow(Tokens.Elevation.keyboard, caseShape, ambientColor = Tokens.Elevation.tint, spotColor = Tokens.Elevation.tint)
-            .clip(caseShape).background(Tokens.Piano.Case).padding(start = 8.dp, end = 8.dp, top = 14.dp, bottom = 8.dp),
+            .clip(caseShape).background(Tokens.Piano.Case)
+            // Touches on the case count as the nearest key, so the edge keys are as easy to hit as the rest.
+            .touchKeys(range, { x, y, w, h ->
+                val kw = w - 2 * side
+                val kh = h - top - side
+                layoutFor(kw, kh).hitTest((x - side).coerceIn(0f, kw - 1f), (y - top).coerceIn(0f, kh - 1f))
+            }, play)
+            .padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp),
     ) {
         // The felt strip above the keys.
-        Box(Modifier.align(Alignment.TopCenter).offset(y = (-8).dp).fillMaxWidth().padding(horizontal = 18.dp).height(3.dp)
+        Box(Modifier.align(Alignment.TopCenter).offset(y = (-6).dp).fillMaxWidth().padding(horizontal = 18.dp).height(3.dp)
             .clip(RoundedCornerShape(2.dp)).background(Tokens.Piano.Felt))
-        Canvas(Modifier.fillMaxSize().touchKeys(range, { x, y, w, h -> layoutFor(w, h).hitTest(x, y) }, play)) {
+        Canvas(Modifier.fillMaxSize()) {
             val layout = layoutFor(size.width, size.height)
             val radius = CornerRadius(layout.whiteKeyWidth * 0.14f)
             val white = Brush.verticalGradient(0.75f to Tokens.Piano.WhiteTop, 1f to Tokens.Piano.WhiteBottom)

@@ -36,6 +36,7 @@ import com.id.mimikopi.desktop.ui.components.LevelBars
 import com.id.mimikopi.desktop.ui.components.Page
 import com.id.mimikopi.desktop.ui.components.PrimaryButton
 import com.id.mimikopi.desktop.ui.components.StepMark
+import com.id.mimikopi.desktop.ui.components.SkillIcon
 import com.id.mimikopi.desktop.ui.theme.Tokens
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -60,6 +61,17 @@ private fun statusLine(s: SkillStatus): String {
     return parts.joinToString(" · ")
 }
 
+/** The mark and pastel of each skill (Design J, as on the phone). */
+internal fun look(skill: SkillId): Pair<String, Tokens.SkillColor> = when (skill) {
+    SkillId.KEYS -> "▥" to Tokens.Skill.Keys
+    SkillId.NOTES -> "≡" to Tokens.Skill.Reading
+    SkillId.RHYTHM -> "♩" to Tokens.Skill.Rhythm
+    SkillId.SIGHT -> "♫" to Tokens.Skill.Reading
+    SkillId.TECH -> "∿" to Tokens.Skill.Chords
+    SkillId.EAR -> "◉" to Tokens.Skill.Ear
+    SkillId.CHORDS -> "♬" to Tokens.Skill.Chords
+}
+
 /** The page a level test runs on: drills in the drill runner, played tests in the score player, ear tests in ear training. */
 fun checkScreen(key: String, run: CheckRun): Screen = when (run) {
     is CheckRun.DrillRun -> Screen.Drill(DrillSource.Check(key))
@@ -80,8 +92,10 @@ fun SkillsScreen() {
         Group {
             statuses.forEachIndexed { i, s ->
                 if (i > 0) GroupDivider()
+                val (mark, color) = look(s.skill)
                 GroupRow(s.skill.title, statusLine(s), onClick = { app.nav.open(Screen.Skill(s.skill)) },
-                    trailing = { Row(verticalAlignment = Alignment.CenterVertically) { LevelBars(s.level, s.maxLevel, width = 7.dp); Text("  ›", color = Tokens.Palette.Dim) } })
+                    leading = { SkillIcon(mark, color, size = 42.dp, filled = true) },
+                    trailing = { Row(verticalAlignment = Alignment.CenterVertically) { LevelBars(s.level, s.maxLevel, width = 16.dp, color = color.ink); Text("  ›", color = Tokens.Palette.Dim) } })
             }
         }
         GroupFooter("ระดับได้จากแบบทดสอบสั้นที่มีเกณฑ์ตายตัวเท่านั้น เวลาที่ฝึกหรือขั้นที่ผ่านไม่ทำให้ระดับขึ้น " +

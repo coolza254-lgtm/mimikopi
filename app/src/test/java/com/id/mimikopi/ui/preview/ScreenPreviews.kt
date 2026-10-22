@@ -13,7 +13,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.id.mimikopi.MimikopiApp
 import com.id.mimikopi.ui.components.BottomNav
-import com.id.mimikopi.ui.piano.FreePianoScreen
 import com.id.mimikopi.ui.skills.SkillsScreen
 import com.id.mimikopi.ui.songs.SongsScreen
 import com.id.mimikopi.ui.theme.MimikopiTheme
@@ -30,7 +29,8 @@ import java.io.File
 /**
  * Renders the main pages as the phone shows them (390 dp wide, @2x like the Design J pictures) into
  * build/render/design-*.png, which CI publishes on the "ui-preview" prerelease to compare with docs/design-J.
- * A fresh install: no progress yet. Checks only that each page draws.
+ * A fresh install: no progress yet. Checks only that each page draws. Pages that load the native piano sound
+ * (the piano tab) cannot run under Robolectric and are left out.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = MimikopiApp::class, qualifiers = "w390dp-h900dp-port-xhdpi")
@@ -46,7 +46,8 @@ class ScreenPreviews {
                 }
             }
         }
-        compose.waitForIdle()
+        // Pages read their data off the main thread: let it arrive before taking the picture.
+        repeat(10) { Thread.sleep(200); compose.waitForIdle() }
         File("build/render").mkdirs()
         File("build/render/design-$name.png").outputStream().use {
             compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
@@ -55,8 +56,7 @@ class ScreenPreviews {
 
     @Test fun today() = render("01-today", "today") { TodayScreen(onOpen = {}, onOpenMidi = {}, onOpenSettings = {}) }
     @Test fun skills() = render("02-skills", "skills") { SkillsScreen(onOpen = {}, onOpenMidi = {}, onOpenSettings = {}) }
-    @Test fun piano() = render("03-piano", "piano") { FreePianoScreen(onOpenMidi = {}, onOpenSettings = {}) }
     @Test fun songs() = render("04-songs", "songs") {
-        SongsScreen(onPlay = { _, _ -> }, onOpenMidi = {}, onOpenSettings = {}, onOpenLibrary = {}, onOpenPrivate = {}, onTarget = {})
+        SongsScreen(onOpen = {}, onOpenLibrary = {})
     }
 }

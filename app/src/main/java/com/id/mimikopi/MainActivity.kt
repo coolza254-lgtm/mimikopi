@@ -150,10 +150,6 @@ private object Routes {
         val query = listOfNotNull(hand?.let { "hand=$it" }, lesson?.let { "originLesson=$it" }, drill?.let { "originDrill=$it" })
         return "reader/$id" + if (query.isEmpty()) "" else "?" + query.joinToString("&")
     }
-    fun heroicTarget(id: String): String {
-        val t = com.id.mimikopi.core.playalong.HeroicPlan.target(id) ?: error("Unknown study target")
-        return "reader/${t.piece}?target=${t.id}"
-    }
     const val SCORE_DRILL = "scoredrill/{lessonId}/{drill}?via={via}"
     const val EAR_SESSION = "ear/session?focus={focus}"
     fun earSession(focus: String?) = if (focus == null) "ear/session" else "ear/session?focus=$focus"
@@ -202,6 +198,7 @@ private fun openPage(nav: NavController, app: MimikopiApp, o: Open, selectTab: (
             )
         }
         Open.PrivateSongs -> nav.navigate("private-songs")
+        is Open.PrivateSong -> nav.navigate("private-songs?song=${o.songId}" + (o.hand?.let { "&hand=$it" } ?: ""))
         Open.Songs -> selectTab(Routes.SONGS)
         is Open.Skill -> nav.navigate("skill/${o.skill.name}")
         Open.Skills -> selectTab(Routes.SKILLS)
@@ -264,9 +261,12 @@ private fun AppNavigation() {
             FreePianoScreen(onOpenMidi = openMidi, onOpenSettings = openSettings, soundSetup = { onReady -> PianoSoundSetup(onReady) })
         }
         composable(Routes.SONGS) {
-            SongsScreen(onPlay = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onOpenMidi = openMidi, onOpenSettings = openSettings, onOpenLibrary = { nav.navigate("pieces") }, onOpenPrivate = { nav.navigate("private-songs") }, onTarget = { nav.navigate(Routes.heroicTarget(it)) })
+            SongsScreen(onOpen = open, onOpenLibrary = { nav.navigate("pieces") })
         }
-        composable("private-songs") { com.id.mimikopi.ui.recall.RecallScreen(onBack = back, onMidi = openMidi, onSound = { nav.navigate(Routes.PIANO) }) }
+        composable("private-songs?song={song}&hand={hand}", arguments = listOf(optional("song"), optional("hand"))) { e ->
+            com.id.mimikopi.ui.recall.RecallScreen(onBack = back, onMidi = openMidi, onSound = { nav.navigate(Routes.PIANO) },
+                initialSong = e.arguments?.getString("song"), initialHand = e.arguments?.getString("hand"))
+        }
         composable(Routes.SKILL) { e ->
             val skill = e.arguments?.getString("skill")?.let { runCatching { SkillId.valueOf(it) }.getOrNull() } ?: SkillId.KEYS
             SkillDetailScreen(skill, onBack = back, onOpen = open)

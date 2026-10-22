@@ -26,7 +26,7 @@ import com.id.mimikopi.ui.theme.Tokens
 import java.time.LocalDate
 
 @Composable
-fun RecallScreen(onBack: () -> Unit, onMidi: () -> Unit, onSound: () -> Unit, vm: RecallViewModel = viewModel()) {
+fun RecallScreen(onBack: () -> Unit, onMidi: () -> Unit, onSound: () -> Unit, initialSong: String? = null, initialHand: String? = null, vm: RecallViewModel = viewModel()) {
     val songs by vm.songs.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
@@ -34,10 +34,10 @@ fun RecallScreen(onBack: () -> Unit, onMidi: () -> Unit, onSound: () -> Unit, vm
     val pressed by vm.pressed.collectAsStateWithLifecycle()
     val noSound by vm.noSound.collectAsStateWithLifecycle()
     val names by vm.names.collectAsStateWithLifecycle()
-    var songId by rememberSaveable { mutableStateOf<String?>(null) }
+    var songId by rememberSaveable { mutableStateOf(initialSong) }
     var form by rememberSaveable { mutableStateOf<String?>(null) }
     var phraseId by rememberSaveable { mutableStateOf<String?>(null) }
-    var handName by rememberSaveable { mutableStateOf(RecallHand.RIGHT.name) }
+    var handName by rememberSaveable { mutableStateOf(initialHand?.takeIf { h -> RecallHand.entries.any { it.name == h } } ?: RecallHand.RIGHT.name) }
     var deleting by rememberSaveable { mutableStateOf(false) }
     var exportId by rememberSaveable { mutableStateOf<String?>(null) }
     val hand = RecallHand.valueOf(handName)

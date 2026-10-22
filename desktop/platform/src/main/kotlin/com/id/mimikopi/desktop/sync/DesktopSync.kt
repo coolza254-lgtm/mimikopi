@@ -21,8 +21,8 @@ data class SyncStatus(val running: Boolean = false, val line: String? = null, va
 /**
  * The PC's side of the GitHub sync (learning-system.md 2.11), the same as the phone's: merges the phone's progress in
  * and puts this computer's up, through the private data repository. Runs when the program opens and closes, and from
- * Settings. A backup comes first whenever something is written; device settings, private songs and user scores never
- * travel. The token is in `github-sync.json` in the data folder, outside the database, so never in an export.
+ * Settings. A backup comes first whenever something is written; device settings and user scores never travel
+ * (private songs do, since v0.33). The token is in `github-sync.json` in the data folder, outside the database, so never in an export.
  */
 class DesktopSync(private val services: Services, private val configFile: File = File(services.dirs.root, "github-sync.json")) {
     private val lock = ReentrantLock()

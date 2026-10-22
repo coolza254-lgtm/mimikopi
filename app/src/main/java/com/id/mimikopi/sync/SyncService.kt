@@ -32,8 +32,8 @@ data class SyncStatus(val running: Boolean = false, val line: String? = null, va
 /**
  * The phone's side of the GitHub sync (learning-system.md 2.11): merges the PC's progress into the phone's and puts
  * the phone's up for the PC, through the private data repository ([GitHubSync]). Runs when the app opens and when it
- * goes to the background, and from Settings. Before anything is written here a backup is made; device settings,
- * private songs and user scores never travel. The token lives in its own file in the no-backup folder, never in the
+ * goes to the background, and from Settings. Before anything is written here a backup is made; device settings
+ * and user scores never travel (private songs do, since v0.33). The token lives in its own file in the no-backup folder, never in the
  * database, so it is never in a backup file or in the synced data.
  */
 class SyncService(private val app: MimikopiApp) {
@@ -100,6 +100,7 @@ class SyncService(private val app: MimikopiApp) {
                 app.learning.reload()
                 app.pieces.reload()
                 app.progress.reload()
+                runCatching { app.privateSongs.reload() }
             }
             _status.value = SyncStatus(line = "${now()} · ${report.text()}")
         } catch (e: SyncFailure) {

@@ -16,9 +16,15 @@ import java.time.LocalDate
     val cue: String = "", val revision: Int = 1, val attempts: List<RecallAttempt> = emptyList(),
     val recallDays: Map<String, List<String>> = emptyMap(), val lastDifficulty: Map<String, String> = emptyMap(),
     val coldRecallDays: Map<String, List<String>> = emptyMap(),
+    /** The phrase's chords in order, as written on a chord sheet ("C", "Am7", "F/G"); none until the user adds them. */
+    val chords: List<String> = emptyList(),
+    /** When the title, times, cue or chords were last edited (epoch ms), so a sync keeps the newer edit; 0 = never. */
+    val edited: Long = 0,
 )
 @Serializable data class PrivateSong(
     val id: String, val title: String, val sourceUrl: String = "", val phrases: List<PrivatePhrase> = emptyList(),
+    /** When the title or link was last edited (epoch ms); 0 = never. */
+    val edited: Long = 0,
 )
 @Serializable data class PrivateSongFile(val format: String = "mimikopi-private-recall", val version: Int = 1, val song: PrivateSong)
 
@@ -55,6 +61,7 @@ object VideoReference {
 object PrivateRecall {
     const val MAX_BYTES = 4 * 1024 * 1024
     const val KEEP_ATTEMPTS = 64
+    const val MAX_CHORDS = 64
     val json = Json { ignoreUnknownKeys = false; encodeDefaults = true }
     fun validate(song: PrivateSong) {
         require(song.id.matches(Regex("[A-Za-z0-9-]{1,80}"))) { "รหัสเพลงไม่ถูกต้อง" }
@@ -65,6 +72,7 @@ object PrivateRecall {
             require(p.id.matches(Regex("[A-Za-z0-9-]{1,80}")) && p.title.isNotBlank() && p.title.length <= 120) { "ชื่อหรือรหัสช่วงไม่ถูกต้อง" }
             require(p.startSeconds in 0..86_399 && p.endSeconds in (p.startSeconds + 1)..86_400) { "เวลาจบต้องมากกว่าเวลาเริ่ม" }
             require(p.cue.length <= 500 && p.revision > 0 && p.attempts.size <= KEEP_ATTEMPTS) { "ข้อมูลช่วงยาวเกินกำหนด" }
+            require(p.chords.size <= MAX_CHORDS && p.chords.all { it.isNotBlank() && it.length <= 16 }) { "คอร์ดต่อช่วงไม่เกิน $MAX_CHORDS ตัว ตัวละไม่เกิน 16 ตัวอักษร" }
             require(p.attempts.map { it.id }.distinct().size == p.attempts.size) { "รหัสผลฝึกซ้ำ" }
             for ((key, days) in p.recallDays.entries + p.coldRecallDays.entries) {
                 require(key.matches(Regex("[1-9][0-9]*\\|(RIGHT|LEFT|BOTH)")) && days.size <= 20_000 && days.distinct().size == days.size)
@@ -118,8 +126,13 @@ object PrivateRecall {
     fun next(song: PrivateSong, hand: RecallHand, day: LocalDate): PrivatePhrase? =
         song.phrases.filter { due(it, hand)?.let { due -> !due.isAfter(day) } == true }
             .minByOrNull { due(it, hand)!! } ?: song.phrases.firstOrNull { current(it, hand).isEmpty() }
-    fun editPhrase(p: PrivatePhrase, title: String, start: Int, end: Int, cue: String): PrivatePhrase = p.copy(
+    fun editPhrase(p: PrivatePhrase, title: String, start: Int, end: Int, cue: String, at: Long = System.currentTimeMillis()): PrivatePhrase = p.copy(
         title = title, startSeconds = start, endSeconds = end, cue = cue,
         revision = if (start != p.startSeconds || end != p.endSeconds || cue != p.cue) p.revision + 1 else p.revision,
+        edited = at,
     )
+
+    /** Sets a phrase's chords (the recall revision stays: chords are a separate practice). */
+    fun editChords(p: PrivatePhrase, chords: List<String>, at: Long = System.currentTimeMillis()): PrivatePhrase =
+        p.copy(chords = chords.map(String::trim).filter(String::isNotEmpty), edited = at)
 }

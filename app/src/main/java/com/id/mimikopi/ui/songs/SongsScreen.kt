@@ -75,14 +75,14 @@ class SongsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             services.privateSongs.reload()
             services.pieces.load()
-            _targetId.value = dao.get(TargetSong.SETTING_KEY)
+            _targetId.value = TargetSong.chosenId(dao.get(TargetSong.SETTING_KEY))
         }
     }
 
     /** Makes [id] the goal song (Today and Songs show it first). */
     fun setTarget(id: String) {
         _targetId.value = id
-        viewModelScope.launch { dao.put(SettingEntity(TargetSong.SETTING_KEY, id)) }
+        viewModelScope.launch { dao.put(SettingEntity(TargetSong.SETTING_KEY, TargetSong.encodeChoice(id))) }
     }
 }
 

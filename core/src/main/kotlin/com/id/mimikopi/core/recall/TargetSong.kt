@@ -16,8 +16,21 @@ object TargetSong {
     /** The phrase to work on now and with which hand, and why. */
     data class Next(val phrase: PrivatePhrase, val hand: RecallHand, val due: Boolean)
 
-    /** The chosen song, or the first private song when none was chosen (or the chosen one was deleted). */
-    fun pick(songs: List<PrivateSong>, chosenId: String?): PrivateSong? = songs.firstOrNull { it.id == chosenId } ?: songs.firstOrNull()
+    /**
+     * The setting holds "id|epoch ms" (when it was chosen, so a sync keeps the latest choice of either device); an
+     * older plain id still reads.
+     */
+    fun encodeChoice(id: String, at: Long = System.currentTimeMillis()): String = "$id|$at"
+
+    fun chosenId(raw: String?): String? = raw?.substringBefore('|')?.takeIf { it.isNotBlank() }
+
+    private fun chosenAt(raw: String?): Long = raw?.substringAfter('|', "")?.toLongOrNull() ?: 0L
+
+    /** The later of two choices (ties by text, so both devices agree). */
+    fun mergeChoice(a: String?, b: String?): String? = listOfNotNull(a, b).maxWithOrNull(compareBy<String>({ chosenAt(it) }, { it }))
+
+    /** The chosen song ([chosen] is the setting as stored), or the first private song when none was chosen or it is gone. */
+    fun pick(songs: List<PrivateSong>, chosen: String?): PrivateSong? = chosenId(chosen).let { id -> songs.firstOrNull { it.id == id } } ?: songs.firstOrNull()
 
     fun state(p: PrivatePhrase): State = when {
         RecallHand.entries.any { PrivateRecall.rememberedDays(p, it).size >= LEARNED_DAYS } -> State.LEARNED

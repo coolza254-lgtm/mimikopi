@@ -3,6 +3,7 @@ package com.id.mimikopi.desktop.recall
 import com.id.mimikopi.core.recall.PrivatePhrase
 import com.id.mimikopi.core.recall.PrivateRecall
 import com.id.mimikopi.core.recall.PrivateSong
+import com.id.mimikopi.core.recall.PrivateSongSync
 import com.id.mimikopi.core.recall.VideoReference
 import com.id.mimikopi.desktop.data.Database
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,8 +14,8 @@ import java.util.UUID
 
 /**
  * Private songs: the same settings row as the phone ("private.recall.songs.v1"), validated by core's PrivateRecall on
- * every read and write. It stays on this computer: never in the content folder, the installer or GitHub, and never in
- * the progress merge (only a whole-data backup the person makes, or a song file they export, carries it).
+ * every read and write. They travel with the GitHub sync (core PrivateSongSync); a deleted song or phrase leaves its id
+ * in [PrivateSongSync.DELETED] so a sync does not bring it back. Never in the content folder or the installer.
  */
 class PrivateSongs(private val db: Database) {
     companion object { const val KEY = "private.recall.songs.v1" }
@@ -49,17 +50,24 @@ class PrivateSongs(private val db: Database) {
 
     fun importCopy(text: String) = mutate { all -> all + PrivateRecall.import(text).copy(id = UUID.randomUUID().toString()) }
 
-    fun delete(id: String) = mutate { it.filterNot { s -> s.id == id } }
+    fun delete(id: String) { forget(PrivateSongSync.songKey(id)); mutate { it.filterNot { s -> s.id == id } } }
 
     fun editSong(id: String, title: String, url: String) = mutate { songs ->
         val source = VideoReference.canonical(url) ?: error("ลิงก์ YouTube ไม่ถูกต้อง")
-        songs.map { s -> if (s.id != id) s else s.copy(title = title.trim(), sourceUrl = source,
+        songs.map { s -> if (s.id != id) s else s.copy(title = title.trim(), sourceUrl = source, edited = System.currentTimeMillis(),
             phrases = if (source == s.sourceUrl) s.phrases else s.phrases.map { it.copy(revision = it.revision + 1) }) }
     }
 
     fun addPhrase(songId: String, p: PrivatePhrase) = mutate { all -> all.map { s -> if (s.id != songId) s else s.copy(phrases = s.phrases + p) } }
 
-    fun removePhrase(songId: String, phraseId: String) = mutate { all ->
-        all.map { s -> if (s.id != songId) s else s.copy(phrases = s.phrases.filterNot { it.id == phraseId }) }
+    fun removePhrase(songId: String, phraseId: String) {
+        forget(PrivateSongSync.phraseKey(songId, phraseId))
+        mutate { all -> all.map { s -> if (s.id != songId) s else s.copy(phrases = s.phrases.filterNot { it.id == phraseId }) } }
+    }
+
+    /** Marks a song or phrase as deleted for the sync. */
+    private fun forget(key: String) = synchronized(lock) {
+        val gone = PrivateSongSync.decodeDeleted(db.get(PrivateSongSync.DELETED))
+        if (key !in gone) db.put(PrivateSongSync.DELETED, PrivateSongSync.encodeDeleted(gone + key))
     }
 }

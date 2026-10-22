@@ -64,4 +64,4 @@ while phones still run v0.30 or older: it puts each new `latest.json` on the old
 [`mimikopi-releases`](https://github.com/coolza254-lgtm/mimikopi-releases) repo too, so they find the update.
 Once every installed app is newer, remove the secret; the old repo then stays as an archive.
 
-Progress sync between the phone and the PC: [`docs/SYNC.md`](docs/SYNC.md) (a private `mimikopi-data` repo).
+Progress sync between the phone and the PC: [`docs/SYNC.md`](docs/SYNC.md) (the `sync-data` branch of this repo).

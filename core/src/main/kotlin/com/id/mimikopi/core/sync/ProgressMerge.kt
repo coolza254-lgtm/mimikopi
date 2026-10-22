@@ -77,13 +77,9 @@ object ProgressMerge {
     const val EAR_COURSE = com.id.mimikopi.core.ear.EarProgress.KEY
     const val MISTAKES = com.id.mimikopi.core.progress.Mistakes.KEY
     const val EXAMS = com.id.mimikopi.core.exam.ExamLog.KEY
-    const val PRIVATE_SONGS = com.id.mimikopi.core.recall.PrivateSongSync.SONGS
-    const val PRIVATE_DELETED = com.id.mimikopi.core.recall.PrivateSongSync.DELETED
-    const val TARGET = com.id.mimikopi.core.recall.TargetSong.SETTING_KEY
 
     /** The settings rows that are progress and travel between devices; every other row stays where it is. */
-    val KEYS = setOf(LESSONS, PIECES, LOG, PEERS, CHECKS, EAR_STATS, EAR_LEVELS, EAR_DELETED, CHORD_RUNS, BENCHMARKS, HELPER_COUNT, EAR_COURSE, MISTAKES, EXAMS,
-        PRIVATE_SONGS, PRIVATE_DELETED, TARGET)
+    val KEYS = setOf(LESSONS, PIECES, LOG, PEERS, CHECKS, EAR_STATS, EAR_LEVELS, EAR_DELETED, CHORD_RUNS, BENCHMARKS, HELPER_COUNT, EAR_COURSE, MISTAKES, EXAMS)
 
     private const val DAY_MS = 86_400_000L
     private val json = Json { ignoreUnknownKeys = true }
@@ -126,16 +122,6 @@ object ProgressMerge {
         put(EAR_STATS, earStats(l[EAR_STATS], r[EAR_STATS], gone))
 
         put(PEERS, peers(local.deviceId, l[PEERS], remote.deviceId, r[LOG], r[PEERS]))
-
-        // Private songs (learning-system.md 2.11): joined by id; deleted ones stay deleted.
-        val ps = com.id.mimikopi.core.recall.PrivateSongSync
-        val privateGone = ps.decodeDeleted(l[PRIVATE_DELETED]) + ps.decodeDeleted(r[PRIVATE_DELETED])
-        if (privateGone.isNotEmpty()) put(PRIVATE_DELETED, ps.encodeDeleted(privateGone))
-        if (l[PRIVATE_SONGS] != null || r[PRIVATE_SONGS] != null) {
-            val merged = ps.merge(ps.decodeSongs(l[PRIVATE_SONGS]), ps.decodeSongs(r[PRIVATE_SONGS]), privateGone)
-            if (merged != ps.decodeSongs(l[PRIVATE_SONGS])) put(PRIVATE_SONGS, ps.encodeSongs(merged))
-        }
-        put(TARGET, com.id.mimikopi.core.recall.TargetSong.mergeChoice(l[TARGET], r[TARGET]))
 
         val items = itemStats(local.itemStats, remote.itemStats, intervalDays)
         return MergeResult(out, items)

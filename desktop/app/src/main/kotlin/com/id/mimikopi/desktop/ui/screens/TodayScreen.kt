@@ -155,7 +155,7 @@ fun TodayScreen() {
                             else -> "ต่อเปียโนด้วยสายเพื่อทำส่วนที่เหลือ"
                         }, fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
                     }
-                    TargetCard(songs, target, { id -> target = com.id.mimikopi.core.recall.TargetSong.encodeChoice(id); s.db.put(com.id.mimikopi.core.recall.TargetSong.SETTING_KEY, target!!) },
+                    TargetCard(songs, target, { id -> target = id; s.db.put(com.id.mimikopi.core.recall.TargetSong.SETTING_KEY, id) },
                         { song, hand -> app.nav.open(Screen.Recall(song, hand)) })
                     Text("พื้นฐานวันนี้", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 8.dp))
                     PlanCard(plan, done, current) { b -> PlanRow(s, b, done[plan.indexOf(b)], plan.indexOf(b) == current, plan.indexOf(b) + 1, waits[plan.indexOf(b)]) { open(app, b) } }

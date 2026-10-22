@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    # Every branch but the sync data (learning-system.md 2.11), which only holds progress files.
+    branches: ["**", "!sync-data"]
   pull_request:
   workflow_dispatch:
 

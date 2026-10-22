@@ -64,9 +64,12 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth().padding(horizontal = PageMargin)) {
             if (!ui.loaded) return@Column
-            Spacer(Modifier.height(32.dp))
-            com.id.mimikopi.ui.songs.TargetCard(ui.target,
-                onStart = { t -> onOpen(Open.PrivateSong(t.songId, t.next?.hand?.name)) }, onAdd = { onOpen(Open.PrivateSongs) })
+            // The goal song is practised on the PC (learning-system.md 2.11); the phone's day is the basics.
+            val date = java.time.LocalDate.now()
+            Column(Modifier.padding(start = 4.dp, top = 32.dp)) {
+                Text("วันนี้", fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                Text("${date.dayOfMonth} ${listOf("ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.")[date.monthValue - 1]} · เพลงเป้าหมายฝึกบนคอม", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+            }
 
             Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 30.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("พื้นฐานวันนี้", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))

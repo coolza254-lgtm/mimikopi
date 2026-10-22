@@ -18,13 +18,9 @@ import java.time.LocalDate
     val coldRecallDays: Map<String, List<String>> = emptyMap(),
     /** The phrase's chords in order, as written on a chord sheet ("C", "Am7", "F/G"); none until the user adds them. */
     val chords: List<String> = emptyList(),
-    /** When the title, times, cue or chords were last edited (epoch ms), so a sync keeps the newer edit; 0 = never. */
-    val edited: Long = 0,
 )
 @Serializable data class PrivateSong(
     val id: String, val title: String, val sourceUrl: String = "", val phrases: List<PrivatePhrase> = emptyList(),
-    /** When the title or link was last edited (epoch ms); 0 = never. */
-    val edited: Long = 0,
 )
 @Serializable data class PrivateSongFile(val format: String = "mimikopi-private-recall", val version: Int = 1, val song: PrivateSong)
 
@@ -126,13 +122,11 @@ object PrivateRecall {
     fun next(song: PrivateSong, hand: RecallHand, day: LocalDate): PrivatePhrase? =
         song.phrases.filter { due(it, hand)?.let { due -> !due.isAfter(day) } == true }
             .minByOrNull { due(it, hand)!! } ?: song.phrases.firstOrNull { current(it, hand).isEmpty() }
-    fun editPhrase(p: PrivatePhrase, title: String, start: Int, end: Int, cue: String, at: Long = System.currentTimeMillis()): PrivatePhrase = p.copy(
+    fun editPhrase(p: PrivatePhrase, title: String, start: Int, end: Int, cue: String): PrivatePhrase = p.copy(
         title = title, startSeconds = start, endSeconds = end, cue = cue,
         revision = if (start != p.startSeconds || end != p.endSeconds || cue != p.cue) p.revision + 1 else p.revision,
-        edited = at,
     )
 
     /** Sets a phrase's chords (the recall revision stays: chords are a separate practice). */
-    fun editChords(p: PrivatePhrase, chords: List<String>, at: Long = System.currentTimeMillis()): PrivatePhrase =
-        p.copy(chords = chords.map(String::trim).filter(String::isNotEmpty), edited = at)
+    fun editChords(p: PrivatePhrase, chords: List<String>): PrivatePhrase = p.copy(chords = chords.map(String::trim).filter(String::isNotEmpty))
 }

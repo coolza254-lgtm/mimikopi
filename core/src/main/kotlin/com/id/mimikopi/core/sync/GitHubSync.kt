@@ -13,11 +13,12 @@ import java.net.URI
 import java.util.Base64
 
 /**
- * Where the phone and the PC meet to sync (learning-system.md 2.11): a private GitHub repository holding one file per
- * device, `devices/<device id>.json` (a [SyncPayload]). Each device writes only its own file and reads the others, so
- * two devices never edit the same file and there is nothing to conflict. [token] is a fine-grained token with
- * Contents read and write on [repo] only; it is kept in a file of its own on each device, never in the database (so
- * never in a backup or in the synced data).
+ * Where the phone and the PC meet to sync (learning-system.md 2.11): the branch [BRANCH] of the app's own repository
+ * (one repository for code, releases and sync), holding one file per device, `devices/<device id>.json` (a
+ * [SyncPayload]). Each device writes only its own file and reads the others, so two devices never edit the same file
+ * and there is nothing to conflict. The branch is made on the first sync. The files hold practice progress only
+ * (private songs stay on the PC). [token] is a fine-grained token with Contents read and write on [repo] only; it is
+ * kept in a file of its own on each device, never in the database (so never in a backup or in the synced data).
  */
 @Serializable
 data class GitHubSyncConfig(val repo: String = DEFAULT_REPO, val token: String = "") {
@@ -26,7 +27,8 @@ data class GitHubSyncConfig(val repo: String = DEFAULT_REPO, val token: String =
     fun toJson(): String = json.encodeToString(serializer(), this)
 
     companion object {
-        const val DEFAULT_REPO = "coolza254-lgtm/mimikopi-data"
+        const val DEFAULT_REPO = "coolza254-lgtm/mimikopi"
+        const val BRANCH = "sync-data"
         private val REPO = Regex("[A-Za-z0-9-]+/[A-Za-z0-9._-]+")
         private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
@@ -52,11 +54,13 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
     private val json = Json { ignoreUnknownKeys = true }
 
     override fun list(): Map<String, String> {
-        val (code, body) = call("GET", "contents/$DIR")
+        val (code, body) = call("GET", "contents/$DIR?ref=$BRANCH")
         if (code == 404) {
-            // An empty repository, or no device has synced yet: tell those apart, since a missing repo needs fixing.
+            // No sync branch or no device has synced yet: tell those apart from a missing repo, which needs fixing.
             val (repoCode, _) = call("GET", "")
             if (repoCode == 404) throw SyncFailure("ไม่พบ repo ${config.repo} หรือ token เข้าถึงไม่ได้ ตรวจชื่อ repo และสิทธิ์ Contents ของ token")
+            // The first sync of all: make the branch now, so this device's file can be written to it.
+            if (call("GET", "git/ref/heads/$BRANCH").first == 404) createBranch()
             return emptyMap()
         }
         check(code, body)
@@ -71,7 +75,7 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
     }
 
     override fun read(deviceId: String): String? {
-        val (code, body) = call("GET", "contents/$DIR/$deviceId.json", raw = true)
+        val (code, body) = call("GET", "contents/$DIR/$deviceId.json?ref=$BRANCH", raw = true)
         if (code == 404) return null
         check(code, body)
         return body
@@ -80,11 +84,28 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
     override fun write(deviceId: String, text: String, version: String?) {
         val payload = buildJsonObject {
             put("message", "sync $deviceId")
+            put("branch", BRANCH)
             put("content", Base64.getEncoder().encodeToString(text.toByteArray(Charsets.UTF_8)))
             if (!version.isNullOrBlank()) put("sha", version)
         }
-        val (code, body) = call("PUT", "contents/$DIR/$deviceId.json", body = payload.toString())
+        var (code, body) = call("PUT", "contents/$DIR/$deviceId.json", body = payload.toString())
+        if ((code == 404 || code == 422) && createBranch()) {
+            val retry = call("PUT", "contents/$DIR/$deviceId.json", body = payload.toString())
+            code = retry.first; body = retry.second
+        }
         check(code, body)
+    }
+
+    /** Makes [BRANCH] from the default branch (the first sync of all); false when it could not. */
+    private fun createBranch(): Boolean {
+        val (repoCode, repoBody) = call("GET", "")
+        if (repoCode != 200) return false
+        val main = runCatching { json.parseToJsonElement(repoBody).jsonObject["default_branch"]?.jsonPrimitive?.content }.getOrNull() ?: return false
+        val (refCode, refBody) = call("GET", "git/ref/heads/$main")
+        if (refCode != 200) return false
+        val sha = runCatching { json.parseToJsonElement(refBody).jsonObject["object"]?.jsonObject?.get("sha")?.jsonPrimitive?.content }.getOrNull() ?: return false
+        val (code, _) = call("POST", "git/refs", body = buildJsonObject { put("ref", "refs/heads/$BRANCH"); put("sha", sha) }.toString())
+        return code == 201 || code == 422 // 422: another device made it meanwhile
     }
 
     private fun check(code: Int, body: String) {
@@ -131,6 +152,7 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
 
     companion object {
         const val DIR = "devices"
+        const val BRANCH = GitHubSyncConfig.BRANCH
     }
 }
 

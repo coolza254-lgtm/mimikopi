@@ -65,82 +65,54 @@ import java.time.LocalDate
 
 class SongsViewModel(app: Application) : AndroidViewModel(app) {
     private val services = app as MimikopiApp
-    private val dao = services.database.settingsDao()
     val songs = services.privateSongs.songs
-    private val _targetId = MutableStateFlow<String?>(null)
-    val targetId = _targetId.asStateFlow()
     val pieceCount: Int get() = services.pieces.pieces.size
 
     fun refresh() {
         viewModelScope.launch {
             services.privateSongs.reload()
             services.pieces.load()
-            _targetId.value = TargetSong.chosenId(dao.get(TargetSong.SETTING_KEY))
         }
-    }
-
-    /** Makes [id] the goal song (Today and Songs show it first). */
-    fun setTarget(id: String) {
-        _targetId.value = id
-        viewModelScope.launch { dao.put(SettingEntity(TargetSong.SETTING_KEY, TargetSong.encodeChoice(id))) }
     }
 }
 
 /**
- * Songs (Design J): the goal song, then the private songs worked out by ear (long press makes one the goal), and the
- * practice library for reading and exams. No classical repertoire: the goal is Hello! Project piano solo
- * (learning-system.md 2.11).
+ * Songs on the phone (Design J): private songs, the goal song and bought sheets are practised on the PC only
+ * (learning-system.md 2.11, 2026-10-22), so this page says so, offers to send any private songs still here to the PC,
+ * and opens the practice library for reading and exams.
  */
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun SongsScreen(onOpen: (Open) -> Unit, onOpenLibrary: () -> Unit, vm: SongsViewModel = viewModel()) {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     val songs by vm.songs.collectAsStateWithLifecycle()
-    val targetId by vm.targetId.collectAsStateWithLifecycle()
-    val target = TargetSong.pick(songs, targetId)
-    val today = LocalDate.now()
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth().padding(horizontal = PageMargin)) {
-            Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 32.dp), verticalAlignment = Alignment.Bottom) {
-                Column(Modifier.weight(1f)) {
-                    Text("เพลง", fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                    Text(if (songs.isEmpty()) "ยังไม่มีเพลงส่วนตัว" else "1 เพลงเป้าหมาย · ${songs.size} เพลงส่วนตัว", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
-                }
-                Box(
-                    Modifier.size(44.dp).clip(CircleShape).background(Tokens.Palette.Accent).clickable { onOpen(Open.PrivateSongs) },
-                    contentAlignment = Alignment.Center,
-                ) { Icon(painterResource(R.drawable.ic_plus), contentDescription = "เพิ่มเพลงส่วนตัว", tint = Tokens.Palette.OnAccent, modifier = Modifier.size(20.dp)) }
+            Column(Modifier.padding(start = 4.dp, top = 32.dp)) {
+                Text("เพลง", fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                Text("มือถือฝึกพื้นฐาน · เพลงจริงฝึกบนคอม", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
             }
-
             Spacer(Modifier.height(20.dp))
-            GoalSummary(target, today, onOpen = { target?.let { onOpen(Open.PrivateSong(it.id, TargetSong.next(it, today)?.hand?.name)) } ?: onOpen(Open.PrivateSongs) })
-
-            Column(Modifier.padding(start = 4.dp, top = 28.dp, bottom = 10.dp)) {
-                Text("เพลงส่วนตัว", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                Text("ฝึกจำจาก YouTube · เก็บในเครื่องเท่านั้น", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Chip("แบ่งช่วง", Tokens.Skill.Reading)
-                Chip("หยุดแล้วลองเอง", Tokens.Skill.Ear)
-                Chip("เช็กจุดติด", Tokens.Skill.Rhythm)
-                Chip("ทวนข้ามวัน", Tokens.Skill.Chords)
-            }
-            Spacer(Modifier.height(14.dp))
-            if (songs.isEmpty()) {
-                PageCard(onClick = { onOpen(Open.PrivateSongs) }) {
-                    Text("เพิ่มเพลงแรก", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink)
-                    Text("ตั้งชื่อเพลง ใส่ลิงก์ YouTube แล้วแบ่งเป็นช่วงสั้น ๆ ทีละ 1–2 ห้อง", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
-                }
-            } else {
-                Group {
-                    songs.forEachIndexed { i, s ->
-                        if (i > 0) GroupDivider(indent = 18.dp)
-                        SongRow(s, i, isTarget = s.id == target?.id, today = today,
-                            onOpen = { onOpen(Open.PrivateSong(s.id)) }, onMakeTarget = { vm.setTarget(s.id) })
+            PageCard {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Box(Modifier.size(56.dp).clip(CircleShape).background(Tokens.Palette.AccentSoft), contentAlignment = Alignment.Center) {
+                        ClefGlyph(28.sp)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("เพลงเป้าหมายอยู่บนคอม", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                        Text("เพลงส่วนตัว คอร์ดของเพลง และโน้ตที่ซื้อ เก็บและฝึกบนคอมเท่านั้น ไม่ขึ้น GitHub",
+                            fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted)
                     }
                 }
-                if (songs.size > 1) Text("แตะค้างที่เพลงเพื่อตั้งเป็นเพลงเป้าหมาย", fontSize = 12.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(start = 4.dp, top = 8.dp))
+                Text("บนมือถือฝึกส่วนที่ช่วยให้เล่นเพลงได้เร็วขึ้น: อ่านโน้ต หาคีย์ ฝึกหู และความรู้คอร์ด ผลทั้งหมดซิงค์ไปคอม",
+                    fontSize = 14.sp, lineHeight = 20.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 14.dp))
+            }
+            if (songs.isNotEmpty()) {
+                Spacer(Modifier.height(14.dp))
+                Group {
+                    GroupRow("ย้ายเพลงส่วนตัว ${songs.size} เพลงไปคอม", subtitle = "เปิดเพลงแล้วกด \"ส่งออก\" จากนั้นนำเข้าบนคอม (เพลงส่วนตัว → นำเข้า)",
+                        onClick = { onOpen(Open.PrivateSongs) })
+                }
             }
 
             Column(Modifier.padding(start = 4.dp, top = 28.dp, bottom = 10.dp)) {
@@ -150,69 +122,6 @@ fun SongsScreen(onOpen: (Open) -> Unit, onOpenLibrary: () -> Unit, vm: SongsView
                 GroupRow("เพลงพื้นบ้านและเพลงสอบ", subtitle = "${vm.pieceCount} เพลงหมดลิขสิทธิ์ · ใช้ในบทเรียนและสอบเกรด", onClick = onOpenLibrary)
             }
             Spacer(Modifier.height(32.dp))
-        }
-    }
-}
-
-/** The goal song in short: the clef, its name, one bar per phrase and what comes next; tap opens its phrases. */
-@Composable
-private fun GoalSummary(song: PrivateSong?, today: LocalDate, onOpen: () -> Unit) {
-    PageCard(onClick = onOpen) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Box(Modifier.size(56.dp).clip(CircleShape).background(Tokens.Palette.AccentSoft), contentAlignment = Alignment.Center) {
-                ClefGlyph(28.sp)
-            }
-            Column(Modifier.weight(1f)) {
-                Text("เพลงเป้าหมาย", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
-                Text(song?.title ?: "ยังไม่ได้เลือก", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(song?.let { "${it.phrases.size} ช่วง · เพลงส่วนตัว" } ?: "เพิ่มเพลงส่วนตัวแล้วจะขึ้นที่นี่", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
-            }
-        }
-        if (song != null && song.phrases.isNotEmpty()) {
-            val next = TargetSong.next(song, today)
-            Row(Modifier.padding(top = 14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                song.phrases.forEach { p ->
-                    val state = TargetSong.state(p)
-                    Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(when {
-                        state == TargetSong.State.LEARNED -> Tokens.Palette.Accent
-                        p.id == next?.phrase?.id || state == TargetSong.State.PRACTISING -> Tokens.Palette.AccentMid
-                        else -> Tokens.Palette.Hair
-                    }))
-                }
-            }
-            Text(next?.let { "ต่อไป ${it.phrase.title} · ${it.hand.title} · ดูทั้งเพลง →" } ?: "ครบทุกช่วงแล้ว · ทวนทั้งเพลง →",
-                fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 14.dp))
-        }
-    }
-}
-
-/** One private song: a pastel play square, its phrases and what is due; long press makes it the goal. */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SongRow(song: PrivateSong, index: Int, isTarget: Boolean, today: LocalDate, onOpen: () -> Unit, onMakeTarget: () -> Unit) {
-    val color = listOf(Tokens.Skill.Ear, Tokens.Skill.Chords, Tokens.Skill.Reading, Tokens.Skill.Rhythm)[index % 4]
-    val due = song.phrases.count { p -> RecallHand.entries.any { h -> PrivateRecall.due(p, h)?.let { !it.isAfter(today) } == true } }
-    Row(
-        Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = onMakeTarget).padding(horizontal = 18.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(color.fill), contentAlignment = Alignment.Center) {
-            Icon(painterResource(R.drawable.ic_play_fill), contentDescription = null, tint = color.ink, modifier = Modifier.size(18.dp))
-        }
-        Column(Modifier.weight(1f)) {
-            Text(song.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                when {
-                    song.phrases.isEmpty() -> "ยังไม่ได้แบ่งช่วง"
-                    due > 0 -> "${song.phrases.size} ช่วง · ถึงวันทวน $due ช่วง"
-                    else -> "${song.phrases.size} ช่วง · เรียนแล้ว ${song.phrases.count { TargetSong.state(it) == TargetSong.State.LEARNED }} ช่วง"
-                },
-                fontSize = 12.sp, color = Tokens.Palette.InkMuted,
-            )
-        }
-        when {
-            isTarget -> Pill("เป้าหมาย", filled = true)
-            due > 0 -> Pill("ทวนวันนี้")
         }
     }
 }

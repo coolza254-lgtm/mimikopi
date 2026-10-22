@@ -61,17 +61,6 @@ data class BlockUi(val block: PlanBlock, val title: String, val detail: String, 
     /** Judges timing and no piano is on a cable here: done on the PC (or with a cable) instead. */
     val needsCable: Boolean = false)
 
-/** The goal song card (Design J): a private song the user chose (core TargetSong) and what to practise next. */
-data class TargetUi(
-    val songId: String,
-    val title: String,
-    val states: List<com.id.mimikopi.core.recall.TargetSong.State>,
-    val fraction: Float,
-    val next: com.id.mimikopi.core.recall.TargetSong.Next?,
-    /** Index of [next] in the song's phrases, for the segment drawn as current. */
-    val nextIndex: Int,
-)
-
 data class TodayUi(
     val loaded: Boolean = false,
     val dateText: String = "",
@@ -94,8 +83,6 @@ data class TodayUi(
     /** The first target song not yet within reach, and how far along it is. */
     val goalSong: String? = null,
     val goalReady: Double = 0.0,
-    /** The goal song, or null when there is no private song yet (the card then invites to add one). */
-    val target: TargetUi? = null,
 ) {
     /** The next part to do here: parts that need a cable wait for the PC (they still count when done there). */
     val next: BlockUi? get() = blocks.firstOrNull { !it.done && !it.needsCable }
@@ -166,13 +153,6 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         }
         val (days, mins) = PracticeLog.week(log, today)
         val statuses = SkillId.entries.map { SkillBook.status(it, checks, today) }
-        services.privateSongs.reload()
-        val song = com.id.mimikopi.core.recall.TargetSong.pick(services.privateSongs.songs.value, dao.get(com.id.mimikopi.core.recall.TargetSong.SETTING_KEY))
-        val target = song?.let { t ->
-            val next = com.id.mimikopi.core.recall.TargetSong.next(t, today)
-            TargetUi(t.id, t.title, t.phrases.map(com.id.mimikopi.core.recall.TargetSong::state),
-                com.id.mimikopi.core.recall.TargetSong.fraction(t), next, t.phrases.indexOfFirst { it.id == next?.phrase?.id })
-        }
         val goal = com.id.mimikopi.core.goal.IdolGoal.SONGS.firstOrNull { com.id.mimikopi.core.goal.IdolGoal.gaps(it, statuses).isNotEmpty() }
         _ui.value = TodayUi(
             loaded = true,
@@ -192,7 +172,6 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
             fixes = com.id.mimikopi.core.progress.Mistakes.summarize(progress.mistakes.value, earState, today).take(2),
             goalSong = goal?.title,
             goalReady = goal?.let { com.id.mimikopi.core.goal.IdolGoal.readiness(it, statuses) } ?: 1.0,
-            target = target,
         )
     }
 

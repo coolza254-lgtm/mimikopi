@@ -4,7 +4,8 @@ name: Desktop
 # the MSI installer on Windows.
 on:
   push:
-    branches: ["**"]
+    # Every branch but the sync data (learning-system.md 2.11), which only holds progress files.
+    branches: ["**", "!sync-data"]
     paths:
       - "desktop/**"
       - "core/**"

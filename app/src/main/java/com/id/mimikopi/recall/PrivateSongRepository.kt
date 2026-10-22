@@ -10,10 +10,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.builtins.ListSerializer
 import java.util.UUID
 
-/**
- * Private songs in their settings row. They travel with the GitHub sync (core PrivateSongSync); a deleted song or
- * phrase leaves its id in [PrivateSongSync.DELETED] so a sync does not bring it back.
- */
+/** Device-local settings rows are covered by manual/local safety backups, never the LAN sync key allowlist. */
 class PrivateSongRepository(private val dao: SettingsDao) {
     companion object { const val KEY = "private.recall.songs.v1" }
     private val mutex = Mutex()
@@ -40,24 +37,17 @@ class PrivateSongRepository(private val dao: SettingsDao) {
         all.map { s -> if (s.id != songId) s else s.copy(phrases = s.phrases.map { p -> if (p.id == phraseId) change(p) else p }) }
     }
     suspend fun importCopy(text: String) = mutate { all -> all + PrivateRecall.import(text).copy(id = UUID.randomUUID().toString()) }
-    suspend fun delete(id: String) { forget(PrivateSongSync.songKey(id)); mutate { it.filterNot { s -> s.id == id } } }
+    suspend fun delete(id: String) = mutate { it.filterNot { s -> s.id == id } }
     suspend fun editSong(id: String, title: String, url: String) = mutate { songs ->
         val source = VideoReference.canonical(url) ?: error("ลิงก์ YouTube ไม่ถูกต้อง")
-        songs.map { s -> if (s.id != id) s else s.copy(title = title.trim(), sourceUrl = source, edited = System.currentTimeMillis(),
+        songs.map { s -> if (s.id != id) s else s.copy(title = title.trim(), sourceUrl = source,
             phrases = if (source == s.sourceUrl) s.phrases else s.phrases.map { it.copy(revision = it.revision + 1) }) }
     }
     suspend fun addPhrase(songId: String, p: PrivatePhrase) = mutate { all -> all.map { s ->
         if (s.id != songId) s else s.copy(phrases = s.phrases + p)
     } }
-    suspend fun removePhrase(songId: String, phraseId: String) {
-        forget(PrivateSongSync.phraseKey(songId, phraseId))
-        mutate { all -> all.map { s -> if (s.id != songId) s else s.copy(phrases = s.phrases.filterNot { it.id == phraseId }) } }
-    }
-
-    /** Marks a song or phrase as deleted for the sync. */
-    private suspend fun forget(key: String) {
-        val gone = PrivateSongSync.decodeDeleted(dao.get(PrivateSongSync.DELETED))
-        if (key !in gone) dao.put(SettingEntity(PrivateSongSync.DELETED, PrivateSongSync.encodeDeleted(gone + key)))
-    }
+    suspend fun removePhrase(songId: String, phraseId: String) = mutate { all -> all.map { s ->
+        if (s.id != songId) s else s.copy(phrases = s.phrases.filterNot { it.id == phraseId })
+    } }
 
 }

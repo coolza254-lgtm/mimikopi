@@ -61,7 +61,7 @@ fun ScreenScaffold(
                 Modifier
                     .widthIn(max = 720.dp)
                     .padding(start = 20.dp, end = 20.dp, top = Tokens.Space.s, bottom = 28.dp),
-                verticalArrangement = Arrangement.spacedBy(Tokens.Space.m),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
                 content = content,
             )
         }

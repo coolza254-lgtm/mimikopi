@@ -1,5 +1,9 @@
 package com.id.mimikopi.ui.progress
 
+import com.id.mimikopi.ui.skills.look
+import com.id.mimikopi.ui.components.softShadow
+import com.id.mimikopi.ui.components.SkillIcon
+import androidx.compose.ui.graphics.Color
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -154,7 +158,8 @@ fun ProgressScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ProgressViewM
                     }
                     ui.changes.forEach { c ->
                         GroupDivider()
-                        GroupRow("${c.skill.title} ${c.from} → ${c.to}", value = shortDate(c.date), titleColor = if (c.to > c.from) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
+                        GroupRow("${c.skill.title} ${c.from} → ${c.to}", value = shortDate(c.date), titleColor = if (c.to > c.from) Tokens.Palette.Ink else Tokens.Palette.InkMuted,
+                            leading = { SkillIcon(look(c.skill).first, look(c.skill).second, size = 32.dp, filled = true) })
                     }
                 }
                 GroupFooter("นับจากแบบทดสอบในหน้าทักษะเท่านั้น ระดับลดได้ถ้าทดสอบระดับที่ถืออยู่ไม่ผ่านสองครั้งติด")
@@ -173,7 +178,9 @@ fun ProgressScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ProgressViewM
                 GroupHeader("หู: ถูกครั้งแรกต่อสัปดาห์")
                 Group {
                     Column(Modifier.padding(16.dp)) {
-                        BarChart(ui.ear.map { it.second?.toFloat() }, listOfNotNull(ui.ear.firstOrNull()?.first?.let(::shortDate), "สัปดาห์นี้"))
+                        val ear = Tokens.Skill.Ear
+                        BarChart(ui.ear.map { it.second?.toFloat() }, listOfNotNull(ui.ear.firstOrNull()?.first?.let(::shortDate), "สัปดาห์นี้"),
+                            steps = listOf(ear.fill, Color(0xFFEBCFAE), Color(0xFFE2BA8C), ear.ink))
                         val heard = ui.ear.mapNotNull { it.second }
                         Text(if (heard.isEmpty()) "ยังไม่ได้ฝึกหูในช่วงนี้" else "ล่าสุด ${(heard.last() * 100).toInt()}% · ฝึก ${heard.size} สัปดาห์จาก 12",
                             fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
@@ -220,12 +227,12 @@ private fun change(delta: Int, unit: String): Pair<String, Boolean>? =
 
 @Composable
 private fun SummaryTile(title: String, value: String, delta: Pair<String, Boolean>?, modifier: Modifier) {
-    Column(modifier.clip(RoundedCornerShape(18.dp)).background(Tokens.Palette.Group)
-        .border(1.dp, Tokens.Palette.Hair, RoundedCornerShape(18.dp)).padding(12.dp)) {
+    val shape = RoundedCornerShape(Tokens.Radius.box)
+    Column(modifier.softShadow(shape, small = true).clip(shape).background(Tokens.Palette.Group).padding(14.dp)) {
         Text(title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted, maxLines = 1)
-        Text(value, fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, maxLines = 1)
+        Text(value, fontSize = 22.sp, fontFamily = Tokens.Fonts.body, lineHeight = 28.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, maxLines = 1)
         Text(delta?.first ?: "เท่าเดิม", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
-            color = when (delta?.second) { true -> Tokens.Palette.Correct; false -> Tokens.Palette.Timing; null -> Tokens.Palette.InkMuted })
+            color = when (delta?.second) { true -> Tokens.Palette.Accent; false -> Tokens.Palette.Timing; null -> Tokens.Palette.InkMuted })
     }
 }
 

@@ -66,6 +66,10 @@ class ScreenPreviews {
             )
         }
     }
+    @Test fun settings() = render("13-settings", null) {
+        com.id.mimikopi.ui.settings.SettingsScreen(onBack = {}, onOpenMidi = {}, onOpenMetronome = {}, onOpenAbout = {}, onOpenDiagnostics = {})
+    }
+    @Test fun progress() = render("11-progress", null) { com.id.mimikopi.ui.progress.ProgressScreen(onBack = {}, onOpen = {}) }
     @Test fun skills() = render("02-skills", "skills") { SkillsScreen(onOpen = {}, onOpenMidi = {}, onOpenSettings = {}) }
     @Test fun songs() = render("04-songs", "songs") {
         SongsScreen(onOpen = {}, onOpenLibrary = {})

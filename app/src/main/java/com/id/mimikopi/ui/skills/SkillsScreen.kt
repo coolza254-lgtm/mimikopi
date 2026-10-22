@@ -16,6 +16,7 @@ import com.id.mimikopi.ui.components.Pill
 import com.id.mimikopi.ui.components.SkillIcon
 import com.id.mimikopi.ui.components.softShadow
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -146,9 +147,9 @@ private fun OverallCard(ui: SkillsUi, onOpen: (Open) -> Unit) {
                 ui.overall?.let { Text("ระดับรวม: $it", fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted) }
             }
         }
-        if (next != null) {
-            val level = next.nextTest!!
-            val book = SkillBook.level(next.skill, level)
+        val level = next?.nextTest
+        val book = if (next != null && level != null) SkillBook.level(next.skill, level) else null
+        if (next != null && level != null && book != null) {
             Row(
                 Modifier.padding(top = 18.dp).fillMaxWidth().clip(RoundedCornerShape(Tokens.Radius.box)).background(Tokens.Palette.Paper)
                     .padding(start = 16.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),

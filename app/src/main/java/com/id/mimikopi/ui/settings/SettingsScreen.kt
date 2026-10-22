@@ -1,5 +1,21 @@
 package com.id.mimikopi.ui.settings
 
+import androidx.compose.foundation.layout.height
+import com.id.mimikopi.ui.components.midiConnected
+import com.id.mimikopi.ui.components.Segmented
+import com.id.mimikopi.ui.components.SecondaryButton
+import com.id.mimikopi.ui.components.PrimaryButton
+import com.id.mimikopi.ui.components.GroupRow
+import com.id.mimikopi.ui.components.GroupDivider
+import com.id.mimikopi.ui.components.Group
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -90,74 +106,86 @@ fun SettingsScreen(
     }
 
     ScreenScaffold(title = stringResource(R.string.settings_title), onBack = onBack) {
-        PageCard {
-            NavRow(R.drawable.ic_usb, R.string.home_midi_title, onOpenMidi)
-            NavRow(R.drawable.ic_metronome, R.string.home_metronome_title, onOpenMetronome)
-            NavRow(R.drawable.ic_info, R.string.home_about_title, onOpenAbout)
-            NavRow(R.drawable.ic_device, R.string.home_diagnostics_title, onOpenDiagnostics)
-        }
-        PageCard(title = stringResource(R.string.theme_title)) {
-            val app = context.applicationContext as com.id.mimikopi.MimikopiApp
-            val mode by app.themeMode.collectAsStateWithLifecycle()
-            Row(horizontalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
-                listOf(
-                    com.id.mimikopi.ui.theme.ThemeMode.DARK to R.string.theme_dark,
-                    com.id.mimikopi.ui.theme.ThemeMode.LIGHT to R.string.theme_light,
-                    com.id.mimikopi.ui.theme.ThemeMode.SYSTEM to R.string.theme_system,
-                ).forEach { (m, label) ->
-                    androidx.compose.material3.FilterChip(selected = mode == m, onClick = { app.setThemeMode(m) }, label = { Text(stringResource(label)) })
-                }
+        val midi = midiConnected()
+        Section("การเชื่อมต่อและเสียง") {
+            Group {
+                GroupRow(
+                    stringResource(R.string.home_midi_title),
+                    subtitle = if (midi) "เชื่อมต่อแล้ว" else "ยังไม่ได้ต่อ · สายหรือบลูทูธ",
+                    onClick = onOpenMidi,
+                    leading = { Box(Modifier.size(10.dp).background(if (midi) Tokens.Palette.Positive else Tokens.Palette.Dim, CircleShape)) },
+                    trailing = { Chevron() },
+                )
+                GroupDivider()
+                GroupRow(stringResource(R.string.home_metronome_title), subtitle = "ความเร็ว จังหวะ เสียงเคาะ", onClick = onOpenMetronome, trailing = { Chevron() })
+                GroupDivider()
+                GroupRow(stringResource(R.string.home_diagnostics_title), subtitle = "ตรวจเสียง MIDI และความหน่วง", onClick = onOpenDiagnostics, trailing = { Chevron() })
             }
         }
-        PageCard(title = stringResource(R.string.update_title)) {
-            Body(stringResource(R.string.update_current, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
-            lastCheck?.let { Body(stringResource(R.string.update_last_check, it), muted = true) }
-            UpdateSection(
-                state = update,
-                onCheck = vm::checkForUpdate,
-                onStart = vm::startUpdate,
-                onOpenPermission = {
-                    context.startActivity(
-                        Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")),
-                    )
-                },
-                onDismiss = vm::dismissUpdateMessage,
-            )
-        }
 
-        PageCard(title = stringResource(R.string.timing_title)) {
-            Body(stringResource(R.string.timing_body))
-            Column(verticalArrangement = Arrangement.spacedBy(Tokens.Space.xs), modifier = Modifier.padding(top = Tokens.Space.s)) {
-                listOf(
+        Section("การแสดงผล") {
+            PageCard {
+                val app = context.applicationContext as com.id.mimikopi.MimikopiApp
+                val mode by app.themeMode.collectAsStateWithLifecycle()
+                Label(stringResource(R.string.theme_title))
+                Segmented(
+                    listOf(com.id.mimikopi.ui.theme.ThemeMode.LIGHT, com.id.mimikopi.ui.theme.ThemeMode.DARK, com.id.mimikopi.ui.theme.ThemeMode.SYSTEM),
+                    mode,
+                    { m -> when (m) {
+                        com.id.mimikopi.ui.theme.ThemeMode.LIGHT -> "สว่าง"
+                        com.id.mimikopi.ui.theme.ThemeMode.DARK -> "มืด"
+                        else -> "ตามเครื่อง"
+                    } },
+                    { app.setThemeMode(it) },
+                )
+                Label(stringResource(R.string.timing_title), Modifier.padding(top = 20.dp))
+                val modes = listOf(
                     com.id.mimikopi.core.practice.TimingMode.STRICT to R.string.timing_strict,
                     com.id.mimikopi.core.practice.TimingMode.NORMAL to R.string.timing_normal,
                     com.id.mimikopi.core.practice.TimingMode.FORGIVING to R.string.timing_forgiving,
-                ).forEach { (mode, label) ->
-                    androidx.compose.material3.FilterChip(selected = timingMode == mode, onClick = { vm.setTimingMode(mode) },
-                        label = { Text(stringResource(label, vm.exampleMs(mode))) })
-                }
+                )
+                val labels = modes.associate { (m, label) -> m to stringResource(label, vm.exampleMs(m)) }
+                Segmented(modes.map { it.first }, timingMode, { labels.getValue(it).substringBefore(" (") }, vm::setTimingMode)
+                Body(stringResource(R.string.timing_body) + " · ตอนนี้ " + labels.getValue(timingMode), muted = true)
             }
         }
 
-        SyncCard()
+        Section("ซิงค์กับคอม") { SyncCard() }
 
-        PageCard(title = stringResource(R.string.backup_title)) {
-            Body(stringResource(R.string.backup_body))
-            Body(stringResource(R.string.backup_auto_count, autoCount), muted = true)
-            Column(verticalArrangement = Arrangement.spacedBy(Tokens.Space.s), modifier = Modifier.padding(top = Tokens.Space.s)) {
-                Button(onClick = { exportLauncher.launch(backupName) }, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
-                    Text(stringResource(R.string.backup_export))
+        Section("ข้อมูลและอัปเดต") {
+            PageCard {
+                Label(stringResource(R.string.backup_title))
+                Body(stringResource(R.string.backup_body), muted = true)
+                Body(stringResource(R.string.backup_auto_count, autoCount), muted = true)
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 12.dp)) {
+                    PrimaryButton(stringResource(R.string.backup_export), onClick = { exportLauncher.launch(backupName) })
+                    SecondaryButton(stringResource(R.string.backup_import), onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
+                        modifier = Modifier.fillMaxWidth())
+                    if (autoCount > 0) SecondaryButton(stringResource(R.string.backup_restore_auto), onClick = vm::restoreLatestAutoBackup, modifier = Modifier.fillMaxWidth())
                 }
-                OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
-                    Text(stringResource(R.string.backup_import))
-                }
-                if (autoCount > 0) {
-                    OutlinedButton(onClick = vm::restoreLatestAutoBackup, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
-                        Text(stringResource(R.string.backup_restore_auto))
-                    }
-                }
+                BackupStatus(backup)
+
+                Box(Modifier.padding(vertical = 20.dp).fillMaxWidth().height(1.dp).background(Tokens.Palette.Hair))
+                Label(stringResource(R.string.update_title))
+                Body(stringResource(R.string.update_current, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE), muted = true)
+                lastCheck?.let { Body(stringResource(R.string.update_last_check, it), muted = true) }
+                UpdateSection(
+                    state = update,
+                    onCheck = vm::checkForUpdate,
+                    onStart = vm::startUpdate,
+                    onOpenPermission = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")),
+                        )
+                    },
+                    onDismiss = vm::dismissUpdateMessage,
+                )
             }
-            BackupStatus(backup)
+        }
+
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally)) {
+            FooterLink("เกี่ยวกับและเครดิต", onOpenAbout)
+            FooterLink("ข้อมูลวินิจฉัย", onOpenDiagnostics)
         }
     }
 
@@ -206,9 +234,7 @@ private fun UpdateSection(
             UpdateUi.Idle, is UpdateUi.UpToDate, is UpdateUi.Failed -> {
                 if (state is UpdateUi.UpToDate) Body(stringResource(R.string.update_up_to_date, state.latestVersionName))
                 if (state is UpdateUi.Failed) Body(failureText(state), error = true)
-                Button(onClick = onCheck, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
-                    Text(stringResource(R.string.update_check))
-                }
+                SecondaryButton(stringResource(R.string.update_check), onClick = onCheck, modifier = Modifier.fillMaxWidth())
             }
             UpdateUi.Checking -> {
                 Body(stringResource(R.string.update_checking))
@@ -219,9 +245,7 @@ private fun UpdateSection(
                 Text(stringResource(R.string.update_available, m.versionName), style = MaterialTheme.typography.titleMedium)
                 Body(m.notesTh)
                 Body(stringResource(R.string.update_size, m.apkSize / 1_000_000.0), muted = true)
-                Button(onClick = { onStart(m) }, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
-                    Text(stringResource(R.string.update_install))
-                }
+                PrimaryButton(stringResource(R.string.update_install), onClick = { onStart(m) })
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.update_later)) }
             }
             is UpdateUi.Downloading -> {
@@ -230,9 +254,7 @@ private fun UpdateSection(
             }
             is UpdateUi.NeedsInstallPermission -> {
                 Body(stringResource(R.string.update_need_permission))
-                Button(onClick = onOpenPermission, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
-                    Text(stringResource(R.string.update_open_permission))
-                }
+                PrimaryButton(stringResource(R.string.update_open_permission), onClick = onOpenPermission)
             }
             is UpdateUi.Installing -> Body(stringResource(R.string.update_installing))
         }
@@ -281,17 +303,29 @@ private fun Body(text: String, muted: Boolean = false, error: Boolean = false) {
     )
 }
 
+/** A section of settings: a small grey heading over its card. */
 @Composable
-private fun NavRow(icon: Int, label: Int, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch).clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Tokens.Space.m),
-    ) {
-        Icon(painterResource(icon), contentDescription = null, tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
-        Text(stringResource(label), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.InkMuted, modifier = Modifier.size(18.dp))
+private fun Section(title: String, content: @Composable () -> Unit) {
+    Column {
+        Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(start = 8.dp, bottom = 10.dp))
+        content()
     }
+}
+
+@Composable
+private fun Label(text: String, modifier: Modifier = Modifier) {
+    Text(text, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = modifier.padding(bottom = 10.dp))
+}
+
+@Composable
+private fun Chevron() {
+    Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.Dim, modifier = Modifier.size(16.dp))
+}
+
+@Composable
+private fun FooterLink(text: String, onClick: () -> Unit) {
+    Text(text, fontSize = 14.sp, color = Tokens.Palette.InkMuted, textDecoration = TextDecoration.Underline,
+        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 6.dp, vertical = 10.dp))
 }
 
 /**
@@ -306,21 +340,23 @@ private fun SyncCard() {
     val saved = remember { app.sync.config() }
     var repo by remember { mutableStateOf(saved.repo) }
     var token by remember { mutableStateOf(saved.token) }
-    PageCard(title = "ซิงค์กับคอมผ่าน GitHub") {
+    PageCard {
+        Label("ผ่าน GitHub repo ส่วนตัว")
         Body("รวมความคืบหน้าของมือถือกับคอมผ่าน repo ส่วนตัว (ไม่รวมเพลงส่วนตัวและการตั้งค่าเครื่อง) ซิงค์เองตอนเปิดและปิดแอป สำรองข้อมูลก่อนรวมทุกครั้ง")
         androidx.compose.material3.OutlinedTextField(repo, { repo = it.take(100) }, singleLine = true, label = { Text("repo (เจ้าของ/ชื่อ)") },
             modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.s))
         androidx.compose.material3.OutlinedTextField(token, { token = it.take(200) }, singleLine = true, label = { Text("token (fine-grained · Contents อ่านและเขียน)") },
             visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.xs))
         Body("token เก็บในเครื่องนี้เท่านั้น ไม่อยู่ในไฟล์สำรองและไม่ถูกส่งไปที่อื่นนอกจาก GitHub", muted = true)
-        Button(
+        PrimaryButton(
+            if (status.running) "กำลังซิงค์…" else "บันทึกและซิงค์ตอนนี้",
             onClick = {
                 app.sync.saveConfig(com.id.mimikopi.core.sync.GitHubSyncConfig(repo, token))
                 scope.launch { app.sync.sync() }
             },
             enabled = !status.running,
-            modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch).padding(top = Tokens.Space.s),
-        ) { Text(if (status.running) "กำลังซิงค์…" else "บันทึกและซิงค์ตอนนี้") }
+            modifier = Modifier.padding(top = 12.dp),
+        )
         status.line?.let { Body(it, muted = !status.failed, error = status.failed) }
     }
 }

@@ -44,7 +44,7 @@ import kotlinx.coroutines.flow.StateFlow
  * opens the MIDI page.
  */
 @Composable
-fun MidiNoticeBar(notices: StateFlow<MidiNotice?>, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+fun MidiNoticeBar(notices: StateFlow<MidiNotice?>, onOpen: () -> Unit, modifier: Modifier = Modifier, pianoName: (String) -> String = { it }) {
     val notice by notices.collectAsState()
     var shown by remember { mutableStateOf<MidiNotice?>(null) }
     var visible by remember { mutableStateOf(false) }
@@ -82,7 +82,7 @@ fun MidiNoticeBar(notices: StateFlow<MidiNotice?>, onOpen: () -> Unit, modifier:
             ) {
                 if (connected) Icon(painterResource(R.drawable.ic_check), contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
             }
-            Text(n.text(), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
+            Text(n.copy(name = pianoName(n.name)).text(), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
         }
     }
 }

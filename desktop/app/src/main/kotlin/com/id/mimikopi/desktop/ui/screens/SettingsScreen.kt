@@ -1,12 +1,16 @@
 package com.id.mimikopi.desktop.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -19,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.id.mimikopi.core.backup.BackupCheck
+import com.id.mimikopi.core.input.PianoNames
 import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.desktop.audio.PackProgress
 import com.id.mimikopi.desktop.input.ComputerKeyboard
@@ -36,6 +41,7 @@ import com.id.mimikopi.desktop.ui.components.Page
 import com.id.mimikopi.desktop.ui.components.PrimaryButton
 import com.id.mimikopi.desktop.ui.components.SecondaryButton
 import com.id.mimikopi.desktop.ui.components.Segmented
+import com.id.mimikopi.desktop.ui.components.ToyPiano
 import com.id.mimikopi.desktop.ui.theme.Tokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -62,6 +68,8 @@ fun SettingsScreen() {
     val scope = rememberCoroutineScope()
     val audio by s.piano.status.collectAsState()
     val ports by s.midi.ports.collectAsState()
+    val pianoNames by s.pianoNames.collectAsState()
+    var renaming by remember { mutableStateOf<String?>(null) }
     val lowC by s.keysLowC.collectAsState()
     val nameStyle by s.nameStyle.collectAsState()
     var packState by remember { mutableStateOf<String?>(null) }
@@ -75,6 +83,22 @@ fun SettingsScreen() {
     var updateText by remember { mutableStateOf<String?>(null) }
     var updateBusy by remember { mutableStateOf(false) }
     var cancelUpdate by remember { mutableStateOf(false) }
+
+    renaming?.let { reported ->
+        var name by remember(reported) { mutableStateOf(PianoNames.display(reported, pianoNames)) }
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            title = { Text("ชื่อเปียโน") },
+            text = {
+                Column {
+                    OutlinedTextField(name, { name = it.take(PianoNames.MAX_LENGTH) }, singleLine = true, label = { Text("ชื่อที่แสดงในโปรแกรม") })
+                    Text("ชื่อที่เปียโนส่งมา: $reported", fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 8.dp))
+                }
+            },
+            confirmButton = { TextButton(onClick = { s.renamePiano(reported, name); renaming = null }) { Text("บันทึก") } },
+            dismissButton = { TextButton(onClick = { s.renamePiano(reported, ""); renaming = null }) { Text("ใช้ชื่อเดิม") } },
+        )
+    }
 
     Page {
         LargeTitle("ตั้งค่า", "เสียง · เปียโน MIDI · ข้อมูลในเครื่อง")
@@ -142,7 +166,12 @@ fun SettingsScreen() {
             if (ports.isEmpty()) GroupRow("ไม่พบพอร์ต MIDI", "เสียบสาย USB แล้วรอสักครู่ โปรแกรมค้นหาทุก 1.5 วินาที")
             ports.forEachIndexed { i, p ->
                 if (i > 0) GroupDivider()
-                GroupRow(p.name, p.error ?: if (p.open) "เชื่อมต่อแล้ว" else "กำลังเปิด", value = if (p.open) "●" else "○")
+                GroupRow(
+                    PianoNames.display(p.name, pianoNames), p.error ?: if (p.open) "เชื่อมต่อแล้ว · กดเพื่อเปลี่ยนชื่อ" else "กำลังเปิด",
+                    value = if (p.open) "●" else "○",
+                    onClick = { renaming = p.name },
+                    leading = if (p.open) ({ ToyPiano(40.dp) }) else null,
+                )
             }
             GroupDivider()
             GroupRow("ค้นหาใหม่", onClick = { s.midi.retryFailed() })

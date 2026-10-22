@@ -86,6 +86,8 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
     val bleProblem: StateFlow<BleProblem?> = _bleProblem.asStateFlow()
     val midiSupported: Boolean = midi.supported
     val config: StateFlow<InputConfig> = store.config
+    /** The user's own names for their pianos; shown everywhere in place of the name the piano reports. */
+    val pianoNames: StateFlow<Map<String, String>> = services.pianoNames.own
 
     private val _monitor = MutableStateFlow<List<MonitorLine>>(emptyList())
     val monitor: StateFlow<List<MonitorLine>> = _monitor.asStateFlow()
@@ -157,6 +159,11 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun bleDisconnect() = midi.disconnectBluetooth()
+
+    /** Names the piano that reports [reported]; blank returns it to the default name. */
+    fun renamePiano(reported: String, name: String) {
+        viewModelScope.launch { services.pianoNames.rename(reported, name) }
+    }
 
     fun bleForget() {
         ble.stop()

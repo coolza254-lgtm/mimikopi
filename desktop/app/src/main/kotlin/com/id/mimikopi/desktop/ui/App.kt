@@ -114,6 +114,7 @@ fun App(ctx: AppContext) {
 @Composable
 private fun Rail(ctx: AppContext) {
     val ports by ctx.services.midi.ports.collectAsState()
+    val pianoNames by ctx.services.pianoNames.collectAsState()
     val audio by ctx.services.piano.status.collectAsState()
     val currentTab = (ctx.nav.stack.firstOrNull() as? Screen.Home)?.tab
     Column(
@@ -136,7 +137,7 @@ private fun Rail(ctx: AppContext) {
         }
         Spacer(Modifier.weight(1f))
         val midi = ports.count { it.open }
-        StatusDot(midi > 0, if (midi > 0) "MIDI ${ports.first { it.open }.name}" else "ไม่มี MIDI · ใช้เมาส์/คีย์บอร์ด") { ctx.nav.home(Tab.SETTINGS) }
+        StatusDot(midi > 0, if (midi > 0) "MIDI ${com.id.mimikopi.core.input.PianoNames.display(ports.first { it.open }.name, pianoNames)}" else "ไม่มี MIDI · ใช้เมาส์/คีย์บอร์ด") { ctx.nav.home(Tab.SETTINGS) }
         StatusDot(audio.open || audio.error == null, when {
             audio.error != null -> "เสียง: ${audio.error}"
             audio.samples -> "เสียงเปียโนจริง"

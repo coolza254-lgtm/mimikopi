@@ -2,6 +2,7 @@ package com.id.mimikopi.desktop
 
 import com.id.mimikopi.core.input.InputConfig
 import com.id.mimikopi.core.input.InputSource
+import com.id.mimikopi.core.input.PianoNames
 import com.id.mimikopi.core.input.VelocityMode
 import com.id.mimikopi.core.music.NoteNameStyle
 import com.id.mimikopi.core.piano.PianoSound
@@ -65,6 +66,10 @@ class Services(
     /** The computer keyboard's lowest C (moved with [ and ]). */
     val keysLowC: StateFlow<Int> = _keysLowC.asStateFlow()
 
+    private val _pianoNames = MutableStateFlow(PianoNames.decode(db.get(PianoNames.SETTING_KEY)))
+    /** The user's own names for their pianos ([PianoNames]); shown in place of the name the piano reports. */
+    val pianoNames: StateFlow<Map<String, String>> = _pianoNames.asStateFlow()
+
     init {
         learning.load()
         pieces.load()
@@ -76,6 +81,14 @@ class Services(
         if (startMidi) midi.start()
         // The installed piano sound loads in the background; the built-in tone plays until then.
         appScope.launch { samples.installed()?.let { samples.load(piano, it) } }
+    }
+
+    fun pianoName(reported: String): String = PianoNames.display(reported, _pianoNames.value)
+
+    /** Names the piano that reports [reported]; blank returns it to the default name. */
+    fun renamePiano(reported: String, name: String) {
+        _pianoNames.value = PianoNames.rename(_pianoNames.value, reported, name)
+        db.put(PianoNames.SETTING_KEY, PianoNames.encode(_pianoNames.value))
     }
 
     fun setNameStyle(style: NoteNameStyle) {
@@ -112,6 +125,7 @@ class Services(
         pieces.reload()
         progress.reload()
         inputConfig.reload()
+        _pianoNames.value = PianoNames.decode(db.get(PianoNames.SETTING_KEY))
         runCatching { privateSongs.reload() }
     }
 

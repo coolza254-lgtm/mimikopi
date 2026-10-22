@@ -27,6 +27,7 @@ class MimikopiApp : Application() {
     val inputHub: InputHub by lazy { InputHub(piano) }
     val inputConfig: InputConfigStore by lazy { InputConfigStore(database.settingsDao()) }
     val midiInput: MidiInputManager by lazy { MidiInputManager(this, inputHub) }
+    val pianoNames: com.id.mimikopi.input.PianoNameStore by lazy { com.id.mimikopi.input.PianoNameStore(database.settingsDao()) }
     /** Practice minutes per day and the level tests (Today and Skills pages). */
     val progress: com.id.mimikopi.ui.today.ProgressStore by lazy {
         com.id.mimikopi.ui.today.ProgressStore({ database.settingsDao().get(it) }, { k, v -> database.settingsDao().put(com.id.mimikopi.data.db.SettingEntity(k, v)) })
@@ -70,6 +71,7 @@ class MimikopiApp : Application() {
             settings.get(com.id.mimikopi.data.db.SettingKeys.THEME_MODE)
                 ?.let { runCatching { com.id.mimikopi.ui.theme.ThemeMode.valueOf(it) }.getOrNull() }?.let { themeMode.value = it }
             midiInput.octaveOffset = inputConfig.load().octaveOffset
+            pianoNames.load()
             inputHub.soundThrough = database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.MIDI_SOUND_THROUGH)?.toBooleanStrictOrNull() ?: true
             inputHub.velocity = com.id.mimikopi.core.input.VelocityMode.parse(database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.VELOCITY_MODE))
             piano.sound = com.id.mimikopi.core.piano.PianoSound.parse(database.settingsDao().get(com.id.mimikopi.data.db.SettingKeys.PIANO_SOUND))

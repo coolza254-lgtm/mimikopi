@@ -23,10 +23,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -48,10 +50,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.id.mimikopi.R
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.input.MidiNotice
+import com.id.mimikopi.core.input.PianoNames
 import com.id.mimikopi.midi.BleLink
 import com.id.mimikopi.midi.BleMidiScanner
 import com.id.mimikopi.ui.components.PageCard
 import com.id.mimikopi.ui.components.ScreenScaffold
+import com.id.mimikopi.ui.components.ToyPiano
 import com.id.mimikopi.ui.theme.Tokens
 
 @Composable
@@ -71,6 +75,9 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
     val bleScanFinished by vm.bleScanFinished.collectAsStateWithLifecycle()
     val bleLink by vm.bleLink.collectAsStateWithLifecycle()
     val notice by vm.notice.collectAsStateWithLifecycle()
+    val ownNames by vm.pianoNames.collectAsStateWithLifecycle()
+    fun shown(reported: String) = PianoNames.display(reported, ownNames)
+    var renaming by remember { mutableStateOf<String?>(null) }
     // The scan or reconnect continues once the user answers the "nearby devices" dialog.
     var afterPermission by remember { mutableStateOf<(() -> Unit)?>(null) }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -85,6 +92,22 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
     LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.onStart() }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
+
+    renaming?.let { reported ->
+        var name by remember(reported) { mutableStateOf(shown(reported)) }
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            title = { Text(stringResource(R.string.piano_name_title)) },
+            text = {
+                Column {
+                    OutlinedTextField(name, { name = it.take(PianoNames.MAX_LENGTH) }, singleLine = true, label = { Text(stringResource(R.string.piano_name_label)) })
+                    Text(stringResource(R.string.piano_name_reported, reported), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = Tokens.Space.s))
+                }
+            },
+            confirmButton = { TextButton(onClick = { vm.renamePiano(reported, name); renaming = null }) { Text(stringResource(R.string.piano_name_save)) } },
+            dismissButton = { TextButton(onClick = { vm.renamePiano(reported, ""); renaming = null }) { Text(stringResource(R.string.piano_name_default)) } },
+        )
+    }
 
     ScreenScaffold(title = stringResource(R.string.midi_title), onBack = onBack) {
         // The connection, told as it really is: connected (green tick), silent, unplugged or absent.
@@ -106,7 +129,7 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
                         },
                     ),
                     body = stringResource(R.string.midi_none_help),
-                    device = gone?.name,
+                    device = gone?.name?.let(::shown),
                     lastNote = null,
                 )
             } else {
@@ -127,7 +150,8 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
                             ConnState.CONNECTING -> d.error?.let { stringResource(R.string.midi_state_open_failed_body) }
                             else -> null
                         },
-                        device = d.name + " · " + stringResource(if (d.source == InputSource.BLE_MIDI) R.string.midi_bluetooth else R.string.midi_usb),
+                        device = shown(d.name) + " · " + stringResource(if (d.source == InputSource.BLE_MIDI) R.string.midi_bluetooth else R.string.midi_usb),
+                        onRename = { renaming = d.name },
                         lastNote = d.lastNote?.let { n ->
                             val secs = ((now - (d.lastNoteNanos ?: now)) / 1_000_000_000L).toInt()
                             val name = com.id.mimikopi.core.music.SpelledPitch.fromMidiSharp(n).name(com.id.mimikopi.core.music.NoteNameStyle.BOTH, withOctave = true)
@@ -174,7 +198,7 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = Tokens.Space.xs)) {
                         StatusMark(state, small = true)
-                        Text(saved.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Text(shown(saved.name), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                         Text(
                             when (state) {
                                 ConnState.CONNECTED -> stringResource(R.string.midi_state_connected)
@@ -198,8 +222,8 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
                 when {
                     bleProblem == BleProblem.PERMISSION -> Body(stringResource(R.string.ble_need_permission), error = true)
                     bleProblem == BleProblem.OFF -> Body(stringResource(R.string.ble_off), error = true)
-                    connecting != null -> Body(stringResource(R.string.ble_connecting_to, connecting.name, (com.id.mimikopi.midi.MidiInputManager.CONNECT_TIMEOUT_MS / 1000).toInt()), muted = true)
-                    bleLink is BleLink.Failed && !bleConnected -> Body(stringResource(R.string.ble_failed, (bleLink as BleLink.Failed).name), error = true)
+                    connecting != null -> Body(stringResource(R.string.ble_connecting_to, shown(connecting.name), (com.id.mimikopi.midi.MidiInputManager.CONNECT_TIMEOUT_MS / 1000).toInt()), muted = true)
+                    bleLink is BleLink.Failed && !bleConnected -> Body(stringResource(R.string.ble_failed, shown((bleLink as BleLink.Failed).name)), error = true)
                     bleScanFinished && !bleScanning && bleFound.isEmpty() && !bleConnected -> Body(stringResource(R.string.ble_not_found), error = true)
                 }
                 if (!bleConnected && connecting == null) Button(
@@ -209,7 +233,7 @@ fun MidiScreen(onBack: () -> Unit, vm: MidiViewModel = viewModel()) {
                 ) { Text(stringResource(if (bleScanning) R.string.ble_scanning else R.string.ble_scan)) }
                 if (!bleConnected && connecting == null) bleFound.forEach { d ->
                     OutlinedButton(onClick = { withPermission { vm.bleConnect(d) } }, modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch)) {
-                        Text(stringResource(R.string.ble_connect_to, d.name))
+                        Text(stringResource(R.string.ble_connect_to, shown(d.name)))
                     }
                 }
             }
@@ -293,7 +317,7 @@ fun StatusMark(state: ConnState, small: Boolean = false) {
 }
 
 @Composable
-private fun StatusHero(state: ConnState, title: String, body: String?, device: String?, lastNote: String?) {
+private fun StatusHero(state: ConnState, title: String, body: String?, device: String?, lastNote: String?, onRename: (() -> Unit)? = null) {
     Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         StatusMark(state)
         Column(Modifier.weight(1f)) {
@@ -301,7 +325,18 @@ private fun StatusHero(state: ConnState, title: String, body: String?, device: S
                 title, fontFamily = Tokens.Fonts.display, fontWeight = FontWeight.SemiBold, fontSize = 26.sp, lineHeight = 32.sp,
                 color = if (state == ConnState.CONNECTED) Tokens.Palette.Positive else Tokens.Palette.Ink,
             )
-            device?.let { Text(it, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 2.dp)) }
+            device?.let {
+                // A piano that is here gets its picture and a way to name it.
+                if (onRename != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 6.dp)) {
+                        ToyPiano(40.dp)
+                        Text(it, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                        TextButton(onClick = onRename) { Text(stringResource(R.string.piano_name_edit)) }
+                    }
+                } else {
+                    Text(it, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 2.dp))
+                }
+            }
             body?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp)) }
             lastNote?.let { Text(it, fontFamily = Tokens.Fonts.mono, fontSize = 13.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 8.dp)) }
         }

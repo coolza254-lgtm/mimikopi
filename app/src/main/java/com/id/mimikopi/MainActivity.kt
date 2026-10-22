@@ -326,7 +326,7 @@ private fun AppNavigation() {
         }
     }
     // Plugged in, pulled out, Bluetooth connected or lost: told on whatever screen is open.
-    MidiNoticeBar(app.midiInput.notice, onOpen = { if (route != Routes.MIDI) openMidi() }, modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding())
+    MidiNoticeBar(app.midiInput.notice, onOpen = { if (route != Routes.MIDI) openMidi() }, modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding(), pianoName = app.pianoNames::display)
     }
     }
 }

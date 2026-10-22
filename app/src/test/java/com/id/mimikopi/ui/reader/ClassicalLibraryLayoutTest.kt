@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
@@ -77,7 +77,8 @@ class ClassicalLibraryLayoutTest {
         val layouts = mutableListOf<TextLayoutResult>()
         compose.onNodeWithText("1. Ode to Joy · เริ่มห้าโน้ต (ท่อนย่อ)", useUnmergedTree = true)
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-        assertEquals(Color.White, layouts.single().layoutInput.style.color, "Dark card title must contrast with its black background")
+        // The pastel dark theme writes in a warm off-white, not pure white: what matters is that it is bright on the dark card.
+        assertTrue(layouts.single().layoutInput.style.color.luminance() > 0.8f, "Dark card title must contrast with its dark background")
         snapshot("classical-library-dark")
         compose.onNodeWithTag("source-canon-in-d-study").performScrollTo().performClick()
         assertEquals(0, opens)

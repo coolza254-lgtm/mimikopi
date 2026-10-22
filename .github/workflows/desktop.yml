@@ -17,16 +17,17 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version without the v, e.g. 0.30.0"
+        description: "Version without the v, e.g. 0.30.0 (default: the newest release-notes/vX.Y.Z.md)"
         required: false
-      prerelease:
-        description: "Also attach the MSI and app ZIP to a pre-release of this (private) repository"
+      release:
+        description: "Publish the MSI and app ZIP as the Windows release desktop-v<version> (release.yml starts this)"
         type: boolean
         default: false
 
+# A release run has its own group, so a push to the same branch never cancels it.
 concurrency:
-  group: desktop-${{ github.ref }}
-  cancel-in-progress: true
+  group: desktop-${{ github.ref }}${{ inputs.release && '-release' || '' }}
+  cancel-in-progress: ${{ !inputs.release }}
 
 permissions:
   contents: read
@@ -75,7 +76,7 @@ jobs:
   windows:
     runs-on: windows-latest
     timeout-minutes: 45
-    # Write access is used only by the pre-release step, which runs only when started by hand with prerelease set.
+    # Write access is used only by the release step, which runs only when started with release set.
     permissions:
       contents: write
     defaults:
@@ -94,8 +95,10 @@ jobs:
       - name: Version
         env:
           INPUT_VERSION: ${{ inputs.version }}
-        # Every build gets its own version (0.31.<run number>), so a newer build always upgrades an older one.
-        run: echo "VERSION_NAME=${INPUT_VERSION:-0.31.${GITHUB_RUN_NUMBER}}" >> "$GITHUB_ENV"
+        # The phone's version: the input, or the newest release notes (release-notes/vX.Y.Z.md).
+        run: |
+          LATEST=$(python -c "import os, re; v = [tuple(map(int, m.groups())) for f in os.listdir('release-notes') if (m := re.fullmatch(r'v(\d+)\.(\d+)\.(\d+)\.md', f))]; print('.'.join(map(str, max(v))))")
+          echo "VERSION_NAME=${INPUT_VERSION:-$LATEST}" >> "$GITHUB_ENV"
 
       - name: Native audio library (MSVC, WASAPI)
         run: |
@@ -158,14 +161,24 @@ jobs:
         if: steps.upload.outcome == 'failure'
         run: echo "::warning::The installer was built and checked but could not be uploaded (see the upload step, usually the Actions storage quota)."
 
-      # A test build for trying on a real Windows machine: a pre-release (never "latest") in this private repository,
-      # not in the public releases repository the phone app updates from.
-      - name: Pre-release for testing
-        if: github.event_name == 'workflow_dispatch' && inputs.prerelease
+      # The Windows release in this repository (the program's updater reads it), with the same version and Thai notes
+      # as the phone's. The earlier pre-release test builds (0.31.<run>) become drafts, so the release page and the
+      # update check show only real releases; a draft can be published again from the release page.
+      - name: Release
+        if: github.event_name == 'workflow_dispatch' && inputs.release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="desktop-v$VERSION_NAME"
-          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false \
-            --title "Mimikopi Desktop $VERSION_NAME" \
-            --notes "รุ่นทดสอบสำหรับ Windows จาก ${GITHUB_SHA::7} · ยังไม่ได้เซ็นรับรอง ครั้งแรก SmartScreen จะเตือน · อัปเดตจากในโปรแกรมได้ที่ ตั้งค่า → อัปเดตโปรแกรม"
+          NOTES="release-notes/v$VERSION_NAME.md"
+          test -s "$NOTES" || { echo "::error::Missing Thai release notes $NOTES"; exit 1; }
+          {
+            cat "$NOTES"
+            echo
+            echo "สำหรับ Windows: ติดตั้งด้วย Mimikopi-$VERSION_NAME.msi · ยังไม่ได้เซ็นรับรอง ครั้งแรก Windows จะเตือน (SmartScreen) ให้กด \"ข้อมูลเพิ่มเติม\" แล้ว \"เรียกใช้ต่อไป\" · รุ่นต่อไปอัปเดตจากในโปรแกรมได้ที่ ตั้งค่า → อัปเดตโปรแกรม"
+          } > release-notes.md
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
+            --title "Mimikopi Desktop $VERSION_NAME" --notes-file release-notes.md
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,isPrerelease \
+            --jq '.[] | select(.isPrerelease and (.tagName | startswith("desktop-v"))) | .tagName' |
+            while read -r t; do gh release edit "$t" --repo "$GITHUB_REPOSITORY" --draft=true > /dev/null; echo "draft: $t"; done

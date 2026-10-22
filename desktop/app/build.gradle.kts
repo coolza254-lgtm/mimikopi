@@ -11,13 +11,13 @@ kotlin {
     jvmToolchain(21)
 }
 
-// Release builds pass -PversionName=0.30.0; MSI needs MAJOR.MINOR.BUILD with MAJOR > 0, so the package uses 1.x.y
-// for 0.x.y (see packageVersionFor).
+// Builds pass -PversionName, the phone's version (0.30.0). MSI needs MAJOR.MINOR.BUILD with MAJOR > 0 and only ever
+// upgrades to a higher one: the package uses 2.x.y for 0.x.y, above the 1.x.y of the earlier test builds (0.31.<run>).
 val appVersionName = providers.gradleProperty("versionName").orElse("0.30.0").get()
 
 fun packageVersionFor(v: String): String {
     val parts = v.split('.').map { it.toIntOrNull() ?: 0 } + listOf(0, 0, 0)
-    return "${parts[0] + 1}.${parts[1]}.${parts[2]}"
+    return "${parts[0] + 2}.${parts[1]}.${parts[2]}"
 }
 
 dependencies {

@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  actions: write  # to start the Windows release of the same version
 
 env:
   RELEASES_REPO: coolza254-lgtm/mimikopi-releases
@@ -171,3 +172,9 @@ jobs:
         run: |
           git tag "$TAG" "$GITHUB_SHA"
           git push origin "refs/tags/$TAG"
+
+      # The Windows program is released with the same version and notes, built from the same tagged commit.
+      - name: Start the Windows release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run desktop.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f version="$VERSION_NAME" -f release=true

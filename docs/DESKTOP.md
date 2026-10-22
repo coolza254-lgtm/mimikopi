@@ -33,15 +33,16 @@ cmake --build desktop/native/build --config Release
 ./gradlew -p desktop :app:run
 
 # MSI and app folder (Windows only)
-./gradlew -p desktop :app:packageMsi :app:createDistributable -PversionName=0.31.0
+./gradlew -p desktop :app:packageMsi :app:createDistributable -PversionName=0.30.0
 
 # Draw real score layouts to HTML (checking the engraving without the apps)
 MIMIKOPI_ENGRAVE_DIR=/tmp/engrave ./gradlew -p desktop :core:test --tests '*EngravingPreview*'
 ```
 
 - `:app` needs Google Maven (androidx), so a machine that blocks `dl.google.com` can only build `:core` and `:platform`.
-- CI ([`.github/workflows/desktop.yml`](../.github/workflows/desktop.yml)) runs everything on both Linux and Windows and uploads the MSI and app folder as an artifact of the run. Started by hand with **prerelease** ticked, it also publishes them as a pre-release `desktop-v<version>` of this repository; the program's updater reads those.
-- Every Windows build is version `0.31.<run number>`, so a newer build always upgrades an older one. The MSI version is `1.x.y` because Windows Installer requires a major version greater than 0; the program shows `0.x.y`.
+- CI ([`.github/workflows/desktop.yml`](../.github/workflows/desktop.yml)) runs everything on both Linux and Windows and uploads the MSI and app folder as an artifact of the run.
+- **The same version as the phone.** The phone's Release workflow (`release.yml`, see the README) ends by starting this workflow on the same tag with **release** set: the MSI and app ZIP are published as the release `desktop-vX.Y.Z` of this repository, with the same Thai notes. The program's updater reads those releases. A build that is not released takes the version of the newest `release-notes/vX.Y.Z.md`.
+- The MSI version is `2.x.y` for `0.x.y`: Windows Installer requires a major version greater than 0 and only upgrades to a higher version, and the earlier test builds (`0.31.<run>`, pre-releases now kept as drafts) used `1.x.y`. The program shows `0.x.y`.
 
 ## Main features
 

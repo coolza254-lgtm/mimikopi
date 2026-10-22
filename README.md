@@ -55,6 +55,7 @@ Windows desktop (separate Gradle build that shares `core/`, see [`docs/DESKTOP.m
 1. Add Thai notes at `release-notes/vX.Y.Z.md`.
 2. Push the tag `vX.Y.Z`, or run the **Release** workflow manually with version `X.Y.Z` (it creates
    the tag). versionCode = X·10000 + Y·100 + Z.
-3. The release workflow publishes `mimikopi-vX.Y.Z.apk` and `latest.json` to the releases repo.
+3. The release workflow publishes `mimikopi-vX.Y.Z.apk` and `latest.json` to the releases repo, then
+   starts the Windows release `desktop-vX.Y.Z` (same version and notes) in this repo.
 
 Required Actions secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `RELEASES_TOKEN`.

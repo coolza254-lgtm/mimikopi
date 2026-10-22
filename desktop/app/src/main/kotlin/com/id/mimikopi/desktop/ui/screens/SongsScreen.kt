@@ -1,6 +1,9 @@
 package com.id.mimikopi.desktop.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -11,8 +14,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.id.mimikopi.core.playalong.HeroicPlan
+import com.id.mimikopi.core.playalong.PieceRules
 import com.id.mimikopi.core.playalong.PlayMode
 import com.id.mimikopi.core.playalong.StudyEvidence
 import com.id.mimikopi.desktop.session.HandChoice
@@ -25,9 +30,46 @@ import com.id.mimikopi.desktop.ui.components.PageCard
 import com.id.mimikopi.desktop.ui.components.PrimaryButton
 import com.id.mimikopi.desktop.ui.theme.Tokens
 
-/** The one bundled song, Heroic Polonaise: its study plan (core HeroicPlan) and free practice of both editions. */
+/**
+ * Songs: the private songs worked out by ear, the bundled library (public-domain pieces, easiest first, each with
+ * its hands), then Heroic Polonaise as an extra with its study plan.
+ */
 @Composable
 fun SongsScreen() {
+    val app = LocalApp.current
+    val progress by app.services.pieces.progress.collectAsState()
+    var open by remember { mutableStateOf<String?>(null) }
+    Page {
+        LargeTitle("เพลง", "${app.services.pieces.pieces.size} เพลงในคลัง · เป้าหมาย: piano solo เพลง Hello! Project")
+        PageCard(title = "เพลงส่วนตัว · ฝึกจำจากวิดีโอ") {
+            Text("แบ่งวลีจากลิงก์วิดีโอ ลองเล่นเองโดยไม่ดู จดจุดติด แล้วทวนข้ามวัน · ประเมินเอง · เก็บในเครื่องนี้เท่านั้น", color = Tokens.Palette.InkMuted)
+            TextButton(onClick = { app.nav.open(Screen.Recall) }) { Text("เปิดเพลงส่วนตัว") }
+        }
+        PageCard(title = "คลังเพลง · ง่ายไปยาก") {
+            Text("เริ่มทีละมือในโหมดรอ แล้วค่อยรวมมือและเล่นตามจังหวะ · ผ่านเมื่อเล่นสะอาดใน 2 วันที่ต่างกัน", color = Tokens.Palette.InkMuted)
+            for ((i, p) in app.services.pieces.pieces.filter { it.id !in HEROIC }.withIndex()) {
+                val record = progress[p.id]
+                val passed = HandChoice.entries.filter { h -> record != null && PieceRules.isPassed(record, h.name) }
+                Text(
+                    "%02d  %s · Lv.%s%s".format(i + 1, p.title, p.level.removePrefix("L"), if (passed.isEmpty()) "" else " · ผ่าน " + passed.joinToString { it.title }),
+                    fontSize = 16.sp, fontWeight = if (open == p.id) FontWeight.SemiBold else FontWeight.Normal, color = Tokens.Palette.Ink,
+                    modifier = Modifier.clickable { open = if (open == p.id) null else p.id },
+                )
+                if (open == p.id) Row {
+                    for (h in HandChoice.entries) TextButton(onClick = { app.nav.open(Screen.Reader(ReaderArgs(pieceId = p.id, hand = h))) }) { Text(h.title) }
+                }
+            }
+        }
+        Text("เพลงเสริม · Heroic Polonaise", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink)
+        HeroicSection()
+    }
+}
+
+private val HEROIC = setOf(HeroicPlan.EASY, HeroicPlan.THEME)
+
+/** Heroic Polonaise, an extra song: its study plan (core HeroicPlan) and free practice of both editions. */
+@Composable
+private fun HeroicSection() {
     val app = LocalApp.current
     val progress by app.services.pieces.progress.collectAsState()
     var expanded by remember { mutableStateOf(false) }
@@ -35,9 +77,8 @@ fun SongsScreen() {
     val next = HeroicPlan.next(progress)
     val done = HeroicPlan.targets.count { it.completed(HeroicPlan.evidence(it, progress)) }
     fun open(t: HeroicPlan.Target) = app.nav.open(Screen.Reader(ReaderArgs(pieceId = t.piece, target = t.id)))
-    Page {
-        LargeTitle("Heroic Polonaise", "Chopin · Op.53 · เพลงเป้าหมาย")
-        Text("เริ่มจากท่อนหลัก 8 ห้อง (ต้นฉบับห้อง 17–24) ใน C แล้วค่อยเพิ่มคอร์ดใน A♭ · ทั้งสองเป็นฉบับย่อ ยังไม่ใช่เพลงเต็ม", color = Tokens.Palette.Ink)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Chopin · Op.53 · เริ่มจากท่อนหลัก 8 ห้อง (ต้นฉบับห้อง 17–24) ใน C แล้วค่อยเพิ่มคอร์ดใน A♭ · ทั้งสองเป็นฉบับย่อ ยังไม่ใช่เพลงเต็ม", color = Tokens.Palette.Ink)
         PageCard(title = "ฝึกต่อจากตรงนี้") {
             if (next != null) {
                 val e = HeroicPlan.evidence(next, progress)
@@ -83,10 +124,6 @@ fun SongsScreen() {
                 Text(app.services.pieces.piece(id)?.title ?: id, fontWeight = FontWeight.SemiBold)
                 Text(f?.let { "${it.composer} · ${it.source}" } ?: "ไม่พบไฟล์เพลง", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
             }
-        }
-        PageCard(title = "เพลงส่วนตัว · ฝึกจำจากวิดีโอ") {
-            Text("แบ่งวลีจากลิงก์วิดีโอ ลองเล่นเองโดยไม่ดู จดจุดติด แล้วทวนข้ามวัน · ประเมินเอง · เก็บในเครื่องนี้เท่านั้น", color = Tokens.Palette.InkMuted)
-            TextButton(onClick = { app.nav.open(Screen.Recall) }) { Text("เปิดเพลงส่วนตัว") }
         }
         Text("ก้าวต่อไปของเพลงเต็ม: บทนำ ส่วนอื่น และเทคนิคอ็อกเทฟ ยังไม่รวมในผลแผนนี้ โปรแกรมไม่ได้วัดนิ้ว เพดัล น้ำหนักเสียง หรือรับรองว่าเล่นต้นฉบับได้",
             fontSize = 13.sp, color = Tokens.Palette.InkMuted)

@@ -69,17 +69,21 @@ internal fun PieceLibrary(
     onBack: () -> Unit,
     onOpenPiece: (String, String?) -> Unit,
 ) {
+    var classical by rememberSaveable { mutableStateOf(true) }
     var sourceId by rememberSaveable { mutableStateOf<String?>(null) }
     val steps = ClassicalRepertoire.steps.associateBy { it.id }
-    val suggested = lessonTitle == null
+    val suggested = classical && lessonTitle == null
     val visible = if (suggested) ClassicalRepertoire.steps.mapNotNull { step -> pieces.find { it.id == step.id } } else pieces
-    ScreenScaffold(title = lessonTitle ?: "โน้ต Heroic Polonaise", onBack = onBack) {
+    ScreenScaffold(title = lessonTitle ?: stringResource(R.string.pieces_title), onBack = onBack) {
         if (lessonPass != null) {
             Text(stringResource(R.string.lesson_pass, lessonPass), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
         } else {
-            Text("Heroic Polonaise · หนึ่งเพลง สองฉบับฝึก", style = MaterialTheme.typography.titleLarge, color = Tokens.Palette.Ink)
-            Text("ท่อนหลัก 8 ห้อง · ฉบับง่ายใน C ก่อนฉบับฝึกใน A♭ · กลับหน้าเพลงเพื่อดูแผนและผลรายช่วง", style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
-            Text("ฝึกด้วยคีย์บนมือถือหรือ MIDI ได้ · ยังไม่ใช่ต้นฉบับเต็ม", style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = classical, onClick = { classical = true }, label = { Text("คลาสสิก · ไล่ขั้น") }, modifier = Modifier.testTag("classical-filter"))
+                FilterChip(selected = !classical, onClick = { classical = false }, label = { Text("ทุกเพลง") }, modifier = Modifier.testTag("all-pieces-filter"))
+            }
+            Text(if (suggested) "เริ่มทีละมือในโหมดรอให้กดถูก แล้วค่อยรวมมือและเพิ่มความเร็ว แต่ละเพลงเป็นฉบับฝึกหรือท่อนย่อ" else stringResource(R.string.pieces_intro), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
+            if (suggested) Text("ฝึกด้วยคีย์บนมือถือหรือ MIDI ได้ · เลือกข้ามขั้นได้ทุกเพลง", style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         }
         for ((index, s) in visible.withIndex()) {
             val step = if (suggested) steps[s.id] else null

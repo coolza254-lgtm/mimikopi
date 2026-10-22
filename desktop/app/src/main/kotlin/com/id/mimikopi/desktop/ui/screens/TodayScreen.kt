@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.id.mimikopi.core.ear.EarProgress
 import com.id.mimikopi.core.lesson.ProgressRules
-import com.id.mimikopi.core.playalong.HeroicPlan
 import com.id.mimikopi.core.progress.Mistakes
 import com.id.mimikopi.core.progress.SkillBook
 import com.id.mimikopi.core.progress.SkillId
@@ -90,8 +89,7 @@ private fun open(app: AppContext, b: PlanBlock) {
             app.nav.open(Screen.Drill(DrillSource.Chords(true)))
         }
         BlockKind.EAR -> app.nav.open(Screen.Ear(EarArgs()))
-        BlockKind.SONG -> HeroicPlan.next(s.pieces.progress.value)?.let { app.nav.open(Screen.Reader(ReaderArgs(pieceId = it.piece, target = it.id))) }
-            ?: app.nav.home(Tab.SONGS)
+        BlockKind.SONG -> app.nav.home(Tab.SONGS)
     }
 }
 
@@ -104,7 +102,7 @@ private fun detail(s: Services, b: PlanBlock): String = when (b.kind) {
     BlockKind.SIGHT -> "โน้ตที่ไม่เคยเห็น ระดับ ${b.target} · เล่นครั้งเดียวแล้วไปต่อ"
     BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, s.progress.checks.value, LocalDate.now()).level).summary()
     BlockKind.EAR -> EarProgress.currentStage(EarProgress.parse(s.db.get(EarProgress.KEY))).let { "ขั้น ${it.n} ${it.title}" }
-    BlockKind.SONG -> HeroicPlan.next(s.pieces.progress.value)?.label ?: "เพลงที่ชอบ ไม่มีคะแนน"
+    BlockKind.SONG -> "เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น"
 }
 
 /**

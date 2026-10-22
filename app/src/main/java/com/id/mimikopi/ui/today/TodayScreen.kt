@@ -76,16 +76,11 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
             if (!ui.loaded) return@Column
             Column(Modifier.padding(horizontal = PageMargin)) {
                 Spacer(Modifier.height(16.dp))
-                com.id.mimikopi.ui.components.PageCard(title = "Heroic Polonaise · เพลงเป้าหมายเดียว", onClick = { onOpen(Open.Goal) }) {
-                    Text(ui.goalSong ?: "เริ่มท่อนหลักทีละ 2 ห้อง", color = Tokens.Palette.Ink)
-                    Text("เปิดแผนและเริ่มช่วงถัดไป →", color = Tokens.Palette.Ink)
-                }
-                Spacer(Modifier.height(16.dp))
                 com.id.mimikopi.ui.components.PageCard(title = "เพลงส่วนตัว · ลองเล่นจากความจำ", onClick = { onOpen(Open.PrivateSongs) }) {
                     Text("แบ่งช่วงจาก YouTube แล้วลองเองก่อนดูคำตอบ · ข้อมูลอยู่ในเครื่อง", color = Tokens.Palette.Ink)
                 }
                 Spacer(Modifier.height(16.dp))
-                Text("เวลาเสริมพื้นฐานวันนี้", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Tokens.Palette.Ink)
+                Text("วันนี้มีเวลาฝึกกี่นาที", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Tokens.Palette.Ink)
                 Spacer(Modifier.height(8.dp))
                 Segmented(DailyPlan.CHOICES, ui.minutesChosen, { "$it" }, vm::choose)
                 Spacer(Modifier.height(16.dp))
@@ -151,8 +146,8 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
                     GroupRow("พัฒนาการ", subtitle = "ระดับย้อนหลัง เวลาฝึกต่อสัปดาห์ หู และสิ่งที่ควรแก้", onClick = { onOpen(Open.Progress) })
                     GroupDivider()
                     GroupRow(
-                        "เป้าหมาย: Heroic Polonaise",
-                        subtitle = ui.goalSong ?: "แผนฝึกท่อนหลักและผลจริงรายช่วง",
+                        "เป้าหมาย: เพลงไอดอล",
+                        subtitle = ui.goalSong?.let { "เพลงถัดไป $it · พร้อม ${(ui.goalReady * 100).toInt()}%" } ?: "ทักษะถึงเพลงเป้าหมายชุดแรกแล้ว",
                         onClick = { onOpen(Open.Goal) },
                     )
                 }

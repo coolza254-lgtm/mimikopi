@@ -301,7 +301,7 @@ private fun AppNavigation() {
         composable(Routes.METRONOME) { MetronomeScreen(onBack = back) }
         composable(Routes.MIDI) { MidiScreen(onBack = back) }
         composable(Routes.PROGRESS) { com.id.mimikopi.ui.progress.ProgressScreen(onBack = back, onOpen = open) }
-        composable(Routes.GOAL) { com.id.mimikopi.ui.progress.GoalScreen(onBack = back, onTarget = { nav.navigate(Routes.heroicTarget(it)) }, onFree = { id, hand -> nav.navigate(Routes.reader(id, hand)) }, onSource = { nav.navigate("pieces") }) }
+        composable(Routes.GOAL) { com.id.mimikopi.ui.progress.GoalScreen(onBack = back, onOpen = open) }
         composable(Routes.EXAMS) { com.id.mimikopi.ui.exam.ExamHomeScreen(onBack = back, onOpen = open) }
         composable(Routes.EXAM_GRADE) { com.id.mimikopi.ui.exam.ExamGradeScreen(onBack = back, onOpen = open) }
         composable(Routes.EXAM_RESULT) { com.id.mimikopi.ui.exam.ExamResultScreen(onBack = back, onOpen = open) }

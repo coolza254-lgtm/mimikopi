@@ -1,0 +1,49 @@
+{
+  "id": "minuet-in-g",
+  "title": "Minuet in G (ท่อนแรก 16 ห้อง)",
+  "composer": "Christian Petzold (BWV Anh. 114) เรียบเรียงมือซ้ายง่ายโดยแอพ",
+  "source": "Public domain melody (Petzold, c. 1725); the simple left hand was written for the app.",
+  "level": "L6",
+  "key": 1,
+  "time": [
+    3,
+    4
+  ],
+  "tempo": 100,
+  "rh": [
+    "D5/q G4/e A4/e B4/e C5/e",
+    "D5/q G4/q G4/q",
+    "E5/q C5/e D5/e E5/e F#5/e",
+    "G5/q G4/q G4/q",
+    "C5/q D5/e C5/e B4/e A4/e",
+    "B4/q C5/e B4/e A4/e G4/e",
+    "F#4/q G4/e A4/e B4/e G4/e",
+    "A4/h.",
+    "D5/q G4/e A4/e B4/e C5/e",
+    "D5/q G4/q G4/q",
+    "E5/q C5/e D5/e E5/e F#5/e",
+    "G5/q G4/q G4/q",
+    "C5/q D5/e C5/e B4/e A4/e",
+    "B4/q C5/e B4/e A4/e G4/e",
+    "A4/q B4/e A4/e G4/e F#4/e",
+    "G4/h."
+  ],
+  "lh": [
+    "G3/h. ",
+    "B3/h.",
+    "C4/h.",
+    "B3/h.",
+    "A3/h.",
+    "G3/h.",
+    "D3/h.",
+    "D3/q F#3/q D3/q",
+    "G3/h.",
+    "B3/h.",
+    "C4/h.",
+    "B3/h.",
+    "A3/h.",
+    "G3/h.",
+    "D3/q F#3/q D3/q",
+    "G2/h."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "hot-cross-buns",
+  "title": "Hot Cross Buns",
+  "composer": "เพลงพื้นบ้านอังกฤษ เรียบเรียงง่ายโดยแอพ",
+  "source": "Public domain (traditional English). Melody written from memory for the app; not yet checked against a printed edition.",
+  "level": "L1",
+  "key": 0,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 80,
+  "rh": [
+    "E4/q D4/q C4/h",
+    "E4/q D4/q C4/h",
+    "C4/e C4/e C4/e C4/e D4/e D4/e D4/e D4/e",
+    "E4/q D4/q C4/h"
+  ],
+  "lh": [
+    "C3/w",
+    "C3/w",
+    "C3/h G2/h",
+    "C3/w"
+  ]
+}

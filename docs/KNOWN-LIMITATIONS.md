@@ -21,7 +21,12 @@ Updated each milestone. Mirrors the "ยังไม่มีในรุ่น�
   and deliberately absent from LAN sync. Android system cloud backup remains disabled.
 - New feature behavior still needs real phone/MIDI/audio-device checks. Future note editing and automatic checks remain separate work.
 
-## Heroic-only practice plan (v0.27.0)
+## Library restored, Heroic as an extra (after v0.30.0)
+- The public-domain library of v0.26.9 (30 pieces, Moonlight included) is back, so the grade exams can start again and
+  lessons 2.23, 3.15 and 4.19 use their learning pieces again. Heroic Polonaise keeps its study plan as an extra song.
+- The desktop Songs page lists the library with a hand choice per piece; it has no classical ladder or exam pages yet.
+
+## Heroic-only practice plan (v0.27.0) (superseded)
 - The library contains one composition, two eight-bar study arrangements, covering source measures 17–24.
   Thirty targets cover exact sections/hands/modes, not the full composition or original performance difficulty.
 - Reading completion is separate from tempo qualification. Tempo targets require clean runs without helpers,

@@ -1,0 +1,25 @@
+{
+  "id": "moonlight-intro-easy",
+  "title": "Moonlight Sonata I · รูปมือช่วงต้นใน A minor",
+  "composer": "Ludwig van Beethoven · Sonata Op.27 No.2 · แอปเรียบเรียงช่วงสั้น",
+  "source": "Public domain composition (Beethoven, Op.27 No.2, movement I, Adagio sostenuto). Engraving © 2007 Stewart Holmes (www.stewartholmes.com), Mutopia Project, Mutopia-2007/02/11-276; Berners 1908 edition edited by A. Winterberger. Source: https://github.com/MutopiaProject/MutopiaProject/blob/2144afd6f52d56c5b6995b8b589ef1268b3139f0/ftp/BeethovenLv/O27/moonlight/moonlight-lys/moonlight1-a4.ly . License: https://creativecommons.org/licenses/by-sa/2.5/ . แอปเรียบเรียงใหม่โดย Mimikopi (2026) ภายใต้ CC BY-SA 2.5 เช่นกัน ไม่ใช่ท่อนเต็มหรือต้นฉบับ เปลี่ยน 2/2 และกลุ่มสามพยางค์เป็น 12/8 โดยขยายค่าจังหวะ 1.5 เท่าเพื่อเก็บความสัมพันธ์สามโน้ตต่อจังหวะหลัก ตัวเลข bpm คิดตามโน้ตดำ ไม่ใช่จังหวะหลัก ตัดเลขนิ้ว สเลอร์ ไดนามิก เพดัล และการซ้อนแนวเสียง ไม่ได้ประเมินการตีความของต้นฉบับ ห้อง 1–4 ย้ายคีย์จาก C♯ minor เป็น A minor ย้ายมือขวาขึ้นอ็อกเทฟหลังย้ายคีย์ ลดมือซ้ายเหลือเบสเดี่ยว ยังมี G♯ และ B♭ ไม่ใช่แบบคีย์ขาวล้วน เริ่มมือขวาทีละหนึ่งห้อง แล้วเพิ่มเบสค้าง",
+  "level": "L4",
+  "key": 0,
+  "time": [
+    12,
+    8
+  ],
+  "tempo": 72,
+  "rh": [
+    "E4/e A4/e C5/e E4/e A4/e C5/e E4/e A4/e C5/e E4/e A4/e C5/e",
+    "E4/e A4/e C5/e E4/e A4/e C5/e E4/e A4/e C5/e E4/e A4/e C5/e",
+    "F4/e A4/e C5/e F4/e A4/e C5/e F4/e Bb4/e D5/e F4/e Bb4/e D5/e",
+    "E4/e G#4/e D5/e E4/e A4/e C5/e E4/e A4/e B4/e D4/e G#4/e B4/e"
+  ],
+  "lh": [
+    "A2/h.~ A2/h.",
+    "G2/h.~ G2/h.",
+    "F2/h. D2/h.",
+    "E2/h. E2/h."
+  ]
+}

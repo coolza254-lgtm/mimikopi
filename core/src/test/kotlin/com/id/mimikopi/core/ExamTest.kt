@@ -26,14 +26,16 @@ class ExamTest {
     private fun names(item: ScaleItem, right: Boolean = true) = ExamScales.ascending(item, right).map { it.toString() }
 
     @Test
-    fun singleSongEditionKeepsOnlyHeroicWhileBasicExamGeneratorsStillWork() {
-        val files = File("../content/pieces").listFiles()!!.filter { it.extension == "json" }
-        assertEquals(setOf("heroic-polonaise-easy", "heroic-polonaise-theme"), files.map { it.nameWithoutExtension }.toSet())
+    fun everyExamPieceIsInTheLibraryAtTheGradesLevel() {
+        val dir = File("../content/pieces")
         Exams.GRADES.forEach { g ->
-            for (p in listOf(Exams.scalesPiece(g, 42L), Exams.sightPiece(g, 42L))) {
-                val score = com.id.mimikopi.core.score.Score.from(p)
-                assertTrue(score.events.any { !it.isRest })
-                assertTrue(score.measures > 0)
+            assertTrue(g.pieces.size >= 2, "grade ${g.n} needs two pieces to choose")
+            g.pieces.forEach { id ->
+                val f = File(dir, "$id.json")
+                assertTrue(f.exists(), "missing piece $id")
+                val level = PieceFile.parse(f.readText()).level.removePrefix("L").toInt()
+                val expected = if (g.n == 0) 1..2 else (g.n + 2)..(g.n + 2)
+                assertTrue(level in expected, "$id is L$level, grade ${g.n} expects $expected")
             }
         }
     }

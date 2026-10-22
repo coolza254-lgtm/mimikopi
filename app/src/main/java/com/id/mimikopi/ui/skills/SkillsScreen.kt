@@ -70,9 +70,9 @@ fun SkillsScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
             Group {
                 GroupRow("พัฒนาการ", subtitle = "ระดับย้อนหลัง เวลาฝึก หู และสิ่งที่ควรแก้", onClick = { onOpen(Open.Progress) })
                 GroupDivider()
-                GroupRow("เป้าหมาย: Heroic Polonaise", subtitle = "แผนฝึกและผลจริงรายช่วงของท่อนหลัก", onClick = { onOpen(Open.Goal) })
+                GroupRow("เป้าหมาย: เพลงไอดอล", subtitle = "แต่ละเพลงต้องการอะไร ยังขาดอะไร", onClick = { onOpen(Open.Goal) })
                 GroupDivider()
-                GroupRow("วัดพื้นฐานและผลสอบเดิม", subtitle = "ฝึกพื้นฐานเพื่อ Heroic และดูประวัติคะแนนเดิม", onClick = { onOpen(Open.Exams) })
+                GroupRow("สอบเกรด", subtitle = "Initial ถึงเกรด 5 แบบ ABRSM มีส่วนเพลงป็อป เต็ม 150 คะแนน", onClick = { onOpen(Open.Exams) })
             }
             Spacer(Modifier.height(20.dp))
             Group {

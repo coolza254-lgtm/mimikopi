@@ -97,7 +97,7 @@ class ExamViewModel(app: Application, args: SavedStateHandle) : AndroidViewModel
         }
     }
 
-    fun pieceTitle(id: String): String = services.pieces.pieceOrExercise(id)?.title ?: "เพลงเดิมที่นำออก ($id)"
+    fun pieceTitle(id: String): String = services.pieces.pieceOrExercise(id)?.title ?: id
     fun pieceTempo(id: String): Int? = services.pieces.pieceOrExercise(id)?.tempo
 
     fun toggle(id: String) {
@@ -111,7 +111,6 @@ class ExamViewModel(app: Application, args: SavedStateHandle) : AndroidViewModel
 
     fun start() {
         val g = grade ?: return
-        if (g.pieces.any { services.pieces.piece(it) == null }) return
         val pieces = _chosen.value.takeIf { it.size == 2 } ?: return
         val now = System.currentTimeMillis()
         viewModelScope.launch { services.progress.startExam(ExamLog.start(g.n, pieces, now, LocalDate.now().toString(), now)) }
@@ -148,18 +147,30 @@ fun ExamHomeScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ExamViewModel
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     val log by vm.exams.collectAsStateWithLifecycle()
     val ready by vm.ready.collectAsStateWithLifecycle()
+    val active = ExamLog.active(log, today())
     val finished = ExamLog.finished(log)
-    Page("วัดพื้นฐานและผลสอบเดิม", "ฝึกเพื่อ Heroic Polonaise", onBack) {
+
+    Page("สอบเกรด", "วัดว่าเก่งขึ้นจริงไหม แบบการสอบเปียโน", onBack) {
         if (!ready) return@Page
-        GroupFooter("เอาแบบสอบหลายเพลงออกตามเป้าหมายเพลงเดียวแล้ว ประวัติคะแนนเดิมยังเก็บไว้ ใช้แบบทดสอบพื้นฐานและผลรายช่วง Heroic เพื่อติดตามต่อ")
-        GroupHeader("ฝึกและวัดผลต่อ")
-        Group {
-            GroupRow("แผน Heroic Polonaise", subtitle = "แยกมือ รวมมือ และดูผลของท่อนหลัก", onClick = { onOpen(Open.Goal) })
-            listOf(SkillId.NOTES, SkillId.RHYTHM, SkillId.TECH, SkillId.CHORDS, SkillId.EAR).forEach { skill ->
-                GroupDivider()
-                GroupRow(skill.title, subtitle = "ฝึกพื้นฐานและทดสอบระดับ", onClick = { onOpen(Open.Skill(skill)) })
+        if (active != null) {
+            val g = Exams.grade(active.grade)
+            GroupHeader("กำลังสอบ")
+            Group {
+                GroupRow("${g?.name ?: ""} · ได้ ${active.total} คะแนนแล้ว", subtitle = "สอบแล้ว ${active.parts.size} จาก ${ExamPart.entries.size} ส่วน · ต้องจบภายในวันนี้",
+                    onClick = { onOpen(Open.ExamGrade(active.grade)) })
             }
         }
+        GroupHeader("เกรด")
+        Group {
+            Exams.GRADES.forEachIndexed { i, g ->
+                if (i > 0) GroupDivider()
+                val best = ExamLog.best(log, g.n)
+                GroupRow(g.name, subtitle = g.about, value = best?.let { "${it.total} · ${Exams.band(it.total).title.substringBefore(" (")}" } ?: "${g.minutes} นาที",
+                    onClick = { onOpen(Open.ExamGrade(g.n)) })
+            }
+        }
+        GroupFooter(HONEST)
+
         if (finished.isNotEmpty()) {
             GroupHeader("ผลสอบที่ผ่านมา")
             Group {
@@ -183,9 +194,109 @@ fun ExamHomeScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ExamViewModel
 
 @Composable
 fun ExamGradeScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ExamViewModel = viewModel()) {
-    ExamHomeScreen(onBack, onOpen, vm)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
+    val log by vm.exams.collectAsStateWithLifecycle()
+    val chosen by vm.chosen.collectAsStateWithLifecycle()
+    val ready by vm.ready.collectAsStateWithLifecycle()
+    val grade = vm.grade ?: return
+    val active = ExamLog.active(log, today())
+    val sitting = active?.takeIf { it.grade == grade.n }
+    val todayResult = ExamLog.finished(log).firstOrNull { it.grade == grade.n && it.day == today() }
+
+    Page(grade.name, grade.about, onBack) {
+        if (!ready) return@Page
+        if (sitting != null) {
+            InProgress(sitting, grade, vm, onOpen)
+            return@Page
+        }
+        if (todayResult != null) {
+            GroupHeader("ผลสอบวันนี้")
+            Group {
+                ResultCard(todayResult)
+                GroupDivider()
+                GroupRow("ดูคะแนนแต่ละส่วน", onClick = { onOpen(Open.ExamResult(todayResult.id)) })
+            }
+        }
+        Requirements(grade, chosen, vm, onOpen)
+        if (active != null) GroupFooter("กำลังสอบ ${Exams.grade(active.grade)?.name ?: ""} อยู่ เริ่มเกรดนี้จะยกเลิกการสอบนั้น")
+        Spacer(Modifier.height(16.dp))
+        PrimaryButton(if (chosen.size == 2) "เริ่มสอบ ${grade.name}" else "เลือกเพลงให้ครบ 2 เพลงก่อน", onClick = vm::start, enabled = chosen.size == 2)
+        GroupFooter("ใช้เวลาราว ${grade.minutes} นาที ต้องสอบให้ครบในวันเดียว แต่ละส่วนสอบได้ครั้งเดียวเหมือนสอบจริง")
+    }
 }
 
+@Composable
+private fun Requirements(grade: Grade, chosen: List<String>, vm: ExamViewModel, onOpen: (Open) -> Unit) {
+    GroupHeader(if (grade.pieces.size == 2) "เพลง (สอบทั้งสองเพลง)" else "เพลง · เลือก 2 เพลง")
+    Group {
+        grade.pieces.forEachIndexed { i, id ->
+            if (i > 0) GroupDivider()
+            val selected = id in chosen
+            GroupRow(
+                vm.pieceTitle(id),
+                subtitle = vm.pieceTempo(id)?.let { "สองมือ ♩ = $it ตามที่เขียน" },
+                leading = { Choice(selected) },
+                trailing = { TextButton(onClick = { onOpen(Open.Piece(id)) }) { Text("ซ้อม", color = Tokens.Palette.Ink) } },
+                onClick = if (grade.pieces.size == 2) null else ({ vm.toggle(id) }),
+            )
+        }
+    }
+    GroupFooter("เพลงจากคลังเพลงสาธารณะของแอพ ซ้อมในหน้าเพลงได้ตามปกติก่อนสอบ")
+
+    val pop = Exams.pop(grade)
+    GroupHeader("เพลงป็อป")
+    Group {
+        GroupRow(pop.title, subtitle = "คีย์ ${Keys.name(grade.pop.key)} · ♩ = ${grade.pop.bpm} · มือซ้าย${Accompaniment.LEVEL_NAMES[grade.pop.pattern] ?: ""} · ${grade.pop.bars} ห้อง",
+            value = "ซ้อม", onClick = { onOpen(Open.Piece(pop.id)) })
+    }
+    GroupFooter("แอพแต่งเองบนทางเดินคอร์ดแบบเพลงไอดอล มีชื่อคอร์ดกำกับ เพลงเดิมทุกครั้งจึงซ้อมไว้ก่อนได้")
+
+    GroupHeader("สเกลและอาร์เพจจิโอ · สอบ ${grade.ask} จาก ${grade.scales.size}")
+    Group {
+        grade.scales.forEachIndexed { i, s ->
+            if (i > 0) GroupDivider()
+            GroupRow(s.title(), onClick = { onOpen(Open.Piece(Exams.scalePractice(grade, s).id)) })
+        }
+    }
+    GroupFooter("♩ = ${grade.scaleBpm} ${if (grade.quarters) "ตัวดำ" else "เขบ็ตหนึ่งชั้น"} ขึ้นแล้วลง ใช้นิ้วตามที่เขียน (ไมเนอร์เป็นแบบฮาร์โมนิก) " +
+        "ตอนสอบแอพสุ่มถาม ${grade.ask} ข้อต่อกันในรอบเดียว")
+
+    GroupHeader("อ่านโน้ตใหม่")
+    Group {
+        val hands = when (Exams.sightHand(grade)) { "LEFT" -> "มือซ้าย"; "BOTH" -> "สองมือ"; else -> "มือขวา" }
+        GroupRow("บทใหม่ระดับ L${grade.sightLevel} · $hands · ♩ = ${grade.sightBpm}", subtitle = "ดูโน้ต 30 วินาทีแล้วเริ่มเล่นทันที เล่นครั้งเดียว",
+            value = "ฝึก", onClick = { onOpen(if (grade.sightLevel <= 5) Open.Sight(grade.sightLevel) else Open.Skill(SkillId.SIGHT)) })
+    }
+
+    GroupHeader("ทดสอบการฟัง · ${grade.aural.count} ข้อ")
+    Group {
+        GroupRow(grade.aural.items.map { EarCourse.kindOf(it).title }.distinct().joinToString(" · "),
+            subtitle = grade.aural.items.joinToString(" · ") { EarCourse.label(it) }, value = "ฝึก", onClick = { onOpen(Open.EarHome) })
+    }
+
+    GroupHeader("คะแนน")
+    Group {
+        ExamPart.entries.forEachIndexed { i, p ->
+            if (i > 0) GroupDivider()
+            GroupRow(p.title, value = "${p.max} (ผ่าน ${p.pass})")
+        }
+    }
+    GroupFooter("รวม ${Exams.MAX} · ผ่าน ${Exams.PASS} · ดี ${Exams.MERIT} · ดีเยี่ยม ${Exams.DISTINCTION} ตัดสินจากคะแนนรวมเหมือน ABRSM " +
+        "คะแนนการเล่นมาจากโน้ตที่ถูก ความตรงจังหวะ และการหยุดกลางทาง\n\n$HONEST")
+}
+
+@Composable
+private fun Choice(selected: Boolean) {
+    Box(
+        Modifier.size(22.dp).clip(CircleShape)
+            .then(if (selected) Modifier.background(Tokens.Palette.Ink) else Modifier.border(1.5.dp, Tokens.Palette.Line, CircleShape)),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) Text("✓", fontSize = 13.sp, color = Tokens.Palette.Paper, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** What each part is in this exam (the chosen piece, the pop piece, how many scales ...). */
 private fun partLine(part: ExamPart, s: ExamSitting, grade: Grade, vm: ExamViewModel): String = when (part) {
     ExamPart.PIECE_1 -> vm.pieceTitle(s.pieces[0])
     ExamPart.PIECE_2 -> vm.pieceTitle(s.pieces[1])
@@ -193,6 +304,47 @@ private fun partLine(part: ExamPart, s: ExamSitting, grade: Grade, vm: ExamViewM
     ExamPart.SCALES -> "${grade.ask} ข้อต่อกัน ♩ = ${grade.scaleBpm}"
     ExamPart.SIGHT -> "ระดับ L${grade.sightLevel} · ดูโน้ต 30 วินาที"
     ExamPart.AURAL -> "${grade.aural.count} ข้อ ตอบครั้งเดียว"
+}
+
+@Composable
+private fun InProgress(s: ExamSitting, grade: Grade, vm: ExamViewModel, onOpen: (Open) -> Unit) {
+    var confirm by remember { mutableStateOf(false) }
+    GroupHeader("กำลังสอบ")
+    Group {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("${s.total}", fontSize = 40.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                Text(" / ${Exams.MAX} คะแนน", fontSize = 15.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 6.dp))
+            }
+            Text("สอบแล้ว ${s.parts.size} จาก ${ExamPart.entries.size} ส่วน · ผ่าน ${Exams.PASS} · ดี ${Exams.MERIT} · ดีเยี่ยม ${Exams.DISTINCTION}",
+                fontSize = 14.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 4.dp))
+        }
+    }
+    GroupHeader("ส่วนของการสอบ")
+    Group {
+        val next = ExamPart.entries.firstOrNull { s.mark(it) == null }
+        ExamPart.entries.forEachIndexed { i, p ->
+            if (i > 0) GroupDivider()
+            val m = s.mark(p)
+            GroupRow(
+                p.title, subtitle = partLine(p, s, grade, vm),
+                value = m?.let { "${it.marks}/${p.max}" } ?: "สอบ",
+                leading = { StepMark(done = m != null, current = p == next) },
+                onClick = if (m == null) ({ onOpen(Open.ExamTake(s.id, p.name)) }) else null,
+            )
+        }
+    }
+    GroupFooter("ทำส่วนไหนก่อนก็ได้ แต่ละส่วนสอบได้ครั้งเดียว เล่นจบหรือกดหยุดแล้วนับคะแนน (ออกจากหน้ากลางทางไม่นับ) " +
+        "เมโทรนอมเปิดอยู่เพราะแอพวัดจังหวะเทียบกับความเร็วคงที่ ปิดชื่อโน้ตระหว่างสอบ")
+    Spacer(Modifier.height(8.dp))
+    Group { GroupRow("ยกเลิกการสอบนี้", titleColor = Tokens.Palette.InkMuted, onClick = { confirm = true }) }
+    if (confirm) AlertDialog(
+        onDismissRequest = { confirm = false },
+        title = { Text("ยกเลิกการสอบนี้?") },
+        text = { Text("ส่วนที่สอบแล้วจะไม่นับ การสอบนี้จะไม่อยู่ในผลสอบ") },
+        confirmButton = { TextButton(onClick = { confirm = false; vm.abandon(s.id) }) { Text("ยกเลิกการสอบ", color = Tokens.Palette.Ink) } },
+        dismissButton = { TextButton(onClick = { confirm = false }) { Text("สอบต่อ", color = Tokens.Palette.Ink) } },
+    )
 }
 
 @Composable
@@ -265,10 +417,10 @@ fun ExamResultScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ExamViewMod
                 weak.forEachIndexed { i, p ->
                     if (i > 0) GroupDivider()
                     val target = when (p) {
-                        ExamPart.PIECE_1 -> Open.Goal
-                        ExamPart.PIECE_2 -> Open.Goal
-                        ExamPart.POP -> Open.Skill(SkillId.CHORDS)
-                        ExamPart.SCALES -> Open.Skill(SkillId.TECH)
+                        ExamPart.PIECE_1 -> Open.Piece(s.pieces[0])
+                        ExamPart.PIECE_2 -> Open.Piece(s.pieces[1])
+                        ExamPart.POP -> Open.Piece(Exams.pop(grade).id)
+                        ExamPart.SCALES -> Open.ExamGrade(grade.n)
                         ExamPart.SIGHT -> if (grade.sightLevel <= 5) Open.Sight(grade.sightLevel) else Open.Skill(SkillId.SIGHT)
                         ExamPart.AURAL -> Open.EarHome
                     }

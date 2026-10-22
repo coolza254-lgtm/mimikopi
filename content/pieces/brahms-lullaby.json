@@ -1,0 +1,35 @@
+{
+  "id": "brahms-lullaby",
+  "title": "Brahms’ Lullaby · ท่อนแรกฉบับง่าย",
+  "composer": "Johannes Brahms · Op.49 No.4 · แอปเรียบเรียงสำหรับเปียโน",
+  "source": "Public domain composition. ฉบับโน้ตอ้างอิง: Mutopia; 森 章吾 (Shogo Mori), Mutopia-2007/11/04-1037; Public Domain. แอปใช้ท่อนร้องแรก ย้ายจาก E♭ เป็น C เติมพักให้ห้องรับครบ 3 จังหวะและเติมพักท้ายท่อน เปลี่ยนเสียงร้องเป็นมือขวา เพิ่มเบสค้างเอง ไม่ใช้เสียงบันทึกหรือเนื้อร้อง แหล่งอ้างอิง: https://github.com/MutopiaProject/MutopiaProject/blob/2144afd6f52d56c5b6995b8b589ef1268b3139f0/ftp/BrahmsJ/O49/Wiegenlied/Wiegenlied-lys/Wiegenlied.ly การเรียบเรียงใหม่ของแอปเผยแพร่ภายใต้ CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/",
+  "level": "L4",
+  "key": 0,
+  "time": [
+    3,
+    4
+  ],
+  "tempo": 66,
+  "rh": [
+    "r/h E4/e E4/e",
+    "G4/q. E4/e E4/q",
+    "G4/q r/q E4/e G4/e",
+    "C5/q B4/q. A4/e",
+    "A4/q G4/q D4/e E4/e",
+    "F4/q D4/q D4/e E4/e",
+    "F4/q r/q D4/e F4/e",
+    "B4/e A4/e G4/q B4/q",
+    "C5/q r/h"
+  ],
+  "lh": [
+    "r/h.",
+    "C3/h.",
+    "C3/h.",
+    "C3/h.",
+    "G2/h.",
+    "G2/h.",
+    "G2/h.",
+    "G2/h.",
+    "C3/h."
+  ]
+}

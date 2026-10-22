@@ -101,10 +101,10 @@ fun GoalScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: GoalViewModel = v
                     val gaps = IdolGoal.gaps(song, st)
                     GroupHeader("${song.title} · ${song.artist}")
                     Group {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(if (gaps.isEmpty()) "ทักษะถึงแล้ว" else "พร้อม ${(ready * 100).toInt()}%", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                            Box(Modifier.padding(top = 8.dp).fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(Tokens.Palette.Line)) {
-                                Box(Modifier.fillMaxWidth(ready.toFloat().coerceIn(0f, 1f)).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Tokens.Palette.Ink))
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
+                            Text(if (gaps.isEmpty()) "ทักษะถึงแล้ว" else "พร้อม ${(ready * 100).toInt()}%", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Accent)
+                            Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Tokens.Palette.Track)) {
+                                Box(Modifier.fillMaxWidth(ready.toFloat().coerceIn(0f, 1f)).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Tokens.Palette.Accent))
                             }
                             Text(song.why, fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
                             Text("ข้อมูลเพลง (ยังไม่ได้ยืนยัน): " + song.facts.joinToString(" · "), fontSize = 13.sp, lineHeight = 18.sp,

@@ -982,11 +982,12 @@ class ReaderSession(
                     is Advice.SlowDown -> out += CoachLine("พลาดหลายโน้ต ลองแบบฝึกในโหมด \"รอ\" ของบทนี้ก่อน แล้วค่อยกลับมา")
                     else -> Unit
                 }
-                if (a !is Advice.TroubleNote && a !is Advice.ConsistentlyOff) continue
+                if (a !is Advice.TroubleNote && a !is Advice.ConsistentlyOff && a !is Advice.OctaveOff) continue
             }
             out += when (a) {
                 Advice.Clean -> CoachLine(if (r.setup.toMeasure - r.setup.fromMeasure < s.measures - 1) "ท่อนนี้เล่นสะอาดแล้ว ลองท่อนถัดไป หรือเล่นคร่อมรอยต่อกับท่อนข้างๆ" else "เล่นสะอาดทั้งเพลง")
                 is Advice.TroubleNote -> CoachLine("โน้ต ${a.pitch.name(NoteNameStyle.BOTH, withOctave = true)} พลาดบ่อย เพิ่มเข้ารายการทบทวนแล้ว (ฝึกได้ที่หน้า \"วันนี้\")")
+                is Advice.OctaveOff -> CoachLine("กดถูกตัวแต่${if (a.higher) "สูง" else "ต่ำ"}ไปหนึ่งอ็อกเทฟหลายครั้ง ก่อนเริ่มหา C กลางบนเปียโน แล้ววางมือตามตำแหน่งในโน้ต")
                 is Advice.ConsistentlyOff -> {
                     val dir = if (a.early) "เร็วกว่า" else "ช้ากว่า"
                     CoachLine("ส่วนใหญ่กด${dir}จังหวะ ลองนับออกเสียงหรือเคาะเท้าไปด้วย")

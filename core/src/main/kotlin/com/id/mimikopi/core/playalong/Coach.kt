@@ -7,6 +7,8 @@ import kotlin.math.abs
 
 /** Coach feedback after a run (learning-system.md 7). The UI turns each one into a short Thai sentence. */
 sealed interface Advice {
+    /** The right notes keep landing an octave too high or too low (reading the octave, not the note, is the problem). */
+    data class OctaveOff(val higher: Boolean) : Advice
     /** The same note keeps going wrong. */
     data class TroubleNote(val pitch: SpelledPitch) : Advice
     /** Right notes, consistently early or late: check latency calibration first, then count aloud. */
@@ -30,6 +32,9 @@ object Coach {
         val summary = result.summary ?: return emptyList()
         if (result.timingJudged && summary.isClean()) return listOf(Advice.Clean)
         val out = mutableListOf<Advice>()
+        // First: slowing down does not help a hand that sits an octave away.
+        val slips = result.octaveUp + result.octaveDown
+        if (slips >= 2 && slips * 3 >= result.wrongPresses.size) out += Advice.OctaveOff(result.octaveUp >= result.octaveDown)
         if (result.timingJudged && summary.noteAccuracy < 0.8) out += Advice.SlowDown(slowerBpm)
         val hands = result.setup.hands
         if (hands.size == 2) {

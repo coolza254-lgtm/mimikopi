@@ -369,6 +369,21 @@ class PlayAlongTest {
     }
 
     @Test
+    fun coachSaysWhenTheRightNotesAreAnOctaveOff() {
+        // As in the backup of 2026-10-22: the melody played an octave up, so every press is wrong and accuracy is 0.
+        val j = tempoJudge()
+        for (n in j.expected) j.onNoteOn(n.midi + 12, j.expectedTimeMs(n.beat).toLong())
+        val r = j.result()
+        assertEquals(0.0, r.summary!!.noteAccuracy)
+        assertTrue(r.octaveUp >= 2 && r.octaveDown == 0, "${r.octaveUp} ${r.octaveDown}")
+        assertEquals(Advice.OctaveOff(higher = true), Coach.advise(r, 55).first())
+        // Plain wrong keys are not called an octave slip.
+        val k = tempoJudge()
+        for (n in k.expected) k.onNoteOn(n.midi + 1, k.expectedTimeMs(n.beat).toLong())
+        assertTrue(Coach.advise(k.result(), 55).none { it is Advice.OctaveOff })
+    }
+
+    @Test
     fun coachSpotsConsistentlyLatePlaying() {
         val j = tempoJudge()
         for (n in j.expected) j.onNoteOn(n.midi, j.expectedTimeMs(n.beat).toLong() + 200)

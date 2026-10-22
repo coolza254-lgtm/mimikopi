@@ -11,7 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  # write: only for the screen previews below (a prerelease of rendered screens, not an app release).
+  contents: write
 
 jobs:
   build:
@@ -29,6 +30,21 @@ jobs:
 
       - name: Unit tests, lint, debug APK
         run: ./gradlew --stacktrace :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+
+      # Rendered screens (Robolectric, app/build/render) on the prerelease "ui-preview", one file per screen, so a
+      # build session that cannot download artifacts can still look at them. Replaced on every push.
+      - name: Publish screen previews
+        if: always() && github.event_name == 'push'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls app/build/render/*.png > /dev/null 2>&1 || { echo "no renders"; exit 0; }
+          if ! gh release view ui-preview --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create ui-preview --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false \
+              --title "ภาพหน้าจอตัวอย่าง (CI)" --notes "ภาพที่ CI วาดจากโค้ดล่าสุด ใช้ตรวจหน้าตา ไม่ใช่รุ่นของแอป"
+          fi
+          gh release upload ui-preview app/build/render/*.png --repo "$GITHUB_REPOSITORY" --clobber
 
       # The build session cannot download artifacts, so print what it needs into the log.
       - name: Print Room schema

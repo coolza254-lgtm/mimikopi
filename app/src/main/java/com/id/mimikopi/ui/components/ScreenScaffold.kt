@@ -1,6 +1,7 @@
 package com.id.mimikopi.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,8 +10,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -22,10 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.id.mimikopi.R
 import com.id.mimikopi.ui.theme.Tokens
 
 /**
@@ -46,13 +42,9 @@ fun ScreenScaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                title = { Text(title, style = MaterialTheme.typography.titleLarge, color = Tokens.Palette.Ink, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 navigationIcon = {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack) {
-                            Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back))
-                        }
-                    }
+                    if (onBack != null) Box(Modifier.padding(start = 12.dp, end = 4.dp)) { BackCircle(onBack) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
             )
@@ -68,7 +60,7 @@ fun ScreenScaffold(
             Column(
                 Modifier
                     .widthIn(max = 720.dp)
-                    .padding(horizontal = Tokens.Space.m, vertical = Tokens.Space.s),
+                    .padding(start = 20.dp, end = 20.dp, top = Tokens.Space.s, bottom = 28.dp),
                 verticalArrangement = Arrangement.spacedBy(Tokens.Space.m),
                 content = content,
             )

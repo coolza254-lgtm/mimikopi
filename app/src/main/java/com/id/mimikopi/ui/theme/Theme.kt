@@ -13,7 +13,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Pastel: filled buttons are the deep pink with white text, selected chips soft pink; everything else is lines and type.
+// Design J: filled buttons in the dusty-rose accent with white text, selected chips accentSoft; cards are white on the cream page.
 private fun colors(dark: Boolean): ColorScheme {
     val p = Tokens.Palette
     val base = if (dark) darkColorScheme() else lightColorScheme()
@@ -24,26 +24,29 @@ private fun colors(dark: Boolean): ColorScheme {
         background = p.Paper, onBackground = p.Ink, surface = p.Paper, onSurface = p.Ink,
         surfaceContainer = p.Paper, surfaceContainerLow = p.Paper, surfaceContainerLowest = p.Paper,
         surfaceContainerHigh = p.Raised, surfaceContainerHighest = p.Raised,
+        surfaceBright = p.Group,
         surfaceVariant = p.Paper, onSurfaceVariant = p.InkMuted,
         outline = p.Line, outlineVariant = p.Hair, error = p.Wrong, onError = p.OnAccent,
     )
 }
 
-// The system font for all text (Tokens.Fonts); headings differ by size and weight only.
-// Sizes are in sp so they follow the user's font-size setting. Thai needs generous line height.
+// IBM Plex Sans Thai Looped for all text (Tokens.Fonts), sizes and weights from Design J: page title 28-30/700,
+// song title in a card 25-28/700, section heading 17/700, list title 15-16/600, body 14/400, secondary 12-13, chip 11-13/600.
+// Sizes are in sp so they follow the user's font-size setting. Looped Thai needs generous line height.
 private val body = Tokens.Fonts.body
 private val typography = Typography(
-    headlineSmall = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 24.sp, lineHeight = 34.sp, fontWeight = FontWeight.Medium),
-    headlineMedium = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 28.sp, lineHeight = 40.sp, fontWeight = FontWeight.SemiBold),
-    titleLarge = TextStyle(fontFamily = Tokens.Fonts.display, fontSize = 22.sp, lineHeight = 32.sp, fontWeight = FontWeight.SemiBold),
-    titleMedium = TextStyle(fontFamily = body, fontSize = 17.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold),
+    displaySmall = TextStyle(fontFamily = body, fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold),
+    headlineMedium = TextStyle(fontFamily = body, fontSize = 28.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold),
+    headlineSmall = TextStyle(fontFamily = body, fontSize = 25.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold),
+    titleLarge = TextStyle(fontFamily = body, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
+    titleMedium = TextStyle(fontFamily = body, fontSize = 17.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold),
     titleSmall = TextStyle(fontFamily = body, fontSize = 15.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
     bodyLarge = TextStyle(fontFamily = body, fontSize = 16.sp, lineHeight = 26.sp),
     bodyMedium = TextStyle(fontFamily = body, fontSize = 14.sp, lineHeight = 22.sp),
     bodySmall = TextStyle(fontFamily = body, fontSize = 12.sp, lineHeight = 18.sp),
     labelLarge = TextStyle(fontFamily = body, fontSize = 15.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
-    labelMedium = TextStyle(fontFamily = body, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold),
-    labelSmall = TextStyle(fontFamily = body, fontSize = 11.sp, lineHeight = 14.sp),
+    labelMedium = TextStyle(fontFamily = body, fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold),
+    labelSmall = TextStyle(fontFamily = body, fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.SemiBold),
 )
 
 private val shapes = Shapes(
@@ -52,7 +55,7 @@ private val shapes = Shapes(
     large = RoundedCornerShape(Tokens.Radius.card),
 )
 
-/** [dark]: OLED black; otherwise the light palette. The palette tokens follow it. */
+/** [dark]: the dark palette (not yet designed in Design J); otherwise the light one. The palette tokens follow it. */
 @Composable
 fun MimikopiTheme(dark: Boolean, content: @Composable () -> Unit) {
     // Set before anything below reads a token in this composition.

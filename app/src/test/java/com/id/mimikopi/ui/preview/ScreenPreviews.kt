@@ -1,0 +1,62 @@
+package com.id.mimikopi.ui.preview
+
+import android.graphics.Bitmap
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onRoot
+import com.id.mimikopi.MimikopiApp
+import com.id.mimikopi.ui.components.BottomNav
+import com.id.mimikopi.ui.piano.FreePianoScreen
+import com.id.mimikopi.ui.skills.SkillsScreen
+import com.id.mimikopi.ui.songs.SongsScreen
+import com.id.mimikopi.ui.theme.MimikopiTheme
+import com.id.mimikopi.ui.theme.Tokens
+import com.id.mimikopi.ui.today.TodayScreen
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import java.io.File
+
+/**
+ * Renders the main pages as the phone shows them (390 dp wide, @2x like the Design J pictures) into
+ * build/render/design-*.png, which CI publishes on the "ui-preview" prerelease to compare with docs/design-J.
+ * A fresh install: no progress yet. Checks only that each page draws.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35], application = MimikopiApp::class, qualifiers = "w390dp-h900dp-port-xhdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class ScreenPreviews {
+    @get:Rule val compose = createComposeRule()
+
+    private fun render(name: String, tab: String?, page: @Composable () -> Unit) {
+        compose.setContent {
+            MimikopiTheme(false) {
+                Scaffold(containerColor = Tokens.Palette.Paper, bottomBar = { if (tab != null) BottomNav(tab) {} }) { inner ->
+                    Box(Modifier.fillMaxSize().padding(inner)) { page() }
+                }
+            }
+        }
+        compose.waitForIdle()
+        File("build/render").mkdirs()
+        File("build/render/design-$name.png").outputStream().use {
+            compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+    }
+
+    @Test fun today() = render("01-today", "today") { TodayScreen(onOpen = {}, onOpenMidi = {}, onOpenSettings = {}) }
+    @Test fun skills() = render("02-skills", "skills") { SkillsScreen(onOpen = {}, onOpenMidi = {}, onOpenSettings = {}) }
+    @Test fun piano() = render("03-piano", "piano") { FreePianoScreen(onOpenMidi = {}, onOpenSettings = {}) }
+    @Test fun songs() = render("04-songs", "songs") {
+        SongsScreen(onPlay = { _, _ -> }, onOpenMidi = {}, onOpenSettings = {}, onOpenLibrary = {}, onOpenPrivate = {}, onTarget = {})
+    }
+}

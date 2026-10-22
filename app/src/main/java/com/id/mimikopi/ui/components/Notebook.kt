@@ -3,9 +3,9 @@ package com.id.mimikopi.ui.components
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -49,38 +48,42 @@ fun Hairline(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().height(1.dp).background(Tokens.Palette.Hair))
 }
 
-/** A card on black: a thin border, no fill, no shadow; an optional title in the serif. */
+/**
+ * A card (Design J): white, corner 32, lifted by a soft rose shadow instead of a line; an optional section title.
+ * [accent] draws a 2 dp ring in that colour for the item in focus ("ต่อไป").
+ */
 @Composable
 fun PageCard(
     modifier: Modifier = Modifier,
     title: String? = null,
     onClick: (() -> Unit)? = null,
-    /** Strong border (white) for the item in focus. */
     accent: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val colors = CardDefaults.cardColors(containerColor = Tokens.Palette.Paper, contentColor = Tokens.Palette.Ink)
-    val border = BorderStroke(Tokens.border, accent ?: Tokens.Palette.Line)
     val shape = RoundedCornerShape(Tokens.Radius.card)
-    val elevation = CardDefaults.cardElevation(0.dp, 0.dp, 0.dp, 0.dp, 0.dp, 0.dp)
     val interaction = remember { MutableInteractionSource() }
-    val inner: @Composable ColumnScope.() -> Unit = {
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
-            if (title != null) {
-                Text(title, style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(8.dp))
-            }
-            content()
+    Column(
+        modifier.fillMaxWidth()
+            .then(if (onClick != null) Modifier.pressScale(interaction) else Modifier)
+            .softShadow(shape)
+            .clip(shape).background(Tokens.Palette.Group)
+            .then(if (accent != null) Modifier.border(2.dp, accent, shape) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(interactionSource = interaction, indication = androidx.compose.foundation.LocalIndication.current, onClick = onClick) else Modifier)
+            .padding(horizontal = 24.dp, vertical = 22.dp),
+    ) {
+        if (title != null) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = Tokens.Palette.Ink)
+            Spacer(Modifier.height(10.dp))
         }
-    }
-    val base = modifier.fillMaxWidth()
-    if (onClick != null) {
-        Card(onClick = onClick, modifier = base.pressScale(interaction), shape = shape, colors = colors, border = border, elevation = elevation,
-            interactionSource = interaction, content = inner)
-    } else {
-        Card(modifier = base, shape = shape, colors = colors, border = border, elevation = elevation, content = inner)
+        content()
     }
 }
+
+/** The design's card shadow: 0 8 28 rgba(120,80,92,.08); [small] for cards in a grid (.06). */
+fun Modifier.softShadow(shape: androidx.compose.ui.graphics.Shape, small: Boolean = false): Modifier =
+    this.shadow(if (small) Tokens.Elevation.cardSmall else Tokens.Elevation.card, shape,
+        ambientColor = Tokens.Elevation.tint.copy(alpha = if (small) 0.06f else 0.08f),
+        spotColor = Tokens.Elevation.tint.copy(alpha = if (small) 0.10f else 0.14f))
 
 /** Presses shrink the surface a little: a tactile, quiet response. */
 @Composable
@@ -90,35 +93,42 @@ fun Modifier.pressScale(interaction: MutableInteractionSource): Modifier {
     return this.graphicsLayer { scaleX = scale; scaleY = scale }
 }
 
-/** The screen background: OLED black. */
+/** The screen background: the cream page of Design J. */
 fun Modifier.paper(): Modifier = this.background(Tokens.Palette.Paper)
 
 /**
- * Small label. [filled]: white with black text (a state worth seeing, e.g. "mastered"); otherwise a thin outline.
- * [dashed]: a quiet dashed-looking outline for unverified facts.
+ * A small capsule label. [filled]: accent with white text (a state worth seeing, e.g. "ต่อไป"); otherwise accentSoft
+ * with accentDeep text. [dashed]: a quiet outline for unverified facts.
  */
 @Composable
 fun Pill(text: String, filled: Boolean = false, modifier: Modifier = Modifier, dashed: Boolean = false) {
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(50)
     Text(
         text,
         style = MaterialTheme.typography.labelSmall,
-        fontFamily = Tokens.Fonts.mono,
-        color = if (filled) Tokens.Palette.OnInk else if (dashed) Tokens.Palette.InkMuted else Tokens.Palette.Ink,
+        color = when {
+            filled -> Tokens.Palette.OnAccent
+            dashed -> Tokens.Palette.InkMuted
+            else -> Tokens.Palette.AccentDeep
+        },
         modifier = modifier
-            .then(if (filled) Modifier.background(Tokens.Palette.Ink, shape) else Modifier.border(1.dp, if (dashed) Tokens.Palette.Dim else Tokens.Palette.Line, shape))
-            .padding(horizontal = 9.dp, vertical = 3.dp),
+            .then(when {
+                filled -> Modifier.background(Tokens.Palette.Accent, shape)
+                dashed -> Modifier.border(1.dp, Tokens.Palette.Dim, shape)
+                else -> Modifier.background(Tokens.Palette.AccentSoft, shape)
+            })
+            .padding(horizontal = 10.dp, vertical = 3.dp),
     )
 }
 
-/** A thin progress line (0..1): white on the dark track. */
+/** A progress rail (0..1): the accent on the track, rounded. */
 @Composable
-fun MeterBar(fraction: Float, modifier: Modifier = Modifier, color: Color = Tokens.Palette.Ink, height: Dp = 2.dp) {
+fun MeterBar(fraction: Float, modifier: Modifier = Modifier, color: Color = Tokens.Palette.Accent, height: Dp = 6.dp) {
     // Bars fill in smoothly when they appear or change.
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
     val value by animateFloatAsState(if (shown) fraction.coerceIn(0f, 1f) else 0f, tween(Tokens.Motion.slow, easing = FastOutSlowInEasing), label = "meter")
-    Box(modifier.height(height).clip(RoundedCornerShape(height / 2)).background(Tokens.Palette.Line)) {
+    Box(modifier.height(height).clip(RoundedCornerShape(height / 2)).background(Tokens.Palette.Track)) {
         Box(Modifier.fillMaxHeight().fillMaxWidth(value).clip(RoundedCornerShape(height / 2)).background(color))
     }
 }
@@ -136,19 +146,19 @@ fun AnswerHaptics(correct: Boolean?) {
     }
 }
 
-/** Round badge for a result: a white disc with a tick when the criterion was met, an outlined repeat mark otherwise. */
+/** Round badge for a result: an accent disc with a tick when the criterion was met, an outlined repeat mark otherwise. */
 @Composable
 fun ResultBadge(met: Boolean?) {
     val good = met == true
     Box(
         Modifier.size(64.dp)
-            .then(if (good) Modifier.background(Tokens.Palette.Ink, CircleShape) else Modifier.border(1.5.dp, Tokens.Palette.Ink, CircleShape)),
+            .then(if (good) Modifier.background(Tokens.Palette.Accent, CircleShape) else Modifier.background(Tokens.Palette.AccentSoft, CircleShape)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             painterResource(if (good) R.drawable.ic_check else R.drawable.ic_review),
             contentDescription = null,
-            tint = if (good) Tokens.Palette.OnInk else Tokens.Palette.Ink,
+            tint = if (good) Tokens.Palette.OnAccent else Tokens.Palette.AccentDeep,
             modifier = Modifier.size(30.dp),
         )
     }

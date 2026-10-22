@@ -29,6 +29,7 @@ import com.id.mimikopi.desktop.ui.App
 import com.id.mimikopi.desktop.ui.AppContext
 import com.id.mimikopi.desktop.ui.KeyRouting
 import com.id.mimikopi.desktop.ui.Navigator
+import kotlinx.coroutines.launch
 import java.awt.event.KeyEvent
 import java.io.File
 import java.io.PrintWriter
@@ -43,6 +44,8 @@ fun main() {
         Services(dirs, db, Piano(), APP_VERSION).also { s ->
             // One automatic copy a day, before anything changes.
             runCatching { s.transfer.dailyBackupIfDue() }
+            // Bring in the phone's progress (when sync is set up), without holding the window.
+            s.appScope.launch { s.sync.sync(quiet = true) }
         }
     }
     Thread.setDefaultUncaughtExceptionHandler { t, e -> crashLog(dirs, "thread ${t.name}", e) }

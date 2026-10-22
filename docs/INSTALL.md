@@ -1,7 +1,8 @@
 # Installing ミミコピ on the Galaxy A54 (Android 16, One UI)
 
-The app is not on Google Play. Releases are APK files on the public
-[mimikopi-releases](https://github.com/coolza254-lgtm/mimikopi-releases/releases) page.
+The app is not on Google Play. Releases are APK files on the
+[mimikopi releases](https://github.com/coolza254-lgtm/mimikopi/releases) page (the phone's are titled
+"มือถือ"; up to v0.30 they were on the old mimikopi-releases repo).
 
 ## First install
 1. On the phone, open the releases page in Chrome or Samsung Internet and download the newest

@@ -10,10 +10,11 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write
 
 env:
-  RELEASES_REPO: coolza254-lgtm/mimikopi-releases
+  # Packs are releases of this repository (learning-system.md 2.11), next to the apps.
+  RELEASES_REPO: ${{ github.repository }}
 
 jobs:
   build:
@@ -44,7 +45,7 @@ jobs:
 
       - name: Publish
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           TAG="samples-v$PACK_VERSION"
           if gh release view "$TAG" --repo "$RELEASES_REPO" > /dev/null 2>&1; then

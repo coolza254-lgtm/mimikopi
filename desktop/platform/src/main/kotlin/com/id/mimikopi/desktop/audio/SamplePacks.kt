@@ -180,7 +180,7 @@ class SamplePacks(private val root: File, private val appVersion: String) {
 
     companion object {
         const val PACK_VERSION = 1
-        const val DESCRIPTOR_URL = "https://github.com/coolza254-lgtm/mimikopi-releases/releases/download/samples-v1/samples-v1.json"
+        const val DESCRIPTOR_URL = "https://github.com/coolza254-lgtm/mimikopi/releases/download/samples-v1/samples-v1.json"
         private const val READY_MARKER = "READY"
         private const val SPACE_MARGIN = 100L * 1024 * 1024
         private val SAFE_NAME = Regex("^[A-Za-z0-9_.-]+$")

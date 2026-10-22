@@ -56,6 +56,8 @@ class Services(
     val samples = SamplePacks(dirs.samples, appVersion)
     val updater = com.id.mimikopi.desktop.update.Updater(java.io.File(dirs.root, "updates"), appVersion)
     val privateSongs = PrivateSongs(db)
+    /** Progress sync with the phone through the private GitHub data repository. */
+    val sync = com.id.mimikopi.desktop.sync.DesktopSync(this)
     /** Work that must finish even when the page that started it closes (saving a result). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -145,8 +147,14 @@ class Services(
     override fun close() {
         awaitPendingWrites()
         runCatching { session.finish() }
+        // Put today's practice up for the phone, waiting a little at most (no internet must not hold the window open).
+        Thread { runCatching { sync.sync(quiet = true) } }.apply { isDaemon = true; start() }.join(SYNC_ON_CLOSE_MS)
         midi.close()
         piano.close()
         db.close()
+    }
+
+    companion object {
+        const val SYNC_ON_CLOSE_MS = 15_000L
     }
 }

@@ -27,6 +27,8 @@ class MimikopiApp : Application() {
     val inputHub: InputHub by lazy { InputHub(piano) }
     val inputConfig: InputConfigStore by lazy { InputConfigStore(database.settingsDao()) }
     val midiInput: MidiInputManager by lazy { MidiInputManager(this, inputHub) }
+    /** Progress sync with the PC through the private GitHub data repository. */
+    val sync: com.id.mimikopi.sync.SyncService by lazy { com.id.mimikopi.sync.SyncService(this) }
     val pianoNames: com.id.mimikopi.input.PianoNameStore by lazy { com.id.mimikopi.input.PianoNameStore(database.settingsDao()) }
 
     /** A piano is on a USB cable now, so timing can be judged (learning-system.md 2.11). */

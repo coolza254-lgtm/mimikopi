@@ -202,8 +202,11 @@ class UpdateService(private val context: Context, private val db: AppDatabase) {
     companion object {
         const val RELEASE_APP_ID = "com.id.mimikopi"
 
-        /** Always resolves to the newest non-prerelease release's latest.json. */
+        /**
+         * The phone's update file: the release workflow keeps the newest latest.json on the fixed release "phone-update"
+         * of the source repository (the Windows release is the one marked latest there).
+         */
         const val LATEST_JSON_URL =
-            "https://github.com/coolza254-lgtm/mimikopi-releases/releases/latest/download/latest.json"
+            "https://github.com/coolza254-lgtm/mimikopi/releases/download/phone-update/latest.json"
     }
 }

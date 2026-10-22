@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.id.mimikopi.BuildConfig
 import com.id.mimikopi.R
@@ -137,6 +138,8 @@ fun SettingsScreen(
                 }
             }
         }
+
+        SyncCard()
 
         PageCard(title = stringResource(R.string.backup_title)) {
             Body(stringResource(R.string.backup_body))
@@ -290,3 +293,35 @@ private fun NavRow(icon: Int, label: Int, onClick: () -> Unit) {
         Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.InkMuted, modifier = Modifier.size(18.dp))
     }
 }
+
+/**
+ * Sync with the PC through a private GitHub repository (learning-system.md 2.11): the repository name and a
+ * fine-grained token, saved on this phone only; it also runs by itself when the app opens and closes.
+ */
+@Composable
+private fun SyncCard() {
+    val app = LocalContext.current.applicationContext as com.id.mimikopi.MimikopiApp
+    val status by app.sync.status.collectAsStateWithLifecycle()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val saved = remember { app.sync.config() }
+    var repo by remember { mutableStateOf(saved.repo) }
+    var token by remember { mutableStateOf(saved.token) }
+    PageCard(title = "ซิงค์กับคอมผ่าน GitHub") {
+        Body("รวมความคืบหน้าของมือถือกับคอมผ่าน repo ส่วนตัว (ไม่รวมเพลงส่วนตัวและการตั้งค่าเครื่อง) ซิงค์เองตอนเปิดและปิดแอป สำรองข้อมูลก่อนรวมทุกครั้ง")
+        androidx.compose.material3.OutlinedTextField(repo, { repo = it.take(100) }, singleLine = true, label = { Text("repo (เจ้าของ/ชื่อ)") },
+            modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.s))
+        androidx.compose.material3.OutlinedTextField(token, { token = it.take(200) }, singleLine = true, label = { Text("token (fine-grained · Contents อ่านและเขียน)") },
+            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.xs))
+        Body("token เก็บในเครื่องนี้เท่านั้น ไม่อยู่ในไฟล์สำรองและไม่ถูกส่งไปที่อื่นนอกจาก GitHub", muted = true)
+        Button(
+            onClick = {
+                app.sync.saveConfig(com.id.mimikopi.core.sync.GitHubSyncConfig(repo, token))
+                scope.launch { app.sync.sync() }
+            },
+            enabled = !status.running,
+            modifier = Modifier.fillMaxWidth().heightIn(min = Tokens.minTouch).padding(top = Tokens.Space.s),
+        ) { Text(if (status.running) "กำลังซิงค์…" else "บันทึกและซิงค์ตอนนี้") }
+        status.line?.let { Body(it, muted = !status.failed, error = status.failed) }
+    }
+}
+

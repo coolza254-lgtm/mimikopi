@@ -23,7 +23,7 @@ A personal piano-learning app for Android: reading sheet music, rhythm, ear trai
 
 CI (GitHub Actions) is the build system. Every push runs `:core` tests, lint and a debug APK
 (downloadable from the run's artifacts). A `vX.Y.Z` tag builds the signed release and publishes it
-to the public [`mimikopi-releases`](https://github.com/coolza254-lgtm/mimikopi-releases) repo.
+as a release of this repository.
 
 Locally (needs JDK 17+ and the Android SDK with API 36):
 
@@ -55,7 +55,13 @@ Windows desktop (separate Gradle build that shares `core/`, see [`docs/DESKTOP.m
 1. Add Thai notes at `release-notes/vX.Y.Z.md`.
 2. Push the tag `vX.Y.Z`, or run the **Release** workflow manually with version `X.Y.Z` (it creates
    the tag). versionCode = X·10000 + Y·100 + Z.
-3. The release workflow publishes `mimikopi-vX.Y.Z.apk` and `latest.json` to the releases repo, then
-   starts the Windows release `desktop-vX.Y.Z` (same version and notes) in this repo.
+3. The release workflow publishes `mimikopi-vX.Y.Z.apk` as the release `vX.Y.Z` of this repository, keeps the
+   phone's update file on the fixed release `phone-update`, copies the piano sound pack here once
+   (`samples-v1`), and starts the Windows release `desktop-vX.Y.Z` of the same version.
 
-Required Actions secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `RELEASES_TOKEN`.
+Required Actions secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`. Optional: `RELEASES_TOKEN`, only
+while phones still run v0.30 or older: it puts each new `latest.json` on the old
+[`mimikopi-releases`](https://github.com/coolza254-lgtm/mimikopi-releases) repo too, so they find the update.
+Once every installed app is newer, remove the secret; the old repo then stays as an archive.
+
+Progress sync between the phone and the PC: [`docs/SYNC.md`](docs/SYNC.md) (a private `mimikopi-data` repo).

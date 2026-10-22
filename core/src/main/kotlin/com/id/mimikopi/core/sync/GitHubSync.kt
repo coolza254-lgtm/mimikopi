@@ -1,0 +1,179 @@
+package com.id.mimikopi.core.sync
+
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URI
+import java.util.Base64
+
+/**
+ * Where the phone and the PC meet to sync (learning-system.md 2.11): a private GitHub repository holding one file per
+ * device, `devices/<device id>.json` (a [SyncPayload]). Each device writes only its own file and reads the others, so
+ * two devices never edit the same file and there is nothing to conflict. [token] is a fine-grained token with
+ * Contents read and write on [repo] only; it is kept in a file of its own on each device, never in the database (so
+ * never in a backup or in the synced data).
+ */
+@Serializable
+data class GitHubSyncConfig(val repo: String = DEFAULT_REPO, val token: String = "") {
+    val ready: Boolean get() = token.isNotBlank() && REPO.matches(repo)
+
+    fun toJson(): String = json.encodeToString(serializer(), this)
+
+    companion object {
+        const val DEFAULT_REPO = "coolza254-lgtm/mimikopi-data"
+        private val REPO = Regex("[A-Za-z0-9-]+/[A-Za-z0-9._-]+")
+        private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+
+        fun fromJson(text: String?): GitHubSyncConfig =
+            text?.let { runCatching { json.decodeFromString(serializer(), it) }.getOrNull() } ?: GitHubSyncConfig()
+    }
+}
+
+/** A sync that could not finish, with what to tell the person. */
+class SyncFailure(val thai: String, cause: Throwable? = null) : IOException(thai, cause)
+
+/** The devices' files in the data repository. */
+interface SyncStore {
+    /** Device id -> the file's version (to replace it), for every device file there. */
+    fun list(): Map<String, String>
+    fun read(deviceId: String): String?
+    /** Writes this device's file; [version] from [list] when it exists. */
+    fun write(deviceId: String, text: String, version: String?)
+}
+
+/** [SyncStore] on the GitHub contents API (plain java.net, so the phone and the PC use the same code). */
+class GitHubContents(private val config: GitHubSyncConfig, private val api: String = "https://api.github.com") : SyncStore {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    override fun list(): Map<String, String> {
+        val (code, body) = call("GET", "contents/$DIR")
+        if (code == 404) {
+            // An empty repository, or no device has synced yet: tell those apart, since a missing repo needs fixing.
+            val (repoCode, _) = call("GET", "")
+            if (repoCode == 404) throw SyncFailure("ไม่พบ repo ${config.repo} หรือ token เข้าถึงไม่ได้ ตรวจชื่อ repo และสิทธิ์ Contents ของ token")
+            return emptyMap()
+        }
+        check(code, body)
+        return runCatching {
+            json.parseToJsonElement(body).jsonArray.mapNotNull { e ->
+                val o = e.jsonObject
+                val name = o["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
+                if (!name.endsWith(".json")) return@mapNotNull null
+                name.removeSuffix(".json") to (o["sha"]?.jsonPrimitive?.content ?: "")
+            }.toMap()
+        }.getOrElse { throw SyncFailure("ข้อมูลจาก GitHub อ่านไม่ได้", it) }
+    }
+
+    override fun read(deviceId: String): String? {
+        val (code, body) = call("GET", "contents/$DIR/$deviceId.json", raw = true)
+        if (code == 404) return null
+        check(code, body)
+        return body
+    }
+
+    override fun write(deviceId: String, text: String, version: String?) {
+        val payload = buildJsonObject {
+            put("message", "sync $deviceId")
+            put("content", Base64.getEncoder().encodeToString(text.toByteArray(Charsets.UTF_8)))
+            if (!version.isNullOrBlank()) put("sha", version)
+        }
+        val (code, body) = call("PUT", "contents/$DIR/$deviceId.json", body = payload.toString())
+        check(code, body)
+    }
+
+    private fun check(code: Int, body: String) {
+        when {
+            code in 200..299 -> Unit
+            code == 401 -> throw SyncFailure("token ใช้ไม่ได้หรือหมดอายุ สร้าง token ใหม่แล้วใส่อีกครั้ง")
+            code == 403 || code == 404 -> throw SyncFailure("token ไม่มีสิทธิ์เขียน ${config.repo} (ต้องการ Contents: Read and write)")
+            code == 409 || code == 422 -> throw SyncFailure("มีอีกเครื่องซิงค์พร้อมกัน ลองใหม่อีกครั้ง")
+            else -> throw SyncFailure("GitHub ตอบ $code: ${body.take(120)}")
+        }
+    }
+
+    private fun call(method: String, path: String, raw: Boolean = false, body: String? = null): Pair<Int, String> {
+        val url = "$api/repos/${config.repo}" + (if (path.isEmpty()) "" else "/$path")
+        val c = try {
+            URI(url).toURL().openConnection() as HttpURLConnection
+        } catch (e: Exception) {
+            throw SyncFailure("ที่อยู่ repo ไม่ถูกต้อง", e)
+        }
+        try {
+            c.requestMethod = method
+            c.connectTimeout = 15_000
+            c.readTimeout = 30_000
+            c.setRequestProperty("Authorization", "Bearer ${config.token.trim()}")
+            c.setRequestProperty("Accept", if (raw) "application/vnd.github.raw" else "application/vnd.github+json")
+            c.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+            c.setRequestProperty("User-Agent", "mimikopi-sync")
+            if (body != null) {
+                c.doOutput = true
+                c.setRequestProperty("Content-Type", "application/json")
+                c.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            }
+            val code = c.responseCode
+            val stream = if (code >= 400) c.errorStream else c.inputStream
+            return code to (stream?.use { it.readBytes().toString(Charsets.UTF_8) } ?: "")
+        } catch (e: SyncFailure) {
+            throw e
+        } catch (e: IOException) {
+            throw SyncFailure("ต่อ GitHub ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่", e)
+        } finally {
+            c.disconnect()
+        }
+    }
+
+    companion object {
+        const val DIR = "devices"
+    }
+}
+
+/** What one sync did, for the settings page. */
+data class SyncReport(val devices: List<String>, val changed: Int, val uploaded: Boolean) {
+    /** One line in Thai. */
+    fun text(): String = buildList {
+        add(if (devices.isEmpty()) "ยังไม่มีเครื่องอื่นในที่ซิงค์" else "รวมจาก ${devices.joinToString()}")
+        add(if (changed > 0) "อัปเดต $changed รายการ" else "ความคืบหน้าตรงกันแล้ว")
+        if (uploaded) add("ส่งของเครื่องนี้ขึ้นแล้ว")
+    }.joinToString(" · ")
+}
+
+object GitHubSync {
+    /**
+     * One sync: merges every other device's file into this one ([apply] writes a [MergeResult], after a backup, and
+     * reloads the pages), then writes this device's file when it differs from what is stored. [local] is read again
+     * after each merge, so what goes up already holds what came down. Safe to run any number of times.
+     */
+    fun run(
+        store: SyncStore,
+        deviceId: String,
+        local: () -> SyncPayload,
+        intervalDays: (Int) -> Int,
+        apply: (MergeResult) -> Unit,
+    ): SyncReport {
+        val files = store.list()
+        val names = mutableListOf<String>()
+        var changed = 0
+        for (id in files.keys.sorted()) {
+            if (id == deviceId) continue
+            val remote = store.read(id)?.let(SyncPayload::fromJson) ?: continue
+            names += remote.deviceName
+            val result = ProgressMerge.merge(local(), remote, intervalDays)
+            if (result.changed) {
+                apply(result)
+                changed += result.settings.size + result.itemStats.size
+            }
+        }
+        val mine = local().toJson()
+        val stored = if (deviceId in files) store.read(deviceId) else null
+        val upload = stored != mine
+        if (upload) store.write(deviceId, mine, files[deviceId])
+        return SyncReport(names, changed, upload)
+    }
+}

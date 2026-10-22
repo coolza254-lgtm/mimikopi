@@ -1,7 +1,9 @@
 name: Release
 
-# Build a signed APK and publish it to the public releases repo. Start it either by pushing a tag
-# like v0.1.0, or manually (Actions tab / API) with a version; the manual run tags the commit itself.
+# Build a signed APK and publish it as a release of this repository (with the phone's update file on the fixed
+# release "phone-update"). Start it either by pushing a tag like v0.1.0, or manually (Actions tab / API) with a
+# version; the manual run tags the commit itself. The old releases repo only gets latest.json while the
+# RELEASES_TOKEN secret is still set, so apps up to v0.30 find their way here (learning-system.md 2.11).
 on:
   push:
     tags: ["v*"]
@@ -16,7 +18,8 @@ permissions:
   actions: write  # to start the Windows release of the same version
 
 env:
-  RELEASES_REPO: coolza254-lgtm/mimikopi-releases
+  # Apps up to v0.30 read their update file there; nothing else is published to it any more.
+  LEGACY_RELEASES_REPO: coolza254-lgtm/mimikopi-releases
 
 jobs:
   release:
@@ -62,10 +65,9 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           missing=0
-          for s in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS RELEASES_TOKEN; do
+          for s in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS; do
             if [[ -z "${!s}" ]]; then echo "::error::Actions secret $s is not set"; missing=1; fi
           done
           exit $missing
@@ -135,7 +137,7 @@ jobs:
           python3 - <<PY
           import json, os, datetime
           notes = open(os.environ["NOTES_FILE"], encoding="utf-8").read().strip()
-          repo = os.environ["RELEASES_REPO"]; tag = os.environ["TAG"]
+          repo = os.environ["GITHUB_REPOSITORY"]; tag = os.environ["TAG"]
           data = {
               "schema": 1,
               "versionCode": int(os.environ["VERSION_CODE"]),
@@ -152,26 +154,47 @@ jobs:
           cat latest.json
           echo "APK=$APK" >> "$GITHUB_ENV"
 
-      - name: Publish to releases repo
+      # The piano sound pack lives in this repository too: copied once from the old releases repo (its descriptor
+      # pointed there), so the apps load it from here. Nothing happens once the release exists.
+      - name: Make sure the piano sound pack is here
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view samples-v1 --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then echo "samples-v1 already here"; exit 0; fi
+          mkdir -p pack && cd pack
+          gh release download samples-v1 --repo "$LEGACY_RELEASES_REPO" --pattern 'samples-v1.*'
+          python3 - <<'PY'
+          import json, os
+          d = json.load(open("samples-v1.json", encoding="utf-8"))
+          d["url"] = f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/samples-v1/samples-v1.zip"
+          json.dump(d, open("samples-v1.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+          PY
+          echo "$(python3 -c "import json;print(json.load(open('samples-v1.json'))['sha256'])")  samples-v1.zip" | sha256sum -c -
+          gh release create samples-v1 samples-v1.zip samples-v1.json --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "เสียงเปียโน (Salamander) v1" --notes "ชุดเสียงเปียโนที่แอปดาวน์โหลดเอง · CC BY 3.0 (Salamander Grand Piano V3, Alexander Holm)" --latest=false
+
+      - name: Publish the phone release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The APK, in this version's release (also creates the tag on a manual run). The Windows release of the
+          # same version is the one marked latest, so the phone's update file has a fixed home of its own.
+          gh release create "$TAG" "$APK" latest.json --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "ミミコピ $VERSION_NAME · มือถือ" --notes-file "$NOTES_FILE" --latest=false
+          if ! gh release view phone-update --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create phone-update --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false \
+              --title "ไฟล์อัปเดตของแอปมือถือ" --notes "แอปมือถืออ่าน latest.json ที่นี่เพื่อหารุ่นใหม่ ไฟล์ APK อยู่ในรุ่นของแต่ละเวอร์ชัน"
+          fi
+          gh release upload phone-update latest.json --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Tell apps up to v0.30 where the new version is
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
-          # latest.json on the default branch (this also creates the first commit in an empty repo).
-          OLD_SHA=$(gh api "repos/$RELEASES_REPO/contents/latest.json" --jq .sha 2>/dev/null || true)
-          ARGS=(-X PUT "repos/$RELEASES_REPO/contents/latest.json"
-                -f message="Release $TAG" -f content="$(base64 -w0 latest.json)")
-          if [[ -n "$OLD_SHA" ]]; then ARGS+=(-f sha="$OLD_SHA"); fi
-          gh api "${ARGS[@]}" > /dev/null
-          gh release create "$TAG" "$APK" latest.json \
-            --repo "$RELEASES_REPO" \
-            --title "ミミコピ $VERSION_NAME" \
-            --notes-file "$NOTES_FILE" --latest
-
-      - name: Tag the released commit
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          git tag "$TAG" "$GITHUB_SHA"
-          git push origin "refs/tags/$TAG"
+          if [[ -z "$GH_TOKEN" ]]; then echo "No RELEASES_TOKEN: the old releases repo is left as it is"; exit 0; fi
+          # Their update check reads the old repo's newest release; its latest.json points at the APK here.
+          gh release create "$TAG" latest.json --repo "$LEGACY_RELEASES_REPO" \
+            --title "ミミコピ $VERSION_NAME" --notes-file "$NOTES_FILE" --latest
 
       # The Windows program is released with the same version and notes, built from the same tagged commit.
       - name: Start the Windows release

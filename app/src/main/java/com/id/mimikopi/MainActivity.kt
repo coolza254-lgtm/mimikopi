@@ -37,6 +37,7 @@ import com.id.mimikopi.ui.about.CreditsScreen
 import com.id.mimikopi.ui.chords.ChordHomeScreen
 import com.id.mimikopi.ui.components.BottomNav
 import com.id.mimikopi.ui.components.MidiNoticeBar
+import kotlinx.coroutines.launch
 import com.id.mimikopi.ui.diag.DiagnosticsScreen
 import com.id.mimikopi.ui.ear.EarHomeScreen
 import com.id.mimikopi.ui.ear.EarSessionScreen
@@ -90,10 +91,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Coming back to the app: re-check which MIDI instruments are really there. */
+    /** Coming back to the app: re-check which MIDI instruments are really there, and bring in the PC's progress. */
     override fun onResume() {
         super.onResume()
-        (application as MimikopiApp).midiInput.resync()
+        val app = application as MimikopiApp
+        app.midiInput.resync()
+        app.appScope.launch { app.sync.sync(quiet = true, throttle = true) }
+    }
+
+    /** Leaving the app (not turning the screen): put today's practice up for the PC. */
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) (application as MimikopiApp).let { app -> app.appScope.launch { app.sync.sync(quiet = true) } }
     }
 }
 

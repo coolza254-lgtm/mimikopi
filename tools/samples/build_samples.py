@@ -105,7 +105,7 @@ def main():
     ap.add_argument("--src", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--version", type=int, required=True)
-    ap.add_argument("--url-base", default="https://github.com/coolza254-lgtm/mimikopi-releases/releases/download")
+    ap.add_argument("--url-base", default="https://github.com/coolza254-lgtm/mimikopi/releases/download")
     args = ap.parse_args()
     src, out = pathlib.Path(args.src), pathlib.Path(args.out)
     work = out / "work"

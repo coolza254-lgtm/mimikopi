@@ -249,6 +249,9 @@ fun SettingsScreen() {
         }
         GroupFooter("ดาวน์โหลดจาก GitHub ของโปรเจกต์ ตรวจค่า SHA-256 ก่อนติดตั้งทุกครั้ง · ข้อมูลการฝึกในเครื่องอยู่ครบ")
 
+        GroupHeader("ซิงค์กับมือถือผ่าน GitHub")
+        SyncGroup()
+
         GroupHeader("ข้อมูลในเครื่อง")
         Group {
             GroupRow("โฟลเดอร์ข้อมูล", s.dirs.root.absolutePath, onClick = { runCatching { java.awt.Desktop.getDesktop().open(s.dirs.root) } })
@@ -295,11 +298,11 @@ fun SettingsScreen() {
             GroupRow("สำเนาอัตโนมัติ", "${s.transfer.autoBackups().size} ไฟล์ · ทำทุกวันที่เปิดโปรแกรม และก่อนนำเข้าทุกครั้ง")
         }
         dataReport.forEach { Text(it, fontSize = 14.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(horizontal = 16.dp)) }
-        GroupFooter("ข้อมูลอยู่ในเครื่องนี้เท่านั้น ไม่มีบัญชี ไม่มีเซิร์ฟเวอร์ · เพลงส่วนตัวไม่ถูกรวมอัตโนมัติ · เวอร์ชัน ${s.appVersion}")
+        GroupFooter("ข้อมูลอยู่ในเครื่องนี้ ไม่มีบัญชี · ความคืบหน้าซิงค์กับมือถือผ่าน repo ส่วนตัวเมื่อตั้งค่าไว้ · เพลงส่วนตัวไม่ถูกรวมอัตโนมัติ · เวอร์ชัน ${s.appVersion}")
 
         GroupHeader("เกี่ยวกับและเครดิต")
         Group {
-            GroupRow("ミミコピ (Mimikopi) สำหรับ Windows", "รุ่น ${s.appVersion} · ข้อมูลอยู่ในเครื่องนี้ ไม่มีบัญชี ไม่มีเซิร์ฟเวอร์")
+            GroupRow("ミミコピ (Mimikopi) สำหรับ Windows", "รุ่น ${s.appVersion} · ข้อมูลอยู่ในเครื่องนี้ ไม่มีบัญชี · ซิงค์ผ่าน GitHub ของคุณเอง")
             GroupDivider()
             GroupRow("เสียงเปียโน: Salamander Grand Piano V3", "Alexander Holm · CC BY 3.0 · ตัดและแปลงไฟล์สำหรับโปรแกรมนี้")
             GroupDivider()
@@ -319,3 +322,30 @@ fun sourceName(source: String): String = when (source) {
     "TOUCH" -> "คลิกคีย์บนจอ"
     else -> source
 }
+
+/** Sync with the phone through a private GitHub repository: its name and a fine-grained token, kept on this computer. */
+@Composable
+private fun SyncGroup() {
+    val s = LocalApp.current.services
+    val scope = rememberCoroutineScope()
+    val status by s.sync.status.collectAsState()
+    val saved = remember { s.sync.config() }
+    var repo by remember { mutableStateOf(saved.repo) }
+    var token by remember { mutableStateOf(saved.token) }
+    Group {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("รวมความคืบหน้าของคอมกับมือถือ (ไม่รวมเพลงส่วนตัวและการตั้งค่าเครื่อง) ซิงค์เองตอนเปิดและปิดโปรแกรม สำรองข้อมูลก่อนรวมทุกครั้ง",
+                fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+            OutlinedTextField(repo, { repo = it.take(100) }, singleLine = true, label = { Text("repo (เจ้าของ/ชื่อ)") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(token, { token = it.take(200) }, singleLine = true, label = { Text("token (fine-grained · Contents อ่านและเขียน)") },
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+            Text("token เก็บในเครื่องนี้เท่านั้น ไม่อยู่ในไฟล์ส่งออก และไม่ถูกส่งไปที่อื่นนอกจาก GitHub", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
+            PrimaryButton(if (status.running) "กำลังซิงค์…" else "บันทึกและซิงค์ตอนนี้", enabled = !status.running, onClick = {
+                s.sync.saveConfig(com.id.mimikopi.core.sync.GitHubSyncConfig(repo, token))
+                scope.launch(Dispatchers.IO) { s.sync.sync() }
+            })
+            status.line?.let { Text(it, fontSize = 14.sp, color = if (status.failed) Tokens.Palette.Ink else Tokens.Palette.InkMuted) }
+        }
+    }
+}
+

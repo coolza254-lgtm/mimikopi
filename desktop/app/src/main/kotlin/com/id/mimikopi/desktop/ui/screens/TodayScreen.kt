@@ -27,6 +27,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import com.id.mimikopi.desktop.ui.components.softShadow
+import com.id.mimikopi.desktop.ui.components.Segmented
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -136,6 +139,8 @@ fun TodayScreen() {
     val week = PracticeLog.lastDays(log, today, 7)
     val ear = remember(log) { EarProgress.parse(s.db.get(EarProgress.KEY)) }
     val fixes = remember(mistakes, ear) { Mistakes.summarize(mistakes, ear, today).take(2) }
+    val songs by s.privateSongs.songs.collectAsState()
+    var target by remember { mutableStateOf(s.db.get(com.id.mimikopi.core.recall.TargetSong.SETTING_KEY)) }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(Tokens.Palette.Paper)) {
         val wide = maxWidth > 1000.dp
@@ -148,23 +153,20 @@ fun TodayScreen() {
                             current >= 0 -> "วันนี้ฝึก $minutes นาที"
                             done.all { it } -> "ฝึกครบแผนวันนี้แล้ว"
                             else -> "ต่อเปียโนด้วยสายเพื่อทำส่วนที่เหลือ"
-                        }, fontSize = 38.sp, lineHeight = 50.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                        }, fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
                     }
+                    TargetCard(songs, target, { id -> target = id; s.db.put(com.id.mimikopi.core.recall.TargetSong.SETTING_KEY, id) },
+                        { song, hand -> app.nav.open(Screen.Recall(song, hand)) })
+                    Text("พื้นฐานวันนี้", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 8.dp))
                     PlanCard(plan, done, current) { b -> PlanRow(s, b, done[plan.indexOf(b)], plan.indexOf(b) == current, plan.indexOf(b) + 1, waits[plan.indexOf(b)]) { open(app, b) } }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("เวลาวันนี้", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
-                        DailyPlan.CHOICES.forEach { m ->
-                            val on = m == minutes
-                            Box(Modifier.clip(RoundedCornerShape(14.dp)).background(if (on) Tokens.Palette.AccentSoft else Tokens.Palette.Paper)
-                                .border(1.dp, if (on) Tokens.Palette.Accent else Tokens.Palette.Line, RoundedCornerShape(14.dp))
-                                .clickable { minutes = m; s.db.put(ProgressStore.MINUTES, m.toString()) }.padding(horizontal = 14.dp, vertical = 6.dp)) {
-                                Text("$m นาที", fontSize = 14.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal, color = Tokens.Palette.Ink)
-                            }
-                        }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("เวลาฝึกพื้นฐาน", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+                        Segmented(DailyPlan.CHOICES, minutes, { if (it == minutes) "$it นาที" else "$it" },
+                            { m -> minutes = m; s.db.put(ProgressStore.MINUTES, m.toString()) }, Modifier.widthIn(max = 420.dp))
                     }
                     if (!wide) Summary(week, day.total, fixes)
                 }
-                if (wide) Column(Modifier.width(300.dp).padding(top = 76.dp)) { Summary(week, day.total, fixes) }
+                if (wide) Column(Modifier.width(320.dp).padding(top = 52.dp)) { Summary(week, day.total, fixes) }
             }
         }
     }
@@ -172,8 +174,8 @@ fun TodayScreen() {
 
 @Composable
 private fun PlanCard(plan: List<PlanBlock>, done: List<Boolean>, current: Int, row: @Composable (PlanBlock) -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Tokens.Palette.Group)
-        .border(1.dp, Tokens.Palette.Hair, RoundedCornerShape(24.dp)).padding(8.dp)) {
+    Column(Modifier.fillMaxWidth().softShadow(RoundedCornerShape(Tokens.Radius.cardSmall)).clip(RoundedCornerShape(Tokens.Radius.cardSmall))
+        .background(Tokens.Palette.Group).padding(8.dp)) {
         plan.forEach { row(it) }
     }
 }
@@ -186,12 +188,12 @@ private fun PlanRow(s: Services, b: PlanBlock, done: Boolean, now: Boolean, n: I
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(
-            Modifier.size(36.dp).clip(CircleShape).background(when { done -> Tokens.Palette.CorrectSoft; now -> Tokens.Palette.Accent; else -> Tokens.Palette.Group })
-                .then(if (!done && !now) Modifier.border(1.5.dp, Tokens.Palette.Line, CircleShape) else Modifier),
+            Modifier.size(36.dp).clip(CircleShape).background(when { done -> Tokens.Palette.Accent; now -> Tokens.Palette.AccentSoft; else -> Tokens.Palette.Group })
+                .then(if (!done && !now) Modifier.border(1.5.dp, Tokens.Palette.Track, CircleShape) else if (now) Modifier.border(2.dp, Tokens.Palette.Accent, CircleShape) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             Text(if (done) "✓" else "$n", fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                color = when { done -> Tokens.Palette.Correct; now -> Tokens.Palette.OnAccent; else -> Tokens.Palette.InkMuted })
+                color = when { done -> Tokens.Palette.OnAccent; now -> Tokens.Palette.AccentDeep; else -> Tokens.Palette.InkMuted })
         }
         Column(Modifier.weight(1f)) {
             if (now) Text("${b.kind.title} · ${b.minutes} นาที", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
@@ -202,7 +204,7 @@ private fun PlanRow(s: Services, b: PlanBlock, done: Boolean, now: Boolean, n: I
         }
         if (now) PrimaryButton("เริ่ม", onOpen, Modifier.width(140.dp))
         else Text(if (done) "เสร็จ" else "${b.minutes} นาที", fontSize = 15.sp, fontWeight = if (done) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (done) Tokens.Palette.Correct else Tokens.Palette.InkMuted)
+            color = if (done) Tokens.Palette.Accent else Tokens.Palette.InkMuted)
     }
 }
 
@@ -215,7 +217,7 @@ private fun Summary(week: List<Pair<LocalDate, Int>>, secondsToday: Int, fixes: 
             Row(Modifier.fillMaxWidth().height(72.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                 week.forEachIndexed { i, (_, m) ->
                     Box(Modifier.weight(1f).fillMaxHeight(if (m == 0) 0.08f else (m.toFloat() / max).coerceIn(0.12f, 1f)).clip(RoundedCornerShape(6.dp))
-                        .background(when { m == 0 -> Tokens.Palette.Hair; i == week.lastIndex -> Tokens.Palette.Accent; else -> Tokens.Palette.Pink.copy(alpha = 0.45f) }))
+                        .background(when { m == 0 -> Tokens.Palette.Track; i == week.lastIndex -> Tokens.Palette.Accent; else -> Tokens.Palette.AccentMid }))
                 }
             }
             Text("ฝึก ${week.count { it.second > 0 }} วัน · ${week.sumOf { it.second }} นาที · วันนี้ ${secondsToday / 60} นาที", fontSize = 14.sp, color = Tokens.Palette.Ink)
@@ -235,6 +237,6 @@ private fun Summary(week: List<Pair<LocalDate, Int>>, secondsToday: Int, fixes: 
 
 @Composable
 private fun SideCard(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Tokens.Palette.Group)
-        .border(1.dp, Tokens.Palette.Hair, RoundedCornerShape(24.dp)).padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+    Column(Modifier.fillMaxWidth().softShadow(RoundedCornerShape(Tokens.Radius.card)).clip(RoundedCornerShape(Tokens.Radius.card))
+        .background(Tokens.Palette.Group).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
 }

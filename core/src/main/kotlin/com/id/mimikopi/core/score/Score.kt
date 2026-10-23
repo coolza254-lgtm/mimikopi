@@ -41,7 +41,7 @@ data class PieceFile(
 
     companion object {
         private val json = Json { ignoreUnknownKeys = false; encodeDefaults = false }
-        fun parse(text: String): PieceFile = json.decodeFromString(serializer(), text)
+        fun parse(text: String): PieceFile = json.decodeFromString(serializer(), com.id.mimikopi.core.i18n.ContentL10n.translate(text))
     }
 }
 

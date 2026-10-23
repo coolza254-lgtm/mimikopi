@@ -65,7 +65,7 @@ data class Lesson(
     companion object {
         val TRACKS = setOf("KEYS", "READ_PITCH", "READ_RHYTHM", "HANDS", "THEORY", "EAR", "REPERTOIRE")
         private val json = Json { ignoreUnknownKeys = false }
-        fun parse(text: String): Lesson = json.decodeFromString(serializer(), text)
+        fun parse(text: String): Lesson = json.decodeFromString(serializer(), com.id.mimikopi.core.i18n.ContentL10n.translate(text))
     }
 }
 

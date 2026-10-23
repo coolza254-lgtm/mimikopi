@@ -85,8 +85,9 @@ fun RecordScreen(id: String) {
     val u by vm.ui.collectAsState()
     DisposableEffect(vm) {
         vm.enter()
-        app.keys.onSpace = { if (u.countIn != null || u.bar != null) vm.stop() else vm.record() }
-        app.keys.onEscape = { if (u.countIn != null || u.bar != null) { vm.stop(); true } else false }
+        fun busy() = vm.ui.value.let { it.countIn != null || it.bar != null }
+        app.keys.onSpace = { if (busy()) vm.stop() else vm.record() }
+        app.keys.onEscape = { if (busy()) { vm.stop(); true } else false }
         onDispose { app.keys.onSpace = null; app.keys.onEscape = null; vm.leave() }
     }
     val t = u.timeline
@@ -110,7 +111,7 @@ fun RecordScreen(id: String) {
             Segmented(Recording.GRIDS, u.grid, { when (it) { 4 -> tr("ตัวดำ ♩", "Crotchet ♩", "四分 ♩"); 2 -> tr("เขบ็ต 1 ชั้น ♪", "Quaver ♪", "8分 ♪"); else -> tr("เขบ็ต 2 ชั้น ♬", "Semiquaver ♬", "16分 ♬") } }, vm::setGrid)
             when {
                 u.countIn != null -> Text(tr("นับเข้า ${u.countIn}", "Count-in ${u.countIn}", "カウント ${u.countIn}"), fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp))
-                u.bar != null -> Text(tr("กำลังอัด · ห้อง ${u.bar + 1}", "Recording · bar ${u.bar + 1}", "入力中 · ${u.bar + 1}小節"), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Accent, modifier = Modifier.padding(top = 16.dp))
+                u.bar != null -> Text((u.bar ?: 0).let { b -> tr("กำลังอัด · ห้อง ${b + 1}", "Recording · bar ${b + 1}", "入力中 · ${b + 1}小節") }, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Accent, modifier = Modifier.padding(top = 16.dp))
             }
             if (u.countIn != null || u.bar != null) SecondaryButton(tr("หยุด (Esc)", "Stop (Esc)", "停止（Esc）"), vm::stop, Modifier.padding(top = 12.dp))
             else if (u.take == null) PrimaryButton(tr("อัด (Space)", "Record (Space)", "入力（Space）"), vm::record, Modifier.padding(top = 16.dp))

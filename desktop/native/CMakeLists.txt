@@ -21,7 +21,6 @@ add_library(mimikopi_audio SHARED
 target_include_directories(mimikopi_audio PRIVATE
     src
     third_party/miniaudio
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../audio/src/main/cpp  # effects.h, shared with Android
     ${JNI_INCLUDE_DIRS}
 )
 target_compile_definitions(mimikopi_audio PRIVATE _USE_MATH_DEFINES NOMINMAX _CRT_SECURE_NO_WARNINGS)

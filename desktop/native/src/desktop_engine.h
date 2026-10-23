@@ -8,7 +8,7 @@
 #include <thread>
 #include <vector>
 
-#include "effects.h"  // shared with the Android engine (audio/src/main/cpp)
+#include "effects.h"  
 #include "sample_store.h"
 
 struct ma_device;

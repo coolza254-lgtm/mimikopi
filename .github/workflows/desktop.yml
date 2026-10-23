@@ -10,8 +10,6 @@ on:
       - "desktop/**"
       - "core/**"
       - "content/**"
-      - "audio/src/main/cpp/effects.h"
-      - "app/src/main/res/font/**"
       - "gradle/**"
       - ".github/workflows/desktop.yml"
   pull_request:

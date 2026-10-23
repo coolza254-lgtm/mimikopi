@@ -1,11 +1,11 @@
 # ミミコピ (Mimi Kopi)
 
-A personal piano-learning app for Android: reading sheet music, rhythm, ear training and
+A personal piano-learning program for Windows (PC only; the Android app was retired): reading sheet music, rhythm, ear training and
 "copying songs by ear" (耳コピ). Single user, Thai UI, local data only.
 
 - Project spec: [`docs/PROMPT.md`](docs/PROMPT.md). Learning content spec (Thai, source of truth): [`docs/learning-system.md`](docs/learning-system.md)
 - Plan and decisions: [`docs/M0-PLAN.md`](docs/M0-PLAN.md), architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- Install on the phone and update: [`docs/INSTALL.md`](docs/INSTALL.md)
+- The Windows program: [`desktop/`](desktop/), [`docs/DESKTOP.md`](docs/DESKTOP.md). Release: run the Desktop workflow with `release` on.
 - What is not done yet: [`docs/KNOWN-LIMITATIONS.md`](docs/KNOWN-LIMITATIONS.md). Licenses: [`CREDITS.md`](CREDITS.md)
 
 ## What the app does (v0.12)

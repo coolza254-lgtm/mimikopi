@@ -267,7 +267,7 @@ fun LessonHistory(lesson: Lesson, history: List<AttemptRow>) {
                 if (c.first.value("count") != null && c.latest.value("count") != null) "เปลี่ยนคอร์ด ${c.first.value("count")} → ${c.latest.value("count")} ครั้ง" else null,
             ).joinToString(" · ").ifEmpty { tr("มี ${rows.count { it.conditions == c.latest.conditions && it.comparable }} รอบที่เทียบกันได้", "${rows.count { it.conditions == c.latest.conditions && it.comparable }} comparable rounds", "比較できる回 ${rows.count { it.conditions == c.latest.conditions && it.comparable }}回") }, fontSize = 18.sp)
             Text("${AttemptHistory.handLabel(c.latest.row.hand)} · ${AttemptHistory.modeLabel(c.latest.mode)}" + (c.latest.value("bpm")?.let { " · $it bpm" } ?: ""), fontSize = 13.sp)
-            Text(tr("เป็นผลการเล่น ไม่ใช่หลักฐานว่าจำได้ถาวร · ไม่นำรอบใช้ตัวช่วย หยุดกลางคัน หรือเงื่อนไขต่างกันมาเทียบ", "Rounds with helpers, stopped midway or with different settings aren't compared", "補助あり、途中終了、条件の違う回は比較しません"), fontSize = 13.sp, color = Tokens.Palette.InkMuted)
+            Text(tr("ไม่นำรอบใช้ตัวช่วย หยุดกลางคัน หรือเงื่อนไขต่างกันมาเทียบ", "Rounds with helpers, stopped midway or with different settings aren't compared", "補助あり、途中終了、条件の違う回は比較しません"), fontSize = 13.sp, color = Tokens.Palette.InkMuted)
         } ?: Text(tr("ยังไม่มีสองรอบที่เงื่อนไขเดียวกันและไม่ใช้ตัวช่วยให้เทียบ", "No two rounds yet with the same settings and no helpers to compare", "同じ条件で補助なしの比較できる2回がまだありません"), fontSize = 13.sp, color = Tokens.Palette.InkMuted)
         rows.take(limit).forEach { a ->
             val r = a.row

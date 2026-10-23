@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.ear
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.theory.ChordQualities
 import com.id.mimikopi.core.theory.StageGenerators
 import kotlin.random.Random
@@ -11,13 +12,13 @@ import kotlin.random.Random
  * degree, bass, the common J-pop progressions, last-chorus key changes, syncopated rhythm).
  */
 enum class EarKind(val title: String, val about: String) {
-    DEGREE("โน้ตในคีย์", "ฟังคอร์ดนำให้รู้คีย์ แล้วบอกว่าโน้ตที่ได้ยินคือตัวไหน"),
-    MELODY("แกะทำนอง", "ฟังทำนองสั้นๆ แล้วเล่นกลับบนคีย์บอร์ด"),
-    QUALITY("ชนิดคอร์ด", "ฟังคอร์ดหนึ่งตัวแล้วบอกว่าเป็นคอร์ดแบบไหน"),
-    PROGRESSION("ทางเดินคอร์ด", "ฟังคอร์ดต่อกันแล้วบอกว่าเป็นโปรเกรสชันไหน"),
-    BASS("เบส", "ฟังคอร์ดแล้วบอกว่าโน้ตต่ำสุดคือตัวไหนของคีย์"),
-    KEY_CHANGE("เปลี่ยนคีย์", "ฟังทำนองสองรอบ แล้วบอกว่ารอบสองขึ้นคีย์ไหม ขึ้นเท่าไร"),
-    RHYTHM("จังหวะ", "ฟังจังหวะหนึ่งห้อง แล้วเคาะกลับให้ตรง"),
+    DEGREE(tr("โน้ตในคีย์", "Notes in a key", "キーの中の音"), tr("ฟังคอร์ดนำให้รู้คีย์ แล้วบอกว่าโน้ตที่ได้ยินคือตัวไหน", "Hear the lead-in chords to know the key, then name the note you hear", "導入のコードでキーをつかみ、聞こえた音を答える")),
+    MELODY(tr("แกะทำนอง", "Melody dictation", "メロディの耳コピ"), tr("ฟังทำนองสั้นๆ แล้วเล่นกลับบนคีย์บอร์ด", "Hear a short melody and play it back on the keyboard", "短いメロディを聞いて鍵盤で弾き返す")),
+    QUALITY(tr("ชนิดคอร์ด", "Chord type", "コードの種類"), tr("ฟังคอร์ดหนึ่งตัวแล้วบอกว่าเป็นคอร์ดแบบไหน", "Hear one chord and say what kind it is", "コードを1つ聞いてどんな種類か答える")),
+    PROGRESSION(tr("ทางเดินคอร์ด", "Progressions", "コード進行"), tr("ฟังคอร์ดต่อกันแล้วบอกว่าเป็นโปรเกรสชันไหน", "Hear chords in a row and say which progression it is", "続けて鳴るコードを聞いてどの進行か答える")),
+    BASS(tr("เบส", "Bass", "ベース"), tr("ฟังคอร์ดแล้วบอกว่าโน้ตต่ำสุดคือตัวไหนของคีย์", "Hear a chord and say which degree of the key the lowest note is", "コードを聞いて最低音がキーの何度か答える")),
+    KEY_CHANGE(tr("เปลี่ยนคีย์", "Key change", "転調"), tr("ฟังทำนองสองรอบ แล้วบอกว่ารอบสองขึ้นคีย์ไหม ขึ้นเท่าไร", "Hear a melody twice and say if the second time goes up a key, and by how much", "メロディを2回聞いて、2回目で転調するか、どれだけ上がるか答える")),
+    RHYTHM(tr("จังหวะ", "Rhythm", "リズム"), tr("ฟังจังหวะหนึ่งห้อง แล้วเคาะกลับให้ตรง", "Hear one bar of rhythm and tap it back exactly", "1小節のリズムを聞いて正確にタップで返す")),
 }
 
 /** Which keys a stage or test uses. */
@@ -69,9 +70,9 @@ object EarCourse {
     /** The progressions taught, the idol staples first (learning-system.md 8.1). */
     val PROGRESSIONS = listOf(
         Prog("axis", "Axis (I–V–vi–IV)", listOf("I", "V", "vi", "IV")),
-        Prog("komuro", "โกมุโร 小室進行 (vi–IV–V–I)", listOf("vi", "IV", "V", "I")),
-        Prog("royal", "ทางหลวง 王道進行 (IVM7–V7–iii7–vi)", listOf("IVmaj7", "V7", "iii7", "vi")),
-        Prog("fifties", "วงจร 50s (I–vi–IV–V)", listOf("I", "vi", "IV", "V")),
+        Prog("komuro", tr("โกมุโร 小室進行 (vi–IV–V–I)", "小室進行 Komuro shinkō (vi–IV–V–I)", "小室進行（vi–IV–V–I）"), listOf("vi", "IV", "V", "I")),
+        Prog("royal", tr("ทางหลวง 王道進行 (IVM7–V7–iii7–vi)", "王道進行 Ōdō shinkō (IVM7–V7–iii7–vi)", "王道進行（IVM7–V7–iii7–vi）"), listOf("IVmaj7", "V7", "iii7", "vi")),
+        Prog("fifties", tr("วงจร 50s (I–vi–IV–V)", "50s progression (I–vi–IV–V)", "50s進行（I–vi–IV–V）"), listOf("I", "vi", "IV", "V")),
         Prog("canon", "Canon (I–V–vi–iii–IV–I–IV–V)", listOf("I", "V", "vi", "iii", "IV", "I", "IV", "V")),
     )
 
@@ -93,12 +94,12 @@ object EarCourse {
     /** "ミ (3)", "ไมเนอร์ 7", "ทางหลวง 王道進行 ...". */
     fun label(item: String): String = when (kindOf(item)) {
         EarKind.DEGREE -> arg(item).toInt().let { "${FunctionalEar.solfege(it)} (${FunctionalEar.degree(it)})" }
-        EarKind.BASS -> arg(item).toInt().let { "เบส ${FunctionalEar.solfege(it)}" + if (it == 4 || it == 11) " (อินเวอร์ชัน)" else "" }
+        EarKind.BASS -> arg(item).toInt().let { tr("เบส ${FunctionalEar.solfege(it)}", "Bass ${FunctionalEar.solfege(it)}", "ベース ${FunctionalEar.solfege(it)}") + if (it == 4 || it == 11) tr(" (อินเวอร์ชัน)", " (inversion)", "（転回形）") else "" }
         EarKind.QUALITY -> ChordQualities.NAMES[arg(item)] ?: arg(item)
         EarKind.PROGRESSION -> PROGRESSIONS.firstOrNull { it.id == arg(item) }?.name ?: arg(item)
-        EarKind.KEY_CHANGE -> when (arg(item)) { "0" -> "คีย์เดิม"; "1" -> "ขึ้นครึ่งเสียง"; else -> "ขึ้นหนึ่งเสียง" }
-        EarKind.MELODY -> "ทำนอง ${arg(item)} โน้ต"
-        EarKind.RHYTHM -> "จังหวะ ระดับ ${arg(item)}"
+        EarKind.KEY_CHANGE -> when (arg(item)) { "0" -> tr("คีย์เดิม", "Same key", "同じキー"); "1" -> tr("ขึ้นครึ่งเสียง", "Up a semitone", "半音上"); else -> tr("ขึ้นหนึ่งเสียง", "Up a tone", "全音上") }
+        EarKind.MELODY -> tr("ทำนอง ${arg(item)} โน้ต", "${arg(item)}-note melody", "${arg(item)}音のメロディ")
+        EarKind.RHYTHM -> tr("จังหวะ", "Rhythm", "リズム")
     }
 
     // ---------------- stages ----------------
@@ -106,16 +107,16 @@ object EarCourse {
     data class Stage(val n: Int, val title: String, val adds: List<String>, val keys: KeyPool, val wide: Boolean, val about: String)
 
     val STAGES = listOf(
-        Stage(1, "ド ミ ソ", listOf("deg:0", "deg:4", "deg:7"), KeyPool.C_ONLY, false, "สามโน้ตหลักของคีย์ ฟังว่าแต่ละตัวรู้สึกต่างกันอย่างไร"),
-        Stage(2, "ห้าโน้ตแรก", listOf("deg:2", "deg:5", "rh:1"), KeyPool.C_ONLY, false, "เพิ่ม レ ファ และเคาะจังหวะตัวดำตัวขาว"),
-        Stage(3, "ครบเจ็ดตัว", listOf("deg:9", "deg:11", "q:", "q:m"), KeyPool.C_ONLY, false, "ครบทั้งสเกล และแยกคอร์ดเมเจอร์กับไมเนอร์"),
-        Stage(4, "ทำนองสั้น", listOf("mel:2", "mel:3", "rh:2"), KeyPool.C_ONLY, false, "ฟังทำนอง 2–3 โน้ตแล้วเล่นกลับ และจังหวะตัวเขบ็ด"),
-        Stage(5, "หลายคีย์ และเบส", listOf("bass:0", "bass:5", "bass:7", "q:dim", "q:aug"), KeyPool.EASY, true, "คีย์อื่นนอกจาก C ช่วงเสียงกว้างขึ้น และโน้ตเบสของคอร์ด I IV V"),
-        Stage(6, "ทางเดินคอร์ดแรก", listOf("prog:axis", "prog:komuro", "mel:4"), KeyPool.EASY, true, "โปรเกรสชันที่เพลงป็อปใช้มากที่สุด และทำนอง 4 โน้ต"),
-        Stage(7, "เซเวนท์และทางหลวง", listOf("q:7", "q:maj7", "q:m7", "prog:royal", "prog:fifties", "bass:9", "bass:2", "rh:3"), KeyPool.EASY, true, "คอร์ดเซเวนท์ 王道進行 ที่เพลงไอดอลใช้บ่อย และจังหวะขัด"),
-        Stage(8, "โน้ตนอกคีย์แบบป็อป", listOf("deg:10", "deg:3", "deg:8", "mel:5"), KeyPool.ANY, true, "♭7 ♭3 ♭6 ที่เพลงป็อปยืมมาใช้ ทุกคีย์"),
-        Stage(9, "เปลี่ยนคีย์", listOf("kc:0", "kc:1", "kc:2", "q:sus4", "q:add9", "mel:6"), KeyPool.ANY, true, "ท่อนสุดท้ายขึ้นคีย์ แบบเพลงไอดอล และคอร์ด sus4 add9"),
-        Stage(10, "แกะแบบเพลงจริง", listOf("prog:canon", "bass:4", "bass:11", "q:m7b5", "deg:6", "deg:1", "mel:8", "rh:4"), KeyPool.ANY, true, "ทำนองยาว เบสอินเวอร์ชัน Canon และจังหวะ 16"),
+        Stage(1, "ド ミ ソ", listOf("deg:0", "deg:4", "deg:7"), KeyPool.C_ONLY, false, tr("สามโน้ตหลักของคีย์ ฟังว่าแต่ละตัวรู้สึกต่างกันอย่างไร", "The three main notes of the key; hear how each one feels different", "キーの3つの主要な音。それぞれの感じの違いを聞く")),
+        Stage(2, tr("ห้าโน้ตแรก", "First five notes", "最初の5音"), listOf("deg:2", "deg:5", "rh:1"), KeyPool.C_ONLY, false, tr("เพิ่ม レ ファ และเคาะจังหวะตัวดำตัวขาว", "Add レ and ファ, and tap crotchet and minim rhythms", "レとファを加え、四分音符と二分音符のリズムをタップ")),
+        Stage(3, tr("ครบเจ็ดตัว", "All seven", "7音すべて"), listOf("deg:9", "deg:11", "q:", "q:m"), KeyPool.C_ONLY, false, tr("ครบทั้งสเกล และแยกคอร์ดเมเจอร์กับไมเนอร์", "The whole scale, and telling major from minor chords", "スケール全体と、メジャーとマイナーのコードの聞き分け")),
+        Stage(4, tr("ทำนองสั้น", "Short melodies", "短いメロディ"), listOf("mel:2", "mel:3", "rh:2"), KeyPool.C_ONLY, false, tr("ฟังทำนอง 2–3 โน้ตแล้วเล่นกลับ และจังหวะตัวเขบ็ด", "Hear 2–3-note melodies and play them back, and quaver rhythms", "2〜3音のメロディを聞いて弾き返す、8分音符のリズム")),
+        Stage(5, tr("หลายคีย์ และเบส", "More keys, and bass", "いろいろなキーとベース"), listOf("bass:0", "bass:5", "bass:7", "q:dim", "q:aug"), KeyPool.EASY, true, tr("คีย์อื่นนอกจาก C ช่วงเสียงกว้างขึ้น และโน้ตเบสของคอร์ด I IV V", "Keys besides C, a wider range, and the bass notes of I IV V", "C以外のキー、広い音域、I IV Vのベース音")),
+        Stage(6, tr("ทางเดินคอร์ดแรก", "First progressions", "はじめてのコード進行"), listOf("prog:axis", "prog:komuro", "mel:4"), KeyPool.EASY, true, tr("โปรเกรสชันที่เพลงป็อปใช้มากที่สุด และทำนอง 4 โน้ต", "The progressions pop uses most, and 4-note melodies", "ポップで最も使われる進行と4音のメロディ")),
+        Stage(7, tr("เซเวนท์และทางหลวง", "Sevenths and 王道進行 (Ōdō shinkō)", "セブンスと王道進行"), listOf("q:7", "q:maj7", "q:m7", "prog:royal", "prog:fifties", "bass:9", "bass:2", "rh:3"), KeyPool.EASY, true, tr("คอร์ดเซเวนท์ 王道進行 ที่เพลงไอดอลใช้บ่อย และจังหวะขัด", "Seventh chords, the 王道進行 (Ōdō shinkō) idol songs love, and syncopation", "セブンスコード、アイドル曲によく出る王道進行、シンコペーション")),
+        Stage(8, tr("โน้ตนอกคีย์แบบป็อป", "Pop notes outside the key", "キー外のポップな音"), listOf("deg:10", "deg:3", "deg:8", "mel:5"), KeyPool.ANY, true, tr("♭7 ♭3 ♭6 ที่เพลงป็อปยืมมาใช้ ทุกคีย์", "♭7 ♭3 ♭6 that pop borrows, in every key", "ポップが借りる♭7 ♭3 ♭6、全キーで")),
+        Stage(9, tr("เปลี่ยนคีย์", "Key change", "転調"), listOf("kc:0", "kc:1", "kc:2", "q:sus4", "q:add9", "mel:6"), KeyPool.ANY, true, tr("ท่อนสุดท้ายขึ้นคีย์ แบบเพลงไอดอล และคอร์ด sus4 add9", "Last-chorus key change like idol songs, and sus4 add9 chords", "アイドル曲のような最後のサビの転調、sus4とadd9のコード")),
+        Stage(10, tr("แกะแบบเพลงจริง", "Working out real songs", "本物の曲の耳コピ"), listOf("prog:canon", "bass:4", "bass:11", "q:m7b5", "deg:6", "deg:1", "mel:8", "rh:4"), KeyPool.ANY, true, tr("ทำนองยาว เบสอินเวอร์ชัน Canon และจังหวะ 16", "Long melodies, inverted bass, Canon and 16th rhythms", "長いメロディ、転回ベース、カノン進行、16分のリズム")),
     )
 
     val ALL_ITEMS: List<String> = STAGES.flatMap { it.adds }
@@ -196,7 +197,7 @@ object EarCourse {
                     sound = listOf(EarStep(listOf(bass) + upper, 1600, 84)),
                     answer = EarAnswer.Choice(item), options = options,
                     after = listOf(EarStep(listOf(bass), 900, 96), EarStep(listOf(bass) + upper, 1200, 84)),
-                    reveal = "เบส ${FunctionalEar.solfege(place)} · ${FunctionalEar.letter(tonic + place, tonic)}",
+                    reveal = tr("เบส ${FunctionalEar.solfege(place)} · ${FunctionalEar.letter(tonic + place, tonic)}", "Bass ${FunctionalEar.solfege(place)} · ${FunctionalEar.letter(tonic + place, tonic)}", "ベース ${FunctionalEar.solfege(place)} · ${FunctionalEar.letter(tonic + place, tonic)}"),
                 )
             }
             EarKind.QUALITY -> {
@@ -227,7 +228,7 @@ object EarCourse {
                 EarQuestion(
                     EarKind.PROGRESSION, item, tonic, base, cadence = false,
                     sound = steps, answer = EarAnswer.Choice(item), options = options, after = steps,
-                    reveal = p.numerals.joinToString(" – ") + " (คีย์ ${FunctionalEar.keyName(tonic, EarScale.MAJOR)})",
+                    reveal = p.numerals.joinToString(" – ") + tr(" (คีย์ ${FunctionalEar.keyName(tonic, EarScale.MAJOR)})", " (key ${FunctionalEar.keyName(tonic, EarScale.MAJOR)})", "（キー ${FunctionalEar.keyName(tonic, EarScale.MAJOR)}）"),
                 )
             }
             EarKind.KEY_CHANGE -> {

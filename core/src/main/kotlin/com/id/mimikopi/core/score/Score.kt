@@ -41,7 +41,7 @@ data class PieceFile(
 
     companion object {
         private val json = Json { ignoreUnknownKeys = false; encodeDefaults = false }
-        fun parse(text: String): PieceFile = json.decodeFromString(serializer(), text)
+        fun parse(text: String): PieceFile = json.decodeFromString(serializer(), com.id.mimikopi.core.i18n.ContentL10n.translate(text))
     }
 }
 
@@ -229,6 +229,21 @@ object KeySignature {
         fifths > 0 && letter in SHARP_ORDER.take(fifths) -> 1
         fifths < 0 && letter in FLAT_ORDER.take(-fifths) -> -1
         else -> 0
+    }
+
+    /**
+     * The seven notes of the major key with [fifths], by pitch class (0 = C), spelled as the key spells them: E major
+     * gives F♯ C♯ G♯ D♯, A♭ major gives B♭ E♭ A♭ D♭. A keyboard labels these keys and leaves the others blank.
+     */
+    fun scale(fifths: Int): Map<Int, SpelledPitch> = Letter.entries.associate { l ->
+        val acc = accidentalFor(l, fifths)
+        Math.floorMod(l.semitonesFromC + acc, 12) to SpelledPitch(l, acc, 4)
+    }
+
+    /** "E Major", "A♭ Major": the major key with [fifths] (a minor piece shares it with its relative major). */
+    fun majorName(fifths: Int): String {
+        val tonic = scale(fifths).getValue(Math.floorMod(fifths * 7, 12))
+        return tonic.letter.name + SpelledPitch.accidentalSymbol(tonic.accidental) + " Major"
     }
 
     /** Staff positions of the key signature glyphs, in drawing order. */

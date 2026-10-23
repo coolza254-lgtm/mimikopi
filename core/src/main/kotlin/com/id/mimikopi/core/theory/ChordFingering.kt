@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.theory
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.music.Letter
 
 /** One way to hold a chord: the keys (MIDI, low to high) and the finger on each (1 = thumb ... 5 = little finger). */
@@ -18,7 +19,7 @@ object ChordFingering {
     /** Roots in their usual spelling. */
     val ROOTS: List<PitchName> = listOf("C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B").map { PitchName.parse(it)!! }
 
-    private val INVERSION_TITLES = listOf("ตำแหน่งพื้นฐาน (รากอยู่ล่าง)", "พลิกครั้งที่ 1", "พลิกครั้งที่ 2", "พลิกครั้งที่ 3")
+    private val INVERSION_TITLES = listOf(tr("ตำแหน่งพื้นฐาน (รากอยู่ล่าง)", "Root position (root at the bottom)", "基本形（ルートが一番下）"), tr("พลิกครั้งที่ 1", "First inversion", "第1転回形"), tr("พลิกครั้งที่ 2", "Second inversion", "第2転回形"), tr("พลิกครั้งที่ 3", "Third inversion", "第3転回形"))
 
     /** The chord's notes inside one octave, from the root (add9's 9th becomes a 2nd). */
     fun closeIntervals(chord: Chord): List<Int> = chord.intervals.map { Math.floorMod(it, 12) }.distinct().sorted()
@@ -56,7 +57,7 @@ object ChordFingering {
     /** Both hands, the usual first way: left hand the root (little finger), right hand the chord in root position. */
     fun twoHands(chord: Chord): Pair<HandShape, HandShape> {
         val bass = 48 + Math.floorMod(chord.root.pc, 12)
-        return HandShape(listOf(bass), listOf(5), "มือซ้าย: กดรากคอร์ด") to rightHand(chord).first().copy(title = "มือขวา: กดคอร์ด")
+        return HandShape(listOf(bass), listOf(5), tr("มือซ้าย: กดรากคอร์ด", "Left hand: the root", "左手：ルート")) to rightHand(chord).first().copy(title = tr("มือขวา: กดคอร์ด", "Right hand: the chord", "右手：コード"))
     }
 
     /**

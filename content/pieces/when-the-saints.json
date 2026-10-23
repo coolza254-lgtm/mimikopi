@@ -1,0 +1,49 @@
+{
+  "id": "when-the-saints",
+  "title": "When the Saints Go Marching In",
+  "composer": "เพลงพื้นบ้านอเมริกัน เรียบเรียงง่ายโดยแอพ",
+  "source": "Public domain (traditional American spiritual). Melody written from memory for the app; not yet checked against a printed edition.",
+  "level": "L3",
+  "key": 0,
+  "time": [
+    4,
+    4
+  ],
+  "tempo": 100,
+  "rh": [
+    "r/q C4/q E4/q F4/q",
+    "G4/w",
+    "r/q C4/q E4/q F4/q",
+    "G4/w",
+    "r/q C4/q E4/q F4/q",
+    "G4/h E4/h",
+    "C4/h E4/h",
+    "D4/w",
+    "r/q E4/q E4/q D4/q",
+    "C4/h. C4/q",
+    "E4/h G4/q G4/q",
+    "F4/w",
+    "r/q E4/q F4/q G4/q",
+    "E4/h C4/h",
+    "D4/w",
+    "C4/w"
+  ],
+  "lh": [
+    "r/w",
+    "C3/w",
+    "r/w",
+    "C3/w",
+    "r/w",
+    "C3/w",
+    "C3/w",
+    "G2/w",
+    "r/w",
+    "C3/w",
+    "C3/w",
+    "F2/w",
+    "r/w",
+    "C3/w",
+    "G2/w",
+    "C3/w"
+  ]
+}

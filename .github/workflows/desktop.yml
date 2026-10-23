@@ -1,0 +1,183 @@
+name: Desktop
+
+# The Windows program (desktop/): core and desktop tests on Linux, then the native audio library (MSVC), tests and
+# the MSI installer on Windows.
+on:
+  push:
+    # Every branch but the sync data (learning-system.md 2.11), which only holds progress files.
+    branches: ["**", "!sync-data"]
+    paths:
+      - "desktop/**"
+      - "core/**"
+      - "content/**"
+      - "gradle/**"
+      - ".github/workflows/desktop.yml"
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without the v, e.g. 0.30.0 (default: the newest release-notes/vX.Y.Z.md)"
+        required: false
+      release:
+        description: "Publish the MSI and app ZIP as the Windows release desktop-v<version> (release.yml starts this)"
+        type: boolean
+        default: false
+
+# A release run has its own group, so a push to the same branch never cancels it.
+concurrency:
+  group: desktop-${{ github.ref }}${{ inputs.release && '-release' || '' }}
+  cancel-in-progress: ${{ !inputs.release }}
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      # The program uses the system font like the phone; Windows has Thai (Leelawadee UI), the runner does not.
+      - name: Thai font for the page renders
+        run: sudo apt-get install -y --no-install-recommends fonts-thai-tlwg > /dev/null
+
+      - name: Native audio library
+        run: |
+          cmake -S desktop/native -B desktop/native/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build desktop/native/build -j4
+
+      - name: Core and desktop tests
+        run: ./gradlew -p desktop :core:test test
+
+      - name: Test report
+        if: always()
+        run: python3 desktop/tools/test_report.py
+
+      # The build session that writes this code cannot download artifacts: print the page renders into the log.
+      - name: Print screenshots
+        if: always()
+        run: |
+          for f in desktop/app/build/screenshots/*.png; do
+            [[ -f "$f" ]] || continue
+            echo "=== SHOT $(basename "$f")"
+            base64 -w 0 "$f"; echo
+            echo "=== END"
+          done
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    # Write access is used only by the release step, which runs only when started with release set.
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        # The phone's version: the input, or the newest release notes (release-notes/vX.Y.Z.md).
+        run: |
+          LATEST=$(python -c "import os, re; v = [tuple(map(int, m.groups())) for f in os.listdir('release-notes') if (m := re.fullmatch(r'v(\d+)\.(\d+)\.(\d+)\.md', f))]; print('.'.join(map(str, max(v))))")
+          echo "VERSION_NAME=${INPUT_VERSION:-$LATEST}" >> "$GITHUB_ENV"
+
+      - name: Native audio library (MSVC, WASAPI)
+        run: |
+          cmake -S desktop/native -B desktop/native/build -A x64
+          cmake --build desktop/native/build --config Release
+          ls -l desktop/native/dist/windows
+
+      - name: Tests on Windows
+        run: ./gradlew -p desktop :core:test test -PversionName="$VERSION_NAME"
+
+      - name: Test report
+        if: always()
+        run: python desktop/tools/test_report.py
+
+      - name: MSI installer and app folder
+        id: package
+        run: ./gradlew -p desktop :app:packageMsi :app:createDistributable -PversionName="$VERSION_NAME"
+
+      - name: Print packaging logs
+        if: failure() && steps.package.outcome == 'failure'
+        shell: bash
+        run: |
+          for f in desktop/app/build/compose/logs/*/*.txt; do [[ -f "$f" ]] || continue; echo "=== $f"; tail -n 60 "$f"; done
+
+      - name: Check the package
+        run: |
+          MSI=$(ls desktop/app/build/compose/binaries/main/msi/*.msi)
+          APP=desktop/app/build/compose/binaries/main/app/Mimikopi
+          test -f "$APP/Mimikopi.exe"
+          find "$APP" -name mimikopi_audio.dll | grep -q . || { echo "::error::audio DLL missing from the app folder"; exit 1; }
+          find "$APP" -name '*.json' -path '*lessons*' | head -1
+          mkdir -p out
+          cp "$MSI" "out/Mimikopi-$VERSION_NAME.msi"
+          (cd desktop/app/build/compose/binaries/main/app && 7z a -tzip "../../../../../../../out/Mimikopi-$VERSION_NAME-windows-app.zip" Mimikopi > /dev/null)
+          sha256sum out/* | tee out/SHA256SUMS.txt
+          ls -l out
+
+      # Rendered with Windows' own fonts: what the program looks like on the target system.
+      - name: Print Windows screenshots
+        if: always()
+        run: |
+          for f in desktop/app/build/screenshots/{reader-heroic,reader-falling,lesson-1.5,today}-light.png; do
+            [[ -f "$f" ]] || continue
+            echo "=== SHOT win-$(basename "$f")"
+            base64 -w 0 "$f"; echo
+            echo "=== END"
+          done
+
+      - name: Upload installer
+        id: upload
+        continue-on-error: true
+        uses: actions/upload-artifact@v5
+        with:
+          name: mimikopi-desktop-${{ env.VERSION_NAME }}-${{ github.sha }}
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Report a failed installer upload
+        if: steps.upload.outcome == 'failure'
+        run: echo "::warning::The installer was built and checked but could not be uploaded (see the upload step, usually the Actions storage quota)."
+
+      # The Windows release in this repository (the program's updater reads it), with the same version and Thai notes
+      # as the phone's. The earlier pre-release test builds (0.31.<run>) become drafts, so the release page and the
+      # update check show only real releases; a draft can be published again from the release page.
+      - name: Release
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="desktop-v$VERSION_NAME"
+          NOTES="release-notes/v$VERSION_NAME.md"
+          test -s "$NOTES" || { echo "::error::Missing Thai release notes $NOTES"; exit 1; }
+          {
+            cat "$NOTES"
+            echo
+            echo "สำหรับ Windows: ติดตั้งด้วย Mimikopi-$VERSION_NAME.msi · ยังไม่ได้เซ็นรับรอง ครั้งแรก Windows จะเตือน (SmartScreen) ให้กด \"ข้อมูลเพิ่มเติม\" แล้ว \"เรียกใช้ต่อไป\" · รุ่นต่อไปอัปเดตจากในโปรแกรมได้ที่ ตั้งค่า → อัปเดตโปรแกรม"
+          } > release-notes.md
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
+            --title "Mimikopi Desktop $VERSION_NAME" --notes-file release-notes.md
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,isPrerelease \
+            --jq '.[] | select(.isPrerelease and (.tagName | startswith("desktop-v"))) | .tagName' |
+            while read -r t; do gh release edit "$t" --repo "$GITHUB_REPOSITORY" --draft=true > /dev/null; echo "draft: $t"; done

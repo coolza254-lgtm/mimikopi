@@ -1,6 +1,16 @@
 # Known limitations
 
+> หมายเหตุ 2026-10-23: แอปมือถือถูกเลิกแล้ว ข้อที่พูดถึงมือถือ/Android ในไฟล์นี้ไม่ใช้แล้ว
+
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
+
+## Two-hand solo track (v0.33.0)
+- Solo material is generated: a chord-tone melody over a fixed progression with one left-hand pattern of 8.2. It is not
+  an arrangement of any real song, and it has no right-hand harmony (3rds/6ths/octaves) or colour chords yet.
+- Levels, keys, tempos and the opening rule (new reading 5 + chords 1) are my settings, not an outside grade.
+  Practice in the daily plan is wait mode; only the tempo test on a cable moves the level.
+- A check record of the new skill cannot be read by an app older than this change: update the phone and the PC together.
+  An older app keeps its own records and skips the other device's file until it is updated.
 
 ## Mobile performance and lesson history (v0.29.0)
 - Score playback requests sensor landscape, hides system bars and restores the prior policy on exit. Android may override orientation on large-screen/multi-window configurations; physical phone rotation/cutout/navigation still needs device validation.
@@ -21,7 +31,12 @@ Updated each milestone. Mirrors the "ยังไม่มีในรุ่น�
   and deliberately absent from LAN sync. Android system cloud backup remains disabled.
 - New feature behavior still needs real phone/MIDI/audio-device checks. Future note editing and automatic checks remain separate work.
 
-## Heroic-only practice plan (v0.27.0)
+## Library restored, Heroic as an extra (after v0.30.0)
+- The public-domain library of v0.26.9 (30 pieces, Moonlight included) is back, so the grade exams can start again and
+  lessons 2.23, 3.15 and 4.19 use their learning pieces again. Heroic Polonaise keeps its study plan as an extra song.
+- The desktop Songs page lists the library with a hand choice per piece; it has no classical ladder or exam pages yet.
+
+## Heroic-only practice plan (v0.27.0) (superseded)
 - The library contains one composition, two eight-bar study arrangements, covering source measures 17–24.
   Thirty targets cover exact sections/hands/modes, not the full composition or original performance difficulty.
 - Reading completion is separate from tempo qualification. Tempo targets require clean runs without helpers,

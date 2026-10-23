@@ -65,7 +65,7 @@ data class Lesson(
     companion object {
         val TRACKS = setOf("KEYS", "READ_PITCH", "READ_RHYTHM", "HANDS", "THEORY", "EAR", "REPERTOIRE")
         private val json = Json { ignoreUnknownKeys = false }
-        fun parse(text: String): Lesson = json.decodeFromString(serializer(), text)
+        fun parse(text: String): Lesson = json.decodeFromString(serializer(), com.id.mimikopi.core.i18n.ContentL10n.translate(text))
     }
 }
 
@@ -163,6 +163,9 @@ data class Drill(
     /** L8 lead sheets: the app plays a bass line as a backing track. */
     val backing: Boolean = false,
 ) {
+    /** Judges onset timing, so it needs a piano on a cable (learning-system.md 2.11). */
+    val judgesTiming: Boolean get() = type == ExerciseType.E_PULSE || (type.isScore && mode == "TEMPO")
+
     fun problems(): List<String> = buildList {
         if (type.isScore || type == ExerciseType.E_INTERVAL_READ) {
             if (hand !in listOf("RIGHT", "LEFT", "BOTH")) add("bad hand")

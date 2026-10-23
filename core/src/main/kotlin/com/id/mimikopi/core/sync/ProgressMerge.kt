@@ -163,7 +163,11 @@ object ProgressMerge {
                 x.runs != y.runs -> if (x.runs > y.runs) x else y
                 else -> if (json.encodeToString(PieceProgress.serializer(), x) >= json.encodeToString(PieceProgress.serializer(), y)) x else y
             }
+            // The later review wins whole: its box belongs with its day.
+            val review = listOf(x, y).maxByOrNull { it.lastReview ?: "" }!!
             base.copy(
+                reviewBox = review.reviewBox,
+                lastReview = review.lastReview,
                 runs = maxOf(x.runs, y.runs),
                 passDays = (x.passDays + y.passDays).distinct().sorted(),
                 handPassDays = (x.handPassDays.keys + y.handPassDays.keys).associateWith { h ->

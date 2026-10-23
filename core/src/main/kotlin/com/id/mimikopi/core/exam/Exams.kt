@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.exam
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.ear.EarCourse
 import com.id.mimikopi.core.ear.EarQuestion
 import com.id.mimikopi.core.ear.KeyPool
@@ -29,19 +30,19 @@ import kotlin.random.Random
 
 /** The parts of an exam with their marks (ABRSM's split: 30 per piece, 21 scales, 21 sight-reading, 18 aural). */
 enum class ExamPart(val title: String, val max: Int, val pass: Int, val merit: Int, val distinction: Int) {
-    PIECE_1("เพลงที่ 1", 30, 20, 25, 27),
-    PIECE_2("เพลงที่ 2", 30, 20, 25, 27),
-    POP("เพลงป็อป", 30, 20, 25, 27),
-    SCALES("สเกลและอาร์เพจจิโอ", 21, 14, 17, 19),
-    SIGHT("อ่านโน้ตใหม่", 21, 14, 17, 19),
-    AURAL("ทดสอบการฟัง", 18, 12, 15, 17),
+    PIECE_1(tr("เพลงที่ 1", "Piece 1", "1曲目"), 30, 20, 25, 27),
+    PIECE_2(tr("เพลงที่ 2", "Piece 2", "2曲目"), 30, 20, 25, 27),
+    POP(tr("เพลงป็อป", "Pop piece", "ポップ曲"), 30, 20, 25, 27),
+    SCALES(tr("สเกลและอาร์เพจจิโอ", "Scales and arpeggios", "スケールとアルペジオ"), 21, 14, 17, 19),
+    SIGHT(tr("อ่านโน้ตใหม่", "Sight-reading", "初見"), 21, 14, 17, 19),
+    AURAL(tr("ทดสอบการฟัง", "Aural test", "聴音テスト"), 18, 12, 15, 17),
 }
 
 enum class Band(val title: String) {
-    DISTINCTION("ดีเยี่ยม (Distinction)"),
-    MERIT("ดี (Merit)"),
-    PASS("ผ่าน (Pass)"),
-    BELOW("ยังไม่ผ่าน"),
+    DISTINCTION(tr("ดีเยี่ยม (Distinction)", "Distinction", "優")),
+    MERIT(tr("ดี (Merit)", "Merit", "良")),
+    PASS(tr("ผ่าน (Pass)", "Pass", "合格")),
+    BELOW(tr("ยังไม่ผ่าน", "Not passed yet", "まだ不合格")),
 }
 
 /** The pop piece of a grade: a progression in a key with a left-hand pattern of the accompaniment ladder. */
@@ -123,7 +124,7 @@ object Exams {
      */
     val GRADES: List<Grade> = listOf(
         Grade(
-            0, "Initial", "ทำนองมือขวาง่ายๆ มือซ้ายเบา สเกลอ็อกเทฟเดียวทีละมือ",
+            0, "Initial", tr("ทำนองมือขวาง่ายๆ มือซ้ายเบา สเกลอ็อกเทฟเดียวทีละมือ", "Easy right-hand melodies, a light left hand, one-octave scales hands separately", "やさしい右手のメロディ、軽い左手、1オクターブのスケールを片手ずつ"),
             listOf("hot-cross-buns", "lightly-row", "old-macdonald"),
             PopSpec(0, "Axis", 1, 8, 72, PopSpec.Melody.SIMPLE),
             listOf(major("C", 1, false), major("G", 1, false), major("F", 1, false), minor("A", 1, false), CONTRARY_C),
@@ -133,7 +134,7 @@ object Exams {
             minutes = 12,
         ),
         Grade(
-            1, "เกรด 1", "สองมือแบบง่าย จังหวะ 3/4 และ 6/8 สเกลเขบ็ตหนึ่งชั้น อาร์เพจจิโอแรก",
+            1, tr("เกรด 1", "Grade 1", "グレード1"), tr("สองมือแบบง่าย จังหวะ 3/4 และ 6/8 สเกลเขบ็ตหนึ่งชั้น อาร์เพจจิโอแรก", "Easy hands together, 3/4 and 6/8 time, quaver scales, first arpeggios", "やさしい両手、3/4と6/8拍子、8分音符のスケール、はじめてのアルペジオ"),
             listOf("au-clair-de-la-lune", "mary-had-a-little-lamb", "row-row-row", "when-the-saints", "yankee-doodle"),
             PopSpec(1, "โกมุโร", 1, 8, 80, PopSpec.Melody.SIMPLE),
             listOf(major("C", 1, false), major("G", 1, false), major("D", 1, false), major("F", 1, false), minor("A", 1, false), minor("D", 1, false),
@@ -143,7 +144,7 @@ object Exams {
             minutes = 12,
         ),
         Grade(
-            2, "เกรด 2", "เพลงยาวขึ้น มือซ้ายเดินมากขึ้น สเกลสองมือพร้อมกัน และโครมาติก",
+            2, tr("เกรด 2", "Grade 2", "グレード2"), tr("เพลงยาวขึ้น มือซ้ายเดินมากขึ้น สเกลสองมือพร้อมกัน และโครมาติก", "Longer pieces, a busier left hand, scales hands together, and chromatic", "長めの曲、よく動く左手、両手のスケール、半音階"),
             listOf("frere-jacques", "jingle-bells", "london-bridge", "ode-to-joy", "sakura-sakura", "we-wish-you-a-merry-christmas"),
             PopSpec(-1, "วงจร 50s", 2, 8, 84, PopSpec.Melody.SIMPLE),
             listOf(major("G", 1, true), major("D", 1, true), major("F", 1, true), major("Bb", 1, false), minor("E", 1, false), minor("D", 1, false),
@@ -153,7 +154,7 @@ object Exams {
             minutes = 13,
         ),
         Grade(
-            3, "เกรด 3", "อ่านสองมือ สเกลสองอ็อกเทฟ คีย์แฟลต และทางเดินคอร์ดป็อปด้วยหู",
+            3, tr("เกรด 3", "Grade 3", "グレード3"), tr("อ่านสองมือ สเกลสองอ็อกเทฟ คีย์แฟลต และทางเดินคอร์ดป็อปด้วยหู", "Two-hand reading, two-octave scales, flat keys and pop progressions by ear", "両手の読譜、2オクターブのスケール、フラット系のキー、耳でポップのコード進行"),
             listOf("eine-kleine-nachtmusik", "silent-night", "twinkle-twinkle"),
             PopSpec(2, "ทางหลวง (王道進行)", 4, 12, 88, PopSpec.Melody.FLOWING),
             listOf(major("A", 2, false), major("E", 2, false), major("Bb", 2, false), major("Eb", 2, false), major("D", 2, true),
@@ -165,7 +166,7 @@ object Exams {
             minutes = 15,
         ),
         Grade(
-            4, "เกรด 4", "เพลงคลาสสิกจริงจังขึ้น ป็อปคีย์ A♭ แบบ I WISH สเกลสองอ็อกเทฟสองมือ",
+            4, tr("เกรด 4", "Grade 4", "グレード4"), tr("เพลงคลาสสิกจริงจังขึ้น ป็อปคีย์ A♭ แบบ I WISH สเกลสองอ็อกเทฟสองมือ", "More serious classical pieces, pop in A♭ like I WISH, two-octave scales hands together", "本格的なクラシック曲、I WISHのようなA♭のポップ、2オクターブの両手スケール"),
             listOf("greensleeves", "minuet-in-g"),
             PopSpec(-4, "ทางหลวงเต็มวง", 5, 16, 92, PopSpec.Melody.SYNCOPATED),
             listOf(major("A", 2, true), major("E", 2, true), major("Bb", 2, true), major("Eb", 2, true), major("Ab", 2, true),
@@ -178,7 +179,7 @@ object Exams {
             minutes = 18,
         ),
         Grade(
-            5, "เกรด 5", "Für Elise และ Prelude in C ป็อปคีย์ E♭ แบบเพลงไอดอล ทุกสเกลที่เรียนมา และแกะการเปลี่ยนคีย์",
+            5, tr("เกรด 5", "Grade 5", "グレード5"), tr("Für Elise และ Prelude in C ป็อปคีย์ E♭ แบบเพลงไอดอล ทุกสเกลที่เรียนมา และแกะการเปลี่ยนคีย์", "Für Elise and Prelude in C, idol-style pop in E♭, every scale so far, and hearing key changes", "エリーゼのためにとプレリュードハ長調、E♭のアイドル風ポップ、これまでの全スケール、転調の聞き取り"),
             listOf("fur-elise", "prelude-in-c"),
             PopSpec(-3, "Canon", 6, 16, 96, PopSpec.Melody.SYNCOPATED),
             listOf("C", "G", "D", "A", "E", "F", "Bb", "Eb", "Ab").map { major(it, 2, true) } +
@@ -212,7 +213,7 @@ object Exams {
 
     /** The scales part: the asked items in one score, a bar of rest between them. */
     fun scalesPiece(grade: Grade, seed: Long): PieceFile =
-        ExamScales.piece("exam-scales-${grade.n}-$seed", "สเกลและอาร์เพจจิโอ · ${grade.name}", askedScales(grade, seed), grade.scaleBpm, grade.quarters, levelOf(grade))
+        ExamScales.piece("exam-scales-${grade.n}-$seed", tr("สเกลและอาร์เพจจิโอ · ${grade.name}", "Scales and arpeggios · ${grade.name}", "スケールとアルペジオ · ${grade.name}"), askedScales(grade, seed), grade.scaleBpm, grade.quarters, levelOf(grade))
 
     /** One scale to practise on its own (opened from the requirements list). */
     fun scalePractice(grade: Grade, item: ScaleItem): PieceFile =
@@ -225,7 +226,7 @@ object Exams {
             ExerciseType.E_READ_PIECE, "exam", level = "L$level", bpm = grade.sightBpm, mode = "TEMPO",
             hand = sightHand(grade), keys = if (level == 6) listOf(0, 1, -1, 2, -2) else emptyList(),
         )
-        return ScoreGenerators.read(drill, seed).copy(id = "exam-sight-${grade.n}-$seed", title = "อ่านโน้ตใหม่ · ${grade.name}")
+        return ScoreGenerators.read(drill, seed).copy(id = "exam-sight-${grade.n}-$seed", title = tr("อ่านโน้ตใหม่ · ${grade.name}", "Sight-reading · ${grade.name}", "初見 · ${grade.name}"))
     }
 
     /** Hands the sight-reading piece is written for: "RIGHT", "LEFT" or "BOTH". */
@@ -335,17 +336,17 @@ object Exams {
         val timing = mark.timing
         if (mark.right != null && mark.asked != null) {
             val wrong = mark.asked - mark.right
-            return if (wrong == 0) "ตอบถูกทุกข้อในครั้งแรก" else "ตอบผิดครั้งแรก $wrong ข้อจาก ${mark.asked}"
+            return if (wrong == 0) tr("ตอบถูกทุกข้อในครั้งแรก", "All right first time", "すべて1回目で正解") else tr("ตอบผิดครั้งแรก $wrong ข้อจาก ${mark.asked}", "$wrong of ${mark.asked} wrong first time", "${mark.asked}問中${wrong}問を1回目で間違え")
         }
         if (acc == null || timing == null) return ""
-        val parts = mutableListOf("โน้ตถูก ${(acc * 100).roundToInt()}%", "ตรงจังหวะ ${(timing * 100).roundToInt()}%")
-        if ((mark.stumbles ?: 0) > 0) parts += "หยุด ${mark.stumbles} ครั้ง"
+        val parts = mutableListOf(tr("โน้ตถูก ${(acc * 100).roundToInt()}%", "Notes right ${(acc * 100).roundToInt()}%", "音の正確さ ${(acc * 100).roundToInt()}%"), tr("ตรงจังหวะ ${(timing * 100).roundToInt()}%", "On time ${(timing * 100).roundToInt()}%", "リズム ${(timing * 100).roundToInt()}%"))
+        if ((mark.stumbles ?: 0) > 0) parts += tr("หยุด ${mark.stumbles} ครั้ง", "Stopped ${mark.stumbles} times", "${mark.stumbles}回止まった")
         val note = when {
-            (mark.stumbles ?: 0) >= 2 -> "เล่นต่อเนื่องให้ได้ก่อน ผิดแล้วไปต่อ"
-            acc < 0.9 -> "โน้ตยังหลุดบ่อย ฝึกช้าลงจนแม่น"
-            timing < 0.8 -> "จังหวะยังไม่นิ่ง ฝึกกับเมโทรนอม"
-            acc >= 0.97 && timing >= 0.9 -> "แม่นและนิ่ง"
-            else -> "ดีแล้ว เก็บรายละเอียดอีกนิด"
+            (mark.stumbles ?: 0) >= 2 -> tr("เล่นต่อเนื่องให้ได้ก่อน ผิดแล้วไปต่อ", "Keep going first: after a mistake, carry on", "まず止まらずに：間違えても弾き続ける")
+            acc < 0.9 -> tr("โน้ตยังหลุดบ่อย ฝึกช้าลงจนแม่น", "Notes still slip often; practise slower until accurate", "まだ音をよく外します。正確になるまでゆっくり練習")
+            timing < 0.8 -> tr("จังหวะยังไม่นิ่ง ฝึกกับเมโทรนอม", "Timing isn't steady yet; practise with the metronome", "リズムがまだ安定していません。メトロノームで練習")
+            acc >= 0.97 && timing >= 0.9 -> tr("แม่นและนิ่ง", "Accurate and steady", "正確で安定")
+            else -> tr("ดีแล้ว เก็บรายละเอียดอีกนิด", "Good; polish the details a little more", "よくできました。細部をもう少し")
         }
         return parts.joinToString(" · ") + "\n" + note
     }

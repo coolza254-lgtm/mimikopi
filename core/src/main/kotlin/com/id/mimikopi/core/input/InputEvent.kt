@@ -2,9 +2,12 @@ package com.id.mimikopi.core.input
 
 import kotlinx.serialization.Serializable
 
-/** Where an input event came from. Latency offsets are calibrated per kind. */
+/**
+ * Where an input event came from. Latency offsets are calibrated per kind. TOUCH also covers mouse clicks on the
+ * desktop program's on-screen keys; COMPUTER_KEYS is the desktop program's typing keyboard.
+ */
 @Serializable
-enum class InputSource { TOUCH, USB_MIDI, BLE_MIDI, SIMULATED }
+enum class InputSource { TOUCH, USB_MIDI, BLE_MIDI, SIMULATED, COMPUTER_KEYS }
 
 /**
  * The one internal event stream. On-screen keys, USB/Bluetooth MIDI and the debug simulator all

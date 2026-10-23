@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class DailyPlanTest {
-    private val full = PlanInput(30, "1.6/0", reviewDue = 5, ladder = true, sightLevel = 1, earLevel = "course", chords = true, check = "NOTES:2", weakest = null)
+    private val full = PlanInput(30, reviewDue = 5, ladder = true, sightLevel = 1, earLevel = "course", chords = true, check = "NOTES:2", weakest = null)
 
     @Test
     fun aPlanUsesTheTimeChosenInTheRightOrder() {
@@ -22,7 +22,9 @@ class DailyPlanTest {
             assertTrue(plan.all { it.minutes >= 2 })
         }
         val plan = DailyPlan.build(full)
-        assertEquals(BlockKind.WARMUP, plan.first().kind)
+        // Easy first: the review of notes already known, never a warm-up drill.
+        assertEquals(BlockKind.REVIEW, plan.first().kind)
+        assertTrue(plan.none { it.kind == BlockKind.WARMUP })
         assertEquals(BlockKind.SONG, plan.last().kind)
         assertEquals(plan.maxBy { it.minutes }.kind, BlockKind.LADDER)
     }
@@ -30,7 +32,7 @@ class DailyPlanTest {
     @Test
     fun shortDaysKeepTheEssentialsAndTheWeakestPart() {
         val plan = DailyPlan.build(full.copy(minutes = 10, weakest = SkillId.EAR))
-        assertEquals(setOf(BlockKind.WARMUP, BlockKind.CHECK, BlockKind.LADDER, BlockKind.EAR), plan.map { it.kind }.toSet())
+        assertEquals(setOf(BlockKind.CHECK, BlockKind.LADDER, BlockKind.EAR), plan.map { it.kind }.toSet())
     }
 
     @Test
@@ -41,21 +43,19 @@ class DailyPlanTest {
     }
 
     @Test
-    fun weakTechniqueGetsExtraMainPracticeInsteadOfAnIneffectiveFixedWarmupBoost() {
+    fun weakTechniqueGetsExtraMainPractice() {
         val normal = DailyPlan.build(full.copy(minutes = 45)).associate { it.kind to it.minutes }
         val focused = DailyPlan.build(full.copy(minutes = 45, weakest = SkillId.TECH)).associate { it.kind to it.minutes }
         assertTrue(focused.getValue(BlockKind.LADDER) > normal.getValue(BlockKind.LADDER))
-        assertEquals(normal[BlockKind.WARMUP], focused[BlockKind.WARMUP])
     }
 
     @Test
     fun everyCombinationOfAvailableActivitiesUsesExactlyTheChosenMinutes() {
-        for (mask in 0 until 128) for (skill in listOf(null) + SkillId.entries) for (minutes in DailyPlan.CHOICES) {
+        for (mask in 0 until 64) for (skill in listOf(null) + SkillId.entries) for (minutes in DailyPlan.CHOICES) {
             fun available(bit: Int) = mask and (1 shl bit) != 0
             val input = full.copy(
                 minutes = minutes, weakest = skill,
-                warmup = full.warmup.takeIf { available(0) },
-                check = full.check.takeIf { available(1) },
+                check = full.check.takeIf { available(1) || available(0) },
                 reviewDue = if (available(2)) 5 else 0,
                 ladder = available(3), sightLevel = 1.takeIf { available(4) },
                 earLevel = full.earLevel.takeIf { available(5) }, chords = available(6),
@@ -75,6 +75,11 @@ class DailyPlanTest {
         assertEquals(null, DailyPlan.parse(DailyPlan.encode(bad)))
         val valid = DailyPlan.Stored("2026-10-20", 30, DailyPlan.build(full))
         assertEquals(valid, DailyPlan.parse(DailyPlan.encode(valid)))
+        // A plan stored before the warm-up was dropped is made again.
+        val old = valid.copy(blocks = listOf(com.id.mimikopi.core.session.PlanBlock(BlockKind.WARMUP, 3, "1.6/0")) +
+            valid.blocks.map { b -> if (b.kind == BlockKind.LADDER) b.copy(minutes = b.minutes - 3) else b })
+        assertEquals(valid.minutes, old.blocks.sumOf { it.minutes })
+        assertEquals(null, DailyPlan.parse(DailyPlan.encode(old)))
     }
 
     @Test
@@ -90,6 +95,22 @@ class DailyPlanTest {
         val block = DailyPlan.build(full).first { it.kind == BlockKind.EAR }
         assertTrue(DailyPlan.isDone(block, PracticeLog.on(log, d), false, 0) == (180 >= block.minutes * 36))
     }
+    @Test
+    fun theTwoHandPartComesWhenSoloIsOpenAndNeedsNoCable() {
+        assertTrue(DailyPlan.build(full).none { it.kind == BlockKind.SOLO })
+        val plan = DailyPlan.build(full.copy(soloLevel = 2))
+        val solo = plan.first { it.kind == BlockKind.SOLO }
+        assertEquals("2", solo.target)
+        assertEquals(30, plan.sumOf { it.minutes })
+        assertTrue(!DailyPlan.needsCable(solo, ladderTimed = true))
+        val drill = com.id.mimikopi.core.session.PlanContent.solo(2)!!
+        assertEquals("WAIT", drill.mode)
+        assertTrue(!drill.judgesTiming && drill.pattern == 2 && drill.hand == "BOTH")
+        assertTrue(com.id.mimikopi.core.session.PlanContent.solo(99) == null)
+        // A weak solo skill gets its extra time in the two-hand part.
+        val weak = DailyPlan.build(full.copy(minutes = 45, soloLevel = 2, weakest = SkillId.SOLO)).first { it.kind == BlockKind.SOLO }.minutes
+        assertTrue(weak > DailyPlan.build(full.copy(minutes = 45, soloLevel = 2)).first { it.kind == BlockKind.SOLO }.minutes)
+    }
 }
 
 class PlanContentTest {
@@ -98,9 +119,7 @@ class PlanContentTest {
         .sortedWith(compareBy({ it.id.substringBefore('.').toInt() }, { it.id.substringAfter('.').toInt() }))
 
     @Test
-    fun aNewUserGetsAWarmUpAndNoReadingYet() {
-        val w = com.id.mimikopi.core.session.PlanContent.warmup(lessons, emptyMap())
-        assertTrue(w != null && w.contains('/'), "$w")
+    fun aNewUserGetsNoNewReadingYet() {
         assertEquals(null, com.id.mimikopi.core.session.PlanContent.sightLevel(lessons, emptyMap(), 0))
         assertEquals(3, com.id.mimikopi.core.session.PlanContent.sightLevel(lessons, emptyMap(), 3))
     }
@@ -110,4 +129,17 @@ class PlanContentTest {
         for (l in 0..7) assertTrue(com.id.mimikopi.core.session.PlanContent.chords(l).drill().problems().isEmpty())
         assertEquals("course", com.id.mimikopi.core.session.PlanContent.EAR_ROUND)
     }
+
+    @Test
+    fun onlyTimedPartsNeedACable() {
+        assertTrue(DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.CHECK, 3, "RHYTHM:1"), ladderTimed = false))
+        assertTrue(!DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.CHECK, 3, "NOTES:2"), ladderTimed = true))
+        assertTrue(!DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.CHECK, 3, "KEYS:1"), ladderTimed = true))
+        assertTrue(DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.LADDER, 8), ladderTimed = true))
+        assertTrue(!DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(BlockKind.LADDER, 8), ladderTimed = false))
+        for (k in listOf(BlockKind.REVIEW, BlockKind.SIGHT, BlockKind.CHORDS, BlockKind.EAR, BlockKind.SONG)) {
+            assertTrue(!DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(k, 3), ladderTimed = true), "$k")
+        }
+    }
+
 }

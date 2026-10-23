@@ -281,6 +281,9 @@ data class PlayResult(
     val errorsByHand: Map<Hand, Int>,
     /** Pitches that went wrong at least twice in this run, most frequent first. */
     val troubleNotes: List<SpelledPitch>,
+    /** Wrong keys that were a written note of that moment one or two octaves up (+) or down (−): right note, wrong place. */
+    val octaveUp: Int = 0,
+    val octaveDown: Int = 0,
 ) {
     fun count(result: NoteResult): Int = outcomes.values.count { it.result == result }
 
@@ -319,8 +322,13 @@ private class PlayResultBuilder(
         val trouble = if (setup.anyKey) emptyList() else bad.filter { outcomes[it.key]?.result != NoteResult.EARLY && outcomes[it.key]?.result != NoteResult.LATE }
             .groupBy { it.pitch }.filter { it.value.size >= 2 }
             .entries.sortedByDescending { it.value.size }.map { it.key }
+        // A wrong key an octave or two from a note written within a beat of it: the right note in the wrong place.
+        fun octaveShift(w: WrongPress): Int? = expected.filter { abs(it.beat - w.beat) <= 1.0 }
+            .firstNotNullOfOrNull { n -> (w.midi - n.midi).takeIf { it != 0 && it % 12 == 0 && abs(it) <= 24 } }
+        val shifts = if (setup.anyKey) emptyList() else wrongs.mapNotNull(::octaveShift)
         return PlayResult(setup, outcomes, wrongs, stumbles, summary, tempo, perMeasure, problems,
-            if (tempo && offsets.isNotEmpty()) offsets.average() else null, byHand, trouble)
+            if (tempo && offsets.isNotEmpty()) offsets.average() else null, byHand, trouble,
+            octaveUp = shifts.count { it > 0 }, octaveDown = shifts.count { it < 0 })
     }
 
     companion object {

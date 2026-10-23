@@ -1,51 +1,17 @@
 # ミミコピ (Mimi Kopi)
 
-A personal piano-learning app for Android: reading sheet music, rhythm, ear training and
-"copying songs by ear" (耳コピ). Single user, Thai UI, local data only.
+โปรแกรมฝึกเปียโนส่วนตัวบน **Windows (PC อย่างเดียว)**: อ่านโน้ต จังหวะ ฝึกหู คอร์ด เล่นตามโน้ต/โน้ตตก และแกะเพลงด้วยหู (耳コピ) ผู้ใช้คนเดียว ภาษาไทย (+ อังกฤษ/ญี่ปุ่น) ข้อมูลอยู่ในเครื่อง
 
-- Project spec: [`docs/PROMPT.md`](docs/PROMPT.md). Learning content spec (Thai, source of truth): [`docs/learning-system.md`](docs/learning-system.md)
-- Plan and decisions: [`docs/M0-PLAN.md`](docs/M0-PLAN.md), architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- Install on the phone and update: [`docs/INSTALL.md`](docs/INSTALL.md)
-- What is not done yet: [`docs/KNOWN-LIMITATIONS.md`](docs/KNOWN-LIMITATIONS.md). Licenses: [`CREDITS.md`](CREDITS.md)
+- ระบบมีอะไรบ้าง หลักการเรียน เงื่อนไข: [`docs/SYSTEM.md`](docs/SYSTEM.md)
+- สเปกการเรียนฉบับเต็ม: [`docs/learning-system.md`](docs/learning-system.md)
+- ส่งต่องาน / งานค้าง: [`docs/HANDOFF-CODEX.md`](docs/HANDOFF-CODEX.md)
+- โปรแกรม Windows: [`docs/DESKTOP.md`](docs/DESKTOP.md) · สถาปัตยกรรม: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · ใบอนุญาต: [`CREDITS.md`](CREDITS.md)
 
-## What the app does (v0.12)
+## โครงสร้าง
+- `core/` กฎและเนื้อหาที่ไม่ขึ้นกับจอ (Kotlin JVM)
+- `desktop/platform/` เก็บข้อมูล เสียง MIDI session · `desktop/app/` หน้าจอ Compose Desktop · `desktop/native/` เสียง C++
+- `content/` บทเรียนและแบบฝึก · `release-notes/` โน้ตรุ่นภาษาไทย
 
-- Lessons for stages 1-6 of `docs/learning-system.md` (50 lessons, Thai) with seeded drills, pass rules on two
-  different days, spaced repetition, a daily plan (15/30/45/60 min) and neutral progress statistics.
-- Sheet reader with play-along (wait / tempo modes, per-note judging, tempo ramp, problem spots, page view),
-  sight-reading generators L1-L8, chord and accompaniment drills, ear training E1-E9.
-- Sheet editor with MusicXML / MIDI import-export and PDF, a song library with Song Ladder and the 7-day
-  transcription pipeline, a searchable pop-theory library.
-- Sampled grand piano (Salamander) on Oboe, sample-accurate metronome, USB MIDI with latency calibration,
-  JSON backup, in-app update from the public releases repo. Final status: [`docs/FINAL-REPORT.md`](docs/FINAL-REPORT.md).
-
-## Build
-
-CI (GitHub Actions) is the build system. Every push runs `:core` tests, lint and a debug APK
-(downloadable from the run's artifacts). A `vX.Y.Z` tag builds the signed release and publishes it
-to the public [`mimikopi-releases`](https://github.com/coolza254-lgtm/mimikopi-releases) repo.
-
-Locally (needs JDK 17+ and the Android SDK with API 36):
-
-```sh
-./gradlew :core:test            # pure-JVM unit tests, no Android SDK needed
-./gradlew :app:assembleDebug    # debug APK (application id com.id.mimikopi.debug)
-```
-
-## Modules
-
-| Module | What |
-|---|---|
-| `core/` | Pure Kotlin/JVM: music theory, timing rules, spaced repetition, pass rules, data models. No Android imports. |
-| `app/` | Android app: Compose UI, Room database, diagnostics, platform services. |
-| `content/` | Editable lesson and config files (JSON/Markdown). |
-| `tools/` | Brand asset generators, later the sample-pack builder. |
-
-## Releasing
-
-1. Add Thai notes at `release-notes/vX.Y.Z.md`.
-2. Push the tag `vX.Y.Z`, or run the **Release** workflow manually with version `X.Y.Z` (it creates
-   the tag). versionCode = X·10000 + Y·100 + Z.
-3. The release workflow publishes `mimikopi-vX.Y.Z.apk` and `latest.json` to the releases repo.
-
-Required Actions secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `RELEASES_TOKEN`.
+## สร้างและปล่อย
+- ทดสอบ: `./gradlew -p desktop :core:test test` · รัน: `./gradlew -p desktop :app:run`
+- ปล่อย: เขียน `release-notes/vX.Y.Z.md` แล้วรัน workflow **Desktop** ใส่ `version` และติ๊ก `release`

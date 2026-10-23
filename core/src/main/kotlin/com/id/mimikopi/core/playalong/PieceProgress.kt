@@ -38,6 +38,10 @@ data class PieceProgress(
     val bestCleanBpm: Int? = null,
     /** Exact study-target evidence, preserved in the existing backup format. */
     val studyTargets: Map<String, StudyEvidence> = emptyMap(),
+    /** Review box (1-5) once passed ([SongReview]); 0 before. */
+    val reviewBox: Int = 0,
+    /** The day (ISO) of the last review run, or of passing. */
+    val lastReview: String? = null,
 )
 
 data class RunUpdate(val progress: PieceProgress, val newBpm: Int?, val passedToday: Boolean, val piecePassed: Boolean)
@@ -118,6 +122,7 @@ object PieceRules {
                 p = p.copy(cleanAtTargetStreak = 0, passDays = (p.passDays + day.toString()).distinct())
             }
         }
+        if (countsForPass) p = SongReview.afterCountingRun(progress, p, clean, day)
         return RunUpdate(p, newBpm, passedToday, isPassed(p, handKey))
     }
 }

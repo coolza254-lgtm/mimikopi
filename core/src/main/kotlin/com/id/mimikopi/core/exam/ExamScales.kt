@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.exam
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.music.Letter
 import com.id.mimikopi.core.music.SpelledPitch
 import com.id.mimikopi.core.score.PieceFile
@@ -8,13 +9,13 @@ import com.id.mimikopi.core.theory.PitchName
 
 /** What a scale requirement asks for. Minor scales are harmonic (one form up and down). */
 enum class ScaleKind(val title: String) {
-    MAJOR("สเกลเมเจอร์"),
-    MINOR("สเกลไมเนอร์ฮาร์โมนิก"),
-    ARP_MAJOR("อาร์เพจจิโอเมเจอร์"),
-    ARP_MINOR("อาร์เพจจิโอไมเนอร์"),
+    MAJOR(tr("สเกลเมเจอร์", "Major scale", "長音階")),
+    MINOR(tr("สเกลไมเนอร์ฮาร์โมนิก", "Harmonic minor scale", "和声的短音階")),
+    ARP_MAJOR(tr("อาร์เพจจิโอเมเจอร์", "Major arpeggio", "長三和音のアルペジオ")),
+    ARP_MINOR(tr("อาร์เพจจิโอไมเนอร์", "Minor arpeggio", "短三和音のアルペジオ")),
     /** C major, hands moving apart from an octave apart and back. */
-    CONTRARY("สเกลสวนทาง"),
-    CHROMATIC("สเกลโครมาติก"),
+    CONTRARY(tr("สเกลสวนทาง", "Contrary-motion scale", "反行スケール")),
+    CHROMATIC(tr("สเกลโครมาติก", "Chromatic scale", "半音階")),
 }
 
 /**
@@ -26,8 +27,8 @@ data class ScaleItem(val kind: ScaleKind, val tonic: String, val octaves: Int, v
 
     fun title(): String {
         val name = PitchName.parse(tonic)!!.display()
-        val hands = if (kind == ScaleKind.CONTRARY || together) "สองมือพร้อมกัน" else "ทีละมือ"
-        return "${kind.title} $name · $hands · $octaves อ็อกเทฟ"
+        val hands = if (kind == ScaleKind.CONTRARY || together) tr("สองมือพร้อมกัน", "Hands together", "両手同時") else tr("ทีละมือ", "Hands separately", "片手ずつ")
+        return tr("${kind.title} $name · $hands · $octaves อ็อกเทฟ", "${kind.title} $name · $hands · $octaves octaves", "${kind.title} $name · $hands · ${octaves}オクターブ")
     }
 
     companion object {

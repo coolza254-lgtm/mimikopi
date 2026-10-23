@@ -29,7 +29,16 @@ data class ScoreLayout(
     /** Text marks (finger numbers), drawn with the UI font; (x, y) is the centre of the text. */
     val labels: List<Label> = emptyList(),
     val ties: List<Tie> = emptyList(),
+    /**
+     * The staves drawn, top line to bottom line: both by default ([TOP_Y]..[BOTTOM_Y]); only the treble or only the
+     * bass when the other hand has nothing to play, so a one-hand exercise is twice as large and has no empty staff.
+     */
+    val top: Double = TOP_Y,
+    val bottom: Double = BOTTOM_Y,
 ) {
+    /** Height to draw, in staff spaces: the staves plus room above (fingers, ledger notes) and below. */
+    val spacesTall: Double get() = bottom - top + PAD_ABOVE + PAD_BELOW
+
     data class Label(val x: Double, val y: Double, val text: String, val eventId: Int, val kind: LabelKind = LabelKind.FINGER)
 
     enum class LabelKind { FINGER, CHORD, MARK }
@@ -93,6 +102,9 @@ data class ScoreLayout(
         const val BASS_Y = 10.0
         const val TOP_Y = TREBLE_Y - 2.0
         const val BOTTOM_Y = BASS_Y + 2.0
+        /** Room drawn above the top staff line and below the bottom one (staff spaces). */
+        const val PAD_ABOVE = 6.0
+        const val PAD_BELOW = 4.0
 
         const val NOTEHEAD_WIDTH = 1.18
         const val WHOLE_NOTEHEAD_WIDTH = 1.688
@@ -140,6 +152,30 @@ data class ScoreLayout(
 
         fun of(score: Score): ScoreLayout = Engraver(score).run()
 
+        /** The hands whose staff is drawn: those with something to play (both when neither has). */
+        fun staves(score: Score): Set<Hand> = score.events.filter { !it.isRest }.map { it.hand }.toSet().ifEmpty { Hand.entries.toSet() }
+
+        /**
+         * One line (system) of [score] spread to [width] staff spaces, as engraved music fills its lines: only the gaps
+         * between note columns grow, glyphs keep their size. A line already as wide as [width] is left as it is. Without
+         * [finalBar] the last bar ends with a plain bar line (a line that the piece continues after).
+         */
+        fun justified(score: Score, width: Double, finalBar: Boolean = true, timeSignature: Boolean = true, staves: Set<Hand> = staves(score)): ScoreLayout {
+            val natural = Engraver(score, 1.0, finalBar, timeSignature, staves).run()
+            val doubled = Engraver(score, 2.0, finalBar, timeSignature, staves).run().width
+            if (natural.width >= width || doubled <= natural.width) return natural
+            // Width is linear in the spacing factor: only the gaps scale.
+            val factor = 1.0 + (width - natural.width) / (doubled - natural.width)
+            return Engraver(score, factor, finalBar, timeSignature, staves).run()
+        }
+
+        /**
+         * A system (line) of a piece at its natural spacing; later lines show the clef and key but not the time
+         * signature again. [staves] are the whole piece's, so every line has the same staves.
+         */
+        fun line(score: Score, finalBar: Boolean, timeSignature: Boolean, staves: Set<Hand> = staves(score)): ScoreLayout =
+            Engraver(score, 1.0, finalBar, timeSignature, staves).run()
+
         /**
          * Measure ranges that fit systems (lines) of [width] staff spaces, for printing. Each system repeats the clef,
          * key and time signature prefix; a measure wider than a whole line gets a line of its own.
@@ -165,21 +201,40 @@ data class ScoreLayout(
     }
 }
 
-private class Engraver(private val score: Score) {
+/**
+ * [spacing] scales the gaps between note columns (1 = natural spacing); [finalBar] ends the last bar with the final
+ * double bar; [timeSignature] is shown at the start of the piece only, as in printed music.
+ */
+private class Engraver(
+    private val score: Score,
+    private val spacing: Double = 1.0,
+    private val finalBar: Boolean = true,
+    private val timeSignature: Boolean = true,
+    private val staves: Set<Hand> = ScoreLayout.staves(score),
+) {
+    private val top = if (Hand.RIGHT in staves) ScoreLayout.TOP_Y else ScoreLayout.BASS_Y - 2.0
+    private val bottom = if (Hand.LEFT in staves) ScoreLayout.BOTTOM_Y else ScoreLayout.TREBLE_Y + 2.0
     private val glyphs = mutableListOf<ScoreLayout.Glyph>()
     private val lines = mutableListOf<ScoreLayout.Line>()
     private val measures = mutableListOf<ScoreLayout.MeasureBox>()
     private val anchors = mutableListOf<Pair<Double, Double>>()
     private val labels = mutableListOf<ScoreLayout.Label>()
 
-    /** A beamed group's shared stem direction and (flat) beam line. */
-    private data class BeamInfo(val stemUp: Boolean, val beamY: Double)
+    /** A beamed group's shared stem direction; the beam line itself is set once the stems' x are known. */
+    private data class BeamInfo(val stemUp: Boolean)
     private val beamInfo = mutableMapOf<Int, BeamInfo>()
     private val stemXs = mutableMapOf<Int, Double>()
+    /** Index in [lines] of each beamed note's stem, which reaches the beam once it is drawn. */
+    private val stemLines = mutableMapOf<Int, Int>()
+    /** Each finger label (index in [labels]), its hand and the edge it was placed from, to line them up in a row. */
+    private val fingerRows = mutableListOf<Triple<Int, Hand, Double>>()
+    /** Whole-measure rests of the measure being engraved (indexes in [glyphs]), centred once its width is known. */
+    private val measureRests = mutableListOf<Int>()
 
     fun run(): ScoreLayout {
         var x = prefix()
-        val byMeasure = score.events.groupBy { it.measure }
+        // A hand without a staff (nothing to play) has only rests: they are not drawn.
+        val byMeasure = score.events.filter { it.hand in staves }.groupBy { it.measure }
         for (m in 0 until score.measures) {
             val start = score.measureStart(m)
             val end = start + score.measureBeats
@@ -188,8 +243,8 @@ private class Engraver(private val score: Score) {
             x += 1.2
             if (m in score.repeatStart) {
                 // Forward repeat: thick, thin, dots.
-                lines += ScoreLayout.Line(x0 + 0.25, ScoreLayout.TOP_Y, x0 + 0.25, ScoreLayout.BOTTOM_Y, ScoreLayout.THICK_BARLINE)
-                lines += ScoreLayout.Line(x0 + 0.85, ScoreLayout.TOP_Y, x0 + 0.85, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
+                lines += ScoreLayout.Line(x0 + 0.25, top, x0 + 0.25, bottom, ScoreLayout.THICK_BARLINE)
+                lines += ScoreLayout.Line(x0 + 0.85, top, x0 + 0.85, bottom, ScoreLayout.BARLINE_THICKNESS)
                 repeatDots(x0 + 1.15)
                 x += 1.6
             }
@@ -208,42 +263,51 @@ private class Engraver(private val score: Score) {
                 x += gapFor(next - onset)
                 if (group.any { it.duration % 1.0 != 0.0 && it.duration > 1.0 }) x += 0.4 // room for dots
             }
-            if (onsets.isEmpty()) x += 4.0
+            if (onsets.isEmpty()) x += 4.0 * spacing
             for (g in groups) drawBeams(g)
             val repeatEnd = m in score.repeatEnd
             if (repeatEnd) x += 1.6
             measures += ScoreLayout.MeasureBox(m, x0, x, start, end)
+            for (i in measureRests) glyphs[i] = glyphs[i].copy(x = (x0 + x) / 2 - WHOLE_REST_WIDTH / 2)
+            measureRests.clear()
             anchors += end to x
             val last = m == score.measures - 1
             if (repeatEnd) {
                 // Backward repeat: dots, thin, thick.
                 repeatDots(x - 1.6)
-                lines += ScoreLayout.Line(x - 0.85, ScoreLayout.TOP_Y, x - 0.85, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
-                lines += ScoreLayout.Line(x - 0.25, ScoreLayout.TOP_Y, x - 0.25, ScoreLayout.BOTTOM_Y, ScoreLayout.THICK_BARLINE)
-            } else if (last) {
-                lines += ScoreLayout.Line(x - 0.75, ScoreLayout.TOP_Y, x - 0.75, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
-                lines += ScoreLayout.Line(x - 0.25, ScoreLayout.TOP_Y, x - 0.25, ScoreLayout.BOTTOM_Y, ScoreLayout.THICK_BARLINE)
+                lines += ScoreLayout.Line(x - 0.85, top, x - 0.85, bottom, ScoreLayout.BARLINE_THICKNESS)
+                lines += ScoreLayout.Line(x - 0.25, top, x - 0.25, bottom, ScoreLayout.THICK_BARLINE)
+            } else if (last && finalBar) {
+                lines += ScoreLayout.Line(x - 0.75, top, x - 0.75, bottom, ScoreLayout.BARLINE_THICKNESS)
+                lines += ScoreLayout.Line(x - 0.25, top, x - 0.25, bottom, ScoreLayout.THICK_BARLINE)
             } else {
-                lines += ScoreLayout.Line(x, ScoreLayout.TOP_Y, x, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
+                lines += ScoreLayout.Line(x, top, x, bottom, ScoreLayout.BARLINE_THICKNESS)
             }
         }
-        val width = x
+        // Finger numbers in one straight row per hand (above the right hand, below the left), as in printed music.
         for (hand in Hand.entries) {
+            val row = fingerRows.filter { it.second == hand }
+            if (row.isEmpty()) continue
+            val edge = if (hand == Hand.RIGHT) row.minOf { it.third } else row.maxOf { it.third }
+            for ((i, _, from) in row) labels[i] = labels[i].copy(y = labels[i].y + (edge - from))
+        }
+        val width = x
+        for (hand in Hand.entries.filter { it in staves }) {
             for (k in -2..2) {
                 val y = ScoreLayout.staffY(hand) + k
                 lines += ScoreLayout.Line(0.0, y, width, y, ScoreLayout.STAFF_LINE_THICKNESS)
             }
         }
-        lines += ScoreLayout.Line(0.0, ScoreLayout.TOP_Y, 0.0, ScoreLayout.BOTTOM_Y, ScoreLayout.BARLINE_THICKNESS)
+        lines += ScoreLayout.Line(0.0, top, 0.0, bottom, ScoreLayout.BARLINE_THICKNESS)
         val finalAnchors = anchors.distinctBy { it.first }
         val partial = ScoreLayout(width, glyphs, lines, measures, finalAnchors, labels)
-        for (c in score.chordSymbols) labels += ScoreLayout.Label(partial.xAt(c.beat) + 0.6, ScoreLayout.TOP_Y - 4.8, c.text, -1, ScoreLayout.LabelKind.CHORD)
-        for ((m, text) in score.marks) measures.getOrNull(m)?.let { box -> labels += ScoreLayout.Label(box.x0 + 0.4, ScoreLayout.TOP_Y - 7.0, text, -1, ScoreLayout.LabelKind.MARK) }
-        return ScoreLayout(width, glyphs, lines, measures, finalAnchors, labels, ties())
+        for (c in score.chordSymbols) labels += ScoreLayout.Label(partial.xAt(c.beat) + 0.6, top - 4.8, c.text, -1, ScoreLayout.LabelKind.CHORD)
+        for ((m, text) in score.marks) measures.getOrNull(m)?.let { box -> labels += ScoreLayout.Label(box.x0 + 0.4, top - 7.0, text, -1, ScoreLayout.LabelKind.MARK) }
+        return ScoreLayout(width, glyphs, lines, measures, finalAnchors, labels, ties(), top, bottom)
     }
 
     private fun repeatDots(x: Double) {
-        for (hand in Hand.entries) for (pos in listOf(1, -1)) glyphs += ScoreLayout.Glyph(x, ScoreLayout.yOf(hand, pos), ScoreLayout.DOT)
+        for (hand in Hand.entries.filter { it in staves }) for (pos in listOf(1, -1)) glyphs += ScoreLayout.Glyph(x, ScoreLayout.yOf(hand, pos), ScoreLayout.DOT)
     }
 
     /** Ties from each tied note to the same pitch in the next event of its hand, curving away from the stem. */
@@ -271,7 +335,7 @@ private class Engraver(private val score: Score) {
 
     /** Clefs, key signature and time signature; returns the x where the first measure starts. */
     private fun prefix(): Double {
-        for (hand in Hand.entries) {
+        for (hand in Hand.entries.filter { it in staves }) {
             // SMuFL: the G clef's origin sits on the G line (position -2), the F clef's on the F line (+2).
             if (score.clefFor(hand) == com.id.mimikopi.core.notation.Clef.TREBLE) glyphs += ScoreLayout.Glyph(0.8, ScoreLayout.yOf(hand, -2), ScoreLayout.G_CLEF)
             else glyphs += ScoreLayout.Glyph(0.8, ScoreLayout.yOf(hand, 2), ScoreLayout.F_CLEF)
@@ -279,13 +343,14 @@ private class Engraver(private val score: Score) {
         var x = 4.2
         val keyGlyph = if (score.keyFifths > 0) ScoreLayout.SHARP else ScoreLayout.FLAT
         val count = abs(score.keyFifths)
-        for (hand in Hand.entries) {
+        for (hand in Hand.entries.filter { it in staves }) {
             KeySignature.positions(score.keyFifths, score.clefFor(hand)).forEachIndexed { i, pos ->
                 glyphs += ScoreLayout.Glyph(x + i * 1.0, ScoreLayout.yOf(hand, pos), keyGlyph)
             }
         }
         x += count * 1.0 + if (count > 0) 0.6 else 0.0
-        for (hand in Hand.entries) {
+        if (!timeSignature) return x + 0.6
+        for (hand in Hand.entries.filter { it in staves }) {
             digits(score.beatsPerMeasure, x, ScoreLayout.yOf(hand, 2))
             digits(score.beatUnit, x, ScoreLayout.yOf(hand, -2))
         }
@@ -300,7 +365,7 @@ private class Engraver(private val score: Score) {
     }
 
     /** Horizontal room after an onset, growing with the time until the next onset (sub-linear, like engravers do). */
-    private fun gapFor(beats: Double): Double = 1.6 + 2.4 * sqrt(beats)
+    private fun gapFor(beats: Double): Double = spacing * (1.6 + 2.4 * sqrt(beats))
 
     private fun shownAccidental(
         carry: MutableMap<Hand, MutableMap<Pair<Letter, Int>, Int>>,
@@ -384,7 +449,7 @@ private class Engraver(private val score: Score) {
             val mid = ScoreLayout.staffY(hand)
             if (stemUp && y2 > mid) y2 = mid
             if (!stemUp && y2 < mid) y2 = mid
-            if (beam != null) y2 = beam.beamY
+            if (beam != null) stemLines[e.id] = lines.size
             lines += ScoreLayout.Line(stemX, y1, stemX, y2, ScoreLayout.STEM_THICKNESS, e.id)
             stemXs[e.id] = stemX
             if (e.duration < 1.0 && beam == null) {
@@ -399,10 +464,16 @@ private class Engraver(private val score: Score) {
             val cx = x + ScoreLayout.NOTEHEAD_WIDTH / 2
             if (hand == Hand.RIGHT) {
                 val top = minOf(ScoreLayout.TOP_Y, ScoreLayout.yOf(hand, positions.max()), if (stemUp) ScoreLayout.yOf(hand, positions.max()) - ScoreLayout.STEM_LENGTH else ScoreLayout.TOP_Y)
-                e.fingers.indices.sortedBy { positions[it] }.forEachIndexed { i, k -> labels += ScoreLayout.Label(cx, top - 1.3 - i * 1.3, e.fingers[k].toString(), e.id) }
+                e.fingers.indices.sortedBy { positions[it] }.forEachIndexed { i, k ->
+                    fingerRows += Triple(labels.size, hand, top)
+                    labels += ScoreLayout.Label(cx, top - 1.3 - i * 1.3, e.fingers[k].toString(), e.id)
+                }
             } else {
                 val bottom = maxOf(ScoreLayout.BOTTOM_Y, ScoreLayout.yOf(hand, positions.min()), if (!stemUp) ScoreLayout.yOf(hand, positions.min()) + ScoreLayout.STEM_LENGTH else ScoreLayout.BOTTOM_Y)
-                e.fingers.indices.sortedByDescending { positions[it] }.forEachIndexed { i, k -> labels += ScoreLayout.Label(cx, bottom + 1.3 + i * 1.3, e.fingers[k].toString(), e.id) }
+                e.fingers.indices.sortedByDescending { positions[it] }.forEachIndexed { i, k ->
+                    fingerRows += Triple(labels.size, hand, bottom)
+                    labels += ScoreLayout.Label(cx, bottom + 1.3 + i * 1.3, e.fingers[k].toString(), e.id)
+                }
             }
         }
     }
@@ -416,10 +487,16 @@ private class Engraver(private val score: Score) {
             e.duration >= 0.5 -> ScoreLayout.REST_EIGHTH to 0
             else -> ScoreLayout.REST_16TH to 0
         }
+        if (wholeMeasureRest) measureRests += glyphs.size
         glyphs += ScoreLayout.Glyph(x, ScoreLayout.yOf(hand, pos), glyph, e.id)
         if (!wholeMeasureRest && isDotted(e.duration)) {
             glyphs += ScoreLayout.Glyph(x + 1.5, ScoreLayout.yOf(hand, 1), ScoreLayout.DOT, e.id)
         }
+    }
+
+    private companion object {
+        /** Bravura's whole rest is about 1.13 staff spaces wide. */
+        const val WHOLE_REST_WIDTH = 1.13
     }
 
     private fun isDotted(duration: Double): Boolean = duration == 3.0 || duration == 1.5 || duration == 0.75
@@ -453,24 +530,42 @@ private class Engraver(private val score: Score) {
 
     private fun beamFor(group: List<ScoreEvent>): BeamInfo {
         val clef = score.clefFor(group.first().hand)
-        val hand = group.first().hand
         val all = group.flatMap { e -> e.pitches.map { Staff.position(it, clef) } }
-        val up = (all.max() + all.min()) < 0
-        val y = if (up) {
-            group.minOf { e -> ScoreLayout.yOf(hand, e.pitches.maxOf { Staff.position(it, clef) }) } - ScoreLayout.STEM_LENGTH
-        } else {
-            group.maxOf { e -> ScoreLayout.yOf(hand, e.pitches.minOf { Staff.position(it, clef) }) } + ScoreLayout.STEM_LENGTH
-        }
-        return BeamInfo(up, y)
+        return BeamInfo((all.max() + all.min()) < 0)
     }
 
+    /**
+     * The beam follows the melody as engravers do: sloped from the first to the last note (at most one staff space,
+     * flat when an inner note sticks out past both ends, i.e. the line turns), then moved off the noteheads until the
+     * shortest stem is a full stem length. Each stem of the group is then lengthened to meet it.
+     */
     private fun drawBeams(group: List<ScoreEvent>) {
         val info = beamInfo[group.first().id] ?: return
         val xs = group.map { stemXs[it.id] ?: return }
-        val toward = if (info.stemUp) 1.0 else -1.0 // from the beam line toward the noteheads
+        val hand = group.first().hand
+        val clef = score.clefFor(hand)
+        // The note of each chord nearest the beam: its stem must be a full stem length.
+        val near = group.map { e -> e.pitches.map { Staff.position(it, clef) }.let { p -> ScoreLayout.yOf(hand, if (info.stemUp) p.max() else p.min()) } }
+        val span = (xs.last() - xs.first()).coerceAtLeast(1e-6)
+        val ends = near.last() - near.first()
+        val inner = near.subList(1, near.size - 1)
+        val turns = inner.any { y -> if (info.stemUp) y < minOf(near.first(), near.last()) else y > maxOf(near.first(), near.last()) }
+        val rise = if (turns) 0.0 else (ends / 2).coerceIn(-1.0, 1.0)
+        val slope = rise / span
+        val dir = if (info.stemUp) -1.0 else 1.0
+        // Place the line so every stem is at least a stem length; then stems far from the staff still reach the middle line.
+        var offset = group.indices.maxOf { i -> dir * (near[i] - slope * (xs[i] - xs.first())) } + ScoreLayout.STEM_LENGTH
+        val mid = ScoreLayout.staffY(hand)
+        val atMiddle = group.indices.maxOf { i -> dir * (mid - slope * (xs[i] - xs.first())) }
+        if (offset < atMiddle) offset = atMiddle
+        fun beamY(x: Double) = dir * offset + slope * (x - xs.first())
+        for ((i, e) in group.withIndex()) stemLines[e.id]?.let { idx -> lines[idx] = lines[idx].copy(y2 = beamY(xs[i])) }
+        val toward = -dir // from the beam line toward the noteheads
         fun beam(x1: Double, x2: Double, level: Int) {
-            val y = info.beamY + toward * (ScoreLayout.BEAM_THICKNESS / 2 + level * ScoreLayout.BEAM_SPACING)
-            lines += ScoreLayout.Line(x1 - ScoreLayout.STEM_THICKNESS / 2, y, x2 + ScoreLayout.STEM_THICKNESS / 2, y, ScoreLayout.BEAM_THICKNESS, group.first().id)
+            val shift = toward * (ScoreLayout.BEAM_THICKNESS / 2 + level * ScoreLayout.BEAM_SPACING)
+            val a = x1 - ScoreLayout.STEM_THICKNESS / 2
+            val b = x2 + ScoreLayout.STEM_THICKNESS / 2
+            lines += ScoreLayout.Line(a, beamY(a) + shift, b, beamY(b) + shift, ScoreLayout.BEAM_THICKNESS, group.first().id)
         }
         beam(xs.first(), xs.last(), 0)
         val sixteenth = group.map { it.duration <= 0.25 + 1e-9 }

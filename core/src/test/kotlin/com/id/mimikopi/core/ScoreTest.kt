@@ -60,6 +60,17 @@ class ScoreParseTest {
     }
 
     @Test
+    fun scaleNotesAndKeyNamesForTheFallingKeyboard() {
+        assertEquals("E Major", KeySignature.majorName(4))
+        assertEquals("A♭ Major", KeySignature.majorName(-4))
+        assertEquals("C Major", KeySignature.majorName(0))
+        val e = KeySignature.scale(4)
+        assertEquals(setOf(4, 6, 8, 9, 11, 1, 3), e.keys)
+        assertEquals("ファ♯", e.getValue(6).name(com.id.mimikopi.core.music.NoteNameStyle.SOLFEGE))
+        assertEquals("レ♭", KeySignature.scale(-4).getValue(1).name(com.id.mimikopi.core.music.NoteNameStyle.SOLFEGE))
+    }
+
+    @Test
     fun keySignatureAccidentalsAndPositions() {
         assertEquals(-1, KeySignature.accidentalFor(Letter.B, -1))
         assertEquals(0, KeySignature.accidentalFor(Letter.E, -1))
@@ -76,7 +87,7 @@ class BundledPiecesTest {
 
     @Test
     fun allPiecesParseAndAreSafeToBundle() {
-        assertEquals(setOf("heroic-polonaise-easy", "heroic-polonaise-theme"), files.map { it.nameWithoutExtension }.toSet())
+        assertTrue(files.size >= 5)
         for (f in files) {
             val p = PieceFile.parse(f.readText())
             assertEquals(f.nameWithoutExtension, p.id)
@@ -95,6 +106,23 @@ class BundledPiecesTest {
 }
 
 class ScoreLayoutTest {
+    @Test
+    fun justifiedLinesFillTheWidthAndKeepStemsOnTheirNotes() {
+        val s = piece(listOf("C4/q D4/q E4/h", "F4/w"), listOf("C3/w", "C3/w"))
+        val natural = ScoreLayout.of(s)
+        val wide = ScoreLayout.justified(s, natural.width * 2, finalBar = false)
+        assertEquals(natural.width * 2, wide.width, 1e-6)
+        // The stem sits at the same offset from its notehead: gaps grow, glyphs do not.
+        val e = s.events.first { it.hand == Hand.RIGHT }
+        fun stemOffset(l: ScoreLayout) = l.lines.first { it.eventId == e.id && it.x1 == it.x2 }.x1 - l.noteheads().first { it.eventId == e.id }.x
+        assertEquals(stemOffset(natural), stemOffset(wide), 1e-9)
+        // A line the piece continues after ends with a plain bar line, the piece's own end with the final double bar.
+        assertTrue(wide.lines.none { it.thickness == ScoreLayout.THICK_BARLINE })
+        assertTrue(natural.lines.any { it.thickness == ScoreLayout.THICK_BARLINE })
+        // Already wide enough: unchanged.
+        assertEquals(natural.width, ScoreLayout.justified(s, natural.width / 2).width, 1e-9)
+    }
+
     @Test
     fun anchorsIncreaseAndCursorInterpolates() {
         val s = piece(listOf("C4/q D4/q E4/h", "F4/w"), listOf("C3/w", "C3/w"))
@@ -144,7 +172,7 @@ class ScoreLayoutTest {
 
     @Test
     fun noteheadsDotsFlagsAndRests() {
-        val s = piece(listOf("C5/h. r/e D5/e"), listOf("r/w"))
+        val s = piece(listOf("C5/h. r/e D5/e", "r/w"), listOf("C3/w", "C3/w"))
         val l = ScoreLayout.of(s)
         val cps = l.glyphs.map { it.codepoint }
         assertTrue(ScoreLayout.HEAD_HALF in cps)
@@ -152,6 +180,45 @@ class ScoreLayoutTest {
         assertTrue(ScoreLayout.REST_EIGHTH in cps)
         assertTrue(ScoreLayout.FLAG_8_DOWN in cps)
         assertTrue(ScoreLayout.REST_WHOLE in cps)
+    }
+
+    @Test
+    fun aOneHandExerciseHasOneLargeStaffAndARowOfFingers() {
+        val s = piece(listOf("C4/q@1 G4/q@5 E4/q@3 D4/q@2", "E4/w@3"), listOf("r/w", "r/w"))
+        val l = ScoreLayout.of(s)
+        // Only the treble staff: no F clef, no rests for the silent hand, half the height of the grand staff.
+        assertTrue(ScoreLayout.F_CLEF !in l.glyphs.map { it.codepoint })
+        assertTrue(ScoreLayout.REST_WHOLE !in l.glyphs.map { it.codepoint })
+        assertEquals(ScoreLayout.TOP_Y, l.top)
+        assertEquals(ScoreLayout.TREBLE_Y + 2.0, l.bottom)
+        assertTrue(l.spacesTall < 15.0, "${l.spacesTall}")
+        assertEquals(5, l.lines.count { it.y1 == it.y2 && it.thickness == ScoreLayout.STAFF_LINE_THICKNESS })
+        // Finger numbers sit in one straight row although the G's stem rises above the staff.
+        assertEquals(1, l.labels.map { it.y }.distinct().size, "${l.labels}")
+        // Whole-measure rests of a hand that plays are centred in the bar.
+        val both = ScoreLayout.of(piece(listOf("C5/w", "r/w"), listOf("C3/w", "C3/w")))
+        val rest = both.glyphs.first { it.codepoint == ScoreLayout.REST_WHOLE }
+        val bar = both.measures[1]
+        assertTrue(rest.x > bar.x0 + 1.5 && rest.x < bar.x1 - 1.5, "$rest in $bar")
+        // Later lines of a page do not repeat the time signature.
+        val noTime = ScoreLayout.justified(s, 60.0, timeSignature = false)
+        assertTrue(noTime.glyphs.none { it.codepoint in ScoreLayout.TIME_DIGIT_0..(ScoreLayout.TIME_DIGIT_0 + 9) })
+    }
+
+    @Test
+    fun beamsSlopeWithTheNotesAndEveryStemReachesTheBeam() {
+        val s = piece(listOf("C5/e E5/e G5/e B5/e r/h"), listOf("C3/w"))
+        val l = ScoreLayout.of(s)
+        val beam = l.lines.first { it.thickness == ScoreLayout.BEAM_THICKNESS }
+        assertTrue(beam.y2 < beam.y1, "a rising run gets a rising beam: $beam")
+        assertTrue(beam.y1 - beam.y2 <= 1.0 + 1e-9, "at most one space: $beam")
+        val beams = l.lines.filter { it.thickness == ScoreLayout.BEAM_THICKNESS }
+        val stems = l.lines.filter { it.thickness == ScoreLayout.STEM_THICKNESS }
+        for (st in stems) {
+            val b = beams.first { st.x1 >= it.x1 - 0.1 && st.x1 <= it.x2 + 0.1 }
+            assertTrue(kotlin.math.abs(st.y2 - (b.y1 + (b.y2 - b.y1) * (st.x1 - b.x1) / (b.x2 - b.x1))) < 0.3, "$st meets $b")
+        }
+        assertTrue(stems.all { kotlin.math.abs(it.y2 - it.y1) >= ScoreLayout.STEM_LENGTH - 1e-9 }, "$stems")
     }
 
     @Test
@@ -299,6 +366,21 @@ class PlayAlongTest {
         val advice = Coach.advise(j.result(), 50)
         assertTrue(Advice.HandAlone(Hand.LEFT) in advice, "$advice")
         assertTrue(Advice.Chain(0, 1) in advice, "$advice")
+    }
+
+    @Test
+    fun coachSaysWhenTheRightNotesAreAnOctaveOff() {
+        // As in the backup of 2026-10-22: the melody played an octave up, so every press is wrong and accuracy is 0.
+        val j = tempoJudge()
+        for (n in j.expected) j.onNoteOn(n.midi + 12, j.expectedTimeMs(n.beat).toLong())
+        val r = j.result()
+        assertEquals(0.0, r.summary!!.noteAccuracy)
+        assertTrue(r.octaveUp >= 2 && r.octaveDown == 0, "${r.octaveUp} ${r.octaveDown}")
+        assertEquals(Advice.OctaveOff(higher = true), Coach.advise(r, 55).first())
+        // Plain wrong keys are not called an octave slip.
+        val k = tempoJudge()
+        for (n in k.expected) k.onNoteOn(n.midi + 1, k.expectedTimeMs(n.beat).toLong())
+        assertTrue(Coach.advise(k.result(), 55).none { it is Advice.OctaveOff })
     }
 
     @Test

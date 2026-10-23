@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.ear
 
+import com.id.mimikopi.core.i18n.tr
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
@@ -85,7 +86,7 @@ object FunctionalEar {
         (if (Math.floorMod(tonic, 12) in FLAT_KEYS) LETTERS_FLAT else LETTERS_SHARP)[Math.floorMod(pitchClass, 12)]
 
     /** "C เมเจอร์", "A ไมเนอร์". */
-    fun keyName(tonic: Int, scale: EarScale): String = letter(tonic, tonic) + if (scale == EarScale.MAJOR) " เมเจอร์" else " ไมเนอร์"
+    fun keyName(tonic: Int, scale: EarScale): String = letter(tonic, tonic) + if (scale == EarScale.MAJOR) tr(" เมเจอร์", " major", " メジャー") else tr(" ไมเนอร์", " minor", " マイナー")
 
     /** MIDI note of the tonic of the middle octave: kept between F#3 and F4, so every key sits in the same register. */
     fun base(tonic: Int): Int = Math.floorMod(tonic, 12).let { pc -> if (pc <= 5) 60 + pc else 48 + pc }
@@ -104,7 +105,7 @@ object FunctionalEar {
     fun custom(id: String, tonic: Int?, scale: EarScale, octaves: Int, chromatic: Boolean, degrees: List<Int>, questions: Int, cadence: CadenceMode): ToneLevel {
         val allowed = if (chromatic) degrees else degrees.filter { it in scaleTones(scale) }
         val span = span(octaves)
-        val keyLabel = tonic?.let { keyName(it, scale) } ?: ("ทุกคีย์ " + if (scale == EarScale.MAJOR) "เมเจอร์" else "ไมเนอร์")
+        val keyLabel = tonic?.let { keyName(it, scale) } ?: (tr("ทุกคีย์ ", "All keys ", "全キー ") + if (scale == EarScale.MAJOR) tr("เมเจอร์", "major", "メジャー") else tr("ไมเนอร์", "minor", "マイナー"))
         return ToneLevel(
             id, keyLabel, tonic, scale, range(span.first, span.last, allowed), questions.coerceIn(5, 100), cadence,
             octaves = octaves, chromatic = chromatic, degrees = allowed.sorted(),
@@ -121,21 +122,21 @@ object FunctionalEar {
         intro(4, "シ ド", listOf(11, 12)),
         intro(5, "ラ シ ド", listOf(9, 11, 12)),
         intro(6, "ソ ラ シ ド", listOf(7, 9, 11, 12)),
-        intro(7, "ทั้งอ็อกเทฟ", range(0, 12, MAJOR)),
-        intro(8, "อีกอ็อกเทฟ (ต่ำลง)", range(-12, 0, MAJOR)),
-        intro(9, "สองอ็อกเทฟรวมกัน", range(-12, 12, MAJOR)),
+        intro(7, tr("ทั้งอ็อกเทฟ", "Whole octave", "1オクターブ全体"), range(0, 12, MAJOR)),
+        intro(8, tr("อีกอ็อกเทฟ (ต่ำลง)", "Another octave (lower)", "もう1オクターブ（低い方）"), range(-12, 0, MAJOR)),
+        intro(9, tr("สองอ็อกเทฟรวมกัน", "Two octaves together", "2オクターブ合わせて"), range(-12, 12, MAJOR)),
     )
 
     /** The main levels: C major in one, two and three octaves; any major key; minor; with the notes in between. */
     val basic: List<ToneLevel> = listOf(
-        ToneLevel("c-major-1", "C เมเจอร์", 0, EarScale.MAJOR, range(0, 12, MAJOR), octaves = 1),
-        ToneLevel("c-major-2", "C เมเจอร์", 0, EarScale.MAJOR, range(-12, 12, MAJOR), octaves = 2),
-        ToneLevel("c-major-3", "C เมเจอร์", 0, EarScale.MAJOR, range(-12, 24, MAJOR), octaves = 3),
-        ToneLevel("any-major-1", "ทุกคีย์ เมเจอร์", null, EarScale.MAJOR, range(0, 12, MAJOR), octaves = 1),
-        ToneLevel("any-major-2", "ทุกคีย์ เมเจอร์", null, EarScale.MAJOR, range(-12, 12, MAJOR), octaves = 2),
-        ToneLevel("a-minor-1", "A ไมเนอร์", 9, EarScale.MINOR, range(0, 12, MINOR), octaves = 1),
-        ToneLevel("any-minor-1", "ทุกคีย์ ไมเนอร์", null, EarScale.MINOR, range(0, 12, MINOR), octaves = 1),
-        ToneLevel("c-chromatic-1", "C เมเจอร์ + โน้ตครึ่งเสียง", 0, EarScale.MAJOR, (0..12).toList(), octaves = 1, chromatic = true, degrees = (0..11).toList()),
+        ToneLevel("c-major-1", tr("C เมเจอร์", "C major", "ハ長調"), 0, EarScale.MAJOR, range(0, 12, MAJOR), octaves = 1),
+        ToneLevel("c-major-2", tr("C เมเจอร์", "C major", "ハ長調"), 0, EarScale.MAJOR, range(-12, 12, MAJOR), octaves = 2),
+        ToneLevel("c-major-3", tr("C เมเจอร์", "C major", "ハ長調"), 0, EarScale.MAJOR, range(-12, 24, MAJOR), octaves = 3),
+        ToneLevel("any-major-1", tr("ทุกคีย์ เมเจอร์", "All keys, major", "全キー メジャー"), null, EarScale.MAJOR, range(0, 12, MAJOR), octaves = 1),
+        ToneLevel("any-major-2", tr("ทุกคีย์ เมเจอร์", "All keys, major", "全キー メジャー"), null, EarScale.MAJOR, range(-12, 12, MAJOR), octaves = 2),
+        ToneLevel("a-minor-1", tr("A ไมเนอร์", "A minor", "イ短調"), 9, EarScale.MINOR, range(0, 12, MINOR), octaves = 1),
+        ToneLevel("any-minor-1", tr("ทุกคีย์ ไมเนอร์", "All keys, minor", "全キー マイナー"), null, EarScale.MINOR, range(0, 12, MINOR), octaves = 1),
+        ToneLevel("c-chromatic-1", tr("C เมเจอร์ + โน้ตครึ่งเสียง", "C major + semitones", "ハ長調＋半音"), 0, EarScale.MAJOR, (0..12).toList(), octaves = 1, chromatic = true, degrees = (0..11).toList()),
     )
 
     /**

@@ -194,8 +194,13 @@ fun SettingsScreen() {
         }
         GroupFooter("Space เริ่ม/หยุด · Esc หยุดหรือกลับ · F11 เต็มจอ · ขณะพิมพ์ข้อความ แป้นพิมพ์ไม่เล่นโน้ต")
 
-        GroupHeader("หน้าตา")
+        GroupHeader(com.id.mimikopi.core.i18n.tr("หน้าตา", "Display", "表示"))
         Group {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(com.id.mimikopi.core.i18n.tr("ภาษา", "Language", "言語"), modifier = Modifier.width(140.dp))
+                Segmented(com.id.mimikopi.core.i18n.Lang.entries.toList(), com.id.mimikopi.core.i18n.L10n.lang, { it.label },
+                    { com.id.mimikopi.desktop.ui.LangState.set(s, it) }, Modifier.weight(1f))
+            }
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("สี", modifier = Modifier.width(140.dp))
                 Segmented(listOf("LIGHT", "DARK", "SYSTEM"), Look.mode, { when (it) { "DARK" -> "มืด"; "LIGHT" -> "สว่าง"; else -> "ตามระบบ" } },

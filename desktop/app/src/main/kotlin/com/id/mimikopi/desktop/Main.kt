@@ -42,6 +42,7 @@ fun main() {
     val started = runCatching {
         val db = Database.open(dirs.database)
         Services(dirs, db, Piano(), APP_VERSION).also { s ->
+            com.id.mimikopi.core.i18n.L10n.lang = com.id.mimikopi.core.i18n.Lang.parse(s.db.get(com.id.mimikopi.core.i18n.L10n.KEY))
             // One automatic copy a day, before anything changes.
             runCatching { s.transfer.dailyBackupIfDue() }
             // Bring in the phone's progress (when sync is set up), without holding the window.

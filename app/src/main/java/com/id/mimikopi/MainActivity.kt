@@ -66,6 +66,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 
 class MainActivity : ComponentActivity() {
+    /** Android's own texts (strings.xml) follow the app's language too, not only the phone's. */
+    override fun attachBaseContext(base: android.content.Context) {
+        val locale = java.util.Locale.forLanguageTag(MimikopiApp.savedLang(base).code)
+        val config = android.content.res.Configuration(base.resources.configuration).apply { setLocale(locale) }
+        super.attachBaseContext(base.createConfigurationContext(config))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Black UI: light status and navigation bar icons on a transparent bar.

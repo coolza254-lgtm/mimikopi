@@ -1,6 +1,7 @@
 package com.id.mimikopi.ui.settings
 
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import com.id.mimikopi.ui.components.midiConnected
 import com.id.mimikopi.ui.components.Segmented
 import com.id.mimikopi.ui.components.SecondaryButton
@@ -123,10 +124,18 @@ fun SettingsScreen(
             }
         }
 
-        Section("การแสดงผล") {
+        Section(com.id.mimikopi.core.i18n.tr("การแสดงผล", "Display", "表示")) {
             PageCard {
                 val app = context.applicationContext as com.id.mimikopi.MimikopiApp
                 val mode by app.themeMode.collectAsStateWithLifecycle()
+                Label(com.id.mimikopi.core.i18n.tr("ภาษา", "Language", "言語"))
+                Segmented(com.id.mimikopi.core.i18n.Lang.entries.toList(), com.id.mimikopi.core.i18n.L10n.lang, { it.label }, { lang ->
+                    if (lang != com.id.mimikopi.core.i18n.L10n.lang) {
+                        com.id.mimikopi.MimikopiApp.saveLang(context, lang)
+                        (context as? android.app.Activity)?.recreate()
+                    }
+                })
+                Spacer(Modifier.height(20.dp))
                 Label(stringResource(R.string.theme_title))
                 Segmented(
                     listOf(com.id.mimikopi.ui.theme.ThemeMode.LIGHT, com.id.mimikopi.ui.theme.ThemeMode.DARK, com.id.mimikopi.ui.theme.ThemeMode.SYSTEM),

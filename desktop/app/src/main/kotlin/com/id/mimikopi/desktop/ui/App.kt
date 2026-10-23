@@ -64,6 +64,17 @@ object Look {
     const val PASTEL_KEY = "ui.theme.pastel"
 }
 
+/** The language in use, as Compose state: changing it rebuilds every screen (core's L10n holds the language itself). */
+object LangState {
+    var version by mutableStateOf(0)
+
+    fun set(services: com.id.mimikopi.desktop.Services, lang: com.id.mimikopi.core.i18n.Lang) {
+        services.db.put(com.id.mimikopi.core.i18n.L10n.KEY, lang.code)
+        com.id.mimikopi.core.i18n.L10n.lang = lang
+        version++
+    }
+}
+
 @Composable
 fun App(ctx: AppContext) {
     val s = ctx.services
@@ -80,6 +91,8 @@ fun App(ctx: AppContext) {
         else -> false
     }
     MimikopiTheme(dark) {
+        // A new language rebuilds every screen, so each text is read again in it.
+        key(LangState.version) {
         CompositionLocalProvider(LocalApp provides ctx) {
             val screen = ctx.nav.current
             // Music pages use the whole window; the rail would only take room from the notes.
@@ -112,6 +125,7 @@ fun App(ctx: AppContext) {
                     }
                 }
             }
+        }
         }
     }
 }

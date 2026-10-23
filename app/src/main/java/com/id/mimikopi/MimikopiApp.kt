@@ -47,8 +47,18 @@ class MimikopiApp : Application() {
     /** The chosen look (the light pastel one by default until the stored choice is read). */
     val themeMode = kotlinx.coroutines.flow.MutableStateFlow(com.id.mimikopi.ui.theme.ThemeMode.LIGHT)
 
-    private companion object {
-        const val PASTEL_KEY = "ui.theme.pastel"
+    companion object {
+        private const val PASTEL_KEY = "ui.theme.pastel"
+
+        fun savedLang(context: android.content.Context): com.id.mimikopi.core.i18n.Lang = com.id.mimikopi.core.i18n.Lang.parse(
+            context.getSharedPreferences("ui", android.content.Context.MODE_PRIVATE).getString(com.id.mimikopi.core.i18n.L10n.KEY, null),
+        )
+
+        /** Saves the language and sets it for the whole app; the caller recreates the screen. */
+        fun saveLang(context: android.content.Context, lang: com.id.mimikopi.core.i18n.Lang) {
+            context.getSharedPreferences("ui", android.content.Context.MODE_PRIVATE).edit().putString(com.id.mimikopi.core.i18n.L10n.KEY, lang.code).apply()
+            com.id.mimikopi.core.i18n.L10n.lang = lang
+        }
     }
 
     fun setThemeMode(mode: com.id.mimikopi.ui.theme.ThemeMode) {
@@ -61,6 +71,8 @@ class MimikopiApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // The language first, before any screen reads a text (kept in plain preferences so it is there synchronously).
+        com.id.mimikopi.core.i18n.L10n.lang = savedLang(this)
         com.id.mimikopi.diag.CrashLog.install(this)
         // MIDI devices are listened for app-wide, so a connected piano works on every practice screen.
         midiInput.start()

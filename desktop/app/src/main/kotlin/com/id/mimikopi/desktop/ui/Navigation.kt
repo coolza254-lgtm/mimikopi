@@ -30,6 +30,9 @@ sealed interface Screen {
     /** Private songs, opened on [song] and [hand] (a RecallHand name) when given. */
     data class Recall(val song: String? = null, val hand: String? = null) : Screen
     data object Metronome : Screen
+    /** Bought sheets entered from the piano, and one of them being recorded. */
+    data object Scores : Screen
+    data class Record(val id: String) : Screen
     data object Chords : Screen
     data class Skill(val id: com.id.mimikopi.core.progress.SkillId) : Screen
     data class Ear(val args: com.id.mimikopi.desktop.session.EarArgs) : Screen

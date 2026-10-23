@@ -47,7 +47,8 @@ class Services(
 ) : AutoCloseable {
     val hub = InputHub(piano)
     val learning = LearningRepository(db)
-    val pieces = PieceRepository(db)
+    val privateScores = com.id.mimikopi.desktop.recall.PrivateScores(db)
+    val pieces = PieceRepository(db) { privateScores.score(it) }
     val progress = ProgressStore(db)
     val session = SessionTracker(db)
     val inputConfig = InputConfigStore(db)
@@ -75,6 +76,7 @@ class Services(
     init {
         learning.load()
         pieces.load()
+        privateScores.reload()
         progress.load()
         piano.prefs = AudioPrefs.LOCKED
         piano.sound = PianoSound.parse(db.get(SettingKeys.PIANO_SOUND))

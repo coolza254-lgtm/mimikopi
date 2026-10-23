@@ -46,6 +46,10 @@ fun SongsScreen() {
             Text(tr("แบ่งวลีจากลิงก์วิดีโอ ลองเล่นเองโดยไม่ดู จดจุดติด แล้วทวนข้ามวัน · ประเมินเอง · เก็บในเครื่องนี้เท่านั้น", "Split a video into phrases, play without looking, note sticking points and review across days · self-assessed · kept on this computer only", "動画をフレーズに分け、見ずに弾き、つまずきをメモして日をまたいで復習 · 自己評価 · このPCにのみ保存"), color = Tokens.Palette.InkMuted)
             TextButton(onClick = { app.nav.open(Screen.Recall()) }) { Text(tr("เปิดเพลงส่วนตัว", "Open private songs", "個人曲を開く")) }
         }
+        PageCard(title = tr("โน้ตที่ซื้อ · อัดจากเปียโน", "Bought sheets · play them in", "購入した楽譜 · ピアノで入力")) {
+            Text(tr("เล่นโน้ต piano solo ที่ซื้อเข้าแอปทีละช่วงทีละมือ แอปจัดลงจังหวะให้ แก้โน้ตผิดได้ แล้วฝึกแบบเล่นตามได้เหมือนเพลงในคลัง · เก็บในเครื่องนี้เท่านั้น", "Play a bought piano-solo sheet in a few bars and one hand at a time; the app puts it on the beat, you fix wrong notes, then practise it like a library piece · kept on this computer only", "購入したピアノソロ楽譜を数小節ずつ片手ずつ弾いて入力。アプリがリズムに合わせ、間違いを直して、ライブラリの曲のように練習できます · このPCにのみ保存"), color = Tokens.Palette.InkMuted)
+            TextButton(onClick = { app.nav.open(Screen.Scores) }) { Text(tr("เปิดโน้ตที่ซื้อ", "Open bought sheets", "購入した楽譜を開く")) }
+        }
         PageCard(title = tr("คลังเพลง · ง่ายไปยาก", "Library · easy to hard", "ライブラリ · やさしい順")) {
             Text(tr("เริ่มทีละมือในโหมดรอ แล้วค่อยรวมมือและเล่นตามจังหวะ · ผ่านเมื่อเล่นสะอาดใน 2 วันที่ต่างกัน", "Start hands separately in wait mode, then hands together in time · passed when played clean on 2 different days", "片手ずつ待ちモードで始め、次に両手でリズムに合わせて · 別々の2日にクリーンに弾けたら合格"), color = Tokens.Palette.InkMuted)
             for ((i, p) in app.services.pieces.pieces.filter { it.id !in HEROIC }.withIndex()) {

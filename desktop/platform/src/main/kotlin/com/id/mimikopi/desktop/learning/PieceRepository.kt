@@ -17,7 +17,7 @@ import kotlinx.serialization.json.Json
  * The bundled pieces (only Heroic Polonaise's two practice editions) and exercises, plus each piece's practice record
  * (the same settings row as Android, so it travels in backups).
  */
-class PieceRepository(private val db: Database) {
+class PieceRepository(private val db: Database, private val privateScore: (String) -> Score? = { null }) {
     private val json = Json { ignoreUnknownKeys = true }
     private val serializer = MapSerializer(String.serializer(), PieceProgress.serializer())
     private val lock = Any()
@@ -32,6 +32,7 @@ class PieceRepository(private val db: Database) {
 
     fun pieceOrExercise(id: String): Score? = piece(id) ?: exercises.firstOrNull { it.id == id }
         ?: Exams.practicePiece(id)?.let { runCatching { Score.from(it) }.getOrNull() }
+        ?: privateScore(id)
 
     /** The source and arrangement notes of a bundled piece (shown offline under "ที่มา"). */
     fun pieceFile(id: String): PieceFile? = Content.read("pieces/$id.json")?.let { runCatching { PieceFile.parse(it) }.getOrNull() }

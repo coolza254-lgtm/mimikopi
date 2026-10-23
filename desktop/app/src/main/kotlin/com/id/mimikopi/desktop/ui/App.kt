@@ -124,6 +124,8 @@ fun App(ctx: AppContext) {
                             is Screen.Drill -> DrillScreen(screen.source, screen.via)
                             is Screen.Reader -> ReaderScreen(screen.args)
                             is Screen.Recall -> RecallScreen(screen.song, screen.hand)
+                            is Screen.Scores -> com.id.mimikopi.desktop.ui.screens.ScoresScreen()
+                            is Screen.Record -> com.id.mimikopi.desktop.ui.screens.RecordScreen(screen.id)
                             Screen.Metronome -> MetronomeScreen()
                             Screen.Chords -> ChordsScreen()
                             is Screen.Skill -> SkillDetailScreen(screen.id)

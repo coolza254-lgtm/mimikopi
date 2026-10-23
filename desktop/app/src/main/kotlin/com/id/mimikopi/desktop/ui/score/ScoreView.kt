@@ -39,6 +39,7 @@ import com.id.mimikopi.desktop.ui.components.Bravura
 import com.id.mimikopi.desktop.ui.theme.Tokens
 import kotlinx.coroutines.delay
 
+private const val PLAYHEAD_AT = 0.2f // where the fixed playhead stands in play-along
 private const val CURSOR_AT = 0.3f // fraction of the width where the cursor sits while following
 private const val WRONG_MARK_NANOS = 700_000_000L
 private const val MARK_GRACE_NANOS = 100_000_000L
@@ -76,6 +77,8 @@ fun ScoreView(
     firstBarNumber: Int = 1,
     /** Page view: draw the cursor only while it is inside this strip (every system but the last). */
     cursorOnlyInside: Boolean = false,
+    /** Play-along (approved design): the music flows right to left past a fixed pink playhead near the left. */
+    fixedPlayhead: Boolean = false,
     /**
      * A long strip that scrolls: a small number over every bar line. Otherwise (a line of a page) the number is
      * printed once, at the start of the line, as in printed music.
@@ -159,6 +162,7 @@ fun ScoreView(
         val cursorX = layout.xAt(beat).toFloat() * space
         val editX = editorCursor?.let { layout.xAt(it.first).toFloat() * space }
         val offset = when {
+            fixedPlayhead -> cursorX - size.width * PLAYHEAD_AT
             following -> (cursorX - size.width * CURSOR_AT).coerceIn(0f, maxOffset)
             // The editor keeps the selection on screen.
             editX != null -> (editX - size.width * 0.4f).coerceIn(0f, maxOffset)
@@ -188,7 +192,13 @@ fun ScoreView(
         }
 
         // The play position: a soft band behind the notes being read, like a finger following the page.
-        if (editorCursor == null && (!cursorOnlyInside || (beat > -1e-6 && beat < score.totalBeats - 1e-6))) {
+        if (fixedPlayhead) {
+            val cx = size.width * PLAYHEAD_AT + space
+            val top = py(layout.top - 3.0)
+            val h = py(layout.bottom + 3.0) - top
+            drawRect(Tokens.Palette.Pink.copy(alpha = 0.18f), Offset(cx - space * 0.9f, top), Size(space * 1.8f, h))
+            drawRect(Tokens.Palette.Pink, Offset(cx - space * 0.12f, top), Size(space * 0.24f, h))
+        } else if (editorCursor == null && (!cursorOnlyInside || (beat > -1e-6 && beat < score.totalBeats - 1e-6))) {
             val cx = px(layout.xAt(beat))
             drawRoundRect(Tokens.Palette.AccentSoft, Offset(cx - space * 0.9f, py(layout.top - 2.6)),
                 Size(space * 3.0f, py(layout.bottom + 2.6) - py(layout.top - 2.6)), androidx.compose.ui.geometry.CornerRadius(space * 0.8f))

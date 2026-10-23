@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -117,6 +118,25 @@ fun ReaderScreen(args: ReaderArgs) {
         val falling = ui.options.falling && !r.fixed
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (falling) FallingScore(r, ui, p.score, p.keyRange, running, midi, lowC, Modifier.fillMaxSize())
+            else if (running && !ui.options.hideNotes) {
+                // While playing: one long line flowing right to left past a fixed playhead (approved design).
+                val strip = remember(p.score) { com.id.mimikopi.core.score.ScoreLayout.line(p.score, finalBar = true, timeSignature = true) }
+                com.id.mimikopi.desktop.ui.score.ScoreView(
+                    score = p.score,
+                    layout = strip,
+                    cursorBeat = r::cursorAt,
+                    following = true,
+                    results = ui.results,
+                    wrongMarks = ui.wrongMarks,
+                    loop = null,
+                    hotMeasures = emptyList(),
+                    showNames = ui.showNames,
+                    nameStyle = nameStyle,
+                    onMeasureTap = {},
+                    modifier = Modifier.fillMaxWidth().fillMaxHeight(0.62f).align(Alignment.Center).padding(horizontal = 8.dp),
+                    fixedPlayhead = true,
+                )
+            }
             else LiveScore(
                 score = p.score,
                 cursorBeat = r::cursorAt,
@@ -192,6 +212,8 @@ private fun PlayingBar(r: ReaderSession, ui: ReaderUi, midi: Boolean) {
             val good = judged.count { it == NoteResult.CORRECT || it == NoteResult.EARLY || it == NoteResult.LATE || it == NoteResult.CORRECTED }
             Text("${good * 100 / judged.size}%", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color(0xFF4CB86E))
         }
+        if (!ui.options.falling || r.fixed) SecondaryButton(if (ui.showNames) tr("ชื่อโน้ต: เปิด", "Note names: on", "音名：表示") else tr("ชื่อโน้ต: ปิด", "Note names: off", "音名：非表示"),
+            onClick = r::toggleNames)
         if (ui.phase == Phase.PLAYING && !r.fixed) {
             SecondaryButton(tr("‹ ย้อนห้อง", "‹ Back a bar", "‹ 1小節戻る"), onClick = { r.replayFrom(back = true) })
             SecondaryButton(tr("↻ เล่นห้องนี้ใหม่", "↻ Replay this bar", "↻ この小節から"), onClick = { r.replayFrom(back = false) })

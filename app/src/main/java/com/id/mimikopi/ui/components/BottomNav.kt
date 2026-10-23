@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,9 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.id.mimikopi.R
 import com.id.mimikopi.ui.theme.Tokens
 
@@ -40,8 +37,8 @@ val TABS = listOf(
 )
 
 /**
- * The bottom bar (Design J): a white capsule floating 20/18 from the edges with a soft shadow. The current tab is an
- * accentSoft capsule with its icon and word; the others show only their icon (their name is read by TalkBack).
+ * The bottom bar (Design J): a white capsule floating 20/18 from the edges with a soft shadow. Icons only (the user
+ * asked for no words); the current tab is an accentSoft capsule. Every tab's name is read by TalkBack.
  */
 @Composable
 fun BottomNav(current: String?, onSelect: (String) -> Unit) {
@@ -66,8 +63,7 @@ fun BottomNav(current: String?, onSelect: (String) -> Unit) {
                 ) {
                     Icon(painterResource(tab.icon), contentDescription = null,
                         tint = if (selected) Tokens.Palette.AccentDeep else Tokens.Palette.InkMuted,
-                        modifier = Modifier.size(if (selected) 19.dp else 22.dp))
-                    if (selected) Text(label, fontFamily = Tokens.Fonts.body, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.AccentDeep)
+                        modifier = Modifier.size(22.dp))
                 }
             }
         }

@@ -52,8 +52,7 @@ import com.id.mimikopi.ui.progress.fixTarget
 import com.id.mimikopi.ui.theme.Tokens
 
 /**
- * Today (Design J): no page header (the user asked for none). The goal song first, with one button to its next phrase;
- * then today's basics as pastel cards in a grid, ticked from real practice, the next one ringed ("ต่อไป"); the minutes
+ * Today (Design J): no page header or date (the user asked for none). Today's basics as pastel cards in a grid, ticked from real practice, the next one ringed ("ต่อไป"); the minutes
  * chosen on a segmented rail; this week as circles that grow with the minutes played; what to fix, when there is any.
  */
 @Composable
@@ -64,14 +63,8 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth().padding(horizontal = PageMargin)) {
             if (!ui.loaded) return@Column
-            // The goal song is practised on the PC (learning-system.md 2.11); the phone's day is the basics.
-            val date = java.time.LocalDate.now()
-            Column(Modifier.padding(start = 4.dp, top = 32.dp)) {
-                Text("วันนี้", fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                Text("${date.dayOfMonth} ${listOf("ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.")[date.monthValue - 1]} · เพลงเป้าหมายฝึกบนคอม", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
-            }
-
-            Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 30.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            // No page title or date (the user asked for none): the day's basics come first.
+            Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 40.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("พื้นฐานวันนี้", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
                 MinutesRail(DailyPlan.CHOICES, ui.minutesChosen, vm::choose)
             }

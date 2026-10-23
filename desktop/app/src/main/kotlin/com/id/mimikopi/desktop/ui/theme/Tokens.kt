@@ -47,6 +47,11 @@ object Tokens {
         val Timing: Color get() = if (dark) Color(0xFFE2B98C) else Color(0xFF8A5A2B)
         /** A connected MIDI piano: the one colour outside the pink family. */
         val Positive: Color get() = Color(0xFF5E9E7E)
+        /** "Passed": bright green, the one place green is used (user, 2026-10-23); text 5.5:1 on its fill. */
+        val Pass: Color get() = if (dark) Color(0xFF8FE3A8) else Color(0xFF146C34)
+        val PassSoft: Color get() = if (dark) Color(0xFF173A24) else Color(0xFFD6F5DE)
+        /** Not open yet: a grey row behind muted text. */
+        val Locked: Color get() = if (dark) Color(0xFF262224) else Color(0xFFEFEDEC)
     }
 
     data class SkillColor(val fill: Color, val ink: Color)

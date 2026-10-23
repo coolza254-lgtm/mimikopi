@@ -163,8 +163,9 @@ fun Modifier.touchKeys(key: Any, hit: (x: Float, y: Float, width: Float, height:
     }
 
 /**
- * The on-screen keyboard (Design J): a dark case with a felt strip, white keys fading at the bottom and graded black
- * keys in both looks, held keys in the accent's pinks with their name, [marked] keys outlined, Middle C with a dot.
+ * The on-screen keyboard (minimal, user-approved 2026-10-23): flat white keys with thin gaps and flat ink black keys on
+ * the page itself, no case, felt or gradients; held keys in the accent's pinks with their name, [marked] keys outlined,
+ * Middle C with a dot.
  */
 @Composable
 fun TouchKeyboard(range: IntRange, marked: Set<Int>, showNames: Boolean, nameStyle: NoteNameStyle, modifier: Modifier) {
@@ -189,35 +190,16 @@ fun TouchKeyboardSurface(range: IntRange, marked: Set<Int>, showNames: Boolean, 
         return KeyboardLayout(range.first, range.last, w / whites, h).also { cached[0] = it }
     }
 
-    val caseShape = RoundedCornerShape(20.dp)
-    val density = LocalDensity.current
-    val side = with(density) { 6.dp.toPx() }
-    val top = with(density) { 10.dp.toPx() }
-    Box(
-        // Touches on the case (its rounded corners too, so before the clip) count as the nearest key, so the edge keys
-        // are as easy to hit as the rest.
-        modifier.touchKeys(range, { x, y, w, h ->
-            val kw = w - 2 * side
-            val kh = h - top - side
-            layoutFor(kw, kh).hitTest((x - side).coerceIn(0f, kw - 1f), (y - top).coerceIn(0f, kh - 1f))
-        }, play)
-            .shadow(Tokens.Elevation.keyboard, caseShape, ambientColor = Tokens.Elevation.tint, spotColor = Tokens.Elevation.tint)
-            .clip(caseShape).background(Tokens.Piano.Case)
-            .padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp),
-    ) {
-        // The felt strip above the keys.
-        Box(Modifier.align(Alignment.TopCenter).offset(y = (-6).dp).fillMaxWidth().padding(horizontal = 18.dp).height(3.dp)
-            .clip(RoundedCornerShape(2.dp)).background(Tokens.Piano.Felt))
+    Box(modifier.touchKeys(range, { x, y, w, h -> layoutFor(w, h).hitTest(x.coerceIn(0f, w - 1f), y.coerceIn(0f, h - 1f)) }, play)) {
         Canvas(Modifier.fillMaxSize()) {
             val layout = layoutFor(size.width, size.height)
-            val radius = CornerRadius(layout.whiteKeyWidth * 0.14f)
-            val white = Brush.verticalGradient(0.75f to Tokens.Piano.WhiteTop, 1f to Tokens.Piano.WhiteBottom)
-            val black = Brush.verticalGradient(listOf(Tokens.Piano.BlackTop, Tokens.Piano.BlackBottom))
+            val radius = CornerRadius(layout.whiteKeyWidth * 0.16f)
+            val gap = 1.5.dp.toPx()
             for (k in layout.whiteKeys) {
                 val down = k.note in pressed
-                val topLeft = Offset(k.left + 1.5f, 0f)
-                val keySize = Size(k.width - 3f, k.bottom)
-                if (down) drawRoundRect(Tokens.Palette.AccentSoft, topLeft, keySize, radius) else drawRoundRect(white, topLeft, keySize, radius)
+                val topLeft = Offset(k.left + gap, 0f)
+                val keySize = Size(k.width - 2 * gap, k.bottom)
+                drawRoundRect(if (down) Tokens.Palette.AccentSoft else Tokens.Piano.WhiteTop, topLeft, keySize, radius)
                 if (k.note in marked) drawRoundRect(Tokens.Palette.Accent, topLeft, keySize, radius, style = Stroke(width = 5f))
                 if (showNames || k.note in marked || down) {
                     val label = SpelledPitch.fromMidiSharp(k.note).name(nameStyle, withOctave = k.note % 12 == 0)
@@ -233,8 +215,7 @@ fun TouchKeyboardSurface(range: IntRange, marked: Set<Int>, showNames: Boolean, 
             for (k in layout.blackKeys) {
                 val down = k.note in pressed
                 val r = CornerRadius(k.width * 0.22f)
-                if (down) drawRoundRect(Tokens.Palette.AccentDeep, Offset(k.left, 0f), Size(k.width, k.bottom), r)
-                else drawRoundRect(black, Offset(k.left, 0f), Size(k.width, k.bottom), r)
+                drawRoundRect(if (down) Tokens.Palette.AccentDeep else Tokens.Palette.Ink, Offset(k.left, 0f), Size(k.width, k.bottom), r)
                 if (k.note in marked) drawRoundRect(
                     Tokens.Palette.AccentMid, Offset(k.left + 3f, 3f), Size(k.width - 6f, k.bottom - 6f), CornerRadius(k.width * 0.18f), style = Stroke(width = 3f),
                 )

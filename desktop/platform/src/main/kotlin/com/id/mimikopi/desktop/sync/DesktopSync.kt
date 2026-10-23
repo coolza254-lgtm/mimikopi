@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.sync
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.sync.GitHubContents
 import com.id.mimikopi.core.sync.GitHubSync
 import com.id.mimikopi.core.sync.GitHubSyncConfig
@@ -38,7 +39,7 @@ class DesktopSync(private val services: Services, private val configFile: File =
 
     private fun snapshot(): SyncPayload {
         val settings = ProgressMerge.progressRows(services.db.settings())
-        return SyncPayload(deviceId = services.dirs.deviceId, deviceName = "คอม", appVersion = services.appVersion,
+        return SyncPayload(deviceId = services.dirs.deviceId, deviceName = tr("คอม", "PC", "PC"), appVersion = services.appVersion,
             settings = settings, itemStats = services.db.itemStats().sortedBy { it.itemId })
     }
 
@@ -49,7 +50,7 @@ class DesktopSync(private val services: Services, private val configFile: File =
     fun sync(quiet: Boolean = false) {
         val config = config()
         if (!config.ready) {
-            if (!quiet) _status.value = SyncStatus(line = "ยังไม่ได้ตั้งค่า ใส่ชื่อ repo และ token ก่อน", failed = true)
+            if (!quiet) _status.value = SyncStatus(line = tr("ยังไม่ได้ตั้งค่า ใส่ชื่อ repo และ token ก่อน", "Not set up yet; enter the repo name and token first", "未設定です。先にリポジトリ名とトークンを入力してください"), failed = true)
             return
         }
         if (!lock.tryLock()) return
@@ -69,7 +70,7 @@ class DesktopSync(private val services: Services, private val configFile: File =
         } catch (e: SyncFailure) {
             _status.value = if (quiet) _status.value.copy(running = false) else SyncStatus(line = "${now()} · ${e.thai}", failed = true)
         } catch (e: Exception) {
-            _status.value = if (quiet) _status.value.copy(running = false) else SyncStatus(line = "${now()} · ซิงค์ไม่สำเร็จ: ${e.message}", failed = true)
+            _status.value = if (quiet) _status.value.copy(running = false) else SyncStatus(line = tr("${now()} · ซิงค์ไม่สำเร็จ: ${e.message}", "${now()} · sync failed: ${e.message}", "${now()} · 同期失敗：${e.message}"), failed = true)
         } finally {
             lock.unlock()
         }

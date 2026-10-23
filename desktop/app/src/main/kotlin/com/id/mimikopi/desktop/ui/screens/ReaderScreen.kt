@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.ui.screens
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -101,7 +102,7 @@ fun ReaderScreen(args: ReaderArgs) {
     Column(Modifier.fillMaxSize().background(Tokens.Palette.Paper)) {
         if (running) PlayingBar(r, ui, midi) else TopBar(r, ui, midi)
         if (p == null) {
-            Text("ไม่พบโน้ตของแบบฝึกนี้", modifier = Modifier.padding(24.dp))
+            Text(tr("ไม่พบโน้ตของแบบฝึกนี้", "Notes for this drill not found", "この練習の楽譜が見つかりません"), modifier = Modifier.padding(24.dp))
             return@Column
         }
         if (!running) {
@@ -134,7 +135,7 @@ fun ReaderScreen(args: ReaderArgs) {
             }
             ui.previewLeft?.let { n ->
                 Box(Modifier.align(Alignment.TopEnd).padding(24.dp).clip(RoundedCornerShape(16.dp)).background(Tokens.Palette.Group).padding(16.dp)) {
-                    Text("ดูโน้ตก่อน $n วินาที", fontSize = 20.sp, color = Tokens.Palette.Ink)
+                    Text(tr("ดูโน้ตก่อน $n วินาที", "Look at the music for $n s first", "まず楽譜を${n}秒見る"), fontSize = 20.sp, color = Tokens.Palette.Ink)
                 }
             }
         }
@@ -158,15 +159,15 @@ private fun TopBar(r: ReaderSession, ui: ReaderUi, midi: Boolean) {
     val app = LocalApp.current
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        SecondaryButton("‹ กลับ", onClick = app.nav::back)
+        SecondaryButton(tr("‹ กลับ", "‹ Back", "‹ 戻る"), onClick = app.nav::back)
         Text(r.title(), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f))
-        SecondaryButton(if (app.isFullscreen()) "ออกจากเต็มจอ · F11" else "เต็มจอ · F11", onClick = app.toggleFullscreen)
+        SecondaryButton(if (app.isFullscreen()) tr("ออกจากเต็มจอ · F11", "Exit full screen · F11", "全画面を終了 · F11") else tr("เต็มจอ · F11", "Full screen · F11", "全画面 · F11"), onClick = app.toggleFullscreen)
     }
     ui.message?.let { m ->
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(m, fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
-            SecondaryButton("ปิด", onClick = r::dismissMessage)
+            SecondaryButton(tr("ปิด", "Close", "閉じる"), onClick = r::dismissMessage)
         }
     }
 }
@@ -176,13 +177,13 @@ private fun PlayingBar(r: ReaderSession, ui: ReaderUi, midi: Boolean) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         val what = when (ui.phase) {
-            Phase.LISTENING -> "กำลังเล่นตัวอย่าง"
-            Phase.COUNT_IN -> "นับเข้า"
-            else -> if (ui.options.mode == PlayMode.WAIT) "โหมดรอ · เล่นตามโน้ตทีละตัว" else "ตามจังหวะ"
+            Phase.LISTENING -> tr("กำลังเล่นตัวอย่าง", "Playing the example", "お手本を再生中")
+            Phase.COUNT_IN -> tr("นับเข้า", "Count-in", "カウント")
+            else -> if (ui.options.mode == PlayMode.WAIT) tr("โหมดรอ · เล่นตามโน้ตทีละตัว", "Wait mode · play note by note", "待ちモード · 1音ずつ弾く") else tr("ตามจังหวะ", "In time", "リズムに合わせて")
         }
-        Text("$what · ${ui.options.hands.title} · ${ui.bpm} bpm · ห้อง ${ui.section.first + 1}–${ui.section.last + 1}" + (if (midi) " · MIDI" else ""),
+        Text(tr("$what · ${ui.options.hands.title} · ${ui.bpm} bpm · ห้อง ${ui.section.first + 1}–${ui.section.last + 1}", "$what · ${ui.options.hands.title} · ${ui.bpm} bpm · bars ${ui.section.first + 1}–${ui.section.last + 1}", "$what · ${ui.options.hands.title} · ${ui.bpm} bpm · ${ui.section.first + 1}–${ui.section.last + 1}小節") + (if (midi) " · MIDI" else ""),
             fontSize = 14.sp, color = Tokens.Palette.InkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        if (ui.options.falling && !r.fixed) SecondaryButton(if (ui.options.fallingKeyLabels) "ชื่อบนคีย์: เปิด" else "ชื่อบนคีย์",
+        if (ui.options.falling && !r.fixed) SecondaryButton(if (ui.options.fallingKeyLabels) tr("ชื่อบนคีย์: เปิด", "Names on keys: on", "鍵盤に音名：表示") else tr("ชื่อบนคีย์", "Names on keys", "鍵盤に音名"),
             onClick = { r.setFallingKeyLabels(!ui.options.fallingKeyLabels) })
         StopButton(r::stop)
     }
@@ -200,9 +201,9 @@ private fun SetupBar(r: ReaderSession, ui: ReaderUi) {
     var more by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PrimaryButton(if (r.nextLabelIsNew()) "เริ่มโน้ตชุดใหม่ · Space" else "เริ่ม · Space", onClick = r::start, modifier = Modifier.widthIn(min = 200.dp, max = 260.dp))
-            if (!test) SecondaryButton("ฟังตัวอย่าง", onClick = r::listen)
-            if (canPace) Segmented(listOf(PlayMode.WAIT, PlayMode.TEMPO), ui.options.mode, { if (it == PlayMode.WAIT) "รอจนกดถูก" else "ตามจังหวะ" },
+            PrimaryButton(if (r.nextLabelIsNew()) tr("เริ่มโน้ตชุดใหม่ · Space", "New music · Space", "新しい楽譜 · Space") else tr("เริ่ม · Space", "Start · Space", "開始 · Space"), onClick = r::start, modifier = Modifier.widthIn(min = 200.dp, max = 260.dp))
+            if (!test) SecondaryButton(tr("ฟังตัวอย่าง", "Listen to an example", "お手本を聞く"), onClick = r::listen)
+            if (canPace) Segmented(listOf(PlayMode.WAIT, PlayMode.TEMPO), ui.options.mode, { if (it == PlayMode.WAIT) tr("รอจนกดถูก", "Wait until right", "正しく押すまで待つ") else tr("ตามจังหวะ", "In time", "リズムに合わせて") },
                 r::setMode, Modifier.width(260.dp))
             if (!r.fixed) Segmented(HandChoice.entries.filter { h -> h.hands.all { hand -> score.events.any { it.hand == hand && !it.isRest } } }.ifEmpty { listOf(HandChoice.RIGHT) },
                 ui.options.hands, { it.title }, r::setHands, Modifier.width(260.dp))
@@ -212,27 +213,27 @@ private fun SetupBar(r: ReaderSession, ui: ReaderUi) {
                 SecondaryButton("+", onClick = { r.changeBpm(5) })
             }
             Box(Modifier.weight(1f))
-            if (!r.fixed) SecondaryButton(if (more) "ซ่อนตัวเลือก" else "ตัวเลือกเพิ่ม", onClick = { more = !more })
+            if (!r.fixed) SecondaryButton(if (more) tr("ซ่อนตัวเลือก", "Hide options", "オプションを隠す") else tr("ตัวเลือกเพิ่ม", "More options", "その他のオプション"), onClick = { more = !more })
         }
         if (!r.fixed) {
             val whole = ui.section == (0 until score.measures)
-            Text(if (whole) "ทั้งเพลง ${score.measures} ห้อง · คลิกห้องบนโน้ตเพื่อฝึกเฉพาะช่วง" else "ห้อง ${ui.section.first + 1}–${ui.section.last + 1}" +
-                (if (ui.pendingSectionStart != null) " · คลิกห้องสุดท้ายของช่วง" else ""), fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+            Text(if (whole) tr("ทั้งเพลง ${score.measures} ห้อง · คลิกห้องบนโน้ตเพื่อฝึกเฉพาะช่วง", "Whole piece ${score.measures} bars · click bars on the music to practise a section", "全曲${score.measures}小節 · 楽譜の小節をクリックして区間練習") else tr("ห้อง ${ui.section.first + 1}–${ui.section.last + 1}", "Bars ${ui.section.first + 1}–${ui.section.last + 1}", "${ui.section.first + 1}–${ui.section.last + 1}小節") +
+                (if (ui.pendingSectionStart != null) tr(" · คลิกห้องสุดท้ายของช่วง", " · click the last bar of the section", " · 区間の最後の小節をクリック") else ""), fontSize = 14.sp, color = Tokens.Palette.InkMuted)
         }
         if (more && !r.fixed) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-            if (ui.section != (0 until score.measures)) SecondaryButton("ทั้งเพลง", onClick = r::wholePiece)
-            Toggle("โน้ตตก", ui.options.falling, r::setFalling)
+            if (ui.section != (0 until score.measures)) SecondaryButton(tr("ทั้งเพลง", "Whole piece", "全曲"), onClick = r::wholePiece)
+            Toggle(tr("โน้ตตก", "Falling notes", "流れる音符"), ui.options.falling, r::setFalling)
             if (score.events.any { it.hand == Hand.LEFT && !it.isRest } && score.events.any { it.hand == Hand.RIGHT && !it.isRest })
-                Toggle("โปรแกรมเล่นมืออื่น", ui.options.playOtherHand, r::setPlayOtherHand)
-            if (ui.options.mode == PlayMode.TEMPO) Toggle("คลิก", ui.options.metronome, r::setMetronome)
-            if (ui.options.mode == PlayMode.TEMPO) Toggle("ความเร็วตามแผน", ui.options.useRamp, r::setUseRamp)
-            if (ui.options.falling) Toggle("ชื่อโน้ตบนคีย์", ui.options.fallingKeyLabels, r::setFallingKeyLabels)
-            else Toggle("คีย์บนจอ", ui.options.showKeyboard, r::setShowKeyboard)
-            Toggle("ชื่อโน้ต (นับเป็นตัวช่วย)", ui.showNames, { r.toggleNames() })
+                Toggle(tr("โปรแกรมเล่นมืออื่น", "App plays the other hand", "もう一方の手をアプリが演奏"), ui.options.playOtherHand, r::setPlayOtherHand)
+            if (ui.options.mode == PlayMode.TEMPO) Toggle(tr("คลิก", "Click", "クリック"), ui.options.metronome, r::setMetronome)
+            if (ui.options.mode == PlayMode.TEMPO) Toggle(tr("ความเร็วตามแผน", "Planned tempo", "プランのテンポ"), ui.options.useRamp, r::setUseRamp)
+            if (ui.options.falling) Toggle(tr("ชื่อโน้ตบนคีย์", "Note names on keys", "鍵盤に音名"), ui.options.fallingKeyLabels, r::setFallingKeyLabels)
+            else Toggle(tr("คีย์บนจอ", "On-screen keys", "画面の鍵盤"), ui.options.showKeyboard, r::setShowKeyboard)
+            Toggle(tr("ชื่อโน้ต (นับเป็นตัวช่วย)", "Note names (counts as help)", "音名（補助ありとして数えます）"), ui.showNames, { r.toggleNames() })
         }
         if (ui.hotMeasures.isNotEmpty() && !r.fixed) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("ห้องที่พลาดบ่อย:", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
-            ui.hotMeasures.take(3).forEach { m -> SecondaryButton("ห้อง ${m + 1}", onClick = { r.practiseMeasures(m, m) }) }
+            Text(tr("ห้องที่พลาดบ่อย:", "Bars often missed:", "よくミスする小節："), fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+            ui.hotMeasures.take(3).forEach { m -> SecondaryButton(tr("ห้อง ${m + 1}", "Bar ${m + 1}", "${m + 1}小節"), onClick = { r.practiseMeasures(m, m) }) }
         }
     }
 }
@@ -250,16 +251,16 @@ private fun ResultBar(r: ReaderSession, ui: ReaderUi) {
         next?.let { c ->
             Row(Modifier.clip(RoundedCornerShape(14.dp)).border(1.dp, Tokens.Palette.Ink, RoundedCornerShape(14.dp)).padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("แก้ก่อน: ${c.text}", fontSize = 16.sp, color = Tokens.Palette.Ink, modifier = Modifier.widthIn(max = 700.dp))
-                if (c.action != null && !r.fixed) SecondaryButton("ฝึกตรงนี้", onClick = { r.applyAction(c.action!!) })
+                Text(tr("แก้ก่อน: ${c.text}", "Fix first: ${c.text}", "まず直す：${c.text}"), fontSize = 16.sp, color = Tokens.Palette.Ink, modifier = Modifier.widthIn(max = 700.dp))
+                if (c.action != null && !r.fixed) SecondaryButton(tr("ฝึกตรงนี้", "Practise here", "ここを練習"), onClick = { r.applyAction(c.action!!) })
             }
         }
         res.coach.filter { it != next }.forEach { Text("• ${it.text}", fontSize = 15.sp, color = Tokens.Palette.Ink) }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (r.benchDone) PrimaryButton("เสร็จ", onClick = app.nav::back, modifier = Modifier.widthIn(max = 260.dp))
-            else PrimaryButton(if (r.nextLabelIsNew()) "โน้ตชุดใหม่ (Space)" else "เล่นอีกครั้ง (Space)", onClick = r::start, modifier = Modifier.widthIn(max = 260.dp))
-            SecondaryButton("ตั้งค่าใหม่", onClick = r::backToSetup)
-            if (!r.fixed && ui.section != (0 until (r.score?.measures ?: 0))) SecondaryButton("ลองเล่นทั้งเพลง", onClick = { r.wholePiece(); r.start() })
+            if (r.benchDone) PrimaryButton(tr("เสร็จ", "Done", "完了"), onClick = app.nav::back, modifier = Modifier.widthIn(max = 260.dp))
+            else PrimaryButton(if (r.nextLabelIsNew()) tr("โน้ตชุดใหม่ (Space)", "New music (Space)", "新しい楽譜（Space）") else tr("เล่นอีกครั้ง (Space)", "Play again (Space)", "もう一度（Space）"), onClick = r::start, modifier = Modifier.widthIn(max = 260.dp))
+            SecondaryButton(tr("ตั้งค่าใหม่", "Change settings", "設定を変える"), onClick = r::backToSetup)
+            if (!r.fixed && ui.section != (0 until (r.score?.measures ?: 0))) SecondaryButton(tr("ลองเล่นทั้งเพลง", "Try the whole piece", "全曲を弾いてみる"), onClick = { r.wholePiece(); r.start() })
         }
     }
 }

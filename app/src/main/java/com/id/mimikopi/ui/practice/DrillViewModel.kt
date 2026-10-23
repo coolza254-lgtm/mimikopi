@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.practice
 
+import com.id.mimikopi.core.i18n.tr
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
@@ -178,10 +179,10 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             repo.load()
             settingsName()
             if (bench != null) {
-                drill = if (bench == "pulse") Drill(ExerciseType.E_PULSE, "วัดผล: จังหวะคงที่", items = 1,
+                drill = if (bench == "pulse") Drill(ExerciseType.E_PULSE, tr("วัดผล: จังหวะคงที่", "Measure: steady beat", "測定：一定のリズム"), items = 1,
                     bpmMin = com.id.mimikopi.core.progress.Benchmarks.PULSE_BPM, bpmMax = com.id.mimikopi.core.progress.Benchmarks.PULSE_BPM,
                     beats = com.id.mimikopi.core.progress.Benchmarks.PULSE_BEATS)
-                else Drill(ExerciseType.E_NOTEID, "วัดผล: ความเร็วอ่านโน้ต", items = com.id.mimikopi.core.progress.Benchmarks.NOTE_ITEMS, pool = listOf("C4:treble"))
+                else Drill(ExerciseType.E_NOTEID, tr("วัดผล: ความเร็วอ่านโน้ต", "Measure: reading speed", "測定：読譜の速さ"), items = com.id.mimikopi.core.progress.Benchmarks.NOTE_ITEMS, pool = listOf("C4:treble"))
                 keyRange = if (bench == "pulse") 57..64 else 48..84
                 val d = drill!!
                 _ui.value = DrillUi.Ready(d.title, d.type, d.items, if (d.type == ExerciseType.E_PULSE) d.bpmMin else null)
@@ -195,7 +196,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 }
                 services.progress.load()
                 _ui.value = if (com.id.mimikopi.core.progress.SkillBook.status(check.skill, services.progress.checks.value, java.time.LocalDate.now()).lockedToday)
-                    DrillUi.Result("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว", null, false, listOf("ฝึกเรื่องนี้ต่อในวันนี้ แล้วลองใหม่วันอื่น"))
+                    DrillUi.Result(tr("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว", "You've tried this level twice today", "このレベルは今日2回挑戦しました"), null, false, listOf(tr("ฝึกเรื่องนี้ต่อในวันนี้ แล้วลองใหม่วันอื่น", "Keep practising this today and try again another day", "今日はこれを練習して、別の日にもう一度")))
                 else DrillUi.Ready(d.title, d.type, d.items, null)
             } else if (notePractice) {
                 setReadingPractice(_readingSettings.value)
@@ -208,8 +209,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 _ui.value = DrillUi.Ready(d.title, d.type, d.items, null)
             } else if (review) {
                 val due = repo.readingDueItems()
-                drill = Drill(ExerciseType.E_NOTEID, "ทบทวน", items = due.size.coerceAtLeast(1))
-                _ui.value = if (due.isEmpty()) DrillUi.Result("ไม่มีรายการที่ต้องทวนตอนนี้ 👍", null, false, listOf("รายการจะกลับมาตามกำหนดของระบบทบทวน")) else DrillUi.Ready("ทบทวน", ExerciseType.E_NOTEID, due.size, null)
+                drill = Drill(ExerciseType.E_NOTEID, tr("ทบทวน", "Review", "復習"), items = due.size.coerceAtLeast(1))
+                _ui.value = if (due.isEmpty()) DrillUi.Result(tr("ไม่มีรายการที่ต้องทวนตอนนี้ 👍", "Nothing to review right now 👍", "今は復習するものがありません 👍"), null, false, listOf(tr("รายการจะกลับมาตามกำหนดของระบบทบทวน", "Items come back on the review schedule", "項目は復習スケジュールに合わせて戻ってきます"))) else DrillUi.Ready(tr("ทบทวน", "Review", "復習"), ExerciseType.E_NOTEID, due.size, null)
                 keyRange = 45..76
             } else {
                 val l = lessonId?.let { repo.lesson(it) }
@@ -217,7 +218,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
                 lesson = l
                 drill = d
                 if (l == null || d == null) {
-                    _ui.value = DrillUi.Result("ไม่พบแบบฝึกนี้", null, false, emptyList())
+                    _ui.value = DrillUi.Result(tr("ไม่พบแบบฝึกนี้", "Drill not found", "練習が見つかりません"), null, false, emptyList())
                 } else {
                     keyRange = when (d.type) {
                         ExerciseType.E_KEYFIND -> if (d.exactOctave) 48..83 else 48..71
@@ -473,21 +474,21 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             val passedNow = if (l != null) repo.recordDrill(l, drillIndex, met == true, helperUses > 0) else false
             val coach = mutableListOf<String>()
             misses.entries.filter { it.value >= 2 }.maxByOrNull { it.value }?.let { (id, _) ->
-                coach += if (practice) "${describe(id)} พลาดบ่อย ลองกดช้าๆ ทีละตัวแล้วฟังเสียงคอร์ด" else "${describe(id)} พลาดบ่อย รอบหน้าระบบทบทวนจะถามรายการนี้บ่อยขึ้น"
+                coach += if (practice) tr("${describe(id)} พลาดบ่อย ลองกดช้าๆ ทีละตัวแล้วฟังเสียงคอร์ด", "${describe(id)} is often missed; press it slowly one note at a time and listen to the chord", "${describe(id)}をよく間違えます。1音ずつゆっくり押してコードの響きを聞いてみて") else tr("${describe(id)} พลาดบ่อย รอบหน้าระบบทบทวนจะถามรายการนี้บ่อยขึ้น", "${describe(id)} is often missed; the review will ask it more often next time", "${describe(id)}をよく間違えます。次回の復習でより多く出題します")
             }
-            if (slow > 0) coach += "ถูก แต่มี $slow ข้อที่ใช้เวลาเกิน 3 วินาที ลองมองหากลุ่มคีย์ดำ (หรือจุดอ้างอิง) ก่อน แล้วค่อยหา"
-            if (helperUses > 0 && met == true) coach += "ผ่านเกณฑ์ แต่ใช้ปุ่มแสดงชื่อโน้ต จึงยังไม่นับเป็นการผ่านเต็ม ลองอีกครั้งโดยไม่ใช้ตัวช่วย"
-            if (met == true && !passedNow && helperUses == 0) coach += if (l != null && l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อให้ผ่านบทนี้ (ช่วยให้จำได้นาน)"
-            if (passedNow) coach += "ผ่านบทนี้แล้ว บทถัดไปปลดล็อก"
+            if (slow > 0) coach += tr("ถูก แต่มี $slow ข้อที่ใช้เวลาเกิน 3 วินาที ลองมองหากลุ่มคีย์ดำ (หรือจุดอ้างอิง) ก่อน แล้วค่อยหา", "Right, but $slow took longer than 3 seconds; look for the black-key groups (or landmarks) first, then find it", "正解ですが${slow}問は3秒以上かかりました。先に黒鍵のまとまり（または目印）を探してから")
+            if (helperUses > 0 && met == true) coach += tr("ผ่านเกณฑ์ แต่ใช้ปุ่มแสดงชื่อโน้ต จึงยังไม่นับเป็นการผ่านเต็ม ลองอีกครั้งโดยไม่ใช้ตัวช่วย", "Criteria met, but the note-name button was used, so it doesn't fully count yet. Try again without help", "基準は満たしましたが音名ボタンを使ったためまだ完全には数えません。補助なしでもう一度")
+            if (met == true && !passedNow && helperUses == 0) coach += if (l != null && l.pass.requiredDrills.size > 1) tr("ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น", "This part met the criteria today; the lesson's other parts must pass the same day, and again on another day", "この部分は今日基準を満たしました。同じ日にレッスンの他の部分も合格し、別の日にもくり返してください") else tr("ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อให้ผ่านบทนี้ (ช่วยให้จำได้นาน)", "Met the criteria today; pass again on another day to pass this lesson (helps it stick)", "今日基準を満たしました。別の日にもう一度でこのレッスンに合格（長く覚えるため）")
+            if (passedNow) coach += tr("ผ่านบทนี้แล้ว บทถัดไปปลดล็อก", "Lesson passed, the next one is open", "レッスン合格、次が開きました")
             val pct = (acc * 100).toInt()
             if (notePractice) {
                 val median = answers.map { it.responseMs }.sorted().let { if (it.isEmpty()) 0.0 else it[it.size / 2] / 1000.0 }
                 coach.add(0, "เวลาตอบมัธยฐาน ${"%.1f".format(median)} วินาที · อ่านเสียงและอ็อกเทฟตรงกัน")
-                misses.maxByOrNull { it.value }?.let { coach.add(1, "ฝึกต่อ: ${describe(it.key)} · พลาด ${it.value} ครั้ง") }
-                coach += if (readingSources == setOf(InputSource.TOUCH)) "รอบนี้ฝึกอ่านชื่อโน้ตด้วยปุ่มบนมือถือ" else "รอบนี้ฝึกอ่านโน้ตแล้วหาคีย์ด้วย MIDI"
-                coach += "รอบฝึกอ่านโน้ตนี้ไม่เปลี่ยนระดับทักษะ ทดสอบระดับได้ที่หน้า \"ทักษะ\""
+                misses.maxByOrNull { it.value }?.let { coach.add(1, tr("ฝึกต่อ: ${describe(it.key)} · พลาด ${it.value} ครั้ง", "Keep practising: ${describe(it.key)} · missed ${it.value} times", "練習を続けて：${describe(it.key)} · ${it.value}回ミス")) }
+                coach += if (readingSources == setOf(InputSource.TOUCH)) tr("รอบนี้ฝึกอ่านชื่อโน้ตด้วยปุ่มบนมือถือ", "This round practised naming notes with phone buttons", "この回はスマホのボタンで音名を読む練習でした") else tr("รอบนี้ฝึกอ่านโน้ตแล้วหาคีย์ด้วย MIDI", "This round practised reading notes and finding keys with MIDI", "この回は音符を読んでMIDIで鍵盤を探す練習でした")
+                coach += tr("รอบฝึกอ่านโน้ตนี้ไม่เปลี่ยนระดับทักษะ ทดสอบระดับได้ที่หน้า \"ทักษะ\"", "Note-reading practice doesn't change skill levels; test your level on the \"Skills\" page", "読譜練習ではスキルレベルは変わりません。レベルは「スキル」ページでテスト")
             }
-            val summary = "ถูกตั้งแต่ครั้งแรก $pct% (${answers.count { it.correct }}/${answers.size})"
+            val summary = tr("ถูกตั้งแต่ครั้งแรก $pct% (${answers.count { it.correct }}/${answers.size})", "Right first time $pct% (${answers.count { it.correct }}/${answers.size})", "1回目で正解 $pct%（${answers.count { it.correct }}/${answers.size}）")
             saveChordRun(summary)
             _ui.value = DrillUi.Result(summary, met, passedNow, coach)
         }
@@ -496,7 +497,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     private fun describe(srsId: String): String = when {
         srsId.startsWith("chord:") -> "คอร์ด ${srsId.removePrefix("chord:")}"
         srsId.startsWith("key:") -> "คีย์ ${Letter.valueOf(srsId.removePrefix("key:")).let { "${it.name} (${it.solfege})" }}"
-        else -> NoteIdItem.parse(srsId).let { "โน้ต ${it.pitch.name(NoteNameStyle.BOTH, withOctave = true)}" }
+        else -> NoteIdItem.parse(srsId).let { tr("โน้ต ${it.pitch.name(NoteNameStyle.BOTH, withOctave = true)}", "Note ${it.pitch.name(NoteNameStyle.BOTH, withOctave = true)}", "音 ${it.pitch.name(NoteNameStyle.BOTH, withOctave = true)}") }
     }
 
     // ---------------- Steady pulse (lesson 1.3) ----------------
@@ -512,7 +513,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             repo.updateBenchmark { it.copy(noteIdPerMinute = perMinute, noteIdAccuracy = acc) }
             _ui.value = DrillUi.Result(
                 "ถูก $correct/${answers.size} (${(acc * 100).toInt()}%) · อ่านได้ ${"%.1f".format(perMinute)} โน้ตต่อนาที (นับเฉพาะเวลาที่ใช้ตอบ)",
-                null, false, listOf("บันทึกผลวัดแล้ว ดูกราฟเทียบได้ที่หน้า \"ความก้าวหน้า\""),
+                null, false, listOf(tr("บันทึกผลวัดแล้ว ดูกราฟเทียบได้ที่หน้า \"ความก้าวหน้า\"", "Measurement saved; compare on the graph on the \"Progress\" page", "測定結果を保存しました。「上達」ページのグラフで比べられます")),
             )
         }
     }
@@ -557,8 +558,8 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             _ui.value = DrillUi.Result(
                 "$bpm BPM · กด ${stats.taps}/${d.beats} · ความคลาดเคลื่อน (SD) ${"%.0f".format(stats.sdMs)} ms",
                 null, false,
-                listOf(if (enough) "บันทึกผลวัดแล้ว" else "กดไม่ครบพอจะวัดผล ลองใหม่อีกครั้ง") +
-                    if (latency == null) listOf("ยังไม่ได้วัดความหน่วงของเครื่อง ค่าเฉลี่ยอาจเลื่อน แต่ค่า SD ไม่ขึ้นกับความหน่วงคงที่") else emptyList(),
+                listOf(if (enough) tr("บันทึกผลวัดแล้ว", "Measurement saved", "測定結果を保存しました") else tr("กดไม่ครบพอจะวัดผล ลองใหม่อีกครั้ง", "Not enough presses to measure, try again", "測定に必要な入力が足りません。もう一度")) +
+                    if (latency == null) listOf(tr("ยังไม่ได้วัดความหน่วงของเครื่อง ค่าเฉลี่ยอาจเลื่อน แต่ค่า SD ไม่ขึ้นกับความหน่วงคงที่", "Device latency not measured yet; the average may shift, but the SD isn't affected by a steady latency", "端末の遅延はまだ測っていません。平均はずれることがありますが、SDは一定の遅延の影響を受けません")) else emptyList(),
             )
             return
         }
@@ -577,18 +578,18 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         val passedNow = repo.recordDrill(l, drillIndex, met == true, helperUsed = false)
         val coach = mutableListOf<String>()
         val missed = d.beats - stats.taps
-        if (missed > d.beats / 4) coach += "กดไม่ครบ ($missed จังหวะหายไป) ลองนับออกเสียงตลอด แล้วกดทุกครั้งที่นับ"
+        if (missed > d.beats / 4) coach += tr("กดไม่ครบ ($missed จังหวะหายไป) ลองนับออกเสียงตลอด แล้วกดทุกครั้งที่นับ", "Not enough presses ($missed beats missing). Count aloud all the way and press on every count", "入力不足（${missed}拍抜け）。ずっと声に出して数え、数えるたびに押しましょう")
         if (abs(stats.meanMs) > 40) {
-            val dir = if (stats.meanMs > 0) "ช้ากว่า" else "เร็วกว่า"
+            val dir = if (stats.meanMs > 0) tr("ช้ากว่า", "late", "遅め") else tr("เร็วกว่า", "early", "早め")
             coach += if (latency == null) "ส่วนใหญ่กด${dir}คลิกเท่าๆ กัน (${"%.0f".format(abs(stats.meanMs))} ms) อาจเป็นความหน่วงของเครื่อง ลองวัดความหน่วงที่หน้า \"ต่อเปียโน (MIDI)\" ก่อน"
-            else "ส่วนใหญ่กด${dir}คลิก ลองนับออกเสียงหรือเคาะเท้าไปด้วย"
+            else tr("ส่วนใหญ่กด${dir}คลิก ลองนับออกเสียงหรือเคาะเท้าไปด้วย", "Mostly ${dir} the click; try counting aloud or tapping your foot", "ほとんどクリックより${dir}押しています。声に出して数えるか足でリズムを取ってみて")
         }
-        if (met == true && !passedNow) coach += "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อให้ผ่านบทนี้"
-        if (passedNow) coach += "ผ่านบทนี้แล้ว"
+        if (met == true && !passedNow) coach += tr("ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อให้ผ่านบทนี้", "Met the criteria today; pass again on another day to pass this lesson", "今日基準を満たしました。別の日にもう一度でこのレッスンに合格")
+        if (passedNow) coach += tr("ผ่านบทนี้แล้ว", "Lesson passed", "レッスン合格")
         if (coach.isEmpty()) coach += l.tips.first()
         _ui.value = DrillUi.Result(
             "$bpm BPM · กด ${stats.taps}/${d.beats} · ความคลาดเคลื่อน (SD) ${"%.0f".format(stats.sdMs)} ms · เฉลี่ย ${"%+.0f".format(stats.meanMs)} ms" +
-                (if (latency == null) " (ยังไม่ได้หักความหน่วง)" else " (หักความหน่วง ${"%.0f".format(latency)} ms แล้ว)"),
+                (if (latency == null) tr(" (ยังไม่ได้หักความหน่วง)", " (latency not subtracted yet)", "（遅延はまだ差し引いていません）") else " (หักความหน่วง ${"%.0f".format(latency)} ms แล้ว)"),
             met, passedNow, coach,
         )
     }
@@ -661,13 +662,13 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
 
     fun describeMotion(m: com.id.mimikopi.core.music.Motion, mode: String): String {
         val dir = when (m.direction) {
-            com.id.mimikopi.core.music.Direction.UP -> "ขึ้น"
-            com.id.mimikopi.core.music.Direction.DOWN -> "ลง"
+            com.id.mimikopi.core.music.Direction.UP -> tr("ขึ้น", "Up", "上")
+            com.id.mimikopi.core.music.Direction.DOWN -> tr("ลง", "Down", "下")
             com.id.mimikopi.core.music.Direction.SAME -> ""
         }
-        if (m.kind == com.id.mimikopi.core.music.MotionKind.REPEAT) return "ซ้ำ"
-        return if (mode == "INTERVAL") "ระยะ ${m.intervalNumber} $dir"
-        else (if (m.kind == com.id.mimikopi.core.music.MotionKind.STEP) "ขั้น" else "ข้าม") + dir
+        if (m.kind == com.id.mimikopi.core.music.MotionKind.REPEAT) return tr("ซ้ำ", "Same", "同音")
+        return if (mode == "INTERVAL") tr("ระยะ ${m.intervalNumber} $dir", "Interval ${m.intervalNumber} $dir", "${m.intervalNumber}度 $dir")
+        else (if (m.kind == com.id.mimikopi.core.music.MotionKind.STEP) tr("ขั้น", "step", "順次") else tr("ข้าม", "leap", "跳躍")) + dir
     }
 
     // ---------------- Chords (stages 5-6) ----------------
@@ -784,14 +785,14 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
     }
 
     private suspend fun finishChordChange(l: Lesson?, d: Drill, seconds: Int) {
-        val summary = "เปลี่ยนคอร์ดถูก $changeCount ครั้งใน $seconds วินาที"
+        val summary = tr("เปลี่ยนคอร์ดถูก $changeCount ครั้งใน $seconds วินาที", "$changeCount right chord changes in $seconds s", "${seconds}秒間で正しいコードチェンジ${changeCount}回")
         if (check != null) { finishCheck(com.id.mimikopi.core.progress.CheckMetrics(count = changeCount)); return }
         logRun()
         if (l == null) {
             // Free practice: the count is the result, kept in the chord tab's list.
             saveChordRun(summary)
             _ui.value = DrillUi.Result(summary, null, false,
-                if (changeCount == 0) listOf("ยังไม่มีครั้งที่ถูก ลองเริ่มจากเวลานานขึ้น หรือฝึกแต่ละคอร์ดในแบบชื่อคอร์ดก่อน") else emptyList())
+                if (changeCount == 0) listOf(tr("ยังไม่มีครั้งที่ถูก ลองเริ่มจากเวลานานขึ้น หรือฝึกแต่ละคอร์ดในแบบชื่อคอร์ดก่อน", "None right yet; start with more time, or practise each chord with chord names first", "まだ正解がありません。時間を長くするか、先にコード名で各コードを練習しましょう")) else emptyList())
             return
         }
         val isPassDrill = drillIndex in l.pass.requiredDrills
@@ -805,10 +806,10 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
         val passedNow = repo.recordDrill(l, drillIndex, met == true, helperUses > 0)
         val coach = mutableListOf<String>()
         val need = l.pass.minCount
-        if (need != null && changeCount < need) coach += "ต้องการอย่างน้อย $need ครั้ง ลองค้างโน้ตที่เหมือนกันระหว่างคอร์ดไว้ แล้วเลื่อนเฉพาะตัวที่ต่าง"
-        if (helperUses > 0 && met == true) coach += "ผ่านเกณฑ์ แต่ใช้ปุ่มแสดงชื่อโน้ต จึงยังไม่นับเป็นการผ่านเต็ม"
-        if (met == true && !passedNow && helperUses == 0) coach += if (l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่น"
-        if (passedNow) coach += "ผ่านบทนี้แล้ว บทถัดไปปลดล็อก"
+        if (need != null && changeCount < need) coach += tr("ต้องการอย่างน้อย $need ครั้ง ลองค้างโน้ตที่เหมือนกันระหว่างคอร์ดไว้ แล้วเลื่อนเฉพาะตัวที่ต่าง", "At least $need needed; keep shared notes held between chords and move only the others", "最低${need}回必要です。コード間の共通音は押さえたまま、違う音だけ動かしましょう")
+        if (helperUses > 0 && met == true) coach += tr("ผ่านเกณฑ์ แต่ใช้ปุ่มแสดงชื่อโน้ต จึงยังไม่นับเป็นการผ่านเต็ม", "Criteria met, but the note-name button was used, so it doesn't fully count yet", "基準は満たしましたが音名ボタンを使ったためまだ完全には数えません")
+        if (met == true && !passedNow && helperUses == 0) coach += if (l.pass.requiredDrills.size > 1) tr("ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกัน และทำซ้ำในวันอื่น", "This part met the criteria today; the lesson's other parts must pass the same day, and again on another day", "この部分は今日基準を満たしました。同じ日にレッスンの他の部分も合格し、別の日にもくり返してください") else tr("ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่น", "Met the criteria today; pass again on another day", "今日基準を満たしました。別の日にもう一度合格を")
+        if (passedNow) coach += tr("ผ่านบทนี้แล้ว บทถัดไปปลดล็อก", "Lesson passed, the next one is open", "レッスン合格、次が開きました")
         if (coach.isEmpty()) l.tips.firstOrNull()?.let { coach += it }
         _ui.value = DrillUi.Result(summary, met, passedNow, coach)
     }
@@ -841,12 +842,12 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             p.log("check", seconds)
             val status = com.id.mimikopi.core.progress.SkillBook.status(level.skill, p.checks.value, java.time.LocalDate.now())
             val lines = verdict.lines.toMutableList()
-            if (helperUses > 0) lines += "เปิดชื่อโน้ตระหว่างทดสอบ ผลนี้จึงไม่นับ"
-            lines += if (passed) "ระดับ${level.skill.title}ตอนนี้: ${status.level} จาก ${status.maxLevel}"
-            else if (status.lockedToday) "ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น"
-            else "ยังลองได้อีกครั้งวันนี้ หรือฝึกก่อนแล้วค่อยลอง"
+            if (helperUses > 0) lines += tr("เปิดชื่อโน้ตระหว่างทดสอบ ผลนี้จึงไม่นับ", "Note names were on during the test, so this result doesn't count", "テスト中に音名を表示したため、この結果は数えません")
+            lines += if (passed) tr("ระดับ${level.skill.title}ตอนนี้: ${status.level} จาก ${status.maxLevel}", "${level.skill.title} now: ${status.level} of ${status.maxLevel}", "${level.skill.title}の現在：${status.maxLevel}中${status.level}")
+            else if (status.lockedToday) tr("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น", "You've used both tries for this level today; keep practising and try another day", "このレベルは今日2回挑戦しました。練習して別の日に")
+            else tr("ยังลองได้อีกครั้งวันนี้ หรือฝึกก่อนแล้วค่อยลอง", "One more try today, or practise first and then try", "今日あと1回挑戦できます。先に練習してからでも")
             _ui.value = DrillUi.Result(
-                if (passed) "ผ่านระดับ ${level.level}: ${level.canDo}" else "ยังไม่ผ่านระดับ ${level.level}",
+                if (passed) tr("ผ่านระดับ ${level.level}: ${level.canDo}", "Passed: ${level.canDo}", "合格：${level.canDo}") else tr("ยังไม่ผ่านระดับ ${level.level}", "Not passed yet", "まだ不合格"),
                 passed, false, lines,
             )
         }
@@ -868,7 +869,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             // A test is tried at most twice a day when it fails (luck should not decide a level).
             viewModelScope.launch {
                 if (com.id.mimikopi.core.progress.SkillBook.status(check.skill, services.progress.checks.value, java.time.LocalDate.now()).lockedToday)
-                    _ui.value = DrillUi.Result("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว", null, false, listOf("ฝึกเรื่องนี้ต่อในวันนี้ แล้วลองใหม่วันอื่น"))
+                    _ui.value = DrillUi.Result(tr("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว", "You've tried this level twice today", "このレベルは今日2回挑戦しました"), null, false, listOf(tr("ฝึกเรื่องนี้ต่อในวันนี้ แล้วลองใหม่วันอื่น", "Keep practising this today and try again another day", "今日はこれを練習して、別の日にもう一度")))
                 else _ui.value = DrillUi.Ready(d.title, d.type, d.items, null)
             }
             return

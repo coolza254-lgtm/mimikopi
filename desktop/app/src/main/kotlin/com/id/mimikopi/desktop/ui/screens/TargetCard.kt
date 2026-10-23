@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.ui.screens
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -55,14 +56,14 @@ fun TargetCard(
     PageCard(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
             Column(Modifier.weight(1f)) {
-                Text("เพลงเป้าหมาย", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
-                Text(song?.title ?: "ยังไม่ได้เลือกเพลง", fontSize = 28.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink,
+                Text(tr("เพลงเป้าหมาย", "Target songs", "目標曲"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
+                Text(song?.title ?: tr("ยังไม่ได้เลือกเพลง", "No song chosen yet", "まだ曲を選んでいません"), fontSize = 28.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink,
                     maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
                     when {
-                        song == null -> "เพลงส่วนตัวที่แกะเอง · เก็บในเครื่องนี้"
-                        states.isEmpty() -> "ยังไม่ได้แบ่งช่วง"
-                        else -> "${states.size} ช่วง · เรียนแล้ว ${states.count { it == TargetSong.State.LEARNED }} ช่วง"
+                        song == null -> tr("เพลงส่วนตัวที่แกะเอง · เก็บในเครื่องนี้", "Private songs you work out yourself · kept on this computer", "自分で耳コピする個人曲 · このPCに保存")
+                        states.isEmpty() -> tr("ยังไม่ได้แบ่งช่วง", "Not split into sections yet", "まだ区間に分けていません")
+                        else -> tr("${states.size} ช่วง · เรียนแล้ว ${states.count { it == TargetSong.State.LEARNED }} ช่วง", "${states.size} sections · ${states.count { it == TargetSong.State.LEARNED }} learned", "${states.size}区間 · 覚えた区間${states.count { it == TargetSong.State.LEARNED }}")
                     },
                     fontSize = 14.sp, color = Tokens.Palette.InkMuted,
                 )
@@ -97,20 +98,20 @@ fun TargetCard(
             Column(Modifier.weight(1f)) {
                 Text(
                     when {
-                        song == null -> "เพิ่มเพลงแรก"
+                        song == null -> tr("เพิ่มเพลงแรก", "Add your first song", "最初の曲を追加")
                         next != null -> "${next.phrase.title} · ${next.hand.title}"
-                        states.isEmpty() -> "แบ่งเพลงเป็นช่วงสั้น ๆ"
-                        else -> "จำได้ครบทุกช่วงแล้ว"
+                        states.isEmpty() -> tr("แบ่งเพลงเป็นช่วงสั้น ๆ", "Split the song into short sections", "曲を短い区間に分ける")
+                        else -> tr("จำได้ครบทุกช่วงแล้ว", "Every section remembered", "すべての区間を覚えました")
                     },
                     fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     when {
-                        song == null -> "ตั้งชื่อเพลง ใส่ลิงก์ YouTube แล้วแบ่งทีละ 1–2 ห้อง"
-                        next == null -> "ทวนทั้งเพลงจากความจำ"
-                        next.due -> "ถึงวันทวน · ลองเองก่อนเปิดคลิป"
-                        TargetSong.state(next.phrase) == TargetSong.State.NEW -> "ช่วงใหม่ · ฟังคลิปแล้วลองเอง"
-                        else -> "กำลังฝึก · เล่นเองให้ได้ ${TargetSong.LEARNED_DAYS} วัน"
+                        song == null -> tr("ตั้งชื่อเพลง ใส่ลิงก์ YouTube แล้วแบ่งทีละ 1–2 ห้อง", "Name the song, add a YouTube link, then split it 1–2 bars at a time", "曲名をつけ、YouTubeリンクを入れて、1〜2小節ずつ分ける")
+                        next == null -> tr("ทวนทั้งเพลงจากความจำ", "Review the whole song from memory", "曲全体を記憶から復習")
+                        next.due -> tr("ถึงวันทวน · ลองเองก่อนเปิดคลิป", "Review day · try yourself before opening the clip", "復習の日 · 動画を開く前に自分で")
+                        TargetSong.state(next.phrase) == TargetSong.State.NEW -> tr("ช่วงใหม่ · ฟังคลิปแล้วลองเอง", "New section · hear the clip, then try yourself", "新しい区間 · 動画を聞いてから自分で")
+                        else -> tr("กำลังฝึก · เล่นเองให้ได้ ${TargetSong.LEARNED_DAYS} วัน", "Practising · play it alone on ${TargetSong.LEARNED_DAYS} days", "練習中 · ${TargetSong.LEARNED_DAYS}日自分で弾けるように")
                     },
                     fontSize = 14.sp, color = Tokens.Palette.InkMuted,
                 )
@@ -119,10 +120,10 @@ fun TargetCard(
                 color = Tokens.Palette.InkMuted, modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(Tokens.Palette.Group).padding(horizontal = 12.dp, vertical = 6.dp))
             PrimaryButton(
                 when {
-                    song == null -> "เพิ่มเพลง"
-                    states.isEmpty() -> "แบ่งช่วง"
-                    next == null -> "▶  ทวนเพลง"
-                    else -> "▶  เริ่มช่วงนี้"
+                    song == null -> tr("เพิ่มเพลง", "Add song", "曲を追加")
+                    states.isEmpty() -> tr("แบ่งช่วง", "Split into sections", "区間に分ける")
+                    next == null -> tr("▶  ทวนเพลง", "▶  Review the song", "▶  曲を復習")
+                    else -> tr("▶  เริ่มช่วงนี้", "▶  Start this section", "▶  この区間を始める")
                 },
                 { onStart(song?.id, next?.hand?.name) },
                 Modifier.width(180.dp),

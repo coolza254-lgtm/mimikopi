@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.ear
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.ear.EarCourse
 import com.id.mimikopi.core.ear.EarQuestion
 import com.id.mimikopi.core.ear.EarStep
@@ -13,9 +14,9 @@ import kotlinx.coroutines.flow.first
 
 /** The audible phases are separate from grading, so replays cannot accept answers midway through audio. */
 enum class EarAudioStage(val label: String) {
-    IDLE(""), PREPARE("เตรียมฟัง"), CADENCE("ฟังคอร์ดนำ"), BREATH("พักก่อนฟังโจทย์"),
-    QUESTION("ฟังโจทย์ให้จบ"), COUNT_IN("เตรียมเคาะตามจังหวะ"),
-    WAIT_RELEASE("ปล่อยคีย์และแป้นเหยียบ"), FEEDBACK_GAP("เว้นจังหวะก่อนเฉลย"), FEEDBACK("ฟังเฉลย"), TAIL("รอเสียงจบ"),
+    IDLE(""), PREPARE(tr("เตรียมฟัง", "Get ready to listen", "聞く準備")), CADENCE(tr("ฟังคอร์ดนำ", "Listen to the lead-in chords", "導入のコードを聞く")), BREATH(tr("พักก่อนฟังโจทย์", "Pause before the question", "問題の前に一呼吸")),
+    QUESTION(tr("ฟังโจทย์ให้จบ", "Listen to the whole question", "問題を最後まで聞く")), COUNT_IN(tr("เตรียมเคาะตามจังหวะ", "Get ready to tap in time", "リズムに合わせてタップする準備")),
+    WAIT_RELEASE(tr("ปล่อยคีย์และแป้นเหยียบ", "Release keys and pedal", "鍵盤とペダルを離す")), FEEDBACK_GAP(tr("เว้นจังหวะก่อนเฉลย", "Pause before the answer", "答えの前に一呼吸")), FEEDBACK(tr("ฟังเฉลย", "Listen to the answer", "答えを聞く")), TAIL(tr("รอเสียงจบ", "Wait for the sound to end", "音が終わるまで待つ")),
 }
 
 internal data class EarAudioPart(val stage: EarAudioStage, val steps: List<EarStep>) {

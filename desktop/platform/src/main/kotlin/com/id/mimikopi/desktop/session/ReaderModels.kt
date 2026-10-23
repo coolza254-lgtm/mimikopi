@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.session
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.playalong.HeroicPlan
 import com.id.mimikopi.core.score.NoteKey
 import com.id.mimikopi.core.playalong.NoteResult
@@ -10,7 +11,7 @@ import kotlinx.serialization.Serializable
 enum class Phase { IDLE, COUNT_IN, PLAYING, LISTENING, RESULT }
 
 enum class HandChoice(val hands: Set<Hand>, val title: String) {
-    RIGHT(setOf(Hand.RIGHT), "มือขวา"), LEFT(setOf(Hand.LEFT), "มือซ้าย"), BOTH(setOf(Hand.RIGHT, Hand.LEFT), "สองมือ")
+    RIGHT(setOf(Hand.RIGHT), tr("มือขวา", "Right hand", "右手")), LEFT(setOf(Hand.LEFT), tr("มือซ้าย", "Left hand", "左手")), BOTH(setOf(Hand.RIGHT, Hand.LEFT), tr("สองมือ", "Both hands", "両手"))
 }
 
 /** Reader preferences remembered between pieces: the Android ReaderOptions row, field for field. */
@@ -76,7 +77,7 @@ data class WrongMark(val midi: Int, val beat: Double, val atNanos: Long)
 
 /** Visual events use the judge's verdict, never merely the set of held keys. */
 enum class FallingVerdict(val caption: String) {
-    HIT("ถูก"), CORRECTED("แก้ถูก"), EARLY("เร็ว"), LATE("ช้า"), WRONG("ผิดคีย์"), MISS("พลาด")
+    HIT(tr("ถูก", "Right", "正解")), CORRECTED(tr("แก้ถูก", "Corrected", "修正")), EARLY(tr("เร็ว", "Early", "早い")), LATE(tr("ช้า", "Late", "遅い")), WRONG(tr("ผิดคีย์", "Wrong key", "違う鍵盤")), MISS(tr("พลาด", "Missed", "ミス"))
 }
 
 data class FallingFeedback(val midi: Int, val verdict: FallingVerdict, val left: Boolean, val atNanos: Long) {
@@ -141,5 +142,5 @@ internal fun ReaderUi.withStudyTarget(t: HeroicPlan.Target): ReaderUi = copy(
     section = t.from..t.to, bpm = t.bpm, targetBpm = t.bpm, showNames = false,
     options = options.copy(mode = t.mode, hands = HandChoice.entries.first { it.hands == t.hands },
         useRamp = false, falling = false, hideNotes = false, playOtherHand = false, loopListen = false, metronome = true),
-    message = "แผน Heroic · ${t.label} · ${t.goal}",
+    message = tr("แผน Heroic · ${t.label} · ${t.goal}", "Heroic plan · ${t.label} · ${t.goal}", "Heroicプラン · ${t.label} · ${t.goal}"),
 )

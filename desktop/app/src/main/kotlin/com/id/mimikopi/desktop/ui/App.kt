@@ -71,6 +71,13 @@ object LangState {
     fun set(services: com.id.mimikopi.desktop.Services, lang: com.id.mimikopi.core.i18n.Lang) {
         services.db.put(com.id.mimikopi.core.i18n.L10n.KEY, lang.code)
         com.id.mimikopi.core.i18n.L10n.lang = lang
+        // Start again so texts made once at start (lists, plans, notices) are made again in the new language; where the
+        // app can't find its own command, every screen is rebuilt in place instead.
+        val info = ProcessHandle.current().info()
+        val cmd = info.command().orElse(null)
+        if (cmd != null && runCatching { ProcessBuilder(listOf(cmd) + info.arguments().map { it.toList() }.orElse(emptyList())).start() }.isSuccess) {
+            kotlin.system.exitProcess(0)
+        }
         version++
     }
 }

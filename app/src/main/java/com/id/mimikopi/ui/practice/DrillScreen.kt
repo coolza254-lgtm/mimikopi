@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.practice
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -98,7 +99,7 @@ fun DrillScreen(onBack: () -> Unit, vm: DrillViewModel = viewModel()) {
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             if (activeNotation) Unit else TopAppBar(
-                title = { Text(if (vm.readingOnly) "อ่านโน้ตทีละตัว" else stringResource(R.string.drill_title), style = MaterialTheme.typography.titleLarge) },
+                title = { Text(if (vm.readingOnly) tr("อ่านโน้ตทีละตัว", "Read notes one by one", "1音ずつ読む") else stringResource(R.string.drill_title), style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.action_back)) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
             )
@@ -238,14 +239,14 @@ private fun IntervalAnswers(s: DrillUi.Interval, vm: DrillViewModel) {
     val skip = com.id.mimikopi.core.music.MotionKind.SKIP
     fun m(kind: com.id.mimikopi.core.music.MotionKind, d: com.id.mimikopi.core.music.Direction, steps: Int) = com.id.mimikopi.core.music.Motion(kind, d, steps)
     val rows: List<List<Pair<String, com.id.mimikopi.core.music.Motion>>> = if (s.answerMode == "INTERVAL") {
-        listOf(up, down).map { d -> s.numbers.map { n -> "${n} ${if (d == up) "ขึ้น" else "ลง"}" to m(if (n == 2) step else skip, d, n - 1) } }
+        listOf(up, down).map { d -> s.numbers.map { n -> "${n} ${if (d == up) tr("ขึ้น", "Up", "上") else tr("ลง", "Down", "下")}" to m(if (n == 2) step else skip, d, n - 1) } }
     } else {
         listOf(
-            listOf("ขั้นขึ้น" to m(step, up, 1), "ข้ามขึ้น" to m(skip, up, 2)),
-            listOf("ขั้นลง" to m(step, down, 1), "ข้ามลง" to m(skip, down, 2)),
+            listOf(tr("ขั้นขึ้น", "Step up", "順次上行") to m(step, up, 1), tr("ข้ามขึ้น", "Leap up", "跳躍上行") to m(skip, up, 2)),
+            listOf(tr("ขั้นลง", "Step down", "順次下行") to m(step, down, 1), tr("ข้ามลง", "Leap down", "跳躍下行") to m(skip, down, 2)),
         )
     }
-    val repeat = "ซ้ำ" to com.id.mimikopi.core.music.Motion(com.id.mimikopi.core.music.MotionKind.REPEAT, com.id.mimikopi.core.music.Direction.SAME, 0)
+    val repeat = tr("ซ้ำ", "Same", "同音") to com.id.mimikopi.core.music.Motion(com.id.mimikopi.core.music.MotionKind.REPEAT, com.id.mimikopi.core.music.Direction.SAME, 0)
     Column(verticalArrangement = Arrangement.spacedBy(Tokens.Space.xs), modifier = Modifier.padding(top = Tokens.Space.s)) {
         for ((i, row) in rows.withIndex()) {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Tokens.Space.xs)) {
@@ -297,12 +298,12 @@ private fun dispatchTouch(vm: DrillViewModel, note: Int, down: Boolean) {
 /** Thai prompt for a key-finding item; exact-octave items are described relative to Middle C. */
 private fun keyPrompt(item: KeyFindItem): String {
     val name = "${item.letter.name} (${item.letter.solfege})"
-    val t = item.target ?: return "หา $name"
+    val t = item.target ?: return tr("หา $name", "Find $name", "${name}を探す")
     return when {
-        t.midi == 60 -> "หา Middle C (โดกลาง)"
-        t.midi in 48..59 -> "หา $name ที่อยู่ต่ำกว่า Middle C"
-        t.midi in 61..71 -> "หา $name ที่อยู่สูงกว่า Middle C"
-        t.midi in 72..83 -> "หา $name ในอ็อกเทฟที่สูงกว่า Middle C อีกหนึ่ง (${t})"
-        else -> "หา $t"
+        t.midi == 60 -> tr("หา Middle C (โดกลาง)", "Find Middle C", "中央のド（Middle C）を探す")
+        t.midi in 48..59 -> tr("หา $name ที่อยู่ต่ำกว่า Middle C", "Find the $name below Middle C", "中央のドより下の${name}を探す")
+        t.midi in 61..71 -> tr("หา $name ที่อยู่สูงกว่า Middle C", "Find the $name above Middle C", "中央のドより上の${name}を探す")
+        t.midi in 72..83 -> tr("หา $name ในอ็อกเทฟที่สูงกว่า Middle C อีกหนึ่ง (${t})", "Find $name one octave above the Middle C octave (${t})", "中央のドより1つ上のオクターブの${name}（${t}）を探す")
+        else -> tr("หา $t", "Find $t", "${t}を探す")
     }
 }

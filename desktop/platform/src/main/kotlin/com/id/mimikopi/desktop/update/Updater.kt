@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.update
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.update.DesktopRelease
 import com.id.mimikopi.core.update.DesktopUpdates
 import java.io.File
@@ -21,9 +22,9 @@ class Updater(private val dir: File, private val appVersion: String) {
         val text = try {
             open(DesktopUpdates.RELEASES_API).let { c -> try { c.inputStream.readBytes().toString(Charsets.UTF_8) } finally { c.disconnect() } }
         } catch (e: IOException) {
-            throw UpdateException("ต่ออินเทอร์เน็ตไม่ได้: ${e.message}")
+            throw UpdateException(tr("ต่ออินเทอร์เน็ตไม่ได้: ${e.message}", "No internet connection: ${e.message}", "インターネットに接続できません：${e.message}"))
         }
-        val releases = runCatching { DesktopUpdates.parse(text) }.getOrElse { throw UpdateException("ข้อมูลรุ่นใหม่ไม่ถูกต้อง") }
+        val releases = runCatching { DesktopUpdates.parse(text) }.getOrElse { throw UpdateException(tr("ข้อมูลรุ่นใหม่ไม่ถูกต้อง", "Invalid new-version data", "新しいバージョンのデータが不正です")) }
         return DesktopUpdates.pick(releases, appVersion)
     }
 
@@ -32,9 +33,9 @@ class Updater(private val dir: File, private val appVersion: String) {
         val sums = try {
             open(r.sums.url).let { c -> try { c.inputStream.readBytes().toString(Charsets.UTF_8) } finally { c.disconnect() } }
         } catch (e: IOException) {
-            throw UpdateException("โหลดรายการตรวจสอบไม่ได้: ${e.message}")
+            throw UpdateException(tr("โหลดรายการตรวจสอบไม่ได้: ${e.message}", "Couldn't load the checksum list: ${e.message}", "チェックサム一覧を読み込めません：${e.message}"))
         }
-        val expected = DesktopUpdates.checksum(sums, r.msi.name) ?: throw UpdateException("ไม่มีค่าตรวจสอบของ ${r.msi.name}")
+        val expected = DesktopUpdates.checksum(sums, r.msi.name) ?: throw UpdateException(tr("ไม่มีค่าตรวจสอบของ ${r.msi.name}", "No checksum for ${r.msi.name}", "${r.msi.name}のチェックサムがありません"))
         dir.mkdirs()
         dir.listFiles()?.forEach { it.delete() }
         val part = File(dir, r.msi.name + ".part")
@@ -47,7 +48,7 @@ class Updater(private val dir: File, private val appVersion: String) {
                         val buf = ByteArray(64 * 1024)
                         var done = 0L
                         while (true) {
-                            if (cancelled()) throw UpdateException("ยกเลิกแล้ว")
+                            if (cancelled()) throw UpdateException(tr("ยกเลิกแล้ว", "Cancelled", "キャンセルしました"))
                             val n = input.read(buf)
                             if (n < 0) break
                             out.write(buf, 0, n)
@@ -62,16 +63,16 @@ class Updater(private val dir: File, private val appVersion: String) {
             }
         } catch (e: IOException) {
             part.delete()
-            throw UpdateException("ดาวน์โหลดไม่สำเร็จ: ${e.message}")
+            throw UpdateException(tr("ดาวน์โหลดไม่สำเร็จ: ${e.message}", "Download failed: ${e.message}", "ダウンロード失敗：${e.message}"))
         }
         val actual = digest.digest().joinToString("") { "%02x".format(it) }
         if (actual != expected) {
             part.delete()
-            throw UpdateException("ไฟล์ที่ได้ไม่ตรงกับค่าตรวจสอบ ไม่ได้ติดตั้ง")
+            throw UpdateException(tr("ไฟล์ที่ได้ไม่ตรงกับค่าตรวจสอบ ไม่ได้ติดตั้ง", "The downloaded file doesn't match its checksum; not installed", "ダウンロードしたファイルがチェックサムと一致しないためインストールしませんでした"))
         }
         val msi = File(dir, r.msi.name)
         msi.delete()
-        if (!part.renameTo(msi)) throw UpdateException("บันทึกไฟล์ติดตั้งไม่ได้")
+        if (!part.renameTo(msi)) throw UpdateException(tr("บันทึกไฟล์ติดตั้งไม่ได้", "Couldn't save the installer", "インストーラーを保存できません"))
         return msi
     }
 

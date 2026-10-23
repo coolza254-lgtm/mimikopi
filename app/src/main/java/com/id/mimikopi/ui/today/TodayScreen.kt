@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.today
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -65,12 +66,12 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
             if (!ui.loaded) return@Column
             // No page title or date (the user asked for none): the day's basics come first.
             Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 40.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("พื้นฐานวันนี้", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
+                Text(tr("พื้นฐานวันนี้", "Today's basics", "今日の基礎"), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
                 MinutesRail(DailyPlan.CHOICES, ui.minutesChosen, vm::choose)
             }
             BlockGrid(ui, onOpen = { b -> vm.open(b, onOpen) })
             if (ui.next == null && !ui.allDone) Text(
-                "ส่วนที่เหลือตัดสินจังหวะ ต้องต่อเปียโนด้วยสาย ทำบนคอมแล้วนับในแผนเดียวกันหลังซิงค์",
+                tr("ส่วนที่เหลือตัดสินจังหวะ ต้องต่อเปียโนด้วยสาย ทำบนคอมแล้วนับในแผนเดียวกันหลังซิงค์", "The rest judges timing and needs a piano on a cable; do it on the PC and it counts in the same plan after sync", "残りはリズムを判定するのでケーブル接続のピアノが必要。PCで行えば同期後に同じプランに数えられます"),
                 fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(start = 4.dp, top = 12.dp),
             )
 
@@ -78,7 +79,7 @@ fun TodayScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings: 
             WeekCard(ui)
 
             if (ui.fixes.isNotEmpty()) {
-                GroupHeader("สิ่งที่ควรแก้")
+                GroupHeader(tr("สิ่งที่ควรแก้", "What to fix", "直すところ"))
                 Group {
                     ui.fixes.forEachIndexed { i, m ->
                         if (i > 0) GroupDivider()
@@ -105,7 +106,7 @@ private fun MinutesRail(choices: List<Int>, chosen: Int, onChoose: (Int) -> Unit
                     .clickable { onChoose(m) }.padding(horizontal = if (on) 12.dp else 9.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(if (on) "$m นาที" else "$m", fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                Text(if (on) tr("$m นาที", "$m min", "${m}分") else "$m", fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (on) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
             }
         }
@@ -155,9 +156,9 @@ private fun BlockCard(b: BlockUi, now: Boolean, onOpen: () -> Unit, modifier: Mo
             Spacer(Modifier.weight(1f))
             when {
                 b.done -> Box(Modifier.size(24.dp).clip(CircleShape).background(color.ink), contentAlignment = Alignment.Center) {
-                    Icon(painterResource(R.drawable.ic_check_bold), contentDescription = "เสร็จแล้ว", tint = Tokens.Palette.OnAccent, modifier = Modifier.size(13.dp))
+                    Icon(painterResource(R.drawable.ic_check_bold), contentDescription = tr("เสร็จแล้ว", "Done", "完了"), tint = Tokens.Palette.OnAccent, modifier = Modifier.size(13.dp))
                 }
-                now -> Pill("ต่อไป", filled = true)
+                now -> Pill(tr("ต่อไป", "Next", "次へ"), filled = true)
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -170,10 +171,10 @@ private fun BlockCard(b: BlockUi, now: Boolean, onOpen: () -> Unit, modifier: Mo
             }
             Text(
                 when {
-                    b.done -> "เสร็จแล้ว · ${b.block.minutes} นาที"
+                    b.done -> tr("เสร็จแล้ว · ${b.block.minutes} นาที", "Done · ${b.block.minutes} min", "完了 · ${b.block.minutes}分")
                     b.needsCable -> com.id.mimikopi.core.input.TimingInput.NEED_CABLE_SHORT
-                    now -> "$played / ${b.block.minutes} นาที"
-                    else -> "${b.block.minutes} นาที"
+                    now -> tr("$played / ${b.block.minutes} นาที", "$played / ${b.block.minutes} min", "$played / ${b.block.minutes}分")
+                    else -> tr("${b.block.minutes} นาที", "${b.block.minutes} min", "${b.block.minutes}分")
                 },
                 fontSize = 12.sp, color = Tokens.Palette.InkMuted,
             )
@@ -187,11 +188,11 @@ private fun WeekCard(ui: TodayUi) {
     val today = java.time.LocalDate.now()
     val monday = today.minusDays((today.dayOfWeek.value - 1).toLong())
     val minutes = ui.strip.toMap()
-    val names = listOf("จ", "อ", "พ", "พฤ", "ศ", "ส", "อา")
+    val names = listOf(tr("จ", "M", "月"), tr("อ", "T", "火"), tr("พ", "W", "水"), tr("พฤ", "T", "木"), tr("ศ", "F", "金"), tr("ส", "S", "土"), tr("อา", "S", "日"))
     com.id.mimikopi.ui.components.PageCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("สัปดาห์นี้", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
-            Text("${ui.weekDays} วัน · ${ui.weekMinutes} นาที", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
+            Text(tr("สัปดาห์นี้", "This week", "今週"), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
+            Text(tr("${ui.weekDays} วัน · ${ui.weekMinutes} นาที", "${ui.weekDays} days · ${ui.weekMinutes} min", "${ui.weekDays}日 · ${ui.weekMinutes}分"), fontSize = 13.sp, color = Tokens.Palette.InkMuted)
         }
         Row(Modifier.fillMaxWidth().padding(top = 18.dp)) {
             for (i in 0 until 7) {
@@ -208,7 +209,7 @@ private fun WeekCard(ui: TodayUi) {
                                 when { isToday -> Tokens.Palette.Accent; m >= 30 -> Tokens.Palette.AccentMidStrong; m > 0 -> Tokens.Palette.AccentMid; else -> Tokens.Palette.Track }))
                         }
                     }
-                    Text(if (isToday) "วันนี้" else names[i], fontSize = 12.sp, fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    Text(if (isToday) tr("วันนี้", "Today", "今日") else names[i], fontSize = 12.sp, fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                         color = if (isToday) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
                 }
             }

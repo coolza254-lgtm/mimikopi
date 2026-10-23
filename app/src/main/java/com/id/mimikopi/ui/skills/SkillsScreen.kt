@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.skills
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,10 +76,10 @@ fun SkillsScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
     val ui by vm.ui.collectAsStateWithLifecycle()
 
     Page {
-        LargeTitle("ทักษะ", "วัดจากแบบทดสอบเท่านั้น ไม่ใช่เวลาที่ฝึก") {
+        LargeTitle(tr("ทักษะ", "Skills", "スキル"), tr("วัดจากแบบทดสอบเท่านั้น ไม่ใช่เวลาที่ฝึก", "Measured only by tests, not by practice time", "練習時間ではなくテストだけで測ります")) {
             MidiPill(onOpenMidi)
             IconButton(onClick = onOpenSettings) {
-                Icon(painterResource(R.drawable.ic_settings), contentDescription = "ตั้งค่า", tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
+                Icon(painterResource(R.drawable.ic_settings), contentDescription = tr("ตั้งค่า", "Settings", "設定"), tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
             }
         }
         if (!ui.loaded) return@Page
@@ -92,33 +93,33 @@ fun SkillsScreen(onOpen: (Open) -> Unit, onOpenMidi: () -> Unit, onOpenSettings:
                 }
             }
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SmallCard("พัฒนาการ", "ระดับย้อนหลัง เวลาฝึก", Modifier.weight(1f).fillMaxHeight()) { onOpen(Open.Progress) }
-                SmallCard("ผลสอบเดิม", "สอบเกรดแบบ ABRSM", Modifier.weight(1f).fillMaxHeight()) { onOpen(Open.Exams) }
+                SmallCard(tr("พัฒนาการ", "Progress", "上達"), tr("ระดับย้อนหลัง เวลาฝึก", "Level history · practice time", "レベルの推移 · 練習時間"), Modifier.weight(1f).fillMaxHeight()) { onOpen(Open.Progress) }
+                SmallCard(tr("ผลสอบเดิม", "Earlier exam results", "以前の試験結果"), tr("สอบเกรดแบบ ABRSM", "ABRSM-style grade exams", "ABRSM式グレード試験"), Modifier.weight(1f).fillMaxHeight()) { onOpen(Open.Exams) }
             }
 
             Column {
-                GroupHeader("ฝึกเอง")
+                GroupHeader(tr("ฝึกเอง", "Practise on my own", "自主練習"))
                 val sight = ui.statuses.firstOrNull { it.skill == SkillId.SIGHT }?.level ?: 0
                 Group {
-                    GroupRow("ขั้นหลัก", subtitle = "บทเรียนทีละขั้น: อ่านโน้ต จังหวะ นิ้ว เพลงสั้น", onClick = { onOpen(Open.Ladder) })
+                    GroupRow(tr("ขั้นหลัก", "Main step", "メインステップ"), subtitle = tr("บทเรียนทีละขั้น: อ่านโน้ต จังหวะ นิ้ว เพลงสั้น", "Step-by-step lessons: reading, rhythm, fingers, short pieces", "段階レッスン：読譜、リズム、指、短い曲"), onClick = { onOpen(Open.Ladder) })
                     GroupDivider()
-                    GroupRow("ฝึกอ่านโน้ต", subtitle = "ทีละตัวหรือทำนอง · ใช้มือถือหรือ MIDI", onClick = { onOpen(Open.Reading) })
+                    GroupRow(tr("ฝึกอ่านโน้ต", "Note reading", "読譜"), subtitle = tr("ทีละตัวหรือทำนอง · ใช้มือถือหรือ MIDI", "One note or a melody · touch or MIDI", "1音ずつかメロディ · タッチかMIDI"), onClick = { onOpen(Open.Reading) })
                     GroupDivider()
-                    GroupRow("ทวนโน้ตและคีย์", subtitle = "ตัวที่ถึงกำหนดทวน", onClick = { onOpen(Open.Review) })
+                    GroupRow(tr("ทวนโน้ตและคีย์", "Review notes and keys", "音とキーの復習"), subtitle = tr("ตัวที่ถึงกำหนดทวน", "The ones due for review", "復習の時期が来たもの"), onClick = { onOpen(Open.Review) })
                     GroupDivider()
-                    GroupRow("อ่านโน้ตใหม่", subtitle = "โน้ตที่ไม่เคยเห็น เล่นครั้งแรก", onClick = { onOpen(Open.Sight(sight.coerceIn(1, 5))) })
+                    GroupRow(tr("อ่านโน้ตใหม่", "Sight-reading", "初見"), subtitle = tr("โน้ตที่ไม่เคยเห็น เล่นครั้งแรก", "Music you have never seen, played for the first time", "初めて見る楽譜を初めて弾く"), onClick = { onOpen(Open.Sight(sight.coerceIn(1, 5))) })
                     GroupDivider()
-                    GroupRow("ฝึกหู", subtitle = "โน้ต ทำนอง คอร์ด ทางเดินคอร์ด เพื่อแกะเพลงเอง", onClick = { onOpen(Open.EarHome) })
+                    GroupRow(tr("ฝึกหู", "Ear training", "耳トレ"), subtitle = tr("โน้ต ทำนอง คอร์ด ทางเดินคอร์ด เพื่อแกะเพลงเอง", "Notes, melodies, chords and progressions, to work out songs yourself", "音、メロディ、コード、コード進行。自分で耳コピするために"), onClick = { onOpen(Open.EarHome) })
                     GroupDivider()
-                    GroupRow("คอร์ด", subtitle = "กดคอร์ด เปลี่ยนคอร์ด และวิธีจับ", onClick = { onOpen(Open.ChordHome) })
+                    GroupRow(tr("คอร์ด", "Chords", "コード"), subtitle = tr("กดคอร์ด เปลี่ยนคอร์ด และวิธีจับ", "Pressing chords, changing them and voicings", "コードの押さえ方、切り替え、ボイシング"), onClick = { onOpen(Open.ChordHome) })
                     GroupDivider()
-                    GroupRow("เครื่องเคาะจังหวะ", onClick = { onOpen(Open.Metronome) })
+                    GroupRow(tr("เครื่องเคาะจังหวะ", "Metronome", "メトロノーム"), onClick = { onOpen(Open.Metronome) })
                     GroupDivider()
-                    GroupRow("เป้าหมาย: เพลงไอดอล", subtitle = "แต่ละเพลงต้องการอะไร ยังขาดอะไร", onClick = { onOpen(Open.Goal) })
+                    GroupRow(tr("เป้าหมาย: เพลงไอดอล", "Goal: idol songs", "目標：アイドル曲"), subtitle = tr("แต่ละเพลงต้องการอะไร ยังขาดอะไร", "What each song needs and what is still missing", "曲ごとに必要なこと、まだ足りないこと"), onClick = { onOpen(Open.Goal) })
                 }
                 GroupFooter(
-                    "ฝึกส่วนไหนก็นับเวลาเข้าแผนวันนี้ ระดับขึ้นจากแบบทดสอบสั้นที่มีเกณฑ์ตายตัวเท่านั้น " +
-                        "ถ้าทดสอบระดับที่ถืออยู่ไม่ผ่านสองครั้งติด ระดับจะลดลง",
+                    tr("ฝึกส่วนไหนก็นับเวลาเข้าแผนวันนี้ ระดับขึ้นจากแบบทดสอบสั้นที่มีเกณฑ์ตายตัวเท่านั้น ", "Any practice counts toward today's plan. Levels go up only from short tests with fixed criteria. ", "どの練習も今日のプランの時間に入ります。レベルは基準の決まった短いテストでのみ上がります。") +
+                        tr("ถ้าทดสอบระดับที่ถืออยู่ไม่ผ่านสองครั้งติด ระดับจะลดลง", "Failing the level you hold twice in a row lowers it", "今のレベルのテストに2回続けて不合格だとレベルが下がります"),
                 )
             }
             Spacer(Modifier.height(20.dp))
@@ -138,13 +139,13 @@ private fun OverallCard(ui: SkillsUi, onOpen: (Open) -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
             CountRing(measured, total)
             Column(Modifier.weight(1f)) {
-                Text("ภาพรวม", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
-                Text("วัดแล้ว $measured จาก $total ทักษะ", fontSize = 19.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                Text(tr("ภาพรวม", "Overview", "概要"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
+                Text(tr("วัดแล้ว $measured จาก $total ทักษะ", "$measured of $total skills measured", "${total}個中${measured}個のスキルを測定済み"), fontSize = 19.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
                 Text(
-                    if (month.isEmpty()) "30 วันล่าสุดยังไม่ได้ทดสอบ" else "30 วันล่าสุด: ทดสอบ ${month.size} ครั้ง ผ่าน ${month.count { it.passed }} ครั้ง",
+                    if (month.isEmpty()) tr("30 วันล่าสุดยังไม่ได้ทดสอบ", "No tests in the last 30 days", "この30日間テストなし") else tr("30 วันล่าสุด: ทดสอบ ${month.size} ครั้ง ผ่าน ${month.count { it.passed }} ครั้ง", "Last 30 days: ${month.size} tests, ${month.count { it.passed }} passed", "この30日間：テスト${month.size}回、合格${month.count { it.passed }}回"),
                     fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted,
                 )
-                ui.overall?.let { Text("ระดับรวม: $it", fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted) }
+                ui.overall?.let { Text(tr("ระดับรวม: $it", "Overall: $it", "総合：$it"), fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted) }
             }
         }
         val level = next?.nextTest
@@ -156,10 +157,10 @@ private fun OverallCard(ui: SkillsUi, onOpen: (Open) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("ทดสอบถัดไป", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
-                    Text("${next.skill.title} · ระดับ $level", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                    Text(tr("ทดสอบถัดไป", "Next test", "次のテスト"), fontSize = 13.sp, color = Tokens.Palette.InkMuted)
+                    Text(tr("${next.skill.title} · ระดับ $level", "${next.skill.title} · level $level", "${next.skill.title} · レベル$level"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
                 }
-                PrimaryButton("ทดสอบ", onClick = { onOpen(Open.Check(SkillBook.key(next.skill, level), book.run)) }, modifier = Modifier.width(112.dp))
+                PrimaryButton(tr("ทดสอบ", "Test", "テスト"), onClick = { onOpen(Open.Check(SkillBook.key(next.skill, level), book.run)) }, modifier = Modifier.width(112.dp))
             }
         }
     }
@@ -195,16 +196,16 @@ private fun SkillRow(s: SkillStatus, onClick: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(s.skill.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
             if (s.locked) {
-                Text("ยังไม่เปิด", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
+                Text(tr("ยังไม่เปิด", "Not open yet", "まだ開いていません"), fontSize = 13.sp, color = Tokens.Palette.InkMuted)
             } else if (s.lastTested == null) {
-                Text("ยังไม่ได้วัด", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
+                Text(tr("ยังไม่ได้วัด", "Not measured yet", "未測定"), fontSize = 13.sp, color = Tokens.Palette.InkMuted)
             } else {
                 LevelBars(s.level, s.maxLevel, width = 20.dp, color = color.ink, gap = 4.dp, modifier = Modifier.padding(top = 6.dp))
             }
         }
         when {
-            s.lastTested != null && s.due && !s.lockedToday -> Pill("ถึงเวลาทดสอบ")
-            s.lastTested != null -> Text("ระดับ ${s.level}", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+            s.lastTested != null && s.due && !s.lockedToday -> Pill(tr("ถึงเวลาทดสอบ", "Time for a test", "テストの時期"))
+            s.lastTested != null -> Text(tr("ระดับ ${s.level}", "Level ${s.level}", "レベル${s.level}"), fontSize = 14.sp, color = Tokens.Palette.InkMuted)
             else -> Icon(painterResource(R.drawable.ic_chevron_right), contentDescription = null, tint = Tokens.Palette.Dim, modifier = Modifier.size(16.dp))
         }
     }
@@ -253,51 +254,51 @@ fun SkillDetailScreen(skill: SkillId, onBack: () -> Unit, onOpen: (Open) -> Unit
             Spacer(Modifier.height(16.dp))
             Group {
                 Column(Modifier.padding(20.dp)) {
-                    Text("ระดับ", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Tokens.Palette.InkMuted)
+                    Text(tr("ระดับ", "Level", "レベル"), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Tokens.Palette.InkMuted)
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text("${s.level}", fontSize = 48.sp, lineHeight = 52.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                        Text(" จาก ${s.maxLevel}", fontSize = 17.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 8.dp))
+                        Text(tr(" จาก ${s.maxLevel}", " of ${s.maxLevel}", " / ${s.maxLevel}"), fontSize = 17.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 8.dp))
                     }
                     LevelBars(s.level, s.maxLevel, width = 22.dp, modifier = Modifier.padding(top = 4.dp))
                     Text(
-                        if (s.level > 0) "ทำได้แล้ว: ${levels[s.level - 1].canDo}" else if (s.lastTested == null) "ยังไม่ได้วัด เริ่มจากทดสอบระดับ 1" else "ยังไม่ผ่านระดับ 1",
+                        if (s.level > 0) tr("ทำได้แล้ว: ${levels[s.level - 1].canDo}", "Can do: ${levels[s.level - 1].canDo}", "できること：${levels[s.level - 1].canDo}") else if (s.lastTested == null) tr("ยังไม่ได้วัด เริ่มจากทดสอบระดับ 1", "Not measured yet, start with the first test", "未測定。最初のテストから始めましょう") else tr("ยังไม่ผ่านระดับ 1", "First test not passed yet", "最初のテストはまだ不合格"),
                         fontSize = 15.sp, lineHeight = 20.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 14.dp),
                     )
-                    if (s.dropped) Text("ระดับลดลง เพราะทดสอบระดับที่เคยผ่านไม่ผ่านสองครั้งติด", fontSize = 14.sp, lineHeight = 19.sp,
+                    if (s.dropped) Text(tr("ระดับลดลง เพราะทดสอบระดับที่เคยผ่านไม่ผ่านสองครั้งติด", "Went down after failing a level you had passed twice in a row", "合格していたレベルに2回続けて不合格だったため下がりました"), fontSize = 14.sp, lineHeight = 19.sp,
                         color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
-                    s.lastTested?.let { Text("ทดสอบล่าสุด${SkillsViewModel.ago(it, today)}", fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp)) }
+                    s.lastTested?.let { Text(tr("ทดสอบล่าสุด${SkillsViewModel.ago(it, today)}", "Last test${SkillsViewModel.ago(it, today)}", "最後のテスト${SkillsViewModel.ago(it, today)}"), fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp)) }
                 }
             }
 
-            GroupHeader("ทดสอบถัดไป")
+            GroupHeader(tr("ทดสอบถัดไป", "Next test", "次のテスト"))
             Group {
                 Column(Modifier.padding(20.dp)) {
                     val next = s.nextTest?.let { SkillBook.level(skill, it) }
                     if (next != null) {
-                        Text(if (next.level == s.level) "ยืนยันระดับ ${next.level}" else "ระดับ ${next.level}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                        Text(if (next.level == s.level) tr("ยืนยันระดับ ${next.level}", "Confirm level ${next.level}", "レベル${next.level}を確認") else tr("ระดับ ${next.level}", "Level ${next.level}", "レベル${next.level}"), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
                         Text(next.canDo, fontSize = 15.sp, lineHeight = 20.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 4.dp))
-                        Text("เกณฑ์ผ่าน: ${next.criteriaText()}", fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
+                        Text(tr("เกณฑ์ผ่าน: ${next.criteriaText()}", "To pass: ${next.criteriaText()}", "合格基準：${next.criteriaText()}"), fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
                         if (s.locked) SkillBook.opensText(skill)?.let {
-                            Text("ยังไม่เปิดในแผนวันนี้ · $it ทดสอบเองก่อนได้", fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
+                            Text(tr("ยังไม่เปิดในแผนวันนี้ · $it ทดสอบเองก่อนได้", "Not open in today's plan yet · $it you can test yourself first", "まだ今日のプランにはありません · $it 先に自分でテストできます"), fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
                         }
                         Spacer(Modifier.height(18.dp))
                         PrimaryButton(
-                            if (s.lockedToday) "พรุ่งนี้ลองใหม่ได้" else "ทดสอบระดับ ${next.level}",
+                            if (s.lockedToday) tr("พรุ่งนี้ลองใหม่ได้", "Try again tomorrow", "明日また挑戦できます") else tr("ทดสอบระดับ ${next.level}", "Test level ${next.level}", "レベル${next.level}のテスト"),
                             onClick = { onOpen(Open.Check(SkillBook.key(skill, next.level), next.run)) },
                             enabled = !s.lockedToday,
                         )
-                        if (s.lockedToday) Text("วันนี้ลองระดับนี้ครบ 2 ครั้งแล้ว ฝึกก่อนแล้วค่อยลองพรุ่งนี้", fontSize = 13.sp, lineHeight = 18.sp,
+                        if (s.lockedToday) Text(tr("วันนี้ลองระดับนี้ครบ 2 ครั้งแล้ว ฝึกก่อนแล้วค่อยลองพรุ่งนี้", "You've tried this twice today. Practise and try again tomorrow", "今日はこのテストを2回受けました。練習して明日また"), fontSize = 13.sp, lineHeight = 18.sp,
                             color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 8.dp))
                     } else {
-                        Text("ถือระดับสูงสุดอยู่", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                        Text("ทดสอบซ้ำได้เมื่อครบ ${SkillBook.HOLD_DAYS} วันนับจากครั้งล่าสุด เพื่อดูว่ายังทำได้อยู่", fontSize = 15.sp, lineHeight = 20.sp,
+                        Text(tr("ถือระดับสูงสุดอยู่", "At the top level", "最高レベルです"), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                        Text(tr("ทดสอบซ้ำได้เมื่อครบ ${SkillBook.HOLD_DAYS} วันนับจากครั้งล่าสุด เพื่อดูว่ายังทำได้อยู่", "Re-test after ${SkillBook.HOLD_DAYS} days from the last one, to check you still can", "前回から${SkillBook.HOLD_DAYS}日たつと再テストでき、まだできるか確認できます"), fontSize = 15.sp, lineHeight = 20.sp,
                             color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 4.dp))
                     }
                 }
             }
-            GroupFooter("ทดสอบเมื่อพร้อม ไม่ผ่านระดับที่สูงกว่าไม่เสียอะไร ลองได้วันละ 2 ครั้งต่อระดับ ระหว่างทดสอบไม่มีตัวช่วย")
+            GroupFooter(tr("ทดสอบเมื่อพร้อม ไม่ผ่านระดับที่สูงกว่าไม่เสียอะไร ลองได้วันละ 2 ครั้งต่อระดับ ระหว่างทดสอบไม่มีตัวช่วย", "Test when ready. Failing a higher level costs nothing. Two tries a day per level, no helpers during tests", "準備ができたらテスト。上のレベルに落ちても失うものはありません。各レベル1日2回まで、テスト中は補助なし"))
 
-            GroupHeader("ฝึกเรื่องนี้")
+            GroupHeader(tr("ฝึกเรื่องนี้", "Practise this", "これを練習"))
             Group {
                 practice(skill, s).forEachIndexed { i, (title, open) ->
                     if (i > 0) GroupDivider()
@@ -305,14 +306,14 @@ fun SkillDetailScreen(skill: SkillId, onBack: () -> Unit, onOpen: (Open) -> Unit
                 }
             }
 
-            GroupHeader("ผลทดสอบ")
+            GroupHeader(tr("ผลทดสอบ", "Test results", "テスト結果"))
             val mine = ui.records.filter { it.skill == skill }
             Group {
-                if (mine.isEmpty()) GroupRow("ยังไม่เคยทดสอบ", subtitle = "ผลทุกครั้งจะอยู่ตรงนี้ ทั้งที่ผ่านและไม่ผ่าน")
+                if (mine.isEmpty()) GroupRow(tr("ยังไม่เคยทดสอบ", "Not tested yet", "まだテストしていません"), subtitle = tr("ผลทุกครั้งจะอยู่ตรงนี้ ทั้งที่ผ่านและไม่ผ่าน", "Every result shows here, passed or not", "合格も不合格もすべてここに表示されます"))
                 mine.takeLast(12).asReversed().forEachIndexed { i, r ->
                     if (i > 0) GroupDivider()
                     GroupRow(
-                        "ระดับ ${r.level} · ${if (r.passed) "ผ่าน" else "ไม่ผ่าน"}",
+                        "ระดับ ${r.level} · ${if (r.passed) tr("ผ่าน", "Passed", "合格") else tr("ไม่ผ่าน", "Not passed", "不合格")}",
                         subtitle = SkillsViewModel.metricsText(r).ifEmpty { null },
                         value = runCatching { SkillsViewModel.ago(LocalDate.parse(r.date), today) }.getOrNull(),
                         titleColor = if (r.passed) Tokens.Palette.Ink else Tokens.Palette.InkMuted,
@@ -320,15 +321,15 @@ fun SkillDetailScreen(skill: SkillId, onBack: () -> Unit, onOpen: (Open) -> Unit
                 }
             }
             val month = mine.filter { r -> runCatching { LocalDate.parse(r.date) >= today.minusDays(30) }.getOrDefault(false) }
-            if (month.isNotEmpty()) GroupFooter("30 วันล่าสุด: ทดสอบ ${month.size} ครั้ง ผ่าน ${month.count { it.passed }} ครั้ง")
+            if (month.isNotEmpty()) GroupFooter(tr("30 วันล่าสุด: ทดสอบ ${month.size} ครั้ง ผ่าน ${month.count { it.passed }} ครั้ง", "Last 30 days: ${month.size} tests, ${month.count { it.passed }} passed", "この30日間：テスト${month.size}回、合格${month.count { it.passed }}回"))
 
-            GroupHeader("ทุกระดับ")
+            GroupHeader(tr("ทุกระดับ", "All steps", "すべての段階"))
             Group {
                 levels.forEachIndexed { i, l ->
                     if (i > 0) GroupDivider(indent = 52.dp)
                     GroupRow(
-                        "ระดับ ${l.level} · ${l.canDo}",
-                        subtitle = "เกณฑ์: ${l.criteriaText()}",
+                        tr("ระดับ ${l.level} · ${l.canDo}", "Level ${l.level} · ${l.canDo}", "レベル${l.level} · ${l.canDo}"),
+                        subtitle = tr("เกณฑ์: ${l.criteriaText()}", "Criteria: ${l.criteriaText()}", "基準：${l.criteriaText()}"),
                         leading = { StepMark(done = l.level <= s.level, current = l.level == s.nextTest && l.level > s.level) },
                         titleColor = if (l.level <= s.level) Tokens.Palette.Ink else Tokens.Palette.InkMuted,
                     )
@@ -348,19 +349,19 @@ private fun Page(content: @Composable () -> Unit) {
 
 /** Where to practise a skill between tests. */
 private fun practice(skill: SkillId, s: SkillStatus): List<Pair<String, Open>> {
-    val ladder = "ขั้นหลัก (บทเรียนทีละขั้น)" to Open.Ladder
-    val review = "ทวนโน้ตและคีย์" to Open.Review
-    val metronome = "เครื่องเคาะจังหวะ" to Open.Metronome
+    val ladder = tr("ขั้นหลัก (บทเรียนทีละขั้น)", "Main step (step-by-step lessons)", "メインステップ（段階レッスン）") to Open.Ladder
+    val review = tr("ทวนโน้ตและคีย์", "Review notes and keys", "音とキーの復習") to Open.Review
+    val metronome = tr("เครื่องเคาะจังหวะ", "Metronome", "メトロノーム") to Open.Metronome
     return when (skill) {
         SkillId.KEYS -> listOf(review, ladder)
-        SkillId.NOTES -> listOf("ฝึกอ่านโน้ต: ทีละตัวและทำนอง" to Open.Reading, review, ladder)
+        SkillId.NOTES -> listOf(tr("ฝึกอ่านโน้ต: ทีละตัวและทำนอง", "Note reading: single notes and melodies", "読譜：1音とメロディ") to Open.Reading, review, ladder)
         SkillId.RHYTHM, SkillId.TECH -> listOf(ladder, metronome)
-        SkillId.SIGHT -> listOf("ฝึกอ่านโน้ต: ทีละตัวและทำนอง" to Open.Reading, "อ่านโน้ตใหม่ ระดับ L${s.level.coerceIn(1, 5)}" to Open.Sight(s.level.coerceIn(1, 5)), ladder)
-        SkillId.EAR -> listOf("ฝึกหู (รอบปรับตามจุดอ่อน)" to Open.Ear(), "หน้าฝึกหู: เส้นทางและภาพรวม" to Open.EarHome)
-        SkillId.CHORDS -> listOf("คอร์ด: ฝึกกด เปลี่ยนคอร์ด วิธีจับ" to Open.ChordHome)
+        SkillId.SIGHT -> listOf(tr("ฝึกอ่านโน้ต: ทีละตัวและทำนอง", "Note reading: single notes and melodies", "読譜：1音とメロディ") to Open.Reading, tr("อ่านโน้ตใหม่ ระดับ L${s.level.coerceIn(1, 5)}", "Sight-reading", "初見") to Open.Sight(s.level.coerceIn(1, 5)), ladder)
+        SkillId.EAR -> listOf(tr("ฝึกหู (รอบปรับตามจุดอ่อน)", "Ear training (adapts to weak spots)", "耳トレ（苦手に合わせて出題）") to Open.Ear(), tr("หน้าฝึกหู: เส้นทางและภาพรวม", "Ear training page: path and overview", "耳トレページ：コースと概要") to Open.EarHome)
+        SkillId.CHORDS -> listOf(tr("คอร์ด: ฝึกกด เปลี่ยนคอร์ด วิธีจับ", "Chords: pressing, changing, voicings", "コード：押さえ方、切り替え、ボイシング") to Open.ChordHome)
         SkillId.SOLO -> listOf(
-            "สองมือแบบรอ: เนื้อหาของระดับ ${(s.level + 1).coerceAtMost(s.maxLevel)}" to Open.Solo((s.level + 1).coerceAtMost(s.maxLevel)),
-            "คอร์ด: ฝึกกด เปลี่ยนคอร์ด วิธีจับ" to Open.ChordHome,
+            tr("สองมือแบบรอ: เนื้อหาของระดับ ${(s.level + 1).coerceAtMost(s.maxLevel)}", "Two hands in wait mode: material of level ${(s.level + 1).coerceAtMost(s.maxLevel)}", "両手・待ちモード：レベル${(s.level + 1).coerceAtMost(s.maxLevel)}の内容") to Open.Solo((s.level + 1).coerceAtMost(s.maxLevel)),
+            tr("คอร์ด: ฝึกกด เปลี่ยนคอร์ด วิธีจับ", "Chords: pressing, changing, voicings", "コード：押さえ方、切り替え、ボイシング") to Open.ChordHome,
         )
     }
 }

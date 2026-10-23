@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -55,8 +56,8 @@ fun main() {
         if (services == null) {
             Window(onCloseRequest = ::exitApplication, title = "ミミコピ") {
                 Column(Modifier.padding(24.dp)) {
-                    Text("เปิดข้อมูลไม่ได้: ${started.exceptionOrNull()?.message}")
-                    Text("ข้อมูลอยู่ที่ ${dirs.root.absolutePath} (ไม่ได้ลบหรือเปลี่ยนอะไร)")
+                    Text(tr("เปิดข้อมูลไม่ได้: ${started.exceptionOrNull()?.message}", "Couldn't open the data: ${started.exceptionOrNull()?.message}", "データを開けません：${started.exceptionOrNull()?.message}"))
+                    Text(tr("ข้อมูลอยู่ที่ ${dirs.root.absolutePath} (ไม่ได้ลบหรือเปลี่ยนอะไร)", "The data is at ${dirs.root.absolutePath} (nothing was deleted or changed)", "データは${dirs.root.absolutePath}にあります（何も削除・変更していません）"))
                 }
             }
             return@application
@@ -90,7 +91,7 @@ fun main() {
                 exitApplication()
             },
             state = state,
-            title = "ミミコピ ฝึกเปียโน",
+            title = tr("ミミコピ ฝึกเปียโน", "ミミコピ piano practice", "ミミコピ ピアノ練習"),
             onPreviewKeyEvent = handler@{ e ->
                 val code = e.key.nativeKeyCode
                 val down = e.type == KeyEventType.KeyDown

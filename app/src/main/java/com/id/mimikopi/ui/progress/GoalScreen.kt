@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.progress
 
+import com.id.mimikopi.core.i18n.tr
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -88,12 +89,12 @@ fun GoalScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: GoalViewModel = v
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth()) {
-            LargeTitle("เป้าหมาย", "เล่นเพลง Hello! Project และเพลงไอดอลได้เอง", onBack = onBack)
+            LargeTitle(tr("เป้าหมาย", "Goal", "目標"), tr("เล่นเพลง Hello! Project และเพลงไอดอลได้เอง", "Play Hello! Project and idol songs on your own", "Hello! Projectやアイドル曲を自分で弾けるように"), onBack = onBack)
             val st = statuses ?: return@Column
             Column(Modifier.padding(horizontal = PageMargin)) {
                 GroupFooter(
-                    "แอพไม่มีโน้ตหรือเนื้อร้องของเพลงจริง (ลิขสิทธิ์) เป้าหมายคือฝึกจนแกะและเล่นเองได้ " +
-                        "ตัวเลขข้างล่างเทียบกับระดับจากแบบทดสอบ ส่วนระดับที่แต่ละเพลงต้องการเป็นค่าประเมินของแอพ ไม่ใช่เกรดทางการ",
+                    tr("แอพไม่มีโน้ตหรือเนื้อร้องของเพลงจริง (ลิขสิทธิ์) เป้าหมายคือฝึกจนแกะและเล่นเองได้ ", "The app has no sheets or lyrics of the real songs (copyright). The goal is to practise until you can work them out and play them yourself. ", "アプリには実際の曲の楽譜や歌詞はありません（著作権）。目標は自分で耳コピして弾けるまで練習することです。") +
+                        tr("ตัวเลขข้างล่างเทียบกับระดับจากแบบทดสอบ ส่วนระดับที่แต่ละเพลงต้องการเป็นค่าประเมินของแอพ ไม่ใช่เกรดทางการ", "The numbers below compare with levels from tests; the level each song needs is the app's estimate, not an official grade", "下の数字はテストのレベルと比べたもの。各曲に必要なレベルはアプリの推定で、公式のグレードではありません"),
                     modifier = Modifier.padding(top = 12.dp),
                 )
                 IdolGoal.SONGS.forEach { song ->
@@ -102,37 +103,37 @@ fun GoalScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: GoalViewModel = v
                     GroupHeader("${song.title} · ${song.artist}")
                     Group {
                         Column(Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
-                            Text(if (gaps.isEmpty()) "ทักษะถึงแล้ว" else "พร้อม ${(ready * 100).toInt()}%", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Accent)
+                            Text(if (gaps.isEmpty()) tr("ทักษะถึงแล้ว", "Skills reached", "スキル到達") else tr("พร้อม ${(ready * 100).toInt()}%", "${(ready * 100).toInt()}% ready", "準備 ${(ready * 100).toInt()}%"), fontSize = 25.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Accent)
                             Box(Modifier.padding(top = 10.dp).fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Tokens.Palette.Track)) {
                                 Box(Modifier.fillMaxWidth(ready.toFloat().coerceIn(0f, 1f)).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Tokens.Palette.Accent))
                             }
                             Text(song.why, fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
-                            Text("ข้อมูลเพลง (ยังไม่ได้ยืนยัน): " + song.facts.joinToString(" · "), fontSize = 13.sp, lineHeight = 18.sp,
+                            Text(tr("ข้อมูลเพลง (ยังไม่ได้ยืนยัน): ", "Song info (unconfirmed): ", "曲の情報（未確認）：") + song.facts.joinToString(" · "), fontSize = 13.sp, lineHeight = 18.sp,
                                 color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
                         }
                         if (gaps.isEmpty()) {
                             GroupDivider()
-                            GroupRow("ลองแกะเพลงนี้ด้วยหูได้แล้ว", subtitle = "ฟังหาคีย์ แกะทางเดินคอร์ดท่อนฮุก แล้วแกะทำนองทีละวลี", onClick = { onOpen(Open.Ear(EarKind.MELODY.name)) })
+                            GroupRow(tr("ลองแกะเพลงนี้ด้วยหูได้แล้ว", "You can try working this song out by ear now", "この曲はもう耳コピに挑戦できます"), subtitle = tr("ฟังหาคีย์ แกะทางเดินคอร์ดท่อนฮุก แล้วแกะทำนองทีละวลี", "Find the key by ear, work out the chorus progression, then the melody phrase by phrase", "耳でキーを探し、サビのコード進行、次にメロディをフレーズごとに耳コピ"), onClick = { onOpen(Open.Ear(EarKind.MELODY.name)) })
                         }
                         gaps.forEach { g ->
                             GroupDivider()
-                            GroupRow(g.skill.title, subtitle = "ตอนนี้ระดับ ${g.have} ต้องการ ${g.need}", onClick = { onOpen(Open.Skill(g.skill)) })
+                            GroupRow(g.skill.title, subtitle = tr("ตอนนี้ระดับ ${g.have} ต้องการ ${g.need}", "Now ${g.have}, needs ${g.need}", "現在${g.have}、必要${g.need}"), onClick = { onOpen(Open.Skill(g.skill)) })
                         }
                     }
                 }
 
-                GroupHeader("ฝึกแบบเพลงไอดอล")
+                GroupHeader(tr("ฝึกแบบเพลงไอดอล", "Idol-song practice", "アイドル曲練習"))
                 Group {
                     IdolGoal.DRILLS.forEachIndexed { i, d ->
                         if (i > 0) GroupDivider()
-                        GroupRow(d.title, subtitle = d.about + " · เปลี่ยนคอร์ดให้ได้มากที่สุดใน 1 นาที", onClick = { vm.drill(d.practice) { onOpen(Open.ChordsToday) } })
+                        GroupRow(d.title, subtitle = d.about + tr(" · เปลี่ยนคอร์ดให้ได้มากที่สุดใน 1 นาที", " · as many chord changes as you can in 1 minute", " · 1分間でできるだけ多くコードチェンジ"), onClick = { vm.drill(d.practice) { onOpen(Open.ChordsToday) } })
                     }
                     GroupDivider()
-                    GroupRow("ฟังทางเดินคอร์ด", subtitle = "แยก Axis 小室進行 王道進行 Canon ด้วยหู", onClick = { onOpen(Open.Ear(EarKind.PROGRESSION.name)) })
+                    GroupRow(tr("ฟังทางเดินคอร์ด", "Hear progressions", "コード進行を聞く"), subtitle = tr("แยก Axis 小室進行 王道進行 Canon ด้วยหู", "Tell Axis, 小室進行 (Komuro shinkō), 王道進行 (Ōdō shinkō) and Canon apart by ear", "Axis、小室進行、王道進行、カノン進行を耳で聞き分ける"), onClick = { onOpen(Open.Ear(EarKind.PROGRESSION.name)) })
                     GroupDivider()
-                    GroupRow("แกะทำนอง", subtitle = "ฟังวลีสั้นแล้วเล่นกลับ ทักษะหลักของการแกะเพลง", onClick = { onOpen(Open.Ear(EarKind.MELODY.name)) })
+                    GroupRow(tr("แกะทำนอง", "Melody dictation", "メロディの耳コピ"), subtitle = tr("ฟังวลีสั้นแล้วเล่นกลับ ทักษะหลักของการแกะเพลง", "Hear a short phrase and play it back, the core skill of working out songs", "短いフレーズを聞いて弾き返す。耳コピの基本スキル"), onClick = { onOpen(Open.Ear(EarKind.MELODY.name)) })
                 }
-                GroupFooter("ทางเดินคอร์ดไม่มีลิขสิทธิ์ เพลงป็อปญี่ปุ่นจำนวนมากใช้ทางเดินเหล่านี้")
+                GroupFooter(tr("ทางเดินคอร์ดไม่มีลิขสิทธิ์ เพลงป็อปญี่ปุ่นจำนวนมากใช้ทางเดินเหล่านี้", "Chord progressions have no copyright; many Japanese pop songs use these", "コード進行に著作権はなく、多くのJ-POPがこれらを使っています"))
                 Spacer(Modifier.height(40.dp))
             }
         }

@@ -1,5 +1,6 @@
 package com.id.mimikopi.recall
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.recall.*
 import com.id.mimikopi.data.db.SettingsDao
 import com.id.mimikopi.data.db.SettingEntity
@@ -26,12 +27,12 @@ class PrivateSongRepository(private val dao: SettingsDao) {
     suspend fun reload() = mutex.withLock { _songs.value = read() }
     suspend fun mutate(change: (List<PrivateSong>) -> List<PrivateSong>) = mutex.withLock {
         val next = change(read())
-        require(next.size <= 30) { "เก็บได้ไม่เกิน 30 เพลงส่วนตัว" }
+        require(next.size <= 30) { tr("เก็บได้ไม่เกิน 30 เพลงส่วนตัว", "Up to 30 private songs", "最大30曲までの個人曲") }
         next.forEach(PrivateRecall::validate)
         dao.put(SettingEntity(KEY, PrivateRecall.json.encodeToString(serializer, next)))
         _songs.value = next
     }
-    suspend fun add(title: String, url: String) = mutate { it + PrivateSong(UUID.randomUUID().toString(), title.trim(), VideoReference.canonical(url) ?: error("ลิงก์ YouTube ไม่ถูกต้อง")) }
+    suspend fun add(title: String, url: String) = mutate { it + PrivateSong(UUID.randomUUID().toString(), title.trim(), VideoReference.canonical(url) ?: error(tr("ลิงก์ YouTube ไม่ถูกต้อง", "Not a valid YouTube link", "YouTubeのリンクが正しくありません"))) }
     suspend fun update(song: PrivateSong) = mutate { all -> require(all.any { it.id == song.id }); all.map { if (it.id == song.id) song else it } }
     suspend fun changePhrase(songId: String, phraseId: String, change: (PrivatePhrase) -> PrivatePhrase) = mutate { all ->
         all.map { s -> if (s.id != songId) s else s.copy(phrases = s.phrases.map { p -> if (p.id == phraseId) change(p) else p }) }
@@ -39,7 +40,7 @@ class PrivateSongRepository(private val dao: SettingsDao) {
     suspend fun importCopy(text: String) = mutate { all -> all + PrivateRecall.import(text).copy(id = UUID.randomUUID().toString()) }
     suspend fun delete(id: String) = mutate { it.filterNot { s -> s.id == id } }
     suspend fun editSong(id: String, title: String, url: String) = mutate { songs ->
-        val source = VideoReference.canonical(url) ?: error("ลิงก์ YouTube ไม่ถูกต้อง")
+        val source = VideoReference.canonical(url) ?: error(tr("ลิงก์ YouTube ไม่ถูกต้อง", "Not a valid YouTube link", "YouTubeのリンクが正しくありません"))
         songs.map { s -> if (s.id != id) s else s.copy(title = title.trim(), sourceUrl = source,
             phrases = if (source == s.sourceUrl) s.phrases else s.phrases.map { it.copy(revision = it.revision + 1) }) }
     }

@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.session
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.ear.EarAnswer
 import com.id.mimikopi.core.ear.EarCourse
 import com.id.mimikopi.core.ear.EarKind
@@ -120,16 +121,16 @@ class EarSession(private val services: Services, args: EarArgs, private val scop
     init {
         scope.launch {
             state = EarProgress.parse(db.get(EarProgress.KEY))
-            var title = check?.let { "ทดสอบระดับหู ${it.level}" } ?: focus?.let { "ฝึก${it.title}" } ?: "ฝึกหู"
+            var title = check?.let { tr("ทดสอบระดับหู ${it.level}", "Ear test, level ${it.level}", "耳のテスト レベル${it.level}") } ?: focus?.let { tr("ฝึก${it.title}", "Practise ${it.title}", "${it.title}を練習") } ?: tr("ฝึกหู", "Ear training", "耳トレ")
             if (examId != null) {
                 services.progress.load()
                 val sitting = services.progress.exams.value.firstOrNull { it.id == examId }
                 examGrade = sitting?.let { Exams.grade(it.grade) }
                 title = "สอบ ${examGrade?.name ?: ""} · ${ExamPart.AURAL.title}"
                 val stop = when {
-                    sitting == null || examGrade == null -> "ไม่พบการสอบนี้"
-                    sitting.mark(ExamPart.AURAL) != null -> "สอบส่วนนี้ไปแล้ว ได้ ${sitting.mark(ExamPart.AURAL)!!.marks} คะแนน"
-                    sitting.abandoned || sitting.day != LocalDate.now().toString() -> "การสอบนี้ยกเลิกแล้วหรือหมดวันแล้ว เริ่มสอบใหม่ได้ที่หน้าเกรด"
+                    sitting == null || examGrade == null -> tr("ไม่พบการสอบนี้", "Exam not found", "試験が見つかりません")
+                    sitting.mark(ExamPart.AURAL) != null -> tr("สอบส่วนนี้ไปแล้ว ได้ ${sitting.mark(ExamPart.AURAL)!!.marks} คะแนน", "You already took this part and got ${sitting.mark(ExamPart.AURAL)!!.marks} marks", "この部は受験済みで${sitting.mark(ExamPart.AURAL)!!.marks}点でした")
+                    sitting.abandoned || sitting.day != LocalDate.now().toString() -> tr("การสอบนี้ยกเลิกแล้วหรือหมดวันแล้ว เริ่มสอบใหม่ได้ที่หน้าเกรด", "This exam was cancelled or the day ended. Start a new one on the Grade page", "この試験は中止されたか日付が変わりました。グレードページで新しく受けてください")
                     else -> null
                 }
                 if (stop != null) {
@@ -140,7 +141,7 @@ class EarSession(private val services: Services, args: EarArgs, private val scop
             if (check != null) {
                 services.progress.load()
                 if (SkillBook.status(check.skill, services.progress.checks.value, LocalDate.now()).lockedToday) {
-                    _ui.value = EarUi(phase = EarPhase.DONE, test = true, title = title, message = "ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น")
+                    _ui.value = EarUi(phase = EarPhase.DONE, test = true, title = title, message = tr("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น", "You've used both tries for this level today; keep practising and try another day", "このレベルは今日2回挑戦しました。練習して別の日に"))
                     return@launch
                 }
             }
@@ -187,7 +188,7 @@ class EarSession(private val services: Services, args: EarArgs, private val scop
             if (_ui.value.phase != EarPhase.DONE) _ui.update { it.copy(message = null) }
             piano.sustain(false)
             startIfReady()
-        } else _ui.update { it.copy(paused = true, message = "เปิดเสียงไม่ได้ ตรวจอุปกรณ์เสียงที่หน้าตั้งค่า แล้วลองอีกครั้ง") }
+        } else _ui.update { it.copy(paused = true, message = tr("เปิดเสียงไม่ได้ ตรวจอุปกรณ์เสียงที่หน้าตั้งค่า แล้วลองอีกครั้ง", "Couldn't start the sound; check audio devices in Settings and try again", "音を開始できません。設定でオーディオ機器を確認してもう一度")) }
     }
 
     private fun startIfReady() {
@@ -416,8 +417,8 @@ class EarSession(private val services: Services, args: EarArgs, private val scop
                 services.progress.log("check", seconds)
                 summary = summary.copy(
                     passed = marks >= ExamPart.AURAL.pass,
-                    verdict = listOf("${ExamPart.AURAL.title}: $marks จาก ${ExamPart.AURAL.max} คะแนน · ${Exams.partBand(ExamPart.AURAL, marks).title}",
-                        "ตอบถูกครั้งแรก $right จาก ${u.results.size} ข้อ"),
+                    verdict = listOf(tr("${ExamPart.AURAL.title}: $marks จาก ${ExamPart.AURAL.max} คะแนน · ${Exams.partBand(ExamPart.AURAL, marks).title}", "${ExamPart.AURAL.title}: $marks of ${ExamPart.AURAL.max} marks · ${Exams.partBand(ExamPart.AURAL, marks).title}", "${ExamPart.AURAL.title}：${ExamPart.AURAL.max}点中${marks}点 · ${Exams.partBand(ExamPart.AURAL, marks).title}"),
+                        tr("ตอบถูกครั้งแรก $right จาก ${u.results.size} ข้อ", "Right first time $right of ${u.results.size}", "1回目で正解 ${u.results.size}問中${right}問")),
                 )
             } else if (level == null) {
                 services.progress.log("ear", seconds)
@@ -430,9 +431,9 @@ class EarSession(private val services: Services, args: EarArgs, private val scop
                 val status = SkillBook.status(level.skill, p.checks.value, LocalDate.now())
                 summary = summary.copy(
                     passed = verdict.passed,
-                    verdict = listOf(if (verdict.passed) "ผ่านระดับ ${level.level}: ${level.canDo}" else "ยังไม่ผ่านระดับ ${level.level}") + verdict.lines +
-                        (if (verdict.passed) "ระดับหูตอนนี้ ${status.level} จาก ${status.maxLevel}"
-                        else if (status.lockedToday) "ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น" else "ยังลองได้อีกครั้งวันนี้"),
+                    verdict = listOf(if (verdict.passed) tr("ผ่านระดับ ${level.level}: ${level.canDo}", "Passed: ${level.canDo}", "合格：${level.canDo}") else tr("ยังไม่ผ่านระดับ ${level.level}", "Not passed yet", "まだ不合格")) + verdict.lines +
+                        (if (verdict.passed) tr("ระดับหูตอนนี้ ${status.level} จาก ${status.maxLevel}", "Ear level now ${status.level} of ${status.maxLevel}", "現在の耳のレベル ${status.maxLevel}中${status.level}")
+                        else if (status.lockedToday) tr("ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น", "Both tries used today; keep practising and try another day", "今日の2回を使いました。練習して別の日に") else tr("ยังลองได้อีกครั้งวันนี้", "One more try today", "今日あと1回挑戦できます")),
                 )
             }
             _ui.update { it.copy(phase = EarPhase.DONE, summary = summary) }

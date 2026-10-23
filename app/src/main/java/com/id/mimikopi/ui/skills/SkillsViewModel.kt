@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.skills
 
+import com.id.mimikopi.core.i18n.tr
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -55,17 +56,17 @@ class SkillsViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         /** "วันนี้", "เมื่อวาน", "5 วันก่อน". */
         fun ago(date: LocalDate, today: LocalDate = LocalDate.now()): String = when (val d = ChronoUnit.DAYS.between(date, today)) {
-            0L -> "วันนี้"
-            1L -> "เมื่อวาน"
-            else -> "$d วันก่อน"
+            0L -> tr("วันนี้", "Today", "今日")
+            1L -> tr("เมื่อวาน", "Yesterday", "昨日")
+            else -> tr("$d วันก่อน", "$d days ago", "${d}日前")
         }
 
         /** The numbers a test measured, in one short line ("ถูก 92% · 1.8 วินาที"). */
         fun metricsText(r: CheckRecord): String = listOfNotNull(
-            r.metrics.accuracy?.let { "ถูก ${SkillLevel.pct(it)}" },
-            r.metrics.timing?.let { "ตรงจังหวะ ${SkillLevel.pct(it)}" },
+            r.metrics.accuracy?.let { tr("ถูก ${SkillLevel.pct(it)}", "Right ${SkillLevel.pct(it)}", "正解 ${SkillLevel.pct(it)}") },
+            r.metrics.timing?.let { tr("ตรงจังหวะ ${SkillLevel.pct(it)}", "On time ${SkillLevel.pct(it)}", "リズム ${SkillLevel.pct(it)}") },
             r.metrics.medianSec?.let { SkillLevel.sec(it) },
-            r.metrics.count?.let { "เปลี่ยนคอร์ด $it ครั้ง" },
+            r.metrics.count?.let { tr("เปลี่ยนคอร์ด $it ครั้ง", "$it chord changes", "コードチェンジ${it}回") },
         ).joinToString(" · ")
     }
 }

@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.reader
 
+import com.id.mimikopi.core.i18n.tr
 import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -79,11 +80,11 @@ internal fun PieceLibrary(
             Text(stringResource(R.string.lesson_pass, lessonPass), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = classical, onClick = { classical = true }, label = { Text("คลาสสิก · ไล่ขั้น") }, modifier = Modifier.testTag("classical-filter"))
-                FilterChip(selected = !classical, onClick = { classical = false }, label = { Text("ทุกเพลง") }, modifier = Modifier.testTag("all-pieces-filter"))
+                FilterChip(selected = classical, onClick = { classical = true }, label = { Text(tr("คลาสสิก · ไล่ขั้น", "Classical · graded", "クラシック · 段階別")) }, modifier = Modifier.testTag("classical-filter"))
+                FilterChip(selected = !classical, onClick = { classical = false }, label = { Text(tr("ทุกเพลง", "All pieces", "すべての曲")) }, modifier = Modifier.testTag("all-pieces-filter"))
             }
-            Text(if (suggested) "เริ่มทีละมือในโหมดรอให้กดถูก แล้วค่อยรวมมือและเพิ่มความเร็ว แต่ละเพลงเป็นฉบับฝึกหรือท่อนย่อ" else stringResource(R.string.pieces_intro), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
-            if (suggested) Text("ฝึกด้วยคีย์บนมือถือหรือ MIDI ได้ · เลือกข้ามขั้นได้ทุกเพลง", style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+            Text(if (suggested) tr("เริ่มทีละมือในโหมดรอให้กดถูก แล้วค่อยรวมมือและเพิ่มความเร็ว แต่ละเพลงเป็นฉบับฝึกหรือท่อนย่อ", "Start hands separately in wait mode, then put hands together and speed up. Each piece is a practice edition or a short excerpt", "まず片手ずつ待ちモードで、次に両手でテンポを上げる。各曲は練習版か短い抜粋です") else stringResource(R.string.pieces_intro), style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.Ink)
+            if (suggested) Text(tr("ฝึกด้วยคีย์บนมือถือหรือ MIDI ได้ · เลือกข้ามขั้นได้ทุกเพลง", "Practise with on-screen keys or MIDI · you can skip steps on any piece", "画面の鍵盤かMIDIで練習 · どの曲も段階を飛ばせます"), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         }
         for ((index, s) in visible.withIndex()) {
             val step = if (suggested) steps[s.id] else null
@@ -94,7 +95,7 @@ internal fun PieceLibrary(
                 Text(s.composer, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 step?.let {
                     Text(it.focus, style = MaterialTheme.typography.bodyMedium)
-                    Text(if (it.startHand == "LEFT") "เปิดด้วยมือซ้าย · เปลี่ยนเป็นสองมือได้ก่อนเริ่ม" else "เปิดด้วยมือขวา · เปลี่ยนเป็นสองมือได้ก่อนเริ่ม", style = MaterialTheme.typography.bodySmall)
+                    Text(if (it.startHand == "LEFT") tr("เปิดด้วยมือซ้าย · เปลี่ยนเป็นสองมือได้ก่อนเริ่ม", "Opens with the left hand · switch to both before starting", "左手で開きます · 始める前に両手に切り替え可能") else tr("เปิดด้วยมือขวา · เปลี่ยนเป็นสองมือได้ก่อนเริ่ม", "Opens with the right hand · switch to both before starting", "右手で開きます · 始める前に両手に切り替え可能"), style = MaterialTheme.typography.bodySmall)
                 }
                 Text(
                     stringResource(R.string.pieces_meta, s.level, s.beatsPerMeasure, s.beatUnit, s.tempo, s.measures),
@@ -103,7 +104,7 @@ internal fun PieceLibrary(
                 )
                 val passed = PieceRules.isPassed(p, hand ?: "BOTH")
                 Text(status(p, hand), style = MaterialTheme.typography.bodySmall, color = if (passed) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
-                TextButton(onClick = { sourceId = s.id }, modifier = Modifier.testTag("source-${s.id}")) { Text("ที่มาและการเรียบเรียง") }
+                TextButton(onClick = { sourceId = s.id }, modifier = Modifier.testTag("source-${s.id}")) { Text(tr("ที่มาและการเรียบเรียง", "Source and arrangement", "出典と編曲")) }
             }
         }
         Text(stringResource(R.string.pieces_source_note), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
@@ -111,7 +112,7 @@ internal fun PieceLibrary(
     pieces.find { it.id == sourceId }?.let { score ->
         AlertDialog(
             onDismissRequest = { sourceId = null },
-            title = { Text("ที่มาและการเรียบเรียง") },
+            title = { Text(tr("ที่มาและการเรียบเรียง", "Source and arrangement", "出典と編曲")) },
             text = {
                 SelectionContainer {
                     Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()).testTag("piece-source")) {
@@ -120,7 +121,7 @@ internal fun PieceLibrary(
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { sourceId = null }) { Text("ปิด") } },
+            confirmButton = { TextButton(onClick = { sourceId = null }) { Text(tr("ปิด", "Close", "閉じる")) } },
         )
     }
 }

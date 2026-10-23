@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.midi
 
+import com.id.mimikopi.core.i18n.tr
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -207,7 +208,7 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
         val text = when (e) {
             is InputEvent.NoteOn -> "${e.source.label()}  ON   ${noteName(e.note)} (${e.note})  vel ${e.velocity}"
             is InputEvent.NoteOff -> "${e.source.label()}  OFF  ${noteName(e.note)} (${e.note})"
-            is InputEvent.Sustain -> "${e.source.label()}  PEDAL ${if (e.down) "ลง" else "ขึ้น"}"
+            is InputEvent.Sustain -> "${e.source.label()}  PEDAL ${if (e.down) tr("ลง", "Down", "下") else tr("ขึ้น", "Up", "上")}"
             is InputEvent.Control -> "${e.source.label()}  CC${e.controller} = ${e.value}"
         }
         _monitor.update { (listOf(MonitorLine(ms, text)) + it).take(40) }
@@ -333,7 +334,7 @@ class MidiViewModel(app: Application) : AndroidViewModel(app) {
     private fun noteName(note: Int) = SpelledPitch.fromMidiSharp(note).name(NoteNameStyle.BOTH, withOctave = true)
 
     private fun InputSource.label() = when (this) {
-        InputSource.TOUCH -> "จอ "
+        InputSource.TOUCH -> tr("จอ ", "Screen ", "画面 ")
         InputSource.USB_MIDI -> "USB"
         InputSource.BLE_MIDI -> "BLE"
         InputSource.SIMULATED -> "SIM"

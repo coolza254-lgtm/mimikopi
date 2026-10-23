@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.reader
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -26,7 +27,7 @@ internal fun ScorePlayerViewport(
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(status + if (connected) " · MIDI" else "", color = Tokens.Palette.InkMuted,
                 fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            Button(onClick = onStop, modifier = Modifier.heightIn(min = 48.dp).testTag("reading-stop")) { Text("หยุด") }
+            Button(onClick = onStop, modifier = Modifier.heightIn(min = 48.dp).testTag("reading-stop")) { Text(tr("หยุด", "Stop", "停止")) }
         }
         score(Modifier.weight(1f).fillMaxWidth().testTag("score-player-music"))
         if (!connected) keyboard()

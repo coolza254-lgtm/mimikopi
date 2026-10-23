@@ -56,7 +56,7 @@ class MimikopiApp : Application() {
 
         /** Saves the language and sets it for the whole app; the caller recreates the screen. */
         fun saveLang(context: android.content.Context, lang: com.id.mimikopi.core.i18n.Lang) {
-            context.getSharedPreferences("ui", android.content.Context.MODE_PRIVATE).edit().putString(com.id.mimikopi.core.i18n.L10n.KEY, lang.code).apply()
+            context.getSharedPreferences("ui", android.content.Context.MODE_PRIVATE).edit().putString(com.id.mimikopi.core.i18n.L10n.KEY, lang.code).commit()
             com.id.mimikopi.core.i18n.L10n.lang = lang
         }
     }

@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.progress
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.ui.skills.look
 import com.id.mimikopi.ui.components.softShadow
 import com.id.mimikopi.ui.components.SkillIcon
@@ -108,7 +109,7 @@ fun fixTarget(fix: Fix): Open = when (fix) {
     is Fix.Ear -> Open.Ear(fix.kind.name)
 }
 
-private val MONTHS = listOf("ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.")
+private val MONTHS = listOf(tr("ม.ค.", "Jan", "1月"), tr("ก.พ.", "Feb", "2月"), tr("มี.ค.", "Mar", "3月"), tr("เม.ย.", "Apr", "4月"), tr("พ.ค.", "May", "5月"), tr("มิ.ย.", "Jun", "6月"), tr("ก.ค.", "Jul", "7月"), tr("ส.ค.", "Aug", "8月"), tr("ก.ย.", "Sep", "9月"), tr("ต.ค.", "Oct", "10月"), tr("พ.ย.", "Nov", "11月"), tr("ธ.ค.", "Dec", "12月"))
 fun shortDate(d: LocalDate) = "${d.dayOfMonth} ${MONTHS[d.monthValue - 1]}"
 
 /**
@@ -122,7 +123,7 @@ fun ProgressScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ProgressViewM
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth()) {
-            LargeTitle("พัฒนาการ", "ดูย้อนหลังว่าเก่งขึ้นจริงไหม", onBack = onBack)
+            LargeTitle(tr("พัฒนาการ", "Progress", "上達"), tr("ดูย้อนหลังว่าเก่งขึ้นจริงไหม", "Look back: did you really improve?", "振り返り：本当に上達した？"), onBack = onBack)
             if (!ui.loaded) return@Column
             Column(Modifier.padding(horizontal = PageMargin)) {
                 // The three numbers to read first, each against the week or month before; the details follow below.
@@ -130,20 +131,20 @@ fun ProgressScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ProgressViewM
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val thisWeek = ui.weeks.lastOrNull()?.second ?: 0
                     val lastWeek = ui.weeks.getOrNull(ui.weeks.size - 2)?.second ?: 0
-                    SummaryTile("ฝึกสัปดาห์นี้", "$thisWeek นาที", change(thisWeek - lastWeek, "นาที"), Modifier.weight(1f))
+                    SummaryTile(tr("ฝึกสัปดาห์นี้", "Practised this week", "今週の練習"), tr("$thisWeek นาที", "$thisWeek min", "${thisWeek}分"), change(thisWeek - lastWeek, tr("นาที", "min", "分")), Modifier.weight(1f))
                     val levelThen = ui.levels.lastOrNull { !it.first.isAfter(today.minusDays(30)) }?.second ?: 0
-                    SummaryTile("ระดับรวม", "${ui.total}", change(ui.total - levelThen, "ใน 30 วัน"), Modifier.weight(1f))
+                    SummaryTile(tr("ระดับรวม", "Overall level", "総合レベル"), "${ui.total}", change(ui.total - levelThen, tr("ใน 30 วัน", "in 30 days", "30日間")), Modifier.weight(1f))
                     val earNow = ui.ear.lastOrNull()?.second
                     val earBefore = ui.ear.dropLast(1).lastOrNull { it.second != null }?.second
-                    SummaryTile("หู ถูกครั้งแรก", earNow?.let { "${(it * 100).toInt()}%" } ?: "–",
+                    SummaryTile(tr("หู ถูกครั้งแรก", "Ear, right first time", "耳トレ 1回目で正解"), earNow?.let { "${(it * 100).toInt()}%" } ?: "–",
                         if (earNow != null && earBefore != null) change(((earNow - earBefore) * 100).toInt(), "%") else null, Modifier.weight(1f))
                 }
-                GroupHeader("ระดับรวม 4 เดือนล่าสุด")
+                GroupHeader(tr("ระดับรวม 4 เดือนล่าสุด", "Overall level, last 4 months", "総合レベル（直近4か月）"))
                 Group {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text("${ui.total}", fontSize = 40.sp, lineHeight = 44.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                            Text(" จาก ${History.MAX_TOTAL} ระดับ", fontSize = 15.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 6.dp))
+                            Text(tr(" จาก ${History.MAX_TOTAL} ระดับ", " of ${History.MAX_TOTAL}", " / ${History.MAX_TOTAL}"), fontSize = 15.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 6.dp))
                         }
                         val first = ui.levels.firstOrNull()?.first
                         val last = ui.levels.lastOrNull()?.first
@@ -162,59 +163,59 @@ fun ProgressScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: ProgressViewM
                             leading = { SkillIcon(look(c.skill).first, look(c.skill).second, size = 32.dp, filled = true) })
                     }
                 }
-                GroupFooter("นับจากแบบทดสอบในหน้าทักษะเท่านั้น ระดับลดได้ถ้าทดสอบระดับที่ถืออยู่ไม่ผ่านสองครั้งติด")
+                GroupFooter(tr("นับจากแบบทดสอบในหน้าทักษะเท่านั้น ระดับลดได้ถ้าทดสอบระดับที่ถืออยู่ไม่ผ่านสองครั้งติด", "Counted only from tests on the Skills page. A level can drop if you fail the one you hold twice in a row", "スキルページのテストだけで数えます。今のレベルに2回続けて不合格だと下がることがあります"))
 
-                GroupHeader("เวลาฝึกต่อสัปดาห์")
+                GroupHeader(tr("เวลาฝึกต่อสัปดาห์", "Practice time per week", "週ごとの練習時間"))
                 Group {
                     Column(Modifier.padding(16.dp)) {
                         val max = ui.weeks.maxOfOrNull { it.second }?.coerceAtLeast(1) ?: 1
-                        BarChart(ui.weeks.map { it.second.toFloat() / max }, listOfNotNull(ui.weeks.firstOrNull()?.first?.let(::shortDate), "สัปดาห์นี้"))
+                        BarChart(ui.weeks.map { it.second.toFloat() / max }, listOfNotNull(ui.weeks.firstOrNull()?.first?.let(::shortDate), tr("สัปดาห์นี้", "This week", "今週")))
                         val avg = if (ui.weeks.isEmpty()) 0 else ui.weeks.sumOf { it.second } / ui.weeks.size
-                        Text("สัปดาห์นี้ ${ui.weeks.lastOrNull()?.second ?: 0} นาที · เฉลี่ย 12 สัปดาห์ $avg นาที", fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
+                        Text(tr("สัปดาห์นี้ ${ui.weeks.lastOrNull()?.second ?: 0} นาที · เฉลี่ย 12 สัปดาห์ $avg นาที", "This week ${ui.weeks.lastOrNull()?.second ?: 0} min · 12-week average $avg min", "今週${ui.weeks.lastOrNull()?.second ?: 0}分 · 12週平均${avg}分"), fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
                     }
                 }
-                GroupFooter("รวมทุกเครื่องที่ซิงค์กัน นับเฉพาะเวลาที่เล่นจริง")
+                GroupFooter(tr("รวมทุกเครื่องที่ซิงค์กัน นับเฉพาะเวลาที่เล่นจริง", "All synced devices, counting only time actually playing", "同期したすべての端末の合計、実際に弾いた時間だけ"))
 
-                GroupHeader("หู: ถูกครั้งแรกต่อสัปดาห์")
+                GroupHeader(tr("หู: ถูกครั้งแรกต่อสัปดาห์", "Ear: right first time per week", "耳トレ：週ごとの1回目正解率"))
                 Group {
                     Column(Modifier.padding(16.dp)) {
                         val ear = Tokens.Skill.Ear
-                        BarChart(ui.ear.map { it.second?.toFloat() }, listOfNotNull(ui.ear.firstOrNull()?.first?.let(::shortDate), "สัปดาห์นี้"),
+                        BarChart(ui.ear.map { it.second?.toFloat() }, listOfNotNull(ui.ear.firstOrNull()?.first?.let(::shortDate), tr("สัปดาห์นี้", "This week", "今週")),
                             steps = listOf(ear.fill, Color(0xFFEBCFAE), Color(0xFFE2BA8C), ear.ink))
                         val heard = ui.ear.mapNotNull { it.second }
-                        Text(if (heard.isEmpty()) "ยังไม่ได้ฝึกหูในช่วงนี้" else "ล่าสุด ${(heard.last() * 100).toInt()}% · ฝึก ${heard.size} สัปดาห์จาก 12",
+                        Text(if (heard.isEmpty()) tr("ยังไม่ได้ฝึกหูในช่วงนี้", "No ear training in this period", "この期間は耳トレなし") else tr("ล่าสุด ${(heard.last() * 100).toInt()}% · ฝึก ${heard.size} สัปดาห์จาก 12", "Latest ${(heard.last() * 100).toInt()}% · practised ${heard.size} of 12 weeks", "最新 ${(heard.last() * 100).toInt()}% · 12週中${heard.size}週練習"),
                             fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
                     }
                 }
-                GroupFooter("ข้อยากขึ้นตามขั้นที่เปิด เปอร์เซ็นต์จึงอาจลดลงตอนเข้าขั้นใหม่ ดูระดับหูประกอบ")
+                GroupFooter(tr("ข้อยากขึ้นตามขั้นที่เปิด เปอร์เซ็นต์จึงอาจลดลงตอนเข้าขั้นใหม่ ดูระดับหูประกอบ", "Questions get harder as steps open, so the percentage can drop at a new step; look at the ear level too", "段階が開くと問題が難しくなるため、新しい段階で割合が下がることがあります。耳のレベルも見てください"))
 
-                GroupHeader("สอบเกรด")
+                GroupHeader(tr("สอบเกรด", "Grade exams", "グレード試験"))
                 Group {
                     if (ui.exams.isEmpty()) {
-                        GroupRow("ยังไม่ได้สอบ", subtitle = "การสอบวัดทุกด้านพร้อมกัน: เพลง สเกล อ่านโน้ตใหม่ และการฟัง", onClick = { onOpen(Open.Exams) })
+                        GroupRow(tr("ยังไม่ได้สอบ", "No exams yet", "まだ受験していません"), subtitle = tr("การสอบวัดทุกด้านพร้อมกัน: เพลง สเกล อ่านโน้ตใหม่ และการฟัง", "An exam measures everything at once: pieces, scales, sight-reading and aural", "試験はすべてを一度に測ります：曲、スケール、初見、聴音"), onClick = { onOpen(Open.Exams) })
                     } else {
                         Column(Modifier.padding(16.dp)) {
                             val recent = ui.exams.takeLast(12)
-                            BarChart(recent.map { it.total.toFloat() / Exams.MAX }, listOfNotNull(recent.firstOrNull()?.let { runCatching { shortDate(LocalDate.parse(it.day)) }.getOrNull() }, "ล่าสุด"))
+                            BarChart(recent.map { it.total.toFloat() / Exams.MAX }, listOfNotNull(recent.firstOrNull()?.let { runCatching { shortDate(LocalDate.parse(it.day)) }.getOrNull() }, tr("ล่าสุด", "Latest", "最新")))
                             val last = ui.exams.last()
                             Text("ล่าสุด ${Exams.grade(last.grade)?.name ?: ""} ${last.total}/${Exams.MAX} · ${Exams.band(last.total).title}",
                                 fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 10.dp))
                         }
                         GroupDivider()
-                        GroupRow("ผลสอบทั้งหมด", onClick = { onOpen(Open.Exams) })
+                        GroupRow(tr("ผลสอบทั้งหมด", "All exam results", "すべての試験結果"), onClick = { onOpen(Open.Exams) })
                     }
                 }
-                GroupFooter("คะแนนรวม 150 ผ่าน 100 ดี 120 ดีเยี่ยม 130 เทียบกันได้เฉพาะเกรดเดียวกัน")
+                GroupFooter(tr("คะแนนรวม 150 ผ่าน 100 ดี 120 ดีเยี่ยม 130 เทียบกันได้เฉพาะเกรดเดียวกัน", "Total 150: pass 100, merit 120, distinction 130. Compare only within the same grade", "合計150点：合格100、良120、優130。同じグレード内でのみ比較できます"))
 
-                GroupHeader("สิ่งที่ควรแก้")
+                GroupHeader(tr("สิ่งที่ควรแก้", "What to fix", "直すところ"))
                 Group {
-                    if (ui.fixes.isEmpty()) GroupRow("ยังไม่พบรูปแบบที่ผิดซ้ำ", subtitle = "แอพดูจาก ${Mistakes.DAYS} วันล่าสุด ต้องเกิดซ้ำหลายรอบก่อนจะขึ้นตรงนี้")
+                    if (ui.fixes.isEmpty()) GroupRow(tr("ยังไม่พบรูปแบบที่ผิดซ้ำ", "No repeated mistakes found yet", "繰り返すミスはまだ見つかっていません"), subtitle = tr("แอพดูจาก ${Mistakes.DAYS} วันล่าสุด ต้องเกิดซ้ำหลายรอบก่อนจะขึ้นตรงนี้", "The app looks at the last ${Mistakes.DAYS} days; a mistake must repeat several times before it shows here", "アプリは直近${Mistakes.DAYS}日を見ます。何度も繰り返したミスだけがここに出ます"))
                     ui.fixes.forEachIndexed { i, m ->
                         if (i > 0) GroupDivider()
                         GroupRow(m.title, subtitle = "${m.detail}\n${m.fixText}", onClick = { onOpen(fixTarget(m.fix)) })
                     }
                 }
-                GroupFooter("ดูจาก ${Mistakes.DAYS} วันล่าสุด: การเล่นเพลงและแบบฝึก การอ่านโน้ต และฝึกหู")
+                GroupFooter(tr("ดูจาก ${Mistakes.DAYS} วันล่าสุด: การเล่นเพลงและแบบฝึก การอ่านโน้ต และฝึกหู", "From the last ${Mistakes.DAYS} days: playing pieces and drills, note reading and ear training", "直近${Mistakes.DAYS}日から：曲と練習、読譜、耳トレ"))
                 Spacer(Modifier.height(40.dp))
             }
         }
@@ -231,7 +232,7 @@ private fun SummaryTile(title: String, value: String, delta: Pair<String, Boolea
     Column(modifier.softShadow(shape, small = true).clip(shape).background(Tokens.Palette.Group).padding(14.dp)) {
         Text(title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted, maxLines = 1)
         Text(value, fontSize = 22.sp, fontFamily = Tokens.Fonts.body, lineHeight = 28.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, maxLines = 1)
-        Text(delta?.first ?: "เท่าเดิม", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+        Text(delta?.first ?: tr("เท่าเดิม", "Original", "原曲どおり"), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
             color = when (delta?.second) { true -> Tokens.Palette.Accent; false -> Tokens.Palette.Timing; null -> Tokens.Palette.InkMuted })
     }
 }

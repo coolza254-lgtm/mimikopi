@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.lesson
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -95,7 +96,7 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: Les
             lesson.explain.forEach { Text("• $it", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = Tokens.Space.xs)) }
             // Steps keep their topic's full explanation one tap away.
             // Everything else (the full explanation, tips, honest caveats) stays one tap away.
-            val extra = lesson.more.filter { it !in lesson.explain }.map { "• $it" } + lesson.tips.map { "เคล็ดลับ: $it" } + lesson.caveats.map { "ⓘ $it" }
+            val extra = lesson.more.filter { it !in lesson.explain }.map { "• $it" } + lesson.tips.map { tr("เคล็ดลับ: $it", "Tip: $it", "ヒント：$it") } + lesson.caveats.map { "ⓘ $it" }
             if (extra.isNotEmpty()) {
                 if (more) extra.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = Tokens.Space.xs)) }
                 TextButton(onClick = { more = !more }) { Text(stringResource(if (more) R.string.lesson_less else R.string.lesson_more)) }

@@ -1,10 +1,11 @@
 package com.id.mimikopi.ui.components
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.playalong.NoteResult
 
 /** Visual events use the judge's verdict, never merely the set of held keys. */
 enum class FallingVerdict(val caption: String) {
-    HIT("ถูก"), CORRECTED("แก้ถูก"), EARLY("เร็ว"), LATE("ช้า"), WRONG("ผิดคีย์"), MISS("พลาด")
+    HIT(tr("ถูก", "Right", "正解")), CORRECTED(tr("แก้ถูก", "Corrected", "修正")), EARLY(tr("เร็ว", "Early", "早い")), LATE(tr("ช้า", "Late", "遅い")), WRONG(tr("ผิดคีย์", "Wrong key", "違う鍵盤")), MISS(tr("พลาด", "Missed", "ミス"))
 }
 
 data class FallingFeedback(val midi: Int, val verdict: FallingVerdict, val left: Boolean, val atNanos: Long) {

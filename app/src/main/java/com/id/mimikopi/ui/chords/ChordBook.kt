@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.chords
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -51,11 +52,11 @@ fun ChordBook(onPlay: (List<Int>) -> Unit) {
     var quality by remember { mutableStateOf("") }
     val chord = Chord(root, quality)
 
-    Label("รากคอร์ด")
+    Label(tr("รากคอร์ด", "Root", "ルート"))
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ChordFingering.ROOTS.forEach { r -> FilterChip(selected = r == root, onClick = { root = r }, label = { Text(r.display()) }) }
     }
-    Label("ชนิดคอร์ด")
+    Label(tr("ชนิดคอร์ด", "Chord type", "コードの種類"))
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ChordFingering.QUALITIES.forEach { q ->
             FilterChip(selected = q == quality, onClick = { quality = q }, label = { Text(Chord(root, q).display()) })
@@ -68,17 +69,17 @@ fun ChordBook(onPlay: (List<Int>) -> Unit) {
             (ChordQualities.NAMES[quality] ?: quality) + "  ·  " + ChordFingering.spelled(chord).joinToString("  ") { "${it.display()} (${it.letter.solfege}${it.display().drop(1)})" },
             style = MaterialTheme.typography.bodyMedium, color = Tokens.Palette.InkMuted,
         )
-        Text("ตัวเลขบนคีย์คือนิ้ว: 1 นิ้วโป้ง 2 ชี้ 3 กลาง 4 นาง 5 ก้อย", style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
+        Text(tr("ตัวเลขบนคีย์คือนิ้ว: 1 นิ้วโป้ง 2 ชี้ 3 กลาง 4 นาง 5 ก้อย", "Numbers on keys are fingers: 1 thumb 2 index 3 middle 4 ring 5 little", "鍵盤の数字は指番号：1親指 2人差し指 3中指 4薬指 5小指"), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
     }
 
     val (left, right) = ChordFingering.twoHands(chord)
-    Section("สองมือ (แบบที่ใช้บ่อยที่สุด)", "มือซ้ายกดรากคอร์ดด้วยนิ้วก้อย มือขวากดคอร์ด")
+    Section(tr("สองมือ (แบบที่ใช้บ่อยที่สุด)", "Both hands (the most common way)", "両手（最もよく使う形）"), tr("มือซ้ายกดรากคอร์ดด้วยนิ้วก้อย มือขวากดคอร์ด", "Left hand plays the root with the little finger, right hand plays the chord", "左手は小指でルート、右手でコード"))
     ShapeRow(HandShape(left.notes + right.notes, left.fingers + right.fingers, left.title + " · " + right.title), splitAt = left.notes.size, onPlay = onPlay)
 
-    Section("มือขวา", "เริ่มจากตำแหน่งพื้นฐาน พอคล่องแล้วฝึกพลิกคอร์ด จะเปลี่ยนคอร์ดได้โดยไม่ต้องย้ายมือไกล")
+    Section(tr("มือขวา", "Right hand", "右手"), tr("เริ่มจากตำแหน่งพื้นฐาน พอคล่องแล้วฝึกพลิกคอร์ด จะเปลี่ยนคอร์ดได้โดยไม่ต้องย้ายมือไกล", "Start in root position; once fluent, practise inversions so you can change chords without moving far", "基本形から始め、慣れたら転回形を練習。手を大きく動かさずにコードを替えられます"))
     ChordFingering.rightHand(chord).forEach { ShapeRow(it, onPlay = onPlay) }
 
-    Section("มือซ้าย", "นิ้วก้อยอยู่ล่างสุด นิ้วโป้งอยู่บนสุด")
+    Section(tr("มือซ้าย", "Left hand", "左手"), tr("นิ้วก้อยอยู่ล่างสุด นิ้วโป้งอยู่บนสุด", "Little finger at the bottom, thumb at the top", "小指が一番下、親指が一番上"))
     ChordFingering.leftHand(chord).forEach { ShapeRow(it, onPlay = onPlay) }
 }
 
@@ -99,7 +100,7 @@ private fun ShapeRow(shape: HandShape, splitAt: Int = 0, onPlay: (List<Int>) -> 
     Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
         Row {
             Text(shape.title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f).padding(top = 10.dp))
-            OutlinedButton(onClick = { onPlay(shape.notes) }) { Text("ฟัง") }
+            OutlinedButton(onClick = { onPlay(shape.notes) }) { Text(tr("ฟัง", "Listen", "聞く")) }
         }
         ChordKeys(shape, splitAt, Modifier.padding(top = 8.dp).widthIn(max = 560.dp).fillMaxWidth().height(110.dp))
     }

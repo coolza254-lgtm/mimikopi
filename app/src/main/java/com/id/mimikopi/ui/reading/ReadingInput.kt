@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.reading
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -24,7 +25,7 @@ fun ReadingKeyboard(
     marked: Set<Int> = emptySet(), enabled: Boolean = true, twoHands: Boolean = false, performance: Boolean = false,
 ) {
     if (connected) {
-        Text(if (enabled) "● ต่อ MIDI · เล่นโน้ตบนเปียโนได้เลย" else "● ต่อ MIDI · รอเสียงจบก่อนเล่น", color = Tokens.Palette.InkMuted, fontSize = 13.sp,
+        Text(if (enabled) tr("● ต่อ MIDI · เล่นโน้ตบนเปียโนได้เลย", "● MIDI connected · play notes on the piano", "● MIDI接続中 · ピアノで音を弾けます") else tr("● ต่อ MIDI · รอเสียงจบก่อนเล่น", "● MIDI connected · wait for the sound to end before playing", "● MIDI接続中 · 音が終わってから弾く"), color = Tokens.Palette.InkMuted, fontSize = 13.sp,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = if (performance) 0.dp else 12.dp).testTag("reading-midi"))
         return
     }
@@ -52,9 +53,9 @@ fun ReadingKeyboard(
     }
     Column(Modifier.fillMaxWidth().background(Tokens.Palette.Paper).testTag("reading-phone")) {
         if (pages.size > 1 && !(compact && performance)) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Text(if (split) "คีย์สองช่วง · กดพร้อมกันได้" else "คีย์บนมือถือ", color = Tokens.Palette.InkMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            Text(if (split) tr("คีย์สองช่วง · กดพร้อมกันได้", "Two key ranges · press together", "2段の鍵盤 · 同時に押せます") else tr("คีย์บนมือถือ", "On-screen keys", "画面の鍵盤"), color = Tokens.Palette.InkMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
             TextButton(onClick = { split = !split }, enabled = enabled, modifier = Modifier.heightIn(min = if (compact) 32.dp else 40.dp).testTag("reading-split")) {
-                Text(if (split) "ใช้ช่วงเดียว" else "แยกสองช่วง", fontSize = 12.sp)
+                Text(if (split) tr("ใช้ช่วงเดียว", "One range", "1段") else tr("แยกสองช่วง", "Two ranges", "2段"), fontSize = 12.sp)
             }
         }
         val upper: @Composable () -> Unit = {
@@ -79,11 +80,11 @@ private fun ReadingKeyBank(
     Column {
         if (pages.size > 1) Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             TextButton(onClick = { onPage(page - 1) }, enabled = page > 0 && enabled,
-                contentPadding = PaddingValues(horizontal = 4.dp), modifier = Modifier.heightIn(min = if (compact) 32.dp else 40.dp).testTag("reading-octave-down$bank")) { Text("ต่ำลง", fontSize = 12.sp) }
+                contentPadding = PaddingValues(horizontal = 4.dp), modifier = Modifier.heightIn(min = if (compact) 32.dp else 40.dp).testTag("reading-octave-down$bank")) { Text(tr("ต่ำลง", "Lower", "下へ"), fontSize = 12.sp) }
             Text("${SpelledPitch.fromMidiSharp(pages[page].first)}–${SpelledPitch.fromMidiSharp(pages[page].last)}", fontSize = 12.sp,
                 color = Tokens.Palette.Ink, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f).testTag("reading-octave$bank"))
             TextButton(onClick = { onPage(page + 1) }, enabled = page < pages.lastIndex && enabled,
-                contentPadding = PaddingValues(horizontal = 4.dp), modifier = Modifier.heightIn(min = if (compact) 32.dp else 40.dp).testTag("reading-octave-up$bank")) { Text("สูงขึ้น", fontSize = 12.sp) }
+                contentPadding = PaddingValues(horizontal = 4.dp), modifier = Modifier.heightIn(min = if (compact) 32.dp else 40.dp).testTag("reading-octave-up$bank")) { Text(tr("สูงขึ้น", "Higher", "上へ"), fontSize = 12.sp) }
         }
         Box(Modifier.fillMaxWidth().height(if (compact) 76.dp else 112.dp).padding(horizontal = 8.dp, vertical = 4.dp)) {
             key(page, enabled) {
@@ -91,7 +92,7 @@ private fun ReadingKeyBank(
                     if (enabled) onKey else { _, _ -> },
                     Modifier.matchParentSize().then(if (enabled) Modifier else Modifier.semantics { disabled() }).testTag("reading-keyboard$bank"))
             }
-            if (!enabled) Text("รอรับคำตอบ", color = Tokens.Palette.Ink,
+            if (!enabled) Text(tr("รอรับคำตอบ", "Waiting for an answer", "回答待ち"), color = Tokens.Palette.Ink,
                 modifier = Modifier.align(androidx.compose.ui.Alignment.Center).background(Tokens.Palette.Paper).padding(8.dp))
         }
     }

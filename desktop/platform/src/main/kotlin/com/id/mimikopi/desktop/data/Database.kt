@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.data
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.backup.AttemptEventRow
 import com.id.mimikopi.core.backup.AttemptRow
 import com.id.mimikopi.core.backup.BackupData
@@ -44,7 +45,7 @@ class Database private constructor(private val conn: Connection, val file: File?
                 }
                 s.execute("PRAGMA foreign_keys=ON")
                 val version = s.executeQuery("PRAGMA user_version").use { it.next(); it.getInt(1) }
-                require(version <= VERSION) { "ไฟล์ข้อมูลมาจากโปรแกรมรุ่นใหม่กว่า (v$version)" }
+                require(version <= VERSION) { tr("ไฟล์ข้อมูลมาจากโปรแกรมรุ่นใหม่กว่า (v$version)", "The data file is from a newer version of the app (v$version)", "データファイルは新しいバージョンのアプリのものです（v${version}）") }
                 SCHEMA.forEach(s::execute)
                 s.execute("PRAGMA user_version=$VERSION")
             }

@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.ui.screens
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -61,8 +62,8 @@ import com.id.mimikopi.desktop.ui.components.PrimaryButton
 import com.id.mimikopi.desktop.ui.theme.Tokens
 import java.time.LocalDate
 
-private val DAYS = listOf("จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์")
-private val MONTHS_LONG = listOf("มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม")
+private val DAYS = listOf(tr("จันทร์", "Monday", "月曜日"), tr("อังคาร", "Tuesday", "火曜日"), tr("พุธ", "Wednesday", "水曜日"), tr("พฤหัสบดี", "Thursday", "木曜日"), tr("ศุกร์", "Friday", "金曜日"), tr("เสาร์", "Saturday", "土曜日"), tr("อาทิตย์", "Sunday", "日曜日"))
+private val MONTHS_LONG = listOf(tr("มกราคม", "January", "1月"), tr("กุมภาพันธ์", "February", "2月"), tr("มีนาคม", "March", "3月"), tr("เมษายน", "April", "4月"), tr("พฤษภาคม", "May", "5月"), tr("มิถุนายน", "June", "6月"), tr("กรกฎาคม", "July", "7月"), tr("สิงหาคม", "August", "8月"), tr("กันยายน", "September", "9月"), tr("ตุลาคม", "October", "10月"), tr("พฤศจิกายน", "November", "11月"), tr("ธันวาคม", "December", "12月"))
 private const val DEFAULT_MINUTES = 20
 
 /** Today's plan: stored once a day for the minutes chosen (the same rules as the phone), rebuilt when it no longer fits. */
@@ -99,15 +100,15 @@ private fun open(app: AppContext, b: PlanBlock) {
 
 /** One line under a part's title: what it holds today. */
 private fun detail(s: Services, b: PlanBlock): String = when (b.kind) {
-    BlockKind.WARMUP, BlockKind.REVIEW -> "ทีละตัว ช้า ๆ ให้ตาและมือเข้ากัน"
-    BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { "${it.skill.title} ระดับ ${it.level} · เกณฑ์ตายตัว" } ?: ""
-    BlockKind.LADDER -> (ProgressRules.awaitingConfirmation(s.learning.lessons, s.learning.records.value, LocalDate.now()).firstOrNull()?.let { "ยืนยัน ${it.id} ${it.title}" }
-        ?: ProgressRules.nextToLearn(s.learning.lessons, s.learning.records.value)?.let { "${it.id} ${it.title}" } ?: "ทบทวนขั้นที่ผ่านแล้ว")
-    BlockKind.SIGHT -> "โน้ตที่ไม่เคยเห็น ระดับ ${b.target} · เล่นครั้งเดียวแล้วไปต่อ"
+    BlockKind.WARMUP, BlockKind.REVIEW -> tr("ทีละตัว ช้า ๆ ให้ตาและมือเข้ากัน", "One at a time, slowly, eyes and hands together", "1つずつゆっくり、目と手を合わせて")
+    BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { tr("${it.skill.title} ระดับ ${it.level} · เกณฑ์ตายตัว", "${it.skill.title} level ${it.level} · fixed criteria", "${it.skill.title} レベル${it.level} · 固定の基準") } ?: ""
+    BlockKind.LADDER -> (ProgressRules.awaitingConfirmation(s.learning.lessons, s.learning.records.value, LocalDate.now()).firstOrNull()?.let { tr("ยืนยัน ${it.id} ${it.title}", "Confirm ${it.title}", "${it.title}を確認") }
+        ?: ProgressRules.nextToLearn(s.learning.lessons, s.learning.records.value)?.let { "${it.id} ${it.title}" } ?: tr("ทบทวนขั้นที่ผ่านแล้ว", "Review passed steps", "合格した段階を復習"))
+    BlockKind.SIGHT -> tr("โน้ตที่ไม่เคยเห็น ระดับ ${b.target} · เล่นครั้งเดียวแล้วไปต่อ", "Music you've never seen · play once and move on", "初めて見る楽譜 · 1回弾いて次へ")
     BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, s.progress.checks.value, LocalDate.now()).level).summary()
     BlockKind.SOLO -> b.target?.toIntOrNull()?.let { PlanContent.soloSummary(it) } ?: ""
-    BlockKind.EAR -> EarProgress.currentStage(EarProgress.parse(s.db.get(EarProgress.KEY))).let { "ขั้น ${it.n} ${it.title}" }
-    BlockKind.SONG -> "เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น"
+    BlockKind.EAR -> EarProgress.currentStage(EarProgress.parse(s.db.get(EarProgress.KEY))).let { tr("ขั้น ${it.n} ${it.title}", "${it.title}", "${it.title}") }
+    BlockKind.SONG -> tr("เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น", "A library piece, full-sheet practice", "ライブラリの曲、楽譜全体で練習")
 }
 
 /**
@@ -150,20 +151,20 @@ fun TodayScreen() {
             Row(Modifier.widthIn(max = 1040.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     Column {
-                        Text("วัน${DAYS[today.dayOfWeek.value - 1]} ${today.dayOfMonth} ${MONTHS_LONG[today.monthValue - 1]}", fontSize = 15.sp, color = Tokens.Palette.InkMuted)
+                        Text(tr("วัน${DAYS[today.dayOfWeek.value - 1]} ${today.dayOfMonth} ${MONTHS_LONG[today.monthValue - 1]}", "${DAYS[today.dayOfWeek.value - 1]} ${today.dayOfMonth} ${MONTHS_LONG[today.monthValue - 1]}", "${MONTHS_LONG[today.monthValue - 1]}${today.dayOfMonth}日（${DAYS[today.dayOfWeek.value - 1]}）"), fontSize = 15.sp, color = Tokens.Palette.InkMuted)
                         Text(when {
-                            current >= 0 -> "วันนี้ฝึก $minutes นาที"
-                            done.all { it } -> "ฝึกครบแผนวันนี้แล้ว"
-                            else -> "ต่อเปียโนด้วยสายเพื่อทำส่วนที่เหลือ"
+                            current >= 0 -> tr("วันนี้ฝึก $minutes นาที", "$minutes min practised today", "今日の練習 ${minutes}分")
+                            done.all { it } -> tr("ฝึกครบแผนวันนี้แล้ว", "Today's plan is complete", "今日のプランを完了")
+                            else -> tr("ต่อเปียโนด้วยสายเพื่อทำส่วนที่เหลือ", "Connect the piano with a cable to do the rest", "残りはケーブルでピアノをつないで")
                         }, fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
                     }
                     TargetCard(songs, target, { id -> target = id; s.db.put(com.id.mimikopi.core.recall.TargetSong.SETTING_KEY, id) },
                         { song, hand -> app.nav.open(Screen.Recall(song, hand)) })
-                    Text("พื้นฐานวันนี้", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 8.dp))
+                    Text(tr("พื้นฐานวันนี้", "Today's basics", "今日の基礎"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 8.dp))
                     PlanCard(plan, done, current) { b -> PlanRow(s, b, done[plan.indexOf(b)], plan.indexOf(b) == current, plan.indexOf(b) + 1, waits[plan.indexOf(b)]) { open(app, b) } }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("เวลาฝึกพื้นฐาน", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
-                        Segmented(DailyPlan.CHOICES, minutes, { if (it == minutes) "$it นาที" else "$it" },
+                        Text(tr("เวลาฝึกพื้นฐาน", "Basic practice time", "基礎練習の時間"), fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+                        Segmented(DailyPlan.CHOICES, minutes, { if (it == minutes) tr("$it นาที", "$it min", "${it}分") else "$it" },
                             { m -> minutes = m; s.db.put(ProgressStore.MINUTES, m.toString()) }, Modifier.widthIn(max = 420.dp))
                     }
                     if (!wide) Summary(week, day.total, fixes)
@@ -198,14 +199,14 @@ private fun PlanRow(s: Services, b: PlanBlock, done: Boolean, now: Boolean, n: I
                 color = when { done -> Tokens.Palette.OnAccent; now -> Tokens.Palette.AccentDeep; else -> Tokens.Palette.InkMuted })
         }
         Column(Modifier.weight(1f)) {
-            if (now) Text("${b.kind.title} · ${b.minutes} นาที", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
+            if (now) Text(tr("${b.kind.title} · ${b.minutes} นาที", "${b.kind.title} · ${b.minutes} min", "${b.kind.title} · ${b.minutes}分"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Accent)
             Text(if (now) detail(s, b) else b.kind.title, fontSize = if (now) 21.sp else 17.sp, lineHeight = if (now) 29.sp else 24.sp, fontWeight = if (now) FontWeight.Bold else FontWeight.SemiBold,
                 color = if (done) Tokens.Palette.InkMuted else Tokens.Palette.Ink, textDecoration = if (done) TextDecoration.LineThrough else null)
             Text(when { now -> b.kind.why; needsCable && !done -> com.id.mimikopi.core.input.TimingInput.NEED_CABLE_SHORT; else -> detail(s, b) },
                 fontSize = 14.sp, color = Tokens.Palette.InkMuted, maxLines = 1)
         }
-        if (now) PrimaryButton("เริ่ม", onOpen, Modifier.width(140.dp))
-        else Text(if (done) "เสร็จ" else "${b.minutes} นาที", fontSize = 15.sp, fontWeight = if (done) FontWeight.SemiBold else FontWeight.Normal,
+        if (now) PrimaryButton(tr("เริ่ม", "Start", "開始"), onOpen, Modifier.width(140.dp))
+        else Text(if (done) tr("เสร็จ", "Done", "完了") else tr("${b.minutes} นาที", "${b.minutes} min", "${b.minutes}分"), fontSize = 15.sp, fontWeight = if (done) FontWeight.SemiBold else FontWeight.Normal,
             color = if (done) Tokens.Palette.Accent else Tokens.Palette.InkMuted)
     }
 }
@@ -214,7 +215,7 @@ private fun PlanRow(s: Services, b: PlanBlock, done: Boolean, now: Boolean, n: I
 private fun Summary(week: List<Pair<LocalDate, Int>>, secondsToday: Int, fixes: List<com.id.mimikopi.core.progress.Mistake>) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SideCard {
-            Text("7 วันนี้", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted)
+            Text(tr("7 วันนี้", "These 7 days", "この7日間"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted)
             val max = week.maxOfOrNull { it.second }?.coerceAtLeast(1) ?: 1
             Row(Modifier.fillMaxWidth().height(72.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
                 week.forEachIndexed { i, (_, m) ->
@@ -222,11 +223,11 @@ private fun Summary(week: List<Pair<LocalDate, Int>>, secondsToday: Int, fixes: 
                         .background(when { m == 0 -> Tokens.Palette.Track; i == week.lastIndex -> Tokens.Palette.Accent; else -> Tokens.Palette.AccentMid }))
                 }
             }
-            Text("ฝึก ${week.count { it.second > 0 }} วัน · ${week.sumOf { it.second }} นาที · วันนี้ ${secondsToday / 60} นาที", fontSize = 14.sp, color = Tokens.Palette.Ink)
+            Text(tr("ฝึก ${week.count { it.second > 0 }} วัน · ${week.sumOf { it.second }} นาที · วันนี้ ${secondsToday / 60} นาที", "Practised ${week.count { it.second > 0 }} days · ${week.sumOf { it.second }} min · today ${secondsToday / 60} min", "${week.count { it.second > 0 }}日練習 · ${week.sumOf { it.second }}分 · 今日${secondsToday / 60}分"), fontSize = 14.sp, color = Tokens.Palette.Ink)
         }
         SideCard {
-            Text("ยังสับสนบ่อย", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted)
-            if (fixes.isEmpty()) Text("ยังไม่พบจุดที่ผิดซ้ำ", fontSize = 15.sp, color = Tokens.Palette.Ink)
+            Text(tr("ยังสับสนบ่อย", "Still often confused", "まだよく混同する"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted)
+            if (fixes.isEmpty()) Text(tr("ยังไม่พบจุดที่ผิดซ้ำ", "No repeated mistakes found yet", "繰り返すミスはまだ見つかっていません"), fontSize = 15.sp, color = Tokens.Palette.Ink)
             fixes.forEach { m ->
                 Column {
                     Text(m.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink)

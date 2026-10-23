@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.reader
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -39,23 +40,23 @@ internal fun FallingViewport(
         ) {
             Row(Modifier.weight(1f, fill = false).background(Stage.copy(alpha = .85f), RoundedCornerShape(12.dp)).padding(horizontal = 8.dp, vertical = 5.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("● ซ้าย", color = Color(0xFF78AFE1), fontSize = 11.sp)
-                Text("● ขวา", color = Color(0xFFA1EF52), fontSize = 11.sp)
+                Text(tr("● ซ้าย", "● Left", "● 左"), color = Color(0xFF78AFE1), fontSize = 11.sp)
+                Text(tr("● ขวา", "● Right", "● 右"), color = Color(0xFFA1EF52), fontSize = 11.sp)
                 Text(status, color = Color.White, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
             }
             Row(Modifier.background(Stage.copy(alpha = .93f), RoundedCornerShape(16.dp)).padding(horizontal = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 KeyLabelSwitch(showKeyLabels, onKeyLabels)
                 TextButton(onClick = onStop, modifier = Modifier.heightIn(min = 48.dp).testTag("falling-stop")) {
-                    Text("หยุด", color = Color.White)
+                    Text(tr("หยุด", "Stop", "停止"), color = Color.White)
                 }
             }
         }
     } else Column(modifier.background(Stage).testTag("falling-viewport")) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("● ซ้าย", color = Color(0xFF78AFE1), fontSize = 12.sp)
-            Text("● ขวา", color = Color(0xFFA1EF52), fontSize = 12.sp)
+            Text(tr("● ซ้าย", "● Left", "● 左"), color = Color(0xFF78AFE1), fontSize = 12.sp)
+            Text(tr("● ขวา", "● Right", "● 右"), color = Color(0xFFA1EF52), fontSize = 12.sp)
             Spacer(Modifier.weight(1f))
             KeyLabelSwitch(showKeyLabels, onKeyLabels)
         }
@@ -65,8 +66,8 @@ internal fun FallingViewport(
 
 @Composable
 private fun KeyLabelSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
-    Text("ชื่อบนคีย์", color = Color.White, fontSize = 12.sp)
+    Text(tr("ชื่อบนคีย์", "Names on keys", "鍵盤に音名"), color = Color.White, fontSize = 12.sp)
     Switch(checked = checked, onCheckedChange = onChange,
         colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFFA1EF52), checkedThumbColor = Stage),
-        modifier = Modifier.testTag("falling-key-labels").semantics { contentDescription = "แสดงชื่อโน้ตบนคีย์" })
+        modifier = Modifier.testTag("falling-key-labels").semantics { contentDescription = tr("แสดงชื่อโน้ตบนคีย์", "Show note names on keys", "鍵盤に音名を表示") })
 }

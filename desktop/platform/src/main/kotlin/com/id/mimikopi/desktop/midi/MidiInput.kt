@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.midi
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.input.InputEvent
 import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.input.MidiParser
@@ -91,7 +92,7 @@ class MidiInput(private val hub: InputHub, private val octaveOffset: () -> Int) 
             }
         }
         _ports.value = present.map { (k, pair) ->
-            MidiPort(pair.first.name, pair.first.description, k in open, failed[k]?.let { "เปิดไม่ได้ (โปรแกรมอื่นอาจใช้อยู่): $it" })
+            MidiPort(pair.first.name, pair.first.description, k in open, failed[k]?.let { tr("เปิดไม่ได้ (โปรแกรมอื่นอาจใช้อยู่): $it", "Couldn't open (another program may be using it): $it", "開けません（他のソフトが使用中かもしれません）：$it") })
         }
     }
 

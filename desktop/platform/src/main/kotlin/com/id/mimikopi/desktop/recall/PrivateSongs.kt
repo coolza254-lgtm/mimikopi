@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.recall
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.recall.PrivatePhrase
 import com.id.mimikopi.core.recall.PrivateRecall
 import com.id.mimikopi.core.recall.PrivateSong
@@ -35,13 +36,13 @@ class PrivateSongs(private val db: Database) {
 
     fun mutate(change: (List<PrivateSong>) -> List<PrivateSong>) = synchronized(lock) {
         val next = change(read())
-        require(next.size <= 30) { "เก็บได้ไม่เกิน 30 เพลงส่วนตัว" }
+        require(next.size <= 30) { tr("เก็บได้ไม่เกิน 30 เพลงส่วนตัว", "Up to 30 private songs", "最大30曲までの個人曲") }
         next.forEach(PrivateRecall::validate)
         db.put(KEY, PrivateRecall.json.encodeToString(serializer, next))
         _songs.value = next
     }
 
-    fun add(title: String, url: String) = mutate { it + PrivateSong(UUID.randomUUID().toString(), title.trim(), VideoReference.canonical(url) ?: error("ลิงก์ YouTube ไม่ถูกต้อง")) }
+    fun add(title: String, url: String) = mutate { it + PrivateSong(UUID.randomUUID().toString(), title.trim(), VideoReference.canonical(url) ?: error(tr("ลิงก์ YouTube ไม่ถูกต้อง", "Not a valid YouTube link", "YouTubeのリンクが正しくありません"))) }
 
     fun changePhrase(songId: String, phraseId: String, change: (PrivatePhrase) -> PrivatePhrase) = mutate { all ->
         all.map { s -> if (s.id != songId) s else s.copy(phrases = s.phrases.map { p -> if (p.id == phraseId) change(p) else p }) }
@@ -52,7 +53,7 @@ class PrivateSongs(private val db: Database) {
     fun delete(id: String) = mutate { it.filterNot { s -> s.id == id } }
 
     fun editSong(id: String, title: String, url: String) = mutate { songs ->
-        val source = VideoReference.canonical(url) ?: error("ลิงก์ YouTube ไม่ถูกต้อง")
+        val source = VideoReference.canonical(url) ?: error(tr("ลิงก์ YouTube ไม่ถูกต้อง", "Not a valid YouTube link", "YouTubeのリンクが正しくありません"))
         songs.map { s -> if (s.id != id) s else s.copy(title = title.trim(), sourceUrl = source,
             phrases = if (source == s.sourceUrl) s.phrases else s.phrases.map { it.copy(revision = it.revision + 1) }) }
     }

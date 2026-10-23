@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.piano
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -88,7 +89,7 @@ fun FreePianoScreen(
             MidiPill(onOpenMidi)
             Spacer(Modifier.weight(1f))
             IconButton(onClick = { sheet = true }) {
-                Icon(painterResource(R.drawable.ic_settings), contentDescription = "เสียง ความดัง ก้อง นุ่ม", tint = Tokens.Palette.InkMuted, modifier = Modifier.size(22.dp))
+                Icon(painterResource(R.drawable.ic_settings), contentDescription = tr("เสียง ความดัง ก้อง นุ่ม", "Sound, volume, reverb, warmth", "音、音量、残響、やわらかさ"), tint = Tokens.Palette.InkMuted, modifier = Modifier.size(22.dp))
             }
         }
         if (ui.noSound) soundSetup(vm::soundInstalled)
@@ -105,20 +106,20 @@ fun FreePianoScreen(
     if (sheet) ModalBottomSheet(onDismissRequest = { sheet = false }, containerColor = Tokens.Palette.Group) {
         Column(Modifier.padding(horizontal = 24.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val s = ui.sound
-            SliderRow("ความดัง", s.volume, "${if (s.db > 0) "+" else ""}${s.db.roundToInt()} dB", { vm.setSound(s.copy(volume = it), false) }) { vm.setSound(ui.sound, true) }
+            SliderRow(tr("ความดัง", "Volume", "音量"), s.volume, "${if (s.db > 0) "+" else ""}${s.db.roundToInt()} dB", { vm.setSound(s.copy(volume = it), false) }) { vm.setSound(ui.sound, true) }
             if (vm.supportsTone) {
-                SliderRow("ก้อง", s.reverb, "${(s.reverb * 100).roundToInt()}%", { vm.setSound(s.copy(reverb = it), false) }) { vm.setSound(ui.sound, true) }
-                SliderRow("นุ่ม", s.warmth, "${(s.warmth * 100).roundToInt()}%", { vm.setSound(s.copy(warmth = it), false) }) { vm.setSound(ui.sound, true) }
+                SliderRow(tr("ก้อง", "Reverb", "残響"), s.reverb, "${(s.reverb * 100).roundToInt()}%", { vm.setSound(s.copy(reverb = it), false) }) { vm.setSound(ui.sound, true) }
+                SliderRow(tr("นุ่ม", "Warmth", "やわらかさ"), s.warmth, "${(s.warmth * 100).roundToInt()}%", { vm.setSound(s.copy(warmth = it), false) }) { vm.setSound(ui.sound, true) }
             }
             val v = ui.velocity
             @OptIn(ExperimentalLayoutApi::class)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Chip(if (v.on) "น้ำหนักคีย์" else "ดังเท่ากัน: ${level(v.fixed)}", selected = v.on) { vm.setVelocity(VelocityMode(!v.on, v.fixed)) }
-                Chip("ชื่อโน้ต", selected = showNames) { showNames = !showNames }
+                Chip(if (v.on) tr("น้ำหนักคีย์", "Key weight", "タッチの強弱") else tr("ดังเท่ากัน: ${level(v.fixed)}", "Same loudness: ${level(v.fixed)}", "音量一定：${level(v.fixed)}"), selected = v.on) { vm.setVelocity(VelocityMode(!v.on, v.fixed)) }
+                Chip(tr("ชื่อโน้ต", "Note names", "音名"), selected = showNames) { showNames = !showNames }
             }
             if (!v.on) Segmented(VelocityMode.LEVELS, v.fixed.takeIf { it in VelocityMode.LEVELS } ?: VelocityMode.MEDIUM, { level(it) }, { vm.setVelocity(VelocityMode(false, it)) })
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("คีย์", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
+                Text(tr("คีย์", "Key", "キー"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f))
                 RoundButton("−") { vm.transpose(-1) }
                 Text("${if (ui.transpose > 0) "+" else ""}${ui.transpose}", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink,
                     textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 40.dp))
@@ -137,13 +138,13 @@ private fun Keys(lowNote: Int, transpose: Int, showNames: Boolean, onShift: (Int
         val high = low + 12 * octaves + 4
         Column {
             Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                QuietArrow("‹", "เลื่อนลงหนึ่งอ็อกเทฟ") { onShift(-1) }
+                QuietArrow("‹", tr("เลื่อนลงหนึ่งอ็อกเทฟ", "Down one octave", "1オクターブ下へ")) { onShift(-1) }
                 Text(
                     "C${low / 12 - 1} — ${SpelledPitch.fromMidiSharp(high).name(NoteNameStyle.LETTER, withOctave = true)}" +
                         if (transpose != 0) "  ·  ${if (transpose > 0) "+" else ""}$transpose" else "",
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(horizontal = 24.dp),
                 )
-                QuietArrow("›", "เลื่อนขึ้นหนึ่งอ็อกเทฟ") { onShift(1) }
+                QuietArrow("›", tr("เลื่อนขึ้นหนึ่งอ็อกเทฟ", "Up one octave", "1オクターブ上へ")) { onShift(1) }
             }
             TouchKeyboard(low..high, emptySet(), showNames, NoteNameStyle.LETTER, Modifier.fillMaxWidth().height(300.dp))
         }
@@ -180,7 +181,7 @@ private fun RoundButton(text: String, onClick: () -> Unit) {
 }
 
 private fun level(v: Int) = when (v) {
-    VelocityMode.SOFT -> "เบา"
-    VelocityMode.LOUD -> "ดัง"
-    else -> "กลาง"
+    VelocityMode.SOFT -> tr("เบา", "Soft", "弱")
+    VelocityMode.LOUD -> tr("ดัง", "Loud", "強")
+    else -> tr("กลาง", "Medium", "中")
 }

@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.reader
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -96,7 +97,7 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
         if (ui.options.falling && !vm.fixed) {
             FallingScore(piece!!, ui, vm, playing, Modifier.fillMaxSize().keepScreenOn(), fullscreen = true)
         } else {
-            ScorePlayerViewport(ui.previewLeft?.let { "ดูโน้ตก่อนเริ่ม · เหลือ $it วินาที" } ?: runStatus(ui), connected, stopPlayer,
+            ScorePlayerViewport(ui.previewLeft?.let { tr("ดูโน้ตก่อนเริ่ม · เหลือ $it วินาที", "Look before starting · $it s left", "始める前に見る · 残り${it}秒") } ?: runStatus(ui), connected, stopPlayer,
                 keyboard = {
                     if (ui.previewLeft == null) ReadingKeyboard(false, if (vm.transposeKey != null) piece!!.keyRange else readingInputRange(score!!, ui.options.hands.hands),
                         vm.nameStyle, ui.showNames, pressed, touch,
@@ -140,7 +141,7 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
                 vm::start, vm::listen, { showOptions = true }, onOpenMidi, { vm.setFalling(true) },
                 countInClicks = com.id.mimikopi.core.score.MeterPulse.of(score).countInClicks,
                 rhythmHint = if (score.beatUnit == 8 && score.beatsPerMeasure >= 6 && score.beatsPerMeasure % 3 == 0)
-                    "${score.beatsPerMeasure / 3} จังหวะหลักต่อห้อง · เล่น 3 โน้ตต่อหนึ่งจังหวะ · ตัวเลข bpm คิดตามโน้ตดำ" else null) { mod ->
+                    tr("${score.beatsPerMeasure / 3} จังหวะหลักต่อห้อง · เล่น 3 โน้ตต่อหนึ่งจังหวะ · ตัวเลข bpm คิดตามโน้ตดำ", "${score.beatsPerMeasure / 3} main beats per bar · 3 notes per beat · bpm counts crotchets", "1小節に${score.beatsPerMeasure / 3}拍 · 1拍に3音 · bpmは四分音符で数えます") else null) { mod ->
                 PagedScoreView(score, vm::cursorAt, false, ui.results, ui.wrongMarks,
                     loop = ui.section.takeUnless { it.first == 0 && it.last == score.measures - 1 }, hotMeasures = ui.hotMeasures,
                     showNames = ui.showNames, nameStyle = vm.nameStyle, onMeasureTap = vm::onMeasureTap,
@@ -153,7 +154,7 @@ fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel
             ui.result?.let {
                 ResultPanel(it, ui, vm, onBack, onOpenMidi, Modifier.weight(1f)) {
                     Text(
-                        if (vm.fixed) "โน้ตในรอบนี้ · เลื่อนดูผลได้" else "โน้ตในรอบนี้ · แตะบาร์เพื่อเลือกฝึกเฉพาะจุด",
+                        if (vm.fixed) tr("โน้ตในรอบนี้ · เลื่อนดูผลได้", "Notes this round · scroll to see results", "この回の音符 · スクロールして結果を見る") else tr("โน้ตในรอบนี้ · แตะบาร์เพื่อเลือกฝึกเฉพาะจุด", "Notes this round · tap bars to practise a spot", "この回の音符 · 小節をタップして部分練習"),
                         fontSize = 15.sp, color = Tokens.Palette.InkMuted,
                     )
                     PagedScoreView(
@@ -406,7 +407,7 @@ private fun ResultPanel(
             .padding(horizontal = Tokens.Space.l, vertical = Tokens.Space.m),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("ผลรอบนี้", fontSize = 15.sp, color = Tokens.Palette.InkMuted)
+        Text(tr("ผลรอบนี้", "This round", "この回の結果"), fontSize = 15.sp, color = Tokens.Palette.InkMuted)
         Text(r.headline, fontSize = 26.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
         next?.let { Text(it.text, fontSize = 19.sp, lineHeight = 28.sp, color = Tokens.Palette.Ink) }
         r.progressLine?.let { Text(it, fontSize = 15.sp, lineHeight = 22.sp, color = Tokens.Palette.InkMuted) }
@@ -427,15 +428,15 @@ private fun ResultPanel(
         )
         if (!vm.benchDone) {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (action != null) TextButton(onClick = vm::start) { Text("เล่นแบบเดิมอีกครั้ง") }
+                if (action != null) TextButton(onClick = vm::start) { Text(tr("เล่นแบบเดิมอีกครั้ง", "Play the same again", "同じ設定でもう一度")) }
                 if (!vm.fixed && ui.section != (0 until (vm.score?.measures ?: 0))) {
-                    TextButton(onClick = { vm.wholePiece(); vm.start() }) { Text("ลองเล่นทั้งเพลง") }
+                    TextButton(onClick = { vm.wholePiece(); vm.start() }) { Text(tr("ลองเล่นทั้งเพลง", "Try the whole piece", "全曲を弾いてみる")) }
                 }
                 TextButton(onClick = vm::backToSetup) { Text(stringResource(R.string.reader_back_to_setup)) }
-                TextButton(onClick = onBack) { Text("จบการฝึก") }
+                TextButton(onClick = onBack) { Text(tr("จบการฝึก", "Finish", "練習を終える")) }
             }
         }
-        TextButton(onClick = { details = !details }) { Text(if (details) "ซ่อนรายละเอียด" else "ดูตัวเลขและคำแนะนำทั้งหมด") }
+        TextButton(onClick = { details = !details }) { Text(if (details) tr("ซ่อนรายละเอียด", "Hide details", "詳細を隠す") else tr("ดูตัวเลขและคำแนะนำทั้งหมด", "See all numbers and tips", "すべての数値とヒントを見る")) }
         if (details) {
             if (r.details.isNotEmpty()) Text(r.details, fontSize = 15.sp, lineHeight = 23.sp, color = Tokens.Palette.InkMuted)
             r.coach.filter { it != next }.forEach {
@@ -448,9 +449,9 @@ private fun ResultPanel(
 
 @Composable
 private fun actionLabel(a: ResultAction, timed: Boolean): String = when (a) {
-    is ResultAction.Loop -> "ฝึก" + (if (a.from == a.to) stringResource(R.string.reader_section_one, a.from + 1) else stringResource(R.string.reader_section, a.from + 1, a.to + 1)) + if (timed) " · ${a.bpm.coerceAtLeast(30)} bpm" else ""
-    is ResultAction.Hands -> "ฝึก" + stringResource(if (a.choice == HandChoice.LEFT) R.string.reader_hand_left else R.string.reader_hand_right) + if (timed) " · ${a.bpm.coerceAtLeast(30)} bpm" else ""
-    is ResultAction.Tempo -> "ฝึกที่ " + stringResource(R.string.reader_bpm, a.bpm.coerceAtLeast(30))
+    is ResultAction.Loop -> tr("ฝึก", "Practise", "練習") + (if (a.from == a.to) stringResource(R.string.reader_section_one, a.from + 1) else stringResource(R.string.reader_section, a.from + 1, a.to + 1)) + if (timed) " · ${a.bpm.coerceAtLeast(30)} bpm" else ""
+    is ResultAction.Hands -> tr("ฝึก", "Practise", "練習") + stringResource(if (a.choice == HandChoice.LEFT) R.string.reader_hand_left else R.string.reader_hand_right) + if (timed) " · ${a.bpm.coerceAtLeast(30)} bpm" else ""
+    is ResultAction.Tempo -> tr("ฝึกที่ ", "Practise ", "練習 ") + stringResource(R.string.reader_bpm, a.bpm.coerceAtLeast(30))
 }
 
 @Composable
@@ -463,8 +464,8 @@ private fun OptionsDialog(o: ReaderOptions, vm: ReaderViewModel, onDismiss: () -
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Tokens.Space.s)) {
                 if (!fixed) {
-                    TextButton(onClick = { vm.wholePiece(); onDismiss() }) { Text("ฝึกทั้งเพลง") }
-                    TextButton(onClick = { vm.setFalling(!o.falling); onDismiss() }) { Text(if (o.falling) "อ่านโน้ตบนบรรทัด" else "แสดงโน้ตไหล") }
+                    TextButton(onClick = { vm.wholePiece(); onDismiss() }) { Text(tr("ฝึกทั้งเพลง", "Practise the whole piece", "全曲を練習")) }
+                    TextButton(onClick = { vm.setFalling(!o.falling); onDismiss() }) { Text(if (o.falling) tr("อ่านโน้ตบนบรรทัด", "Read notes on the staff", "五線の音符を読む") else tr("แสดงโน้ตไหล", "Show falling notes", "流れる音符を表示")) }
                 }
                 OptionRow(R.string.reader_opt_other_hand, R.string.reader_opt_other_hand_body, o.playOtherHand, vm::setPlayOtherHand)
                 if (!fixed) OptionRow(R.string.reader_opt_metronome, R.string.reader_opt_metronome_body, o.metronome, vm::setMetronome)

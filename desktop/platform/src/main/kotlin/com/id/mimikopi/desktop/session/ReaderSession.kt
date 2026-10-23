@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.session
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.exam.ExamPart
 import com.id.mimikopi.core.exam.ExamSitting
 import com.id.mimikopi.core.exam.Exams
@@ -273,11 +274,11 @@ class ReaderSession(
 
     fun title(): String = when (val src = source) {
         is Source.Piece -> score?.title ?: ""
-        is Source.LessonDrill -> "${src.lesson.id} · ${src.drill.title}" + (transposeKey?.let { " · เล่นในคีย์ ${Keys.name(it)}" } ?: "")
-        is Source.NewReading -> "อ่านโน้ตใหม่ (ระดับ L${src.level})"
+        is Source.LessonDrill -> "${src.lesson.id} · ${src.drill.title}" + (transposeKey?.let { tr(" · เล่นในคีย์ ${Keys.name(it)}", " · played in ${Keys.name(it)}", " · ${Keys.name(it)}で演奏") } ?: "")
+        is Source.NewReading -> tr("อ่านโน้ตใหม่ (ระดับ L${src.level})", "Sight-reading", "初見")
         is Source.Practice -> src.drill.title
-        is Source.Benchmark -> "วัดผล: อ่านโน้ตระดับ L$benchLevel"
-        is Source.Check -> "ทดสอบวัดระดับ · ${src.level.skill.title} ระดับ ${src.level.level}"
+        is Source.Benchmark -> tr("วัดผล: อ่านโน้ตระดับ L$benchLevel", "Measure: sight-reading", "測定：初見")
+        is Source.Check -> tr("ทดสอบวัดระดับ · ${src.level.skill.title} ระดับ ${src.level.level}", "Test · ${src.level.skill.title} level ${src.level.level}", "テスト · ${src.level.skill.title} レベル${src.level.level}")
         is Source.Exam -> "สอบ ${exam()?.second?.name ?: ""} · ${src.part.title}"
     }
 
@@ -487,7 +488,7 @@ class ReaderSession(
         previewJob = null
         if (_ui.value.previewLeft != null) _ui.update { it.copy(previewLeft = null) }
         if (examTaken()) {
-            _ui.update { it.copy(message = "สอบส่วนนี้ไปแล้ว ผลนับครั้งแรกเท่านั้น") }
+            _ui.update { it.copy(message = tr("สอบส่วนนี้ไปแล้ว ผลนับครั้งแรกเท่านั้น", "You already took this part; only the first try counts", "この部は受験済みです。1回目だけが数えられます")) }
             return
         }
         if (examClosed()) {
@@ -520,7 +521,7 @@ class ReaderSession(
         )
         val j = PlayAlongJudge(s, setup)
         if (j.expected.isEmpty()) {
-            _ui.update { it.copy(message = "ท่อนนี้ไม่มีโน้ตของมือที่เลือก ลองเลือกมืออื่นหรือท่อนอื่น") }
+            _ui.update { it.copy(message = tr("ท่อนนี้ไม่มีโน้ตของมือที่เลือก ลองเลือกมืออื่นหรือท่อนอื่น", "This section has no notes for the chosen hand; try another hand or section", "この区間には選んだ手の音符がありません。別の手か区間を選んでください")) }
             return
         }
         judge = j
@@ -735,10 +736,10 @@ class ReaderSession(
         if (!d.pedal) return null
         val r = PedalCheck.analyze(chordHits.toSortedMap().values.toList(), pedalEvents.toList())
         return CoachLine(when {
-            !r.sawPedal -> "ไม่ได้รับสัญญาณแป้นเหยียบ จึงตรวจการเปลี่ยนแป้นไม่ได้ (แป้นของเปียโนบางรุ่นไม่ส่งผ่าน MIDI หรือยังไม่ได้เหยียบ)"
-            r.changes == 0 -> "ยังไม่มีการเปลี่ยนคอร์ดให้ตรวจการเปลี่ยนแป้น"
-            r.good == r.changes -> "เปลี่ยนแป้นตามคอร์ดได้ครบ ${r.changes} ครั้ง"
-            else -> "เปลี่ยนแป้นทันคอร์ด ${r.good}/${r.changes} ครั้ง ยกแป้นขึ้นทันทีหลังกดคอร์ดใหม่ แล้วเหยียบลงอีกครั้ง"
+            !r.sawPedal -> tr("ไม่ได้รับสัญญาณแป้นเหยียบ จึงตรวจการเปลี่ยนแป้นไม่ได้ (แป้นของเปียโนบางรุ่นไม่ส่งผ่าน MIDI หรือยังไม่ได้เหยียบ)", "No pedal signal received, so pedal changes can't be checked (some pianos don't send the pedal over MIDI, or it wasn't pressed)", "ペダル信号がないためペダルの踏み替えを確認できません（MIDIでペダルを送らない機種か、踏んでいません）")
+            r.changes == 0 -> tr("ยังไม่มีการเปลี่ยนคอร์ดให้ตรวจการเปลี่ยนแป้น", "No chord changes yet to check the pedal against", "ペダルを確認できるコードチェンジがまだありません")
+            r.good == r.changes -> tr("เปลี่ยนแป้นตามคอร์ดได้ครบ ${r.changes} ครั้ง", "Pedal changed with every chord, ${r.changes} times", "コードごとにペダルを踏み替えられました（${r.changes}回）")
+            else -> tr("เปลี่ยนแป้นทันคอร์ด ${r.good}/${r.changes} ครั้ง ยกแป้นขึ้นทันทีหลังกดคอร์ดใหม่ แล้วเหยียบลงอีกครั้ง", "Pedal in time ${r.good}/${r.changes}. Lift right after the new chord, then press again", "ペダルが間に合ったのは${r.good}/${r.changes}回。新しいコードを押した直後に上げ、また踏み込む")
         })
     }
 
@@ -780,20 +781,20 @@ class ReaderSession(
             val coach = coachLines(s, result, slower, update.newBpm, helper)
             val studyLine = studyTarget?.let { t -> (studied.studyTargets[t.id] ?: StudyEvidence()).let { e ->
                 when {
-                    result.setup.fromMeasure != t.from || result.setup.toMeasure != t.to || result.setup.hands != t.hands || result.setup.mode != t.mode -> "บันทึกการฝึกแล้ว · ช่วง/มือ/โหมดที่เปลี่ยนไม่นับแทนเป้าหมายเดิม"
-                    t.completed(e) -> "เป้าหมายท่อนนี้ทำได้ตามเกณฑ์แล้ว · กลับหน้าเพลงเพื่อฝึกขั้นถัดไป"
-                    t.mode == PlayMode.WAIT -> "บันทึกการอ่านช่วงนี้แล้ว · ยังไม่วัดจังหวะ"
-                    else -> "แผนท่อนนี้: สะอาดต่อเนื่อง ${e.streak}/3 รอบ · ทำได้ ${e.days.size}/2 วัน"
+                    result.setup.fromMeasure != t.from || result.setup.toMeasure != t.to || result.setup.hands != t.hands || result.setup.mode != t.mode -> tr("บันทึกการฝึกแล้ว · ช่วง/มือ/โหมดที่เปลี่ยนไม่นับแทนเป้าหมายเดิม", "Practice saved · a changed section/hand/mode doesn't count for the original goal", "練習を保存しました · 区間・手・モードを変えた分は元の目標には数えません")
+                    t.completed(e) -> tr("เป้าหมายท่อนนี้ทำได้ตามเกณฑ์แล้ว · กลับหน้าเพลงเพื่อฝึกขั้นถัดไป", "This section's goal is met · back to the piece for the next step", "この区間の目標を達成 · 曲ページに戻って次の段階へ")
+                    t.mode == PlayMode.WAIT -> tr("บันทึกการอ่านช่วงนี้แล้ว · ยังไม่วัดจังหวะ", "Reading of this section saved · timing not measured yet", "この区間の読譜を保存 · リズムはまだ測っていません")
+                    else -> tr("แผนท่อนนี้: สะอาดต่อเนื่อง ${e.streak}/3 รอบ · ทำได้ ${e.days.size}/2 วัน", "This section: clean in a row ${e.streak}/3 · done on ${e.days.size}/2 days", "この区間：連続クリーン${e.streak}/3回 · ${e.days.size}/2日達成")
                 }
             } }
             val progressLine = studyLine ?: when {
-                update.piecePassed && update.passedToday -> "ผ่านเพลงนี้แล้ว (เล่นสะอาด 3 รอบติดที่ความเร็วเป้าหมาย ใน 2 วันที่ต่างกัน)"
-                update.passedToday -> "วันนี้เล่นสะอาดครบ 3 รอบติดที่ความเร็วเป้าหมายแล้ว ต้องทำอีกครั้งในวันอื่นเพื่อผ่านเพลงนี้"
+                update.piecePassed && update.passedToday -> tr("ผ่านเพลงนี้แล้ว (เล่นสะอาด 3 รอบติดที่ความเร็วเป้าหมาย ใน 2 วันที่ต่างกัน)", "Piece passed (3 clean in a row at target tempo on 2 different days)", "この曲に合格（目標テンポで3回連続クリーン、別々の2日）")
+                update.passedToday -> tr("วันนี้เล่นสะอาดครบ 3 รอบติดที่ความเร็วเป้าหมายแล้ว ต้องทำอีกครั้งในวันอื่นเพื่อผ่านเพลงนี้", "3 clean in a row at target tempo today. Do it again on another day to pass the piece", "今日、目標テンポで3回連続クリーン達成。別の日にもう一度で合格")
                 else -> null
             }
             val lines = listOfNotNull(
-                if (s.id.startsWith("heroic-polonaise-")) progressLine?.replace("เพลงนี้", "ฉบับฝึกท่อนหลักนี้") else progressLine,
-            ) + passedLessons.map { "ผ่านบท ${it.id} ${it.title} แล้ว" }
+                if (s.id.startsWith("heroic-polonaise-")) progressLine?.replace(tr("เพลงนี้", "This piece", "この曲"), tr("ฉบับฝึกท่อนหลักนี้", "This main-section practice edition", "このメイン部分の練習版")) else progressLine,
+            ) + passedLessons.map { tr("ผ่านบท ${it.id} ${it.title} แล้ว", "Lesson ${it.title} passed", "レッスン「${it.title}」合格") }
             _ui.update {
                 it.copy(phase = Phase.RESULT, result = resultUi(result, coach, lines.joinToString("\n").ifEmpty { null }), bpm = update.newBpm ?: it.bpm, countIn = null)
             }
@@ -837,11 +838,11 @@ class ReaderSession(
                     val timing = if (result.timingJudged) sum?.fractionWithinTiming ?: 0.0 else 0.0
                     val before = exam()?.first?.mark(src.part)
                     when {
-                        before != null -> progressLine = "สอบส่วนนี้ไปแล้ว ได้ ${before.marks} คะแนน (นับครั้งแรกเท่านั้น)"
+                        before != null -> progressLine = tr("สอบส่วนนี้ไปแล้ว ได้ ${before.marks} คะแนน (นับครั้งแรกเท่านั้น)", "You already took this part and got ${before.marks} marks (only the first try counts)", "この部は受験済みで${before.marks}点でした（1回目だけ数えます）")
                         helper -> {
-                            lines += CoachLine("เปิดชื่อโน้ตระหว่างสอบ ส่วนนี้จึงยังไม่นับ ปิดชื่อโน้ตแล้วเล่นใหม่ได้")
+                            lines += CoachLine(tr("เปิดชื่อโน้ตระหว่างสอบ ส่วนนี้จึงยังไม่นับ ปิดชื่อโน้ตแล้วเล่นใหม่ได้", "Note names were on during the exam, so this part doesn't count yet. Turn them off and play again", "試験中に音名を表示したため、この部はまだ数えません。音名を消してもう一度"))
                             if (src.part == ExamPart.SIGHT) {
-                                lines += CoachLine("รอบใหม่ใช้โน้ตใหม่ และได้ดูโน้ต 30 วินาทีอีกครั้ง")
+                                lines += CoachLine(tr("รอบใหม่ใช้โน้ตใหม่ และได้ดูโน้ต 30 วินาทีอีกครั้ง", "A new round uses new music, with another 30 seconds to look", "新しい回は新しい楽譜で、また30秒見られます"))
                                 sightNeedsLook = true
                             }
                         }
@@ -853,7 +854,7 @@ class ReaderSession(
                                 services.progress.log("check", seconds)
                             }
                             benchDone = true
-                            progressLine = "${src.part.title}: $marks จาก ${src.part.max} คะแนน · ${Exams.partBand(src.part, marks).title}"
+                            progressLine = tr("${src.part.title}: $marks จาก ${src.part.max} คะแนน · ${Exams.partBand(src.part, marks).title}", "${src.part.title}: $marks of ${src.part.max} marks · ${Exams.partBand(src.part, marks).title}", "${src.part.title}：${src.part.max}点中${marks}点 · ${Exams.partBand(src.part, marks).title}")
                             Exams.remark(mark).lines().drop(1).forEach { lines += CoachLine(it) }
                         }
                     }
@@ -876,10 +877,10 @@ class ReaderSession(
                     }
                     val status = SkillBook.status(level.skill, p.checks.value, LocalDate.now())
                     verdict.lines.forEach { lines += CoachLine(it) }
-                    if (helper) lines += CoachLine("เปิดตัวช่วยระหว่างทดสอบ ผลนี้จึงไม่นับ")
-                    progressLine = if (passed) "ผ่านระดับ ${level.level}: ${level.canDo} · ${level.skill.title}ตอนนี้ระดับ ${status.level} จาก ${status.maxLevel}"
-                    else if (status.lockedToday) "ยังไม่ผ่านระดับ ${level.level} · ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น"
-                    else "ยังไม่ผ่านระดับ ${level.level} · ยังลองได้อีกครั้งวันนี้ (โน้ตใหม่)"
+                    if (helper) lines += CoachLine(tr("เปิดตัวช่วยระหว่างทดสอบ ผลนี้จึงไม่นับ", "Helpers were on during the test, so this result doesn't count", "テスト中に補助を使ったため、この結果は数えません"))
+                    progressLine = if (passed) tr("ผ่านระดับ ${level.level}: ${level.canDo} · ${level.skill.title}ตอนนี้ระดับ ${status.level} จาก ${status.maxLevel}", "Passed: ${level.canDo} · ${level.skill.title} is now ${status.level} of ${status.maxLevel}", "合格：${level.canDo} · ${level.skill.title}は現在${status.maxLevel}中${status.level}")
+                    else if (status.lockedToday) tr("ยังไม่ผ่านระดับ ${level.level} · ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น", "Not passed yet · both tries used today; keep practising and try another day", "まだ不合格 · 今日の2回を使いました。練習して別の日に")
+                    else tr("ยังไม่ผ่านระดับ ${level.level} · ยังลองได้อีกครั้งวันนี้ (โน้ตใหม่)", "Not passed yet · one more try today (new music)", "まだ不合格 · 今日あと1回挑戦できます（新しい楽譜）")
                     benchDone = passed || status.lockedToday
                     _ui.update { it.copy(phase = Phase.RESULT, result = resultUi(result, lines.distinct(), progressLine), countIn = null) }
                     return@launch
@@ -904,14 +905,14 @@ class ReaderSession(
                     }
                     if (met) metThisSitting = true
                     progressLine = when {
-                        passedNow && met -> "ผ่านบท ${l.id} แล้ว บทถัดไปปลดล็อก"
-                        met -> if (l.pass.requiredDrills.size > 1) "ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกันด้วย" else "ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อผ่านบทนี้"
-                        required && need != null && !metThisSitting -> if (l.pass.inRow) "เล่นสะอาดติดกัน $cleanStreak/$need ครั้ง" else "เล่นสะอาดแล้ว $cleanCount/$need ครั้ง"
-                        !result.timingJudged && waitMin == null -> "โหมดรอใช้ฝึกอ่าน แบบทดสอบใช้โหมดตามจังหวะ"
+                        passedNow && met -> tr("ผ่านบท ${l.id} แล้ว บทถัดไปปลดล็อก", "Lesson passed, the next one is open", "レッスン合格、次のレッスンが開きました")
+                        met -> if (l.pass.requiredDrills.size > 1) tr("ส่วนนี้ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านส่วนอื่นของบทในวันเดียวกันด้วย", "This part met the criteria today; the lesson's other parts must pass the same day too", "この部分は今日基準を満たしました。同じ日にレッスンの他の部分も合格が必要です") else tr("ผ่านเกณฑ์วันนี้แล้ว ต้องผ่านอีกครั้งในวันอื่นเพื่อผ่านบทนี้", "Met the criteria today; pass again on another day to pass this lesson", "今日基準を満たしました。別の日にもう一度でこのレッスンに合格")
+                        required && need != null && !metThisSitting -> if (l.pass.inRow) tr("เล่นสะอาดติดกัน $cleanStreak/$need ครั้ง", "Clean in a row $cleanStreak/$need", "連続クリーン $cleanStreak/${need}回") else tr("เล่นสะอาดแล้ว $cleanCount/$need ครั้ง", "Clean $cleanCount/$need", "クリーン $cleanCount/${need}回")
+                        !result.timingJudged && waitMin == null -> tr("โหมดรอใช้ฝึกอ่าน แบบทดสอบใช้โหมดตามจังหวะ", "Wait mode is for reading practice; tests use in-time mode", "待ちモードは読譜練習用、テストはリズムモードで行います")
                         else -> null
                     }
-                    if (helper && required) lines += CoachLine("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่าน")
-                    if (early) lines += CoachLine("หยุดก่อนจบ รอบนี้จึงไม่นับเป็นรอบสะอาดและไม่นำมาเทียบพัฒนาการ")
+                    if (helper && required) lines += CoachLine(tr("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่าน", "Note names were on this round, so it doesn't count as a pass", "この回は音名を表示していたため合格に数えません"))
+                    if (early) lines += CoachLine(tr("หยุดก่อนจบ รอบนี้จึงไม่นับเป็นรอบสะอาดและไม่นำมาเทียบพัฒนาการ", "Stopped before the end, so this round isn't clean and isn't compared for progress", "最後まで弾かずに止めたため、この回はクリーンに数えず上達の比較にも使いません"))
                 }
                 is Source.Practice -> withContext(io) {
                     learning.saveAttempt(
@@ -937,11 +938,11 @@ class ReaderSession(
                         withContext(io) { learning.updateBenchmark { it.copy(sightReadingLevel = maxOf(it.sightReadingLevel ?: 0, level)) } }
                         benchLevel = level + 1
                         newPieceNext = true
-                        progressLine = "ระดับ L$level เล่นสะอาด ไปต่อระดับ L${level + 1}"
+                        progressLine = tr("ระดับ L$level เล่นสะอาด ไปต่อระดับ L${level + 1}", "Played clean, moving to the next level", "クリーンに弾けました。次のレベルへ")
                     } else {
                         val reached = if (clean && !helper) level else level - 1
                         withContext(io) { learning.updateBenchmark { it.copy(sightReadingLevel = maxOf(it.sightReadingLevel ?: 0, reached)) } }
-                        progressLine = "บันทึกผลแล้ว: อ่านโน้ตสะอาดได้ถึงระดับ L$reached"
+                        progressLine = tr("บันทึกผลแล้ว: อ่านโน้ตสะอาดได้ถึงระดับ L$reached", "Result saved", "結果を保存しました")
                         benchDone = true
                     }
                 }
@@ -976,61 +977,61 @@ class ReaderSession(
         val details: String
         val clean: Boolean?
         if (sum == null) {
-            headline = "ไม่มีโน้ตให้ตัดสิน"; details = ""; clean = null
+            headline = tr("ไม่มีโน้ตให้ตัดสิน", "No notes to judge", "判定する音符がありません"); details = ""; clean = null
         } else if (r.timingJudged) {
             clean = sum.isClean(learning.config.cleanRun)
-            headline = (if (clean) "เล่นสะอาด · " else "") + "โน้ตถูก ${(sum.noteAccuracy * 100).roundToInt()}% · ตรงจังหวะ ${(sum.fractionWithinTiming * 100).roundToInt()}%"
-            details = "ถูก ${r.count(NoteResult.CORRECT)} · เร็วไป ${r.count(NoteResult.EARLY)} · ช้าไป ${r.count(NoteResult.LATE)} · " +
-                "ไม่ได้เล่น ${r.count(NoteResult.MISSED)} · กดผิด ${r.wrongPresses.size} · สะดุด ${r.stumbles} ครั้ง · ${r.setup.bpm.roundToInt()} bpm"
+            headline = (if (clean) tr("เล่นสะอาด · ", "Played clean · ", "クリーン · ") else "") + tr("โน้ตถูก ${(sum.noteAccuracy * 100).roundToInt()}% · ตรงจังหวะ ${(sum.fractionWithinTiming * 100).roundToInt()}%", "Notes ${(sum.noteAccuracy * 100).roundToInt()}% · on time ${(sum.fractionWithinTiming * 100).roundToInt()}%", "音 ${(sum.noteAccuracy * 100).roundToInt()}% · リズム ${(sum.fractionWithinTiming * 100).roundToInt()}%")
+            details = tr("ถูก ${r.count(NoteResult.CORRECT)} · เร็วไป ${r.count(NoteResult.EARLY)} · ช้าไป ${r.count(NoteResult.LATE)} · ", "Right ${r.count(NoteResult.CORRECT)} · early ${r.count(NoteResult.EARLY)} · late ${r.count(NoteResult.LATE)} · ", "正解 ${r.count(NoteResult.CORRECT)} · 早い ${r.count(NoteResult.EARLY)} · 遅い ${r.count(NoteResult.LATE)} · ") +
+                tr("ไม่ได้เล่น ${r.count(NoteResult.MISSED)} · กดผิด ${r.wrongPresses.size} · สะดุด ${r.stumbles} ครั้ง · ${r.setup.bpm.roundToInt()} bpm", "not played ${r.count(NoteResult.MISSED)} · wrong presses ${r.wrongPresses.size} · stumbles ${r.stumbles} · ${r.setup.bpm.roundToInt()} bpm", "弾かなかった ${r.count(NoteResult.MISSED)} · 押し間違い ${r.wrongPresses.size} · つまずき ${r.stumbles}回 · ${r.setup.bpm.roundToInt()} bpm")
         } else {
             clean = null
-            headline = "ถูกตั้งแต่ครั้งแรก ${sum.correctNotes}/${sum.expectedNotes} (${(sum.noteAccuracy * 100).roundToInt()}%)"
-            details = "แก้หลังกดผิด ${r.count(NoteResult.CORRECTED)} · กดผิด ${r.wrongPresses.size} · หยุดนานเกิน 1 จังหวะ ${r.stumbles} ครั้ง (โหมดรอไม่ตัดสินจังหวะ)"
+            headline = tr("ถูกตั้งแต่ครั้งแรก ${sum.correctNotes}/${sum.expectedNotes} (${(sum.noteAccuracy * 100).roundToInt()}%)", "Right first time ${sum.correctNotes}/${sum.expectedNotes} (${(sum.noteAccuracy * 100).roundToInt()}%)", "1回目で正解 ${sum.correctNotes}/${sum.expectedNotes}（${(sum.noteAccuracy * 100).roundToInt()}%）")
+            details = tr("แก้หลังกดผิด ${r.count(NoteResult.CORRECTED)} · กดผิด ${r.wrongPresses.size} · หยุดนานเกิน 1 จังหวะ ${r.stumbles} ครั้ง (โหมดรอไม่ตัดสินจังหวะ)", "Corrected after a wrong press ${r.count(NoteResult.CORRECTED)} · wrong presses ${r.wrongPresses.size} · paused longer than a beat ${r.stumbles} times (wait mode doesn't judge timing)", "間違えてから修正 ${r.count(NoteResult.CORRECTED)} · 押し間違い ${r.wrongPresses.size} · 1拍以上止まった ${r.stumbles}回（待ちモードはリズムを判定しません）")
         }
         return ResultUi(headline, details, clean, coach, progressLine)
     }
 
     private fun coachLines(s: Score, r: PlayResult, slowerBpm: Int, newBpm: Int?, helper: Boolean, drill: Boolean = false): List<CoachLine> {
-        if (!r.hasNoteInput) return listOf(CoachLine("รอบนี้ยังไม่มีกดโน้ต จึงไม่เพิ่มเวลาซ้อม ลองเริ่มอีกครั้งแล้วเล่นตามโน้ต"))
+        if (!r.hasNoteInput) return listOf(CoachLine(tr("รอบนี้ยังไม่มีกดโน้ต จึงไม่เพิ่มเวลาซ้อม ลองเริ่มอีกครั้งแล้วเล่นตามโน้ต", "No notes were played this round, so no practice time was added. Start again and play along", "この回は音が弾かれなかったため練習時間は加算されません。もう一度始めて楽譜どおりに弾いてください")))
         val out = mutableListOf<CoachLine>()
         for (a in Coach.advise(r, slowerBpm)) {
             if (drill) {
                 when (a) {
-                    is Advice.HandAlone -> out += CoachLine("ผิดเฉพาะมือ${if (a.hand == Hand.LEFT) "ซ้าย" else "ขวา"} ลองดูโน้ตของมือนั้นช้าๆ ก่อนเล่นรอบต่อไป")
-                    is Advice.SlowDown -> out += CoachLine("พลาดหลายโน้ต ลองแบบฝึกในโหมด \"รอ\" ของบทนี้ก่อน แล้วค่อยกลับมา")
+                    is Advice.HandAlone -> out += CoachLine("ผิดเฉพาะมือ${if (a.hand == Hand.LEFT) tr("ซ้าย", "left", "左") else tr("ขวา", "right", "右")} ลองดูโน้ตของมือนั้นช้าๆ ก่อนเล่นรอบต่อไป")
+                    is Advice.SlowDown -> out += CoachLine(tr("พลาดหลายโน้ต ลองแบบฝึกในโหมด \"รอ\" ของบทนี้ก่อน แล้วค่อยกลับมา", "Many notes missed. Try this lesson's \"wait\" drill first, then come back", "多くの音を逃しました。まずこのレッスンの「待ち」練習をしてから戻りましょう"))
                     else -> Unit
                 }
                 if (a !is Advice.TroubleNote && a !is Advice.ConsistentlyOff && a !is Advice.OctaveOff) continue
             }
             out += when (a) {
-                Advice.Clean -> CoachLine(if (r.setup.toMeasure - r.setup.fromMeasure < s.measures - 1) "ท่อนนี้เล่นสะอาดแล้ว ลองท่อนถัดไป หรือเล่นคร่อมรอยต่อกับท่อนข้างๆ" else "เล่นสะอาดทั้งเพลง")
-                is Advice.TroubleNote -> CoachLine("โน้ต ${a.pitch.name(NoteNameStyle.BOTH, withOctave = true)} พลาดบ่อย เพิ่มเข้ารายการทบทวนแล้ว (ฝึกได้ที่หน้า \"วันนี้\")")
-                is Advice.OctaveOff -> CoachLine("กดถูกตัวแต่${if (a.higher) "สูง" else "ต่ำ"}ไปหนึ่งอ็อกเทฟหลายครั้ง ก่อนเริ่มหา C กลางบนเปียโน แล้ววางมือตามตำแหน่งในโน้ต")
+                Advice.Clean -> CoachLine(if (r.setup.toMeasure - r.setup.fromMeasure < s.measures - 1) tr("ท่อนนี้เล่นสะอาดแล้ว ลองท่อนถัดไป หรือเล่นคร่อมรอยต่อกับท่อนข้างๆ", "This section is clean. Try the next one, or play across the join with its neighbour", "この区間はクリーン。次の区間か、隣の区間とのつなぎ目を練習") else tr("เล่นสะอาดทั้งเพลง", "Whole piece played clean", "全曲クリーン"))
+                is Advice.TroubleNote -> CoachLine(tr("โน้ต ${a.pitch.name(NoteNameStyle.BOTH, withOctave = true)} พลาดบ่อย เพิ่มเข้ารายการทบทวนแล้ว (ฝึกได้ที่หน้า \"วันนี้\")", "Note ${a.pitch.name(NoteNameStyle.BOTH, withOctave = true)} is often missed, added to your review list (practise it on \"Today\")", "${a.pitch.name(NoteNameStyle.BOTH, withOctave = true)}をよく間違えるので復習リストに追加しました（「今日」で練習）"))
+                is Advice.OctaveOff -> CoachLine("กดถูกตัวแต่${if (a.higher) tr("สูง", "high", "高い") else tr("ต่ำ", "low", "低い")}ไปหนึ่งอ็อกเทฟหลายครั้ง ก่อนเริ่มหา C กลางบนเปียโน แล้ววางมือตามตำแหน่งในโน้ต")
                 is Advice.ConsistentlyOff -> {
-                    val dir = if (a.early) "เร็วกว่า" else "ช้ากว่า"
-                    CoachLine("ส่วนใหญ่กด${dir}จังหวะ ลองนับออกเสียงหรือเคาะเท้าไปด้วย")
+                    val dir = if (a.early) tr("เร็วกว่า", "early", "早め") else tr("ช้ากว่า", "late", "遅め")
+                    CoachLine(tr("ส่วนใหญ่กด${dir}จังหวะ ลองนับออกเสียงหรือเคาะเท้าไปด้วย", "Mostly ${dir}; try counting aloud or tapping your foot", "ほとんど${dir}に押しています。声に出して数えるか足でリズムを取ってみて"))
                 }
-                is Advice.Chain -> CoachLine("พลาดตรงรอยต่อบาร์ ${a.fromMeasure + 1}–${a.toMeasure + 1} ฝึกคร่อมรอยต่อช้าลงก่อน", ResultAction.Loop(a.fromMeasure, a.toMeasure, slowerBpm))
+                is Advice.Chain -> CoachLine(tr("พลาดตรงรอยต่อบาร์ ${a.fromMeasure + 1}–${a.toMeasure + 1} ฝึกคร่อมรอยต่อช้าลงก่อน", "Mistakes at the join of bars ${a.fromMeasure + 1}–${a.toMeasure + 1}; practise across it slowly first", "${a.fromMeasure + 1}–${a.toMeasure + 1}小節のつなぎ目でミス。まずゆっくりつなぎを練習"), ResultAction.Loop(a.fromMeasure, a.toMeasure, slowerBpm))
                 is Advice.HandAlone -> {
-                    val name = if (a.hand == Hand.LEFT) "ซ้าย" else "ขวา"
-                    CoachLine("ผิดเฉพาะมือ$name ฝึกมือ${name}คนเดียวให้แม่นก่อน", ResultAction.Hands(if (a.hand == Hand.LEFT) HandChoice.LEFT else HandChoice.RIGHT, slowerBpm))
+                    val name = if (a.hand == Hand.LEFT) tr("ซ้าย", "left", "左") else tr("ขวา", "right", "右")
+                    CoachLine(tr("ผิดเฉพาะมือ$name ฝึกมือ${name}คนเดียวให้แม่นก่อน", "Mistakes only in the $name hand; practise the $name hand alone first", "${name}手だけミス。まず${name}手だけを正確に"), ResultAction.Hands(if (a.hand == Hand.LEFT) HandChoice.LEFT else HandChoice.RIGHT, slowerBpm))
                 }
-                is Advice.SlowDown -> CoachLine("ยังเร็วไปสำหรับตอนนี้ ลดเหลือ ${a.bpm} bpm ก่อน", ResultAction.Tempo(a.bpm))
+                is Advice.SlowDown -> CoachLine(tr("ยังเร็วไปสำหรับตอนนี้ ลดเหลือ ${a.bpm} bpm ก่อน", "Still too fast for now; drop to ${a.bpm} bpm first", "今はまだ速すぎます。まず${a.bpm} bpmに下げましょう"), ResultAction.Tempo(a.bpm))
             }
         }
         if (!drill) r.problemMeasures.firstOrNull()?.let { m ->
             if (out.none { it.action is ResultAction.Loop } && r.setup.fromMeasure != r.setup.toMeasure) {
-                out += CoachLine("บาร์ ${m + 1} พลาดมากที่สุด ฝึกบาร์นี้ช้าๆ ก่อนกลับมาเล่นทั้งท่อน", ResultAction.Loop(m, m, slowerBpm))
+                out += CoachLine(tr("บาร์ ${m + 1} พลาดมากที่สุด ฝึกบาร์นี้ช้าๆ ก่อนกลับมาเล่นทั้งท่อน", "Most mistakes in bar ${m + 1}; practise it slowly before the whole section", "${m + 1}小節目のミスが最多。区間全体の前にそこをゆっくり練習"), ResultAction.Loop(m, m, slowerBpm))
             }
         }
         if (newBpm != null) {
-            out += CoachLine(if (newBpm > r.setup.bpm) "เล่นสะอาด 3 รอบติด เพิ่มความเร็วเป็น $newBpm bpm" else "พลาด 2 รอบติด ลดความเร็วกลับเป็น $newBpm bpm")
+            out += CoachLine(if (newBpm > r.setup.bpm) tr("เล่นสะอาด 3 รอบติด เพิ่มความเร็วเป็น $newBpm bpm", "3 clean in a row, speeding up to $newBpm bpm", "3回連続クリーン、$newBpm bpmに上げます") else tr("พลาด 2 รอบติด ลดความเร็วกลับเป็น $newBpm bpm", "2 misses in a row, back down to $newBpm bpm", "2回続けてミス、$newBpm bpmに戻します"))
         }
         if (helper) out += CoachLine(
-            if (_ui.value.options.falling && !fixed) "รอบนี้เล่นแบบโน้ตไหล (ไม่ได้อ่านโน้ตดนตรี) จึงไม่นับเป็นการผ่านเพลง สลับกลับเป็นโน้ตดนตรีเมื่อพร้อม"
-            else "รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่านเพลง",
+            if (_ui.value.options.falling && !fixed) tr("รอบนี้เล่นแบบโน้ตไหล (ไม่ได้อ่านโน้ตดนตรี) จึงไม่นับเป็นการผ่านเพลง สลับกลับเป็นโน้ตดนตรีเมื่อพร้อม", "This round used falling notes (not reading music), so it doesn't count as passing. Switch back to notation when ready", "この回は流れる音符で弾いた（楽譜を読んでいない）ため合格に数えません。準備ができたら楽譜に戻しましょう")
+            else tr("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่านเพลง", "Note names were on this round, so it doesn't count as passing the piece", "この回は音名を表示していたため曲の合格に数えません"),
         )
-        if (!r.timingJudged && (r.summary?.noteAccuracy ?: 0.0) >= 0.95) out += CoachLine("อ่านโน้ตได้แม่นแล้ว ลองโหมด \"ตามจังหวะ\" ดู")
+        if (!r.timingJudged && (r.summary?.noteAccuracy ?: 0.0) >= 0.95) out += CoachLine(tr("อ่านโน้ตได้แม่นแล้ว ลองโหมด \"ตามจังหวะ\" ดู", "Your reading is accurate now; try \"in time\" mode", "読譜は正確になりました。「リズム」モードを試してみて"))
         return out
     }
 
@@ -1066,7 +1067,7 @@ class ReaderSession(
 
     companion object {
         const val PREVIEW_SECONDS = 30
-        private const val CLOSED_EXAM = "การสอบนี้ยกเลิกแล้วหรือหมดวันแล้ว เริ่มสอบใหม่ได้ที่หน้าเกรด"
+        private val CLOSED_EXAM: String get() = tr("การสอบนี้ยกเลิกแล้วหรือหมดวันแล้ว เริ่มสอบใหม่ได้ที่หน้าเกรด", "This exam was cancelled or the day ended. Start a new one on the Grade page", "この試験は中止されたか日付が変わりました。グレードページで新しく受けてください")
 
         /** Timing tolerance follows the piece level: L1-L3 stage 1, L4-L5 stage 2, L6 stage 3 (learning-system.md 4, 6.2). */
         fun stageOf(s: Score): Int = when (s.level.removePrefix("L").toIntOrNull() ?: 1) {

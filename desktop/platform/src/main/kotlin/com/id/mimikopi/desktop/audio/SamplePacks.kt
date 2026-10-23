@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.audio
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.piano.PackDescriptor
 import com.id.mimikopi.core.piano.PackManifest
 import com.id.mimikopi.core.piano.SampleMap
@@ -47,9 +48,9 @@ class SamplePacks(private val root: File, private val appVersion: String) {
         val text = try {
             open(DESCRIPTOR_URL).let { c -> try { c.inputStream.readBytes().toString(Charsets.UTF_8) } finally { c.disconnect() } }
         } catch (e: IOException) {
-            throw PackException("ต่ออินเทอร์เน็ตไม่ได้: ${e.message}")
+            throw PackException(tr("ต่ออินเทอร์เน็ตไม่ได้: ${e.message}", "No internet connection: ${e.message}", "インターネットに接続できません：${e.message}"))
         }
-        val d = runCatching { PackDescriptor.parse(text) }.getOrElse { throw PackException("ข้อมูลชุดเสียงไม่ถูกต้อง: ${it.message}") }
+        val d = runCatching { PackDescriptor.parse(text) }.getOrElse { throw PackException(tr("ข้อมูลชุดเสียงไม่ถูกต้อง: ${it.message}", "Invalid sound pack data: ${it.message}", "音源パックのデータが不正です：${it.message}")) }
         val problems = d.problems()
         if (problems.isNotEmpty() || d.packVersion != PACK_VERSION) throw PackException("ข้อมูลชุดเสียงไม่ถูกต้อง: ${(problems + "version ${d.packVersion}").joinToString()}")
         return d
@@ -59,7 +60,7 @@ class SamplePacks(private val root: File, private val appVersion: String) {
     fun install(descriptor: PackDescriptor, cancelled: () -> Boolean, onProgress: (PackProgress) -> Unit): InstalledPack {
         root.mkdirs()
         val need = descriptor.size + descriptor.decodedBytes + SPACE_MARGIN
-        if (root.usableSpace in 1 until need) throw PackException("พื้นที่ว่างไม่พอ: ต้องการ ${need / 1_000_000} MB")
+        if (root.usableSpace in 1 until need) throw PackException(tr("พื้นที่ว่างไม่พอ: ต้องการ ${need / 1_000_000} MB", "Not enough free space: ${need / 1_000_000} MB needed", "空き容量不足：${need / 1_000_000} MB必要"))
         val zip = File(root, "samples-v${descriptor.packVersion}.zip.part")
         try {
             download(descriptor, zip, cancelled, onProgress)
@@ -81,19 +82,19 @@ class SamplePacks(private val root: File, private val appVersion: String) {
             val manifest = unzip(zip, work)
             val layers = manifest.regions.flatMap { it.layers }
             layers.forEachIndexed { i, layer ->
-                if (cancelled()) throw PackException("ยกเลิกแล้ว")
+                if (cancelled()) throw PackException(tr("ยกเลิกแล้ว", "Cancelled", "キャンセルしました"))
                 val flac = File(work, layer.file)
                 val pcm = File(work, layer.file.removeSuffix(".flac") + ".pcm")
-                val r = NativeAudio.nativeDecodeToPcm16(flac.absolutePath, pcm.absolutePath) ?: throw PackException("ถอดรหัส ${layer.file} ไม่ได้")
-                if (r[1].toInt() != manifest.sampleRate) throw PackException("${layer.file}: ${r[1]} Hz ไม่ตรงกับ ${manifest.sampleRate} Hz")
-                if (r[0] != layer.frames.toLong()) throw PackException("${layer.file}: ${r[0]} เฟรม ไม่ตรงกับ ${layer.frames}")
+                val r = NativeAudio.nativeDecodeToPcm16(flac.absolutePath, pcm.absolutePath) ?: throw PackException(tr("ถอดรหัส ${layer.file} ไม่ได้", "Couldn't decode ${layer.file}", "${layer.file}をデコードできません"))
+                if (r[1].toInt() != manifest.sampleRate) throw PackException(tr("${layer.file}: ${r[1]} Hz ไม่ตรงกับ ${manifest.sampleRate} Hz", "${layer.file}: ${r[1]} Hz doesn't match ${manifest.sampleRate} Hz", "${layer.file}：${r[1]} Hzが${manifest.sampleRate} Hzと一致しません"))
+                if (r[0] != layer.frames.toLong()) throw PackException(tr("${layer.file}: ${r[0]} เฟรม ไม่ตรงกับ ${layer.frames}", "${layer.file}: ${r[0]} frames doesn't match ${layer.frames}", "${layer.file}：${r[0]}フレームが${layer.frames}と一致しません"))
                 flac.delete()
                 onProgress(PackProgress.Decoding(i + 1, layers.size))
             }
             File(work, READY_MARKER).writeText(marker)
             val target = packDir(PACK_VERSION)
             target.deleteRecursively()
-            if (!work.renameTo(target)) throw PackException("ย้ายโฟลเดอร์ชุดเสียงไม่ได้")
+            if (!work.renameTo(target)) throw PackException(tr("ย้ายโฟลเดอร์ชุดเสียงไม่ได้", "Couldn't move the sound pack folder", "音源パックのフォルダーを移動できません"))
             return InstalledPack(target, manifest)
         } catch (e: Exception) {
             work.deleteRecursively()
@@ -116,13 +117,13 @@ class SamplePacks(private val root: File, private val appVersion: String) {
                         val buffer = ByteArray(1 shl 16)
                         var lastReport = 0L
                         while (true) {
-                            if (cancelled()) throw PackException("ยกเลิกแล้ว")
+                            if (cancelled()) throw PackException(tr("ยกเลิกแล้ว", "Cancelled", "キャンセルしました"))
                             val n = input.read(buffer)
                             if (n < 0) break
                             out.write(buffer, 0, n)
                             sha.update(buffer, 0, n)
                             received += n
-                            if (received > d.size) throw PackException("ไฟล์ใหญ่กว่าที่ระบุ")
+                            if (received > d.size) throw PackException(tr("ไฟล์ใหญ่กว่าที่ระบุ", "File is larger than stated", "ファイルが記載より大きいです"))
                             if (received - lastReport > 256 * 1024) {
                                 lastReport = received
                                 onProgress(PackProgress.Downloading(received.toFloat() / d.size, d.size))
@@ -136,10 +137,10 @@ class SamplePacks(private val root: File, private val appVersion: String) {
         } catch (e: PackException) {
             throw e
         } catch (e: IOException) {
-            throw PackException("ดาวน์โหลดไม่สำเร็จ: ${e.message}")
+            throw PackException(tr("ดาวน์โหลดไม่สำเร็จ: ${e.message}", "Download failed: ${e.message}", "ダウンロード失敗：${e.message}"))
         }
-        if (received != d.size) throw PackException("ขนาดไฟล์ไม่ตรง ($received/${d.size})")
-        if (sha.hex() != d.sha256) throw PackException("ตรวจ SHA-256 ไม่ผ่าน")
+        if (received != d.size) throw PackException(tr("ขนาดไฟล์ไม่ตรง ($received/${d.size})", "File size doesn't match ($received/${d.size})", "ファイルサイズが一致しません（$received/${d.size}）"))
+        if (sha.hex() != d.sha256) throw PackException(tr("ตรวจ SHA-256 ไม่ผ่าน", "SHA-256 check failed", "SHA-256の確認に失敗"))
     }
 
     /** Extracts only the files the manifest names (never paths), after validating the manifest. */
@@ -155,12 +156,12 @@ class SamplePacks(private val root: File, private val appVersion: String) {
                 entries[name] = out
             }
         }
-        val manifestFile = entries["manifest.json"] ?: throw PackException("ไม่ใช่ชุดเสียงของโปรแกรม (ไม่มี manifest)")
+        val manifestFile = entries["manifest.json"] ?: throw PackException(tr("ไม่ใช่ชุดเสียงของโปรแกรม (ไม่มี manifest)", "Not a sound pack for this app (no manifest)", "このアプリの音源パックではありません（manifestなし）"))
         val manifest = runCatching { PackManifest.parse(manifestFile.readText()) }.getOrElse { throw PackException("manifest: ${it.message}") }
         val problems = manifest.problems()
         if (problems.isNotEmpty()) throw PackException(problems.take(3).joinToString())
         val missing = manifest.regions.flatMap { it.layers }.map { it.file }.filter { it !in entries }
-        if (missing.isNotEmpty()) throw PackException("ไฟล์ขาด ${missing.take(3)}")
+        if (missing.isNotEmpty()) throw PackException(tr("ไฟล์ขาด ${missing.take(3)}", "Missing files ${missing.take(3)}", "ファイルが不足 ${missing.take(3)}"))
         return manifest
     }
 

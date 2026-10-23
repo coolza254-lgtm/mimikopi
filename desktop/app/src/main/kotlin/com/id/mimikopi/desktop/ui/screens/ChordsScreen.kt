@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.ui.screens
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -94,10 +95,10 @@ fun ChordsScreen() {
     }
 
     Page {
-        LargeTitle("คอร์ด", "เห็นชื่อแล้วกดได้ทันที และเปลี่ยนคอร์ดได้ทันจังหวะ", onBack = app.nav::back)
+        LargeTitle(tr("คอร์ด", "Chords", "コード"), tr("เห็นชื่อแล้วกดได้ทันที และเปลี่ยนคอร์ดได้ทันจังหวะ", "Press as soon as you see the name, and change chords in time", "名前を見たらすぐ押し、リズムに合わせてコードを替える"), onBack = app.nav::back)
         val tabs = listOf("NAME", "NUMERAL", "CHANGE", "BOOK")
         Segmented(tabs, if (book) "BOOK" else p.mode.name, {
-            when (it) { "NAME" -> "ชื่อคอร์ด"; "NUMERAL" -> "ตัวเลขโรมัน"; "CHANGE" -> "เปลี่ยนคอร์ด"; else -> "วิธีจับคอร์ด" }
+            when (it) { "NAME" -> tr("ชื่อคอร์ด", "Chord names", "コード名"); "NUMERAL" -> tr("ตัวเลขโรมัน", "Roman numerals", "ローマ数字"); "CHANGE" -> tr("เปลี่ยนคอร์ด", "Chord changes", "コードチェンジ"); else -> tr("วิธีจับคอร์ด", "Voicings", "ボイシング") }
         }, { t -> if (t == "BOOK") book = true else { book = false; change(p.copy(mode = ChordPractice.Mode.valueOf(t))) } }, Modifier.widthIn(max = 640.dp))
         if (book) {
             ChordBook(::play)
@@ -105,39 +106,39 @@ fun ChordsScreen() {
         }
         Text(
             when (p.mode) {
-                ChordPractice.Mode.NAME -> "โปรแกรมบอกชื่อคอร์ด (เช่น Am, G7) ให้กดโน้ตของคอร์ดนั้นพร้อมกัน กลับเสียงหรืออ็อกเทฟไหนก็ได้ ถ้าผิดจะชี้ตำแหน่งให้แล้วถามซ้ำท้ายรอบ"
-                ChordPractice.Mode.NUMERAL -> "โปรแกรมบอกตัวเลขโรมันในคีย์ (เช่น vi ในคีย์ G) ให้หาว่าเป็นคอร์ดอะไรแล้วกด ช่วยให้เปลี่ยนคีย์เพลงได้คล่อง"
-                ChordPractice.Mode.CHANGE -> "กดคอร์ดตามโปรเกรสชันวนไปจนหมดเวลา นับครั้งที่กดถูก ค้างโน้ตที่เหมือนกันระหว่างคอร์ดไว้ได้ แล้วขยับเฉพาะตัวที่ต่าง"
+                ChordPractice.Mode.NAME -> tr("โปรแกรมบอกชื่อคอร์ด (เช่น Am, G7) ให้กดโน้ตของคอร์ดนั้นพร้อมกัน กลับเสียงหรืออ็อกเทฟไหนก็ได้ ถ้าผิดจะชี้ตำแหน่งให้แล้วถามซ้ำท้ายรอบ", "The app names a chord (e.g. Am, G7); press its notes together in any inversion or octave. A wrong one is shown and asked again at the end", "アプリがコード名（例 Am、G7）を出すので、その音を同時に押します。転回形やオクターブは自由。間違えると位置を示し、最後にもう一度出題")
+                ChordPractice.Mode.NUMERAL -> tr("โปรแกรมบอกตัวเลขโรมันในคีย์ (เช่น vi ในคีย์ G) ให้หาว่าเป็นคอร์ดอะไรแล้วกด ช่วยให้เปลี่ยนคีย์เพลงได้คล่อง", "The app gives a Roman numeral in a key (e.g. vi in G); find which chord it is and press it. Helps you transpose songs easily", "アプリがキーの中のローマ数字（例 Gのvi）を出すので、どのコードか考えて押します。曲の移調に強くなれます")
+                ChordPractice.Mode.CHANGE -> tr("กดคอร์ดตามโปรเกรสชันวนไปจนหมดเวลา นับครั้งที่กดถูก ค้างโน้ตที่เหมือนกันระหว่างคอร์ดไว้ได้ แล้วขยับเฉพาะตัวที่ต่าง", "Press the chords of a progression round and round until time runs out, counting the right ones. Keep shared notes held and move only the others", "時間切れまでコード進行をくり返し押し、正解数を数えます。共通音は押さえたまま、違う音だけ動かしましょう")
             },
             fontSize = 15.sp, lineHeight = 22.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 14.dp),
         )
         when (p.mode) {
             ChordPractice.Mode.NAME -> {
-                Label("ชนิดคอร์ด (เลือกได้หลายแบบ)")
+                Label(tr("ชนิดคอร์ด (เลือกได้หลายแบบ)", "Chord types (choose several)", "コードの種類（複数選択可）"))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChordPractice.GROUPS.forEach { g ->
                         FilterChip(selected = g.id in p.groups, onClick = { change(p.copy(groups = p.groups.toggle(g.id).ifEmpty { listOf(g.id) })) }, label = { Text(g.title) })
                     }
                 }
-                Label("คีย์ (รากคอร์ดมาจากโน้ตในคีย์ที่เลือก)")
+                Label(tr("คีย์ (รากคอร์ดมาจากโน้ตในคีย์ที่เลือก)", "Key (roots come from notes in the chosen key)", "キー（ルートは選んだキーの音から）"))
                 KeyChips(p.keys, multi = true) { change(p.copy(keys = it)) }
-                Label("จำนวนคอร์ด")
+                Label(tr("จำนวนคอร์ด", "Number of chords", "コードの数"))
                 ChoiceChips(ChordPractice.ITEMS, p.items, { "$it" }) { change(p.copy(items = it)) }
             }
             ChordPractice.Mode.NUMERAL -> {
-                Label("ชุดคอร์ด (เลือกได้หลายชุด)")
+                Label(tr("ชุดคอร์ด (เลือกได้หลายชุด)", "Chord sets (choose several)", "コードセット（複数選択可）"))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChordPractice.NUMERAL_SETS.forEach { g ->
                         FilterChip(selected = g.id in p.numeralSets, onClick = { change(p.copy(numeralSets = p.numeralSets.toggle(g.id).ifEmpty { listOf(g.id) })) }, label = { Text(g.title) })
                     }
                 }
-                Label("คีย์")
+                Label(tr("คีย์", "Key", "キー"))
                 KeyChips(p.keys, multi = true) { change(p.copy(keys = it)) }
-                Label("จำนวนคอร์ด")
+                Label(tr("จำนวนคอร์ด", "Number of chords", "コードの数"))
                 ChoiceChips(ChordPractice.ITEMS, p.items, { "$it" }) { change(p.copy(items = it)) }
             }
             ChordPractice.Mode.CHANGE -> {
-                Label("โปรเกรสชัน")
+                Label(tr("โปรเกรสชัน", "Progression", "コード進行"))
                 val key = p.keys.firstOrNull() ?: 0
                 StageGenerators.PROGRESSIONS.forEach { prog ->
                     val selected = p.progression == prog.name
@@ -149,16 +150,16 @@ fun ChordsScreen() {
                     }
                     GroupDivider(0.dp)
                 }
-                Label("คีย์")
+                Label(tr("คีย์", "Key", "キー"))
                 KeyChips(listOf(key), multi = false) { change(p.copy(keys = it)) }
-                Label("เวลา")
-                ChoiceChips(ChordPractice.SECONDS, p.seconds, { "$it วินาที" }) { change(p.copy(seconds = it)) }
+                Label(tr("เวลา", "Time", "時間"))
+                ChoiceChips(ChordPractice.SECONDS, p.seconds, { tr("$it วินาที", "$it s", "${it}秒") }) { change(p.copy(seconds = it)) }
             }
         }
         Text(p.summary(), fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 24.dp))
-        PrimaryButton("เริ่มฝึก", onClick = { app.nav.open(Screen.Drill(DrillSource.Chords(false))) }, modifier = Modifier.padding(top = 12.dp).widthIn(max = 360.dp))
+        PrimaryButton(tr("เริ่มฝึก", "Start", "開始"), onClick = { app.nav.open(Screen.Drill(DrillSource.Chords(false))) }, modifier = Modifier.padding(top = 12.dp).widthIn(max = 360.dp))
         if (runs.isNotEmpty()) {
-            Label("ผลล่าสุด")
+            Label(tr("ผลล่าสุด", "Latest result", "最新の結果"))
             runs.take(10).forEach { r ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(r.day.drop(5), fontSize = 14.sp, color = Tokens.Palette.Dim, modifier = Modifier.width(52.dp))
@@ -183,11 +184,11 @@ private fun ChordBook(onPlay: (List<Int>) -> Unit) {
     var root by remember { mutableStateOf(ChordFingering.ROOTS.first()) }
     var quality by remember { mutableStateOf("") }
     val chord = Chord(root, quality)
-    Label("รากคอร์ด")
+    Label(tr("รากคอร์ด", "Root", "ルート"))
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ChordFingering.ROOTS.forEach { r -> FilterChip(selected = r == root, onClick = { root = r }, label = { Text(r.display()) }) }
     }
-    Label("ชนิดคอร์ด")
+    Label(tr("ชนิดคอร์ด", "Chord type", "コードの種類"))
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ChordFingering.QUALITIES.forEach { q -> FilterChip(selected = q == quality, onClick = { quality = q }, label = { Text(Chord(root, q).display()) }) }
     }
@@ -195,14 +196,14 @@ private fun ChordBook(onPlay: (List<Int>) -> Unit) {
         Text(chord.display(), fontWeight = FontWeight.SemiBold, fontSize = 40.sp, color = Tokens.Palette.Ink)
         Text((ChordQualities.NAMES[quality] ?: quality) + "  ·  " + ChordFingering.spelled(chord).joinToString("  ") { "${it.display()} (${it.letter.solfege}${it.display().drop(1)})" },
             fontSize = 15.sp, color = Tokens.Palette.InkMuted)
-        Text("ตัวเลขบนคีย์คือนิ้ว: 1 นิ้วโป้ง 2 ชี้ 3 กลาง 4 นาง 5 ก้อย", fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
+        Text(tr("ตัวเลขบนคีย์คือนิ้ว: 1 นิ้วโป้ง 2 ชี้ 3 กลาง 4 นาง 5 ก้อย", "Numbers on keys are fingers: 1 thumb 2 index 3 middle 4 ring 5 little", "鍵盤の数字は指番号：1親指 2人差し指 3中指 4薬指 5小指"), fontSize = 13.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
     }
     val (left, right) = ChordFingering.twoHands(chord)
-    Section("สองมือ (แบบที่ใช้บ่อยที่สุด)", "มือซ้ายกดรากคอร์ดด้วยนิ้วก้อย มือขวากดคอร์ด")
+    Section(tr("สองมือ (แบบที่ใช้บ่อยที่สุด)", "Both hands (the most common way)", "両手（最もよく使う形）"), tr("มือซ้ายกดรากคอร์ดด้วยนิ้วก้อย มือขวากดคอร์ด", "Left hand plays the root with the little finger, right hand plays the chord", "左手は小指でルート、右手でコード"))
     ShapeRow(HandShape(left.notes + right.notes, left.fingers + right.fingers, left.title + " · " + right.title), splitAt = left.notes.size, onPlay = onPlay)
-    Section("มือขวา", "เริ่มจากตำแหน่งพื้นฐาน พอคล่องแล้วฝึกพลิกคอร์ด จะเปลี่ยนคอร์ดได้โดยไม่ต้องย้ายมือไกล")
+    Section(tr("มือขวา", "Right hand", "右手"), tr("เริ่มจากตำแหน่งพื้นฐาน พอคล่องแล้วฝึกพลิกคอร์ด จะเปลี่ยนคอร์ดได้โดยไม่ต้องย้ายมือไกล", "Start in root position; once fluent, practise inversions so you can change chords without moving far", "基本形から始め、慣れたら転回形を練習。手を大きく動かさずにコードを替えられます"))
     ChordFingering.rightHand(chord).forEach { ShapeRow(it, onPlay = onPlay) }
-    Section("มือซ้าย", "นิ้วก้อยอยู่ล่างสุด นิ้วโป้งอยู่บนสุด")
+    Section(tr("มือซ้าย", "Left hand", "左手"), tr("นิ้วก้อยอยู่ล่างสุด นิ้วโป้งอยู่บนสุด", "Little finger at the bottom, thumb at the top", "小指が一番下、親指が一番上"))
     ChordFingering.leftHand(chord).forEach { ShapeRow(it, onPlay = onPlay) }
 }
 
@@ -222,7 +223,7 @@ private fun ShapeRow(shape: HandShape, splitAt: Int = 0, onPlay: (List<Int>) -> 
     Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
         Row {
             Text(shape.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Tokens.Palette.Ink, modifier = Modifier.weight(1f).padding(top = 10.dp))
-            SecondaryButton("ฟัง", onClick = { onPlay(shape.notes) })
+            SecondaryButton(tr("ฟัง", "Listen", "聞く"), onClick = { onPlay(shape.notes) })
         }
         ChordKeys(shape, splitAt, Modifier.padding(top = 8.dp).widthIn(max = 640.dp).fillMaxWidth().height(120.dp))
     }

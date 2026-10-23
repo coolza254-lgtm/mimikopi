@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.audio
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.piano.PianoSound
 import com.id.mimikopi.core.piano.SampleMap
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,7 +72,7 @@ class Piano(
     private var restarts = 0
     private var clockOffsetNanos = 0L
 
-    private val _status = MutableStateFlow(AudioStatus(error = NativeAudio.loadError?.let { "โหลดระบบเสียงไม่ได้: $it" }))
+    private val _status = MutableStateFlow(AudioStatus(error = NativeAudio.loadError?.let { tr("โหลดระบบเสียงไม่ได้: $it", "Couldn't load the audio system: $it", "オーディオシステムを読み込めません：$it") }))
     val status: StateFlow<AudioStatus> = _status.asStateFlow()
 
     val available: Boolean get() = handle != 0L && !closed

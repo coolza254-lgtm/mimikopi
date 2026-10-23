@@ -1,5 +1,6 @@
 package com.id.mimikopi.sync
 
+import com.id.mimikopi.core.i18n.tr
 import android.os.Build
 import androidx.room.withTransaction
 import com.id.mimikopi.BuildConfig
@@ -60,7 +61,7 @@ class SyncService(private val app: MimikopiApp) {
         val dao = app.database.settingsDao()
         val settings = ProgressMerge.KEYS.mapNotNull { k -> dao.get(k)?.let { k to it } }.toMap()
         val items = app.database.learningDao().itemStats().map { ItemStatRow(it.itemId, it.box, it.dueAtMillis, it.lastResults, it.medianResponseMs) }
-        return SyncPayload(deviceId = deviceId, deviceName = "มือถือ ${Build.MODEL}", appVersion = BuildConfig.VERSION_NAME, settings = settings, itemStats = items.sortedBy { it.itemId })
+        return SyncPayload(deviceId = deviceId, deviceName = tr("มือถือ ${Build.MODEL}", "Phone ${Build.MODEL}", "スマホ ${Build.MODEL}"), appVersion = BuildConfig.VERSION_NAME, settings = settings, itemStats = items.sortedBy { it.itemId })
     }
 
     private suspend fun apply(r: MergeResult) {
@@ -81,7 +82,7 @@ class SyncService(private val app: MimikopiApp) {
     suspend fun sync(quiet: Boolean = false, throttle: Boolean = false) {
         val config = config()
         if (!config.ready) {
-            if (!quiet) _status.value = SyncStatus(line = "ยังไม่ได้ตั้งค่า ใส่ชื่อ repo และ token ก่อน", failed = true)
+            if (!quiet) _status.value = SyncStatus(line = tr("ยังไม่ได้ตั้งค่า ใส่ชื่อ repo และ token ก่อน", "Not set up yet; enter the repo name and token first", "未設定です。先にリポジトリ名とトークンを入力してください"), failed = true)
             return
         }
         if (throttle && System.currentTimeMillis() - lastRunAt < QUIET_GAP_MS) return
@@ -105,7 +106,7 @@ class SyncService(private val app: MimikopiApp) {
         } catch (e: SyncFailure) {
             _status.value = if (quiet) _status.value.copy(running = false) else SyncStatus(line = "${now()} · ${e.thai}", failed = true)
         } catch (e: Exception) {
-            _status.value = if (quiet) _status.value.copy(running = false) else SyncStatus(line = "${now()} · ซิงค์ไม่สำเร็จ: ${e.message}", failed = true)
+            _status.value = if (quiet) _status.value.copy(running = false) else SyncStatus(line = tr("${now()} · ซิงค์ไม่สำเร็จ: ${e.message}", "${now()} · sync failed: ${e.message}", "${now()} · 同期失敗：${e.message}"), failed = true)
         } finally {
             mutex.unlock()
         }

@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.songs
 
+import com.id.mimikopi.core.i18n.tr
 import android.app.Application
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -89,8 +90,8 @@ fun SongsScreen(onOpen: (Open) -> Unit, onOpenLibrary: () -> Unit, vm: SongsView
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth().padding(horizontal = PageMargin)) {
             Column(Modifier.padding(start = 4.dp, top = 32.dp)) {
-                Text("เพลง", fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                Text("มือถือฝึกพื้นฐาน · เพลงจริงฝึกบนคอม", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+                Text(tr("เพลง", "Songs", "曲"), fontSize = 30.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                Text(tr("มือถือฝึกพื้นฐาน · เพลงจริงฝึกบนคอม", "Basics on the phone · real songs on the PC", "スマホで基礎 · 本物の曲はPCで"), fontSize = 14.sp, color = Tokens.Palette.InkMuted)
             }
             Spacer(Modifier.height(20.dp))
             PageCard {
@@ -99,27 +100,27 @@ fun SongsScreen(onOpen: (Open) -> Unit, onOpenLibrary: () -> Unit, vm: SongsView
                         ClefGlyph(28.sp)
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("เพลงเป้าหมายอยู่บนคอม", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-                        Text("เพลงส่วนตัว คอร์ดของเพลง และโน้ตที่ซื้อ เก็บและฝึกบนคอมเท่านั้น ไม่ขึ้น GitHub",
+                        Text(tr("เพลงเป้าหมายอยู่บนคอม", "Target songs live on the PC", "目標曲はPCにあります"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                        Text(tr("เพลงส่วนตัว คอร์ดของเพลง และโน้ตที่ซื้อ เก็บและฝึกบนคอมเท่านั้น ไม่ขึ้น GitHub", "Private songs, their chords and bought sheets are kept and practised on the PC only, never sent to GitHub", "個人曲、曲のコード、購入した楽譜はPCでのみ保存・練習し、GitHubには上げません"),
                             fontSize = 13.sp, lineHeight = 18.sp, color = Tokens.Palette.InkMuted)
                     }
                 }
-                Text("บนมือถือฝึกส่วนที่ช่วยให้เล่นเพลงได้เร็วขึ้น: อ่านโน้ต หาคีย์ ฝึกหู และความรู้คอร์ด ผลทั้งหมดซิงค์ไปคอม",
+                Text(tr("บนมือถือฝึกส่วนที่ช่วยให้เล่นเพลงได้เร็วขึ้น: อ่านโน้ต หาคีย์ ฝึกหู และความรู้คอร์ด ผลทั้งหมดซิงค์ไปคอม", "On the phone, practise what makes songs come faster: reading, finding keys, ear training and chord knowledge. All results sync to the PC", "スマホでは曲を早く弾けるようになる練習を：読譜、キー探し、耳トレ、コードの知識。結果はすべてPCに同期されます"),
                     fontSize = 14.sp, lineHeight = 20.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 14.dp))
             }
             if (songs.isNotEmpty()) {
                 Spacer(Modifier.height(14.dp))
                 Group {
-                    GroupRow("ย้ายเพลงส่วนตัว ${songs.size} เพลงไปคอม", subtitle = "เปิดเพลงแล้วกด \"ส่งออก\" จากนั้นนำเข้าบนคอม (เพลงส่วนตัว → นำเข้า)",
+                    GroupRow(tr("ย้ายเพลงส่วนตัว ${songs.size} เพลงไปคอม", "Move ${songs.size} private songs to the PC", "個人曲${songs.size}曲をPCへ移す"), subtitle = tr("เปิดเพลงแล้วกด \"ส่งออก\" จากนั้นนำเข้าบนคอม (เพลงส่วนตัว → นำเข้า)", "Open a song and tap \"Export\", then import it on the PC (Private songs → Import)", "曲を開いて「エクスポート」を押し、PCでインポート（個人曲 → インポート）"),
                         onClick = { onOpen(Open.PrivateSongs) })
                 }
             }
 
             Column(Modifier.padding(start = 4.dp, top = 28.dp, bottom = 10.dp)) {
-                Text("คลังเพลงฝึกอ่าน", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
+                Text(tr("คลังเพลงฝึกอ่าน", "Reading library", "読譜ライブラリ"), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
             }
             Group {
-                GroupRow("เพลงพื้นบ้านและเพลงสอบ", subtitle = "${vm.pieceCount} เพลงหมดลิขสิทธิ์ · ใช้ในบทเรียนและสอบเกรด", onClick = onOpenLibrary)
+                GroupRow(tr("เพลงพื้นบ้านและเพลงสอบ", "Folk songs and exam pieces", "民謡と試験曲"), subtitle = tr("${vm.pieceCount} เพลงหมดลิขสิทธิ์ · ใช้ในบทเรียนและสอบเกรด", "${vm.pieceCount} public-domain pieces · used in lessons and grade exams", "パブリックドメインの曲${vm.pieceCount}曲 · レッスンとグレード試験で使用"), onClick = onOpenLibrary)
             }
             Spacer(Modifier.height(32.dp))
         }

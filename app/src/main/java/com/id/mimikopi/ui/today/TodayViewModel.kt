@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.today
 
+import com.id.mimikopi.core.i18n.tr
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -181,15 +182,15 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         BlockKind.WARMUP -> b.target?.let { t ->
             learning.lesson(t.substringBefore('/'))?.let { l -> l.drills.getOrNull(t.substringAfter('/').toIntOrNull() ?: 0)?.title ?: l.title }
         } ?: ""
-        BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { "${it.skill.title} ระดับ ${it.level}" } ?: ""
-        BlockKind.REVIEW -> "โน้ตและคีย์ที่ถึงกำหนดทวน"
-        BlockKind.LADDER -> ProgressRules.nextToLearn(learning.lessons, learning.records.value)?.let { "ขั้น ${it.id} · ${it.title}" } ?: "ยืนยันขั้นที่ผ่านแล้ว"
-        BlockKind.SIGHT -> "ระดับ L${b.target}"
+        BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { tr("${it.skill.title} ระดับ ${it.level}", "${it.skill.title} level ${it.level}", "${it.skill.title} レベル${it.level}") } ?: ""
+        BlockKind.REVIEW -> tr("โน้ตและคีย์ที่ถึงกำหนดทวน", "Notes and keys due for review", "復習時期の音とキー")
+        BlockKind.LADDER -> ProgressRules.nextToLearn(learning.lessons, learning.records.value)?.let { tr("ขั้น ${it.id} · ${it.title}", "${it.title}", "${it.title}") } ?: tr("ยืนยันขั้นที่ผ่านแล้ว", "Confirm a passed step", "合格した段階を確認")
+        BlockKind.SIGHT -> tr("ระดับ L${b.target}", "Level ${b.target}", "レベル${b.target}")
         BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, progress.checks.value, LocalDate.now()).level).summary()
         BlockKind.SOLO -> b.target?.toIntOrNull()?.let { PlanContent.soloSummary(it) } ?: ""
-        BlockKind.EAR -> "ขั้น ${earStage.n} ${earStage.title}"
-        BlockKind.SONG -> "เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น"
-    } + " · ${b.minutes} นาที"
+        BlockKind.EAR -> tr("ขั้น ${earStage.n} ${earStage.title}", "${earStage.title}", "${earStage.title}")
+        BlockKind.SONG -> tr("เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น", "A library piece, full-sheet practice", "ライブラリの曲、楽譜全体で練習")
+    } + tr(" · ${b.minutes} นาที", " · ${b.minutes} min", " · ${b.minutes}分")
 
     /** What a block opens; the chord part first writes its practice for the drill to read. */
     fun open(b: PlanBlock, go: (Open) -> Unit) {
@@ -214,8 +215,8 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     companion object {
-        private val DAYS = listOf("จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์")
-        private val MONTHS = listOf("มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม")
-        fun thaiDate(d: LocalDate) = "วัน${DAYS[d.dayOfWeek.value - 1]}ที่ ${d.dayOfMonth} ${MONTHS[d.monthValue - 1]}"
+        private val DAYS = listOf(tr("จันทร์", "Monday", "月曜日"), tr("อังคาร", "Tuesday", "火曜日"), tr("พุธ", "Wednesday", "水曜日"), tr("พฤหัสบดี", "Thursday", "木曜日"), tr("ศุกร์", "Friday", "金曜日"), tr("เสาร์", "Saturday", "土曜日"), tr("อาทิตย์", "Sunday", "日曜日"))
+        private val MONTHS = listOf(tr("มกราคม", "January", "1月"), tr("กุมภาพันธ์", "February", "2月"), tr("มีนาคม", "March", "3月"), tr("เมษายน", "April", "4月"), tr("พฤษภาคม", "May", "5月"), tr("มิถุนายน", "June", "6月"), tr("กรกฎาคม", "July", "7月"), tr("สิงหาคม", "August", "8月"), tr("กันยายน", "September", "9月"), tr("ตุลาคม", "October", "10月"), tr("พฤศจิกายน", "November", "11月"), tr("ธันวาคม", "December", "12月"))
+        fun thaiDate(d: LocalDate) = tr("วัน${DAYS[d.dayOfWeek.value - 1]}ที่ ${d.dayOfMonth} ${MONTHS[d.monthValue - 1]}", "${DAYS[d.dayOfWeek.value - 1]}, ${d.dayOfMonth} ${MONTHS[d.monthValue - 1]}", "${MONTHS[d.monthValue - 1]}${d.dayOfMonth}日（${DAYS[d.dayOfWeek.value - 1]}）")
     }
 }

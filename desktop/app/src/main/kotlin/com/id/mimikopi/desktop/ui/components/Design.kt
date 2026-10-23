@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.ui.components
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -141,7 +142,7 @@ fun StopButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier.heightIn(min = 48.dp).widthIn(min = 120.dp).clip(RoundedCornerShape(24.dp)).background(Tokens.Palette.Accent)
             .clickable(onClick = onClick).padding(horizontal = 22.dp),
         contentAlignment = Alignment.Center,
-    ) { Text("❚❚  หยุด (Space)", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.OnAccent) }
+    ) { Text(tr("❚❚  หยุด (Space)", "❚❚  Pause (Space)", "❚❚  一時停止（Space）"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.OnAccent) }
 }
 
 @Composable

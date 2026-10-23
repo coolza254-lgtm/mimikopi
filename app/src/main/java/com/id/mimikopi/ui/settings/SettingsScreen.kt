@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.settings
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
 import com.id.mimikopi.ui.components.midiConnected
@@ -108,19 +109,19 @@ fun SettingsScreen(
 
     ScreenScaffold(title = stringResource(R.string.settings_title), onBack = onBack) {
         val midi = midiConnected()
-        Section("การเชื่อมต่อและเสียง") {
+        Section(tr("การเชื่อมต่อและเสียง", "Connection and sound", "接続と音")) {
             Group {
                 GroupRow(
                     stringResource(R.string.home_midi_title),
-                    subtitle = if (midi) "เชื่อมต่อแล้ว" else "ยังไม่ได้ต่อ · สายหรือบลูทูธ",
+                    subtitle = if (midi) tr("เชื่อมต่อแล้ว", "Connected", "接続済み") else tr("ยังไม่ได้ต่อ · สายหรือบลูทูธ", "Not connected · cable or Bluetooth", "未接続 · ケーブルかBluetooth"),
                     onClick = onOpenMidi,
                     leading = { Box(Modifier.size(10.dp).background(if (midi) Tokens.Palette.Positive else Tokens.Palette.Dim, CircleShape)) },
                     trailing = { Chevron() },
                 )
                 GroupDivider()
-                GroupRow(stringResource(R.string.home_metronome_title), subtitle = "ความเร็ว จังหวะ เสียงเคาะ", onClick = onOpenMetronome, trailing = { Chevron() })
+                GroupRow(stringResource(R.string.home_metronome_title), subtitle = tr("ความเร็ว จังหวะ เสียงเคาะ", "Tempo, beats, click sound", "テンポ、拍、クリック音"), onClick = onOpenMetronome, trailing = { Chevron() })
                 GroupDivider()
-                GroupRow(stringResource(R.string.home_diagnostics_title), subtitle = "ตรวจเสียง MIDI และความหน่วง", onClick = onOpenDiagnostics, trailing = { Chevron() })
+                GroupRow(stringResource(R.string.home_diagnostics_title), subtitle = tr("ตรวจเสียง MIDI และความหน่วง", "Check MIDI sound and latency", "MIDIの音と遅延を確認"), onClick = onOpenDiagnostics, trailing = { Chevron() })
             }
         }
 
@@ -132,7 +133,12 @@ fun SettingsScreen(
                 Segmented(com.id.mimikopi.core.i18n.Lang.entries.toList(), com.id.mimikopi.core.i18n.L10n.lang, { it.label }, { lang ->
                     if (lang != com.id.mimikopi.core.i18n.L10n.lang) {
                         com.id.mimikopi.MimikopiApp.saveLang(context, lang)
-                        (context as? android.app.Activity)?.recreate()
+                        // Restart so texts made once at start (lists, plans, notices) are made again in the new language.
+                        context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
+                            it.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                            context.startActivity(it)
+                            Runtime.getRuntime().exit(0)
+                        } ?: (context as? android.app.Activity)?.recreate()
                     }
                 })
                 Spacer(Modifier.height(20.dp))
@@ -141,9 +147,9 @@ fun SettingsScreen(
                     listOf(com.id.mimikopi.ui.theme.ThemeMode.LIGHT, com.id.mimikopi.ui.theme.ThemeMode.DARK, com.id.mimikopi.ui.theme.ThemeMode.SYSTEM),
                     mode,
                     { m -> when (m) {
-                        com.id.mimikopi.ui.theme.ThemeMode.LIGHT -> "สว่าง"
-                        com.id.mimikopi.ui.theme.ThemeMode.DARK -> "มืด"
-                        else -> "ตามเครื่อง"
+                        com.id.mimikopi.ui.theme.ThemeMode.LIGHT -> tr("สว่าง", "Light", "ライト")
+                        com.id.mimikopi.ui.theme.ThemeMode.DARK -> tr("มืด", "Dark", "ダーク")
+                        else -> tr("ตามเครื่อง", "System", "端末に合わせる")
                     } },
                     { app.setThemeMode(it) },
                 )
@@ -152,7 +158,7 @@ fun SettingsScreen(
 
         SyncButton()
 
-        Section("ข้อมูลและอัปเดต") {
+        Section(tr("ข้อมูลและอัปเดต", "Data and updates", "データと更新")) {
             PageCard {
                 Label(stringResource(R.string.backup_title))
                 Body(stringResource(R.string.backup_body), muted = true)
@@ -184,8 +190,8 @@ fun SettingsScreen(
         }
 
         Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally)) {
-            FooterLink("เกี่ยวกับและเครดิต", onOpenAbout)
-            FooterLink("ข้อมูลวินิจฉัย", onOpenDiagnostics)
+            FooterLink(tr("เกี่ยวกับและเครดิต", "About and credits", "アプリについて・クレジット"), onOpenAbout)
+            FooterLink(tr("ข้อมูลวินิจฉัย", "Diagnostics", "診断情報"), onOpenDiagnostics)
         }
     }
 
@@ -342,7 +348,7 @@ private fun SyncButton() {
     var token by remember { mutableStateOf("") }
     Column(Modifier.padding(top = 20.dp)) {
         PrimaryButton(
-            if (status.running) "กำลังซิงค์…" else "Sync",
+            if (status.running) tr("กำลังซิงค์…", "Syncing…", "同期中…") else "Sync",
             onClick = { if (app.sync.config().ready) scope.launch { app.sync.sync() } else asking = true },
             enabled = !status.running,
         )
@@ -350,10 +356,10 @@ private fun SyncButton() {
     }
     if (asking) androidx.compose.material3.AlertDialog(
         onDismissRequest = { asking = false },
-        title = { Text("เชื่อมต่อครั้งแรก") },
+        title = { Text(tr("เชื่อมต่อครั้งแรก", "First connection", "初回接続")) },
         text = {
             Column {
-                Text("ใส่ GitHub token ครั้งเดียว เก็บในเครื่องนี้เท่านั้น")
+                Text(tr("ใส่ GitHub token ครั้งเดียว เก็บในเครื่องนี้เท่านั้น", "Enter a GitHub token once; it stays on this device only", "GitHubトークンを一度だけ入力。この端末にのみ保存されます"))
                 androidx.compose.material3.OutlinedTextField(token, { token = it.trim().take(200) }, singleLine = true, label = { Text("token") },
                     visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
             }
@@ -365,7 +371,7 @@ private fun SyncButton() {
                 scope.launch { app.sync.sync() }
             }, enabled = token.isNotBlank()) { Text("Sync") }
         },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = { asking = false }) { Text("ยกเลิก") } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { asking = false }) { Text(tr("ยกเลิก", "Cancel", "キャンセル")) } },
     )
 }
 

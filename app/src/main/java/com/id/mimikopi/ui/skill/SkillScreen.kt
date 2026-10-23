@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.skill
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -83,7 +84,7 @@ fun SkillScreen(
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
-            TabHeader("ขั้นหลัก", stringResource(R.string.skill_reading_goal), onOpenMidi, onOpenSettings, onBack)
+            TabHeader(tr("ขั้นหลัก", "Main step", "メインステップ"), stringResource(R.string.skill_reading_goal), onOpenMidi, onOpenSettings, onBack)
             Column(Modifier.padding(horizontal = 24.dp)) {
                 Spacer(Modifier.height(40.dp))
                 if (ui.loaded) Hero(ui, open)

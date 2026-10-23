@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.ear
 
+import com.id.mimikopi.core.i18n.tr
 import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -121,10 +122,10 @@ fun EarHomeScreen(
 
     Column(Modifier.fillMaxSize().paper().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
         Column(Modifier.widthIn(max = PageMaxWidth).fillMaxWidth()) {
-            LargeTitle("ฝึกหู", if (ui.loaded) "ระดับหู ${ui.level} จาก 8 · ขั้น ${ui.stage.n} จาก 10" else null, onBack = onBack) {
+            LargeTitle(tr("ฝึกหู", "Ear training", "耳トレ"), if (ui.loaded) tr("ระดับหู ${ui.level} จาก 8 · ขั้น ${ui.stage.n} จาก 10", "Ear level ${ui.level} of 8 · step ${ui.stage.n} of 10", "耳のレベル 8中${ui.level} · 段階 10中${ui.stage.n}") else null, onBack = onBack) {
                 MidiPill(onOpenMidi)
                 IconButton(onClick = onOpenSettings) {
-                    Icon(painterResource(R.drawable.ic_settings), contentDescription = "ตั้งค่า", tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
+                    Icon(painterResource(R.drawable.ic_settings), contentDescription = tr("ตั้งค่า", "Settings", "設定"), tint = Tokens.Palette.Ink, modifier = Modifier.size(22.dp))
                 }
             }
             if (!ui.loaded) return@Column
@@ -132,31 +133,31 @@ fun EarHomeScreen(
                 Spacer(Modifier.height(16.dp))
                 Group {
                     Column(Modifier.padding(20.dp)) {
-                        Text("รอบถัดไป · ขั้น ${ui.stage.n}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Tokens.Palette.InkMuted)
+                        Text(tr("รอบถัดไป · ขั้น ${ui.stage.n}", "Next round", "次の回"), fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Tokens.Palette.InkMuted)
                         Text(ui.stage.title, fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 2.dp))
                         Text(ui.stage.about, fontSize = 15.sp, lineHeight = 20.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 4.dp))
-                        Text("${EarProgress.ROUND} ข้อ ราว 4 นาที: " + ui.nextKinds.joinToString(" · ") { it.title }, fontSize = 14.sp, lineHeight = 19.sp,
+                        Text(tr("${EarProgress.ROUND} ข้อ ราว 4 นาที: ", "${EarProgress.ROUND} questions, about 4 minutes: ", "${EarProgress.ROUND}問、約4分：") + ui.nextKinds.joinToString(" · ") { it.title }, fontSize = 14.sp, lineHeight = 19.sp,
                             color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 8.dp))
                         Spacer(Modifier.height(18.dp))
-                        PrimaryButton("เริ่มฝึก", { onRound(null) })
+                        PrimaryButton(tr("เริ่มฝึก", "Start", "開始"), { onRound(null) })
                     }
                 }
-                GroupFooter("ข้อที่ยังพลาดจะกลับมาบ่อยขึ้น ข้อที่แม่นแล้วกลับมาเป็นระยะไม่ให้ลืม ขั้นถัดไปเปิดเมื่อทุกข้อของขั้นนี้แม่นแล้ว (ถูกครั้งแรกสม่ำเสมอ อย่างน้อย 6 ครั้ง)")
+                GroupFooter(tr("ข้อที่ยังพลาดจะกลับมาบ่อยขึ้น ข้อที่แม่นแล้วกลับมาเป็นระยะไม่ให้ลืม ขั้นถัดไปเปิดเมื่อทุกข้อของขั้นนี้แม่นแล้ว (ถูกครั้งแรกสม่ำเสมอ อย่างน้อย 6 ครั้ง)", "Ones you still miss come back more often; accurate ones come back now and then so you don't forget. The next step opens when every item of this one is accurate (right first time consistently, at least 6 times)", "まだ間違える問題はより頻繁に、正確な問題もときどき出て忘れないようにします。この段階のすべてが正確（1回目で安定して正解、6回以上）になると次の段階が開きます"))
 
-                GroupHeader("30 วันล่าสุด")
+                GroupHeader(tr("30 วันล่าสุด", "Last 30 days", "直近30日"))
                 Group {
                     Column(Modifier.padding(16.dp)) {
                         AccuracyBars(ui.days)
                         val heard = ui.days.filterNotNull()
                         Text(
-                            if (heard.isEmpty()) "ยังไม่ได้ฝึกหูในช่วงนี้" else "ฝึก ${heard.size} วัน · ถูกครั้งแรกเฉลี่ย ${(heard.average() * 100).toInt()}%",
+                            if (heard.isEmpty()) tr("ยังไม่ได้ฝึกหูในช่วงนี้", "No ear training in this period", "この期間は耳トレなし") else tr("ฝึก ${heard.size} วัน · ถูกครั้งแรกเฉลี่ย ${(heard.average() * 100).toInt()}%", "Practised ${heard.size} days · right first time on average ${(heard.average() * 100).toInt()}%", "${heard.size}日練習 · 1回目正解率の平均 ${(heard.average() * 100).toInt()}%"),
                             fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 12.dp),
                         )
                     }
                 }
-                GroupFooter("แท่งสูง = ถูกครั้งแรกมาก แท่งว่าง = วันที่ไม่ได้ฝึกหู")
+                GroupFooter(tr("แท่งสูง = ถูกครั้งแรกมาก แท่งว่าง = วันที่ไม่ได้ฝึกหู", "Tall bar = mostly right first time, empty bar = no ear training that day", "高い棒 = 1回目正解が多い、空の棒 = 耳トレをしなかった日"))
 
-                GroupHeader("หูของฉันตอนนี้")
+                GroupHeader(tr("หูของฉันตอนนี้", "My ear now", "今の耳"))
                 Group {
                     val kinds = ui.overview.entries.toList()
                     kinds.forEachIndexed { i, (kind, items) ->
@@ -166,42 +167,42 @@ fun EarHomeScreen(
                         val right = items.sumOf { it.stat.right }
                         GroupRow(
                             kind.title,
-                            subtitle = "แม่นแล้ว $known จาก ${items.size}" + if (asked > 0) " · ถูกครั้งแรก ${right * 100 / asked}% ทั้งหมด" else " · ยังไม่ได้ฝึก",
+                            subtitle = tr("แม่นแล้ว $known จาก ${items.size}", "Accurate $known of ${items.size}", "正確 ${items.size}中$known") + if (asked > 0) tr(" · ถูกครั้งแรก ${right * 100 / asked}% ทั้งหมด", " · right first time ${right * 100 / asked}% overall", " · 全体の1回目正解率 ${right * 100 / asked}%") else tr(" · ยังไม่ได้ฝึก", " · not practised yet", " · まだ練習していません"),
                             onClick = { onRound(kind) },
                             trailing = { LevelBars(known, items.size, width = 7.dp) },
                         )
                     }
                 }
-                GroupFooter("แตะหมวดเพื่อฝึกเฉพาะเรื่องนั้นหนึ่งรอบ")
+                GroupFooter(tr("แตะหมวดเพื่อฝึกเฉพาะเรื่องนั้นหนึ่งรอบ", "Tap a category to practise just that for one round", "カテゴリーをタップするとそれだけを1回練習"))
 
                 if (ui.weakest.isNotEmpty()) {
-                    GroupHeader("ยังพลาดบ่อย")
+                    GroupHeader(tr("ยังพลาดบ่อย", "Still often missed", "まだよく間違える"))
                     Group {
                         ui.weakest.forEachIndexed { i, w ->
                             if (i > 0) GroupDivider()
-                            GroupRow(w.label, subtitle = "${w.kind.title} · ถูก ${w.stat.right} จาก ${w.stat.asked} ครั้ง", onClick = { onRound(w.kind) })
+                            GroupRow(w.label, subtitle = tr("${w.kind.title} · ถูก ${w.stat.right} จาก ${w.stat.asked} ครั้ง", "${w.kind.title} · right ${w.stat.right} of ${w.stat.asked}", "${w.kind.title} · ${w.stat.asked}回中${w.stat.right}回正解"), onClick = { onRound(w.kind) })
                         }
                     }
                 }
 
-                GroupHeader("เส้นทาง 10 ขั้น")
+                GroupHeader(tr("เส้นทาง 10 ขั้น", "The 10-step path", "10段階のコース"))
                 Group {
                     EarCourse.STAGES.forEachIndexed { i, st ->
                         if (i > 0) GroupDivider(indent = 52.dp)
                         val (known, total) = EarProgress.stageProgress(ui.state, st)
                         val open = st.n <= ui.stage.n
                         GroupRow(
-                            "ขั้น ${st.n} · ${st.title}",
-                            subtitle = if (open) "แม่นแล้ว $known จาก $total · " + st.adds.joinToString(" ") { EarCourse.label(it) } else st.about,
+                            tr("ขั้น ${st.n} · ${st.title}", "${st.title}", "${st.title}"),
+                            subtitle = if (open) tr("แม่นแล้ว $known จาก $total · ", "Accurate $known of $total · ", "正確 ${total}中$known · ") + st.adds.joinToString(" ") { EarCourse.label(it) } else st.about,
                             leading = { StepMark(done = known == total, current = st.n == ui.stage.n && known < total) },
                             titleColor = if (open) Tokens.Palette.Ink else Tokens.Palette.InkMuted,
                         )
                     }
                 }
 
-                GroupHeader("ระดับหู")
-                Group { GroupRow("ทดสอบระดับหู", subtitle = "ระดับวัดจากแบบทดสอบในหน้าทักษะเท่านั้น ระดับตอนนี้ ${ui.level} จาก 8", onClick = onTest) }
-                GroupFooter("ตัวเลขทั้งหมดนับเฉพาะคำตอบครั้งแรก")
+                GroupHeader(tr("ระดับหู", "Ear level", "耳のレベル"))
+                Group { GroupRow(tr("ทดสอบระดับหู", "Test your ear level", "耳のレベルをテスト"), subtitle = tr("ระดับวัดจากแบบทดสอบในหน้าทักษะเท่านั้น ระดับตอนนี้ ${ui.level} จาก 8", "Levels come only from tests on the Skills page. Current level ${ui.level} of 8", "レベルはスキルページのテストだけで決まります。現在 8中${ui.level}"), onClick = onTest) }
+                GroupFooter(tr("ตัวเลขทั้งหมดนับเฉพาะคำตอบครั้งแรก", "All numbers count first answers only", "数字はすべて1回目の答えだけで数えます"))
                 Spacer(Modifier.height(40.dp))
             }
         }

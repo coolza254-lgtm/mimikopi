@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.lesson
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -52,44 +53,44 @@ internal fun LessonHistory(lesson: Lesson, history: List<AttemptEntity>) {
     val comparison = remember(rows) { lessonComparison(rows) }
     val zone = ZoneId.systemDefault()
     val date = remember { DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm") }
-    PageCard(title = "ประวัติและพัฒนาการบทนี้", modifier = Modifier.testTag("lesson-history")) {
-        Text("บันทึกผลอัตโนมัติเมื่อจบรอบ · ข้อมูลเดิมยังอยู่หลังอัปเดต", style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+    PageCard(title = tr("ประวัติและพัฒนาการบทนี้", "This lesson's history and progress", "このレッスンの履歴と上達"), modifier = Modifier.testTag("lesson-history")) {
+        Text(tr("บันทึกผลอัตโนมัติเมื่อจบรอบ · ข้อมูลเดิมยังอยู่หลังอัปเดต", "Saved automatically at the end of each round · old data stays after updates", "回の終わりに自動保存 · 更新後も以前のデータは残ります"), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
         if (all.isEmpty()) {
-            Text("ยังไม่มีผลการเล่นบทนี้ เริ่มฝึกแล้วกลับมาดูผลได้ที่นี่", modifier = Modifier.testTag("lesson-history-empty"))
+            Text(tr("ยังไม่มีผลการเล่นบทนี้ เริ่มฝึกแล้วกลับมาดูผลได้ที่นี่", "No results for this lesson yet. Start practising and come back to see them here", "このレッスンの結果はまだありません。練習を始めたらここで確認できます"), modifier = Modifier.testTag("lesson-history-empty"))
         } else {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected == -1, { selected = -1 }, label = { Text("ทั้งหมด") })
+                FilterChip(selected == -1, { selected = -1 }, label = { Text(tr("ทั้งหมด", "All", "すべて")) })
                 lesson.drills.forEachIndexed { i, d ->
                     FilterChip(selected == i, { selected = i }, label = { Text(d.title) }, modifier = Modifier.testTag("lesson-history-filter-$i"))
                 }
             }
             val days = rows.map { Instant.ofEpochMilli(it.row.startedAtMillis).atZone(zone).toLocalDate() }.distinct().size
-            Text("${rows.size} รอบ · $days วันที่มีผลบันทึก", style = MaterialTheme.typography.titleSmall)
+            Text(tr("${rows.size} รอบ · $days วันที่มีผลบันทึก", "${rows.size} rounds · $days days with results", "${rows.size}回 · 記録のある日${days}日"), style = MaterialTheme.typography.titleSmall)
             comparison?.let { c ->
                 val notes = listOfNotNull(fraction(c.first.row.noteAccuracy), fraction(c.latest.row.noteAccuracy))
                 val timing = listOfNotNull(fraction(c.first.row.timingWithinTol), fraction(c.latest.row.timingWithinTol))
-                Text("เทียบรอบแรกกับล่าสุดที่เงื่อนไขเดียวกัน", style = MaterialTheme.typography.titleSmall)
+                Text(tr("เทียบรอบแรกกับล่าสุดที่เงื่อนไขเดียวกัน", "First vs latest round with the same settings", "同じ条件での最初と最新の比較"), style = MaterialTheme.typography.titleSmall)
                 Text(listOfNotNull(
-                    if (notes.size == 2) "โน้ต ${notes[0]} → ${notes[1]}" else null,
-                    if (timing.size == 2) "จังหวะ ${timing[0]} → ${timing[1]}" else null,
+                    if (notes.size == 2) tr("โน้ต ${notes[0]} → ${notes[1]}", "Notes ${notes[0]} → ${notes[1]}", "音 ${notes[0]} → ${notes[1]}") else null,
+                    if (timing.size == 2) tr("จังหวะ ${timing[0]} → ${timing[1]}", "Timing ${timing[0]} → ${timing[1]}", "リズム ${timing[0]} → ${timing[1]}") else null,
                     if (c.first.value("count") != null && c.latest.value("count") != null) "เปลี่ยนคอร์ด ${c.first.value("count")} → ${c.latest.value("count")} ครั้ง" else null,
-                ).joinToString(" · ").ifEmpty { "มี ${rows.count { it.conditions == c.latest.conditions && it.comparable }} รอบที่เทียบกันได้" },
+                ).joinToString(" · ").ifEmpty { tr("มี ${rows.count { it.conditions == c.latest.conditions && it.comparable }} รอบที่เทียบกันได้", "${rows.count { it.conditions == c.latest.conditions && it.comparable }} comparable rounds", "比較できる回 ${rows.count { it.conditions == c.latest.conditions && it.comparable }}回") },
                     modifier = Modifier.testTag("lesson-history-comparison"))
                 Text("${handLabel(c.latest.row.hand)} · ${modeLabel(c.latest.mode)}" + (c.latest.value("bpm")?.let { " · $it bpm" } ?: ""), style = MaterialTheme.typography.bodySmall)
-                Text("เป็นผลการเล่น ไม่ใช่หลักฐานว่าจำได้ถาวร · ไม่นำรอบใช้ตัวช่วย หยุดกลางคัน หรือเงื่อนไขต่างกันมาเทียบ", style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
-            } ?: Text("ยังไม่มีสองรอบที่เงื่อนไขเดียวกันและไม่ใช้ตัวช่วยให้เทียบ", style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+                Text(tr("เป็นผลการเล่น ไม่ใช่หลักฐานว่าจำได้ถาวร · ไม่นำรอบใช้ตัวช่วย หยุดกลางคัน หรือเงื่อนไขต่างกันมาเทียบ", "Rounds with helpers, stopped midway or with different settings aren't compared", "補助あり、途中終了、条件の違う回は比較しません"), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+            } ?: Text(tr("ยังไม่มีสองรอบที่เงื่อนไขเดียวกันและไม่ใช้ตัวช่วยให้เทียบ", "No two rounds yet with the same settings and no helpers to compare", "同じ条件で補助なしの比較できる2回がまだありません"), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
             rows.take(limit).forEach { attempt ->
                 val r = attempt.row
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 Text(Instant.ofEpochMilli(r.startedAtMillis).atZone(zone).format(date), style = MaterialTheme.typography.labelMedium)
                 Text(lesson.drills.getOrNull(attempt.drillIndex ?: -1)?.title ?: r.exerciseId, style = MaterialTheme.typography.titleSmall)
                 Text(listOf(handLabel(r.hand), modeLabel(attempt.mode), attempt.value("bpm")?.let { "$it bpm" }).filterNotNull().joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-                Text(listOfNotNull(fraction(r.noteAccuracy)?.let { "โน้ตถูก $it" }, fraction(r.timingWithinTol)?.let { "ตรงจังหวะ $it" },
-                    r.stumbles?.let { "สะดุด $it ครั้ง" }, attempt.value("count")?.let { "เปลี่ยนคอร์ด $it ครั้ง" }).joinToString(" · ").ifEmpty { "ไม่มีค่าความแม่นในรอบนี้" })
-                Text(listOf(when (attempt.complete) { true -> "จบรอบ"; false -> "หยุดกลางคัน · ไม่นำมาเทียบ"; null -> "ประวัติเดิม · ไม่ทราบสถานะจบรอบ" },
-                    if (attempt.assisted) "ใช้ตัวช่วย ${r.helperUses} ครั้ง" else "ไม่ใช้ตัวช่วย").joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
+                Text(listOfNotNull(fraction(r.noteAccuracy)?.let { tr("โน้ตถูก $it", "Notes $it", "音 $it") }, fraction(r.timingWithinTol)?.let { tr("ตรงจังหวะ $it", "On time $it", "リズム $it") },
+                    r.stumbles?.let { tr("สะดุด $it ครั้ง", "Stumbled $it times", "つまずき${it}回") }, attempt.value("count")?.let { tr("เปลี่ยนคอร์ด $it ครั้ง", "$it chord changes", "コードチェンジ${it}回") }).joinToString(" · ").ifEmpty { tr("ไม่มีค่าความแม่นในรอบนี้", "No accuracy for this round", "この回の正確さはありません") })
+                Text(listOf(when (attempt.complete) { true -> tr("จบรอบ", "Finished", "完了"); false -> tr("หยุดกลางคัน · ไม่นำมาเทียบ", "Stopped midway · not compared", "途中終了 · 比較しません"); null -> tr("ประวัติเดิม · ไม่ทราบสถานะจบรอบ", "Older history · unknown whether finished", "以前の履歴 · 完了したか不明") },
+                    if (attempt.assisted) tr("ใช้ตัวช่วย ${r.helperUses} ครั้ง", "Helpers used ${r.helperUses} times", "補助${r.helperUses}回") else tr("ไม่ใช้ตัวช่วย", "No helpers", "補助なし")).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Tokens.Palette.InkMuted)
             }
-            if (rows.size > limit) TextButton(onClick = { limit += 10 }, modifier = Modifier.testTag("lesson-history-more")) { Text("ดูย้อนหลังเพิ่ม") }
+            if (rows.size > limit) TextButton(onClick = { limit += 10 }, modifier = Modifier.testTag("lesson-history-more")) { Text(tr("ดูย้อนหลังเพิ่ม", "See more history", "履歴をもっと見る")) }
         }
     }
 }

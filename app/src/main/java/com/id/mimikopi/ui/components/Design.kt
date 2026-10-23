@@ -1,5 +1,6 @@
 package com.id.mimikopi.ui.components
 
+import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -197,7 +198,7 @@ fun MidiPill(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(Modifier.size(8.dp).then(if (ready) Modifier.background(Tokens.Palette.Positive, CircleShape) else Modifier.border(1.dp, Tokens.Palette.InkMuted, CircleShape)))
-        Text(if (ready) "MIDI" else "ไม่มี MIDI", fontSize = 13.sp, color = if (ready) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
+        Text(if (ready) "MIDI" else tr("ไม่มี MIDI", "No MIDI", "MIDIなし"), fontSize = 13.sp, color = if (ready) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
     }
 }
 

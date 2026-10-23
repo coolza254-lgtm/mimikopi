@@ -344,10 +344,10 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         is Source.Piece -> score?.title ?: ""
         is Source.LessonDrill -> "${src.lesson.id} · ${src.drill.title}" +
             (transposeKey?.let { tr(" · เล่นในคีย์ ${com.id.mimikopi.core.theory.Keys.name(it)}", " · played in ${com.id.mimikopi.core.theory.Keys.name(it)}", " · ${com.id.mimikopi.core.theory.Keys.name(it)}で演奏") } ?: "")
-        is Source.NewReading -> tr("อ่านโน้ตใหม่ (ระดับ L${src.level})", "Sight-reading", "初見")
+        is Source.NewReading -> tr("อ่านโน้ตใหม่", "Sight-reading", "初見")
         is Source.Practice -> src.drill.title
-        is Source.Benchmark -> tr("วัดผล: อ่านโน้ตระดับ L$benchLevel", "Measure: sight-reading", "測定：初見")
-        is Source.Check -> tr("ทดสอบวัดระดับ · ${src.level.skill.title} ระดับ ${src.level.level}", "Test · ${src.level.skill.title} level ${src.level.level}", "テスト · ${src.level.skill.title} レベル${src.level.level}")
+        is Source.Benchmark -> tr("วัดผล: อ่านโน้ตใหม่", "Measure: sight-reading", "測定：初見")
+        is Source.Check -> tr("ทดสอบ · ${src.level.skill.title}", "Test · ${src.level.skill.title}", "テスト · ${src.level.skill.title}")
         is Source.Exam -> "สอบ ${exam()?.second?.name ?: ""} · ${src.part.title}"
     }
 
@@ -971,9 +971,9 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                     val status = com.id.mimikopi.core.progress.SkillBook.status(level.skill, p.checks.value, java.time.LocalDate.now())
                     verdict.lines.forEach { lines += CoachLine(it) }
                     if (helper) lines += CoachLine(tr("เปิดตัวช่วยระหว่างทดสอบ ผลนี้จึงไม่นับ", "Helpers were on during the test, so this result doesn't count", "テスト中に補助を使ったため、この結果は数えません"))
-                    progressLine = if (passed) tr("ผ่านระดับ ${level.level}: ${level.canDo} · ${level.skill.title}ตอนนี้ระดับ ${status.level} จาก ${status.maxLevel}", "Passed: ${level.canDo} · ${level.skill.title} is now ${status.level} of ${status.maxLevel}", "合格：${level.canDo} · ${level.skill.title}は現在${status.maxLevel}中${status.level}")
-                    else if (status.lockedToday) tr("ยังไม่ผ่านระดับ ${level.level} · ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น", "Not passed yet · both tries used today; keep practising and try another day", "まだ不合格 · 今日の2回を使いました。練習して別の日に")
-                    else tr("ยังไม่ผ่านระดับ ${level.level} · ยังลองได้อีกครั้งวันนี้ (โน้ตใหม่)", "Not passed yet · one more try today (new music)", "まだ不合格 · 今日あと1回挑戦できます（新しい楽譜）")
+                    progressLine = if (passed) tr("ผ่านแล้ว: ${level.canDo}", "Passed: ${level.canDo}", "合格：${level.canDo}")
+                    else if (status.lockedToday) tr("ยังไม่ผ่าน · ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น", "Not passed yet · both tries used today; keep practising and try another day", "まだ不合格 · 今日の2回を使いました。練習して別の日に")
+                    else tr("ยังไม่ผ่าน · ยังลองได้อีกครั้งวันนี้ (โน้ตใหม่)", "Not passed yet · one more try today (new music)", "まだ不合格 · 今日あと1回挑戦できます（新しい楽譜）")
                     benchDone = passed || status.lockedToday
                     _ui.update { it.copy(phase = Phase.RESULT, result = resultUi(result, lines.distinct(), progressLine), countIn = null) }
                     return@launch
@@ -1024,11 +1024,11 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                         learning.updateBenchmark { it.copy(sightReadingLevel = maxOf(it.sightReadingLevel ?: 0, level)) }
                         benchLevel = level + 1
                         newPieceNext = true
-                        progressLine = tr("ระดับ L$level เล่นสะอาด ไปต่อระดับ L${level + 1}", "Played clean, moving to the next level", "クリーンに弾けました。次のレベルへ")
+                        progressLine = tr("เล่นสะอาด ไปเรื่องถัดไป", "Played clean, moving to the next level", "クリーンに弾けました。次のレベルへ")
                     } else {
                         val reached = if (clean && !helper) level else level - 1
                         learning.updateBenchmark { it.copy(sightReadingLevel = maxOf(it.sightReadingLevel ?: 0, reached)) }
-                        progressLine = tr("บันทึกผลแล้ว: อ่านโน้ตสะอาดได้ถึงระดับ L$reached", "Result saved", "結果を保存しました")
+                        progressLine = tr("บันทึกผลแล้ว", "Result saved", "結果を保存しました")
                         benchDone = true
                     }
                 }

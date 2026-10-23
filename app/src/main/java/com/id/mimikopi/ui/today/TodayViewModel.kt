@@ -182,10 +182,10 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         BlockKind.WARMUP -> b.target?.let { t ->
             learning.lesson(t.substringBefore('/'))?.let { l -> l.drills.getOrNull(t.substringAfter('/').toIntOrNull() ?: 0)?.title ?: l.title }
         } ?: ""
-        BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { tr("${it.skill.title} ระดับ ${it.level}", "${it.skill.title} level ${it.level}", "${it.skill.title} レベル${it.level}") } ?: ""
+        BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { it.skill.title } ?: ""
         BlockKind.REVIEW -> tr("โน้ตและคีย์ที่ถึงกำหนดทวน", "Notes and keys due for review", "復習時期の音とキー")
         BlockKind.LADDER -> ProgressRules.nextToLearn(learning.lessons, learning.records.value)?.let { tr("ขั้น ${it.id} · ${it.title}", "${it.title}", "${it.title}") } ?: tr("ยืนยันขั้นที่ผ่านแล้ว", "Confirm a passed step", "合格した段階を確認")
-        BlockKind.SIGHT -> tr("ระดับ L${b.target}", "Level ${b.target}", "レベル${b.target}")
+        BlockKind.SIGHT -> tr("โน้ตที่ไม่เคยเห็น", "Music you've never seen", "初めて見る楽譜")
         BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, progress.checks.value, LocalDate.now()).level).summary()
         BlockKind.SOLO -> b.target?.toIntOrNull()?.let { PlanContent.soloSummary(it) } ?: ""
         BlockKind.EAR -> tr("ขั้น ${earStage.n} ${earStage.title}", "${earStage.title}", "${earStage.title}")

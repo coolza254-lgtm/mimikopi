@@ -117,7 +117,7 @@ fun GoalScreen(onBack: () -> Unit, onOpen: (Open) -> Unit, vm: GoalViewModel = v
                         }
                         gaps.forEach { g ->
                             GroupDivider()
-                            GroupRow(g.skill.title, subtitle = tr("ตอนนี้ระดับ ${g.have} ต้องการ ${g.need}", "Now ${g.have}, needs ${g.need}", "現在${g.have}、必要${g.need}"), onClick = { onOpen(Open.Skill(g.skill)) })
+                            GroupRow(g.skill.title, subtitle = "●".repeat(g.have) + "○".repeat((g.need - g.have).coerceAtLeast(0)), onClick = { onOpen(Open.Skill(g.skill)) })
                         }
                     }
                 }

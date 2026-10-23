@@ -68,7 +68,7 @@ fun LessonScreen(onBack: () -> Unit, onOpenDrill: (String, Int) -> Unit, vm: Les
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onStop() }
     DisposableEffect(Unit) { onDispose { vm.onStop() } }
 
-    ScreenScaffold(title = lesson?.let { stringResource(R.string.ladder_stage, it.stage) } ?: "", onBack = onBack) {
+    ScreenScaffold(title = lesson?.let { com.id.mimikopi.core.i18n.Stages.name(it.stage) } ?: "", onBack = onBack) {
         if (lesson == null) {
             Text(stringResource(R.string.lesson_missing))
             return@ScreenScaffold

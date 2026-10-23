@@ -59,7 +59,7 @@ private fun metricsText(r: CheckRecord): String = listOfNotNull(
 private fun statusLine(s: SkillStatus): String {
     if (s.locked) return tr("ยังไม่เปิด · ", "Not open yet · ", "まだ開いていません · ") + (SkillBook.opensText(s.skill) ?: "")
     val tested = s.lastTested ?: return tr("ยังไม่ได้วัด", "Not measured yet", "未測定")
-    val parts = mutableListOf(tr("ระดับ ${s.level} จาก ${s.maxLevel}", "Level ${s.level} of ${s.maxLevel}", "レベル ${s.maxLevel}中${s.level}"), tr("ทดสอบ${ago(tested)}", "Tested${ago(tested)}", "テスト${ago(tested)}"))
+    val parts = mutableListOf("●".repeat(s.level) + "○".repeat(s.maxLevel - s.level), tr("ทดสอบ${ago(tested)}", "Tested${ago(tested)}", "テスト${ago(tested)}"))
     if (s.due) parts += tr("ถึงเวลาทดสอบ", "Time for a test", "テストの時期")
     return parts.joinToString(" · ")
 }
@@ -146,7 +146,7 @@ fun SkillDetailScreen(skill: SkillId) {
                     Text(tr(" จาก ${s.maxLevel}", " of ${s.maxLevel}", " / ${s.maxLevel}"), fontSize = 17.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(bottom = 8.dp))
                 }
                 LevelBars(s.level, s.maxLevel, width = 22.dp)
-                Text(if (s.level > 0) tr("ทำได้แล้ว: ${levels[s.level - 1].canDo}", "Can do: ${levels[s.level - 1].canDo}", "できること：${levels[s.level - 1].canDo}") else if (s.lastTested == null) tr("ยังไม่ได้วัด เริ่มจากทดสอบระดับ 1", "Not measured yet, start with the first test", "未測定。最初のテストから始めましょう") else tr("ยังไม่ผ่านระดับ 1", "First test not passed yet", "最初のテストはまだ不合格"),
+                Text(if (s.level > 0) tr("ทำได้แล้ว: ${levels[s.level - 1].canDo}", "Can do: ${levels[s.level - 1].canDo}", "できること：${levels[s.level - 1].canDo}") else if (s.lastTested == null) tr("ยังไม่ได้วัด เริ่มจากแบบทดสอบแรก", "Not measured yet, start with the first test", "未測定。最初のテストから始めましょう") else tr("ยังไม่ผ่านแบบทดสอบแรก", "First test not passed yet", "最初のテストはまだ不合格"),
                     fontSize = 15.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 14.dp))
                 if (s.dropped) Text(tr("ระดับลดลง เพราะทดสอบระดับที่เคยผ่านไม่ผ่านสองครั้งติด", "Went down after failing a level you had passed twice in a row", "合格していたレベルに2回続けて不合格だったため下がりました"), fontSize = 14.sp, color = Tokens.Palette.InkMuted)
                 s.lastTested?.let { Text(tr("ทดสอบล่าสุด${ago(it, today)}", "Last test${ago(it, today)}", "最後のテスト${ago(it, today)}"), fontSize = 13.sp, color = Tokens.Palette.InkMuted) }
@@ -157,12 +157,12 @@ fun SkillDetailScreen(skill: SkillId) {
             Column(Modifier.padding(20.dp)) {
                 val next = s.nextTest?.let { SkillBook.level(skill, it) }
                 if (next != null) {
-                    Text(if (next.level == s.level) tr("ยืนยันระดับ ${next.level}", "Confirm level ${next.level}", "レベル${next.level}を確認") else tr("ระดับ ${next.level}", "Level ${next.level}", "レベル${next.level}"), fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Text(if (next.level == s.level) tr("ยืนยัน: ${next.canDo}", "Confirm: ${next.canDo}", "確認：${next.canDo}") else next.canDo, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Text(next.canDo, fontSize = 15.sp, color = Tokens.Palette.Ink)
                     Text(tr("เกณฑ์ผ่าน: ${next.criteriaText()}", "To pass: ${next.criteriaText()}", "合格基準：${next.criteriaText()}"), fontSize = 14.sp, color = Tokens.Palette.InkMuted)
                     if (s.locked) SkillBook.opensText(skill)?.let { Text(tr("ยังไม่เปิดในแผนวันนี้ · $it ทดสอบเองก่อนได้", "Not open in today's plan yet · $it you can test yourself first", "まだ今日のプランにはありません · $it 先に自分でテストできます"), fontSize = 14.sp, color = Tokens.Palette.InkMuted) }
                     Spacer(Modifier.height(18.dp))
-                    PrimaryButton(if (s.lockedToday) tr("พรุ่งนี้ลองใหม่ได้", "Try again tomorrow", "明日また挑戦できます") else tr("ทดสอบระดับ ${next.level}", "Test level ${next.level}", "レベル${next.level}のテスト"),
+                    PrimaryButton(if (s.lockedToday) tr("พรุ่งนี้ลองใหม่ได้", "Try again tomorrow", "明日また挑戦できます") else tr("ทดสอบ", "Test", "テスト"),
                         onClick = { app.nav.open(checkScreen(SkillBook.key(skill, next.level), next.run)) }, enabled = !s.lockedToday)
                 } else {
                     Text(tr("ถือระดับสูงสุดอยู่", "At the top level", "最高レベルです"), fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -177,7 +177,7 @@ fun SkillDetailScreen(skill: SkillId) {
             if (mine.isEmpty()) GroupRow(tr("ยังไม่เคยทดสอบ", "Not tested yet", "まだテストしていません"), tr("ผลทุกครั้งจะอยู่ตรงนี้ ทั้งที่ผ่านและไม่ผ่าน", "Every result shows here, passed or not", "合格も不合格もすべてここに表示されます"))
             mine.takeLast(12).asReversed().forEachIndexed { i, r ->
                 if (i > 0) GroupDivider()
-                GroupRow("ระดับ ${r.level} · ${if (r.passed) tr("ผ่าน", "Passed", "合格") else tr("ไม่ผ่าน", "Not passed", "不合格")}", metricsText(r).ifEmpty { null },
+                GroupRow("${levels.getOrNull(r.level - 1)?.canDo ?: ""} · ${if (r.passed) tr("ผ่าน", "Passed", "合格") else tr("ไม่ผ่าน", "Not passed", "不合格")}", metricsText(r).ifEmpty { null },
                     value = runCatching { ago(LocalDate.parse(r.date), today) }.getOrNull(),
                     titleColor = if (r.passed) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
             }
@@ -186,7 +186,7 @@ fun SkillDetailScreen(skill: SkillId) {
         Group {
             levels.forEachIndexed { i, l ->
                 if (i > 0) GroupDivider(52.dp)
-                GroupRow(tr("ระดับ ${l.level} · ${l.canDo}", "Level ${l.level} · ${l.canDo}", "レベル${l.level} · ${l.canDo}"), tr("เกณฑ์: ${l.criteriaText()}", "Criteria: ${l.criteriaText()}", "基準：${l.criteriaText()}"),
+                GroupRow(l.canDo, tr("เกณฑ์: ${l.criteriaText()}", "Criteria: ${l.criteriaText()}", "基準：${l.criteriaText()}"),
                     leading = { StepMark(l.level <= s.level, l.level == s.nextTest && l.level > s.level) },
                     titleColor = if (l.level <= s.level) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
             }

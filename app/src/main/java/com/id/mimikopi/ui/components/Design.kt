@@ -232,3 +232,10 @@ fun SkillIcon(icon: Int, color: Tokens.SkillColor, size: Dp = 40.dp, filled: Boo
         Icon(painterResource(icon), contentDescription = null, tint = color.ink, modifier = Modifier.size(size / 2))
     }
 }
+
+/** "Passed": the bright green pill, the one place green is used (user, 2026-10-23). */
+@Composable
+fun PassPill(text: String = com.id.mimikopi.core.i18n.tr("ผ่านแล้ว", "Passed", "合格")) {
+    Text(text, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Pass,
+        modifier = Modifier.clip(RoundedCornerShape(50)).background(Tokens.Palette.PassSoft).padding(horizontal = 10.dp, vertical = 3.dp))
+}

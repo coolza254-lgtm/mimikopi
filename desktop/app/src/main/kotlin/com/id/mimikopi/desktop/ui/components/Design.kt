@@ -94,9 +94,10 @@ fun GroupRow(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     titleColor: Color = Tokens.Palette.Ink,
+    background: Color? = null,
 ) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 52.dp).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        Modifier.fillMaxWidth().then(if (background != null) Modifier.background(background) else Modifier).heightIn(min = 52.dp).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -261,4 +262,11 @@ fun SkillIcon(mark: String, color: Tokens.SkillColor, size: Dp = 40.dp, filled: 
     Box(Modifier.size(size).clip(CircleShape).background(if (filled) color.fill else Tokens.Palette.Group), contentAlignment = Alignment.Center) {
         Text(mark, fontSize = (size.value * 0.42f).sp, color = color.ink)
     }
+}
+
+/** "Passed": the bright green pill, the one place green is used (user, 2026-10-23). */
+@Composable
+fun PassPill(text: String = com.id.mimikopi.core.i18n.tr("ผ่านแล้ว", "Passed", "合格")) {
+    Text(text, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Pass,
+        modifier = Modifier.clip(RoundedCornerShape(50)).background(Tokens.Palette.PassSoft).padding(horizontal = 10.dp, vertical = 3.dp))
 }

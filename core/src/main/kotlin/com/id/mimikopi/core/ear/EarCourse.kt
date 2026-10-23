@@ -99,7 +99,7 @@ object EarCourse {
         EarKind.PROGRESSION -> PROGRESSIONS.firstOrNull { it.id == arg(item) }?.name ?: arg(item)
         EarKind.KEY_CHANGE -> when (arg(item)) { "0" -> tr("คีย์เดิม", "Same key", "同じキー"); "1" -> tr("ขึ้นครึ่งเสียง", "Up a semitone", "半音上"); else -> tr("ขึ้นหนึ่งเสียง", "Up a tone", "全音上") }
         EarKind.MELODY -> tr("ทำนอง ${arg(item)} โน้ต", "${arg(item)}-note melody", "${arg(item)}音のメロディ")
-        EarKind.RHYTHM -> tr("จังหวะ ระดับ ${arg(item)}", "Rhythm, level ${arg(item)}", "リズム レベル${arg(item)}")
+        EarKind.RHYTHM -> tr("จังหวะ", "Rhythm", "リズム")
     }
 
     // ---------------- stages ----------------

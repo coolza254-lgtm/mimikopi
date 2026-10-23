@@ -101,10 +101,10 @@ private fun open(app: AppContext, b: PlanBlock) {
 /** One line under a part's title: what it holds today. */
 private fun detail(s: Services, b: PlanBlock): String = when (b.kind) {
     BlockKind.WARMUP, BlockKind.REVIEW -> tr("ทีละตัว ช้า ๆ ให้ตาและมือเข้ากัน", "One at a time, slowly, eyes and hands together", "1つずつゆっくり、目と手を合わせて")
-    BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { tr("${it.skill.title} ระดับ ${it.level} · เกณฑ์ตายตัว", "${it.skill.title} level ${it.level} · fixed criteria", "${it.skill.title} レベル${it.level} · 固定の基準") } ?: ""
+    BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { it.skill.title } ?: ""
     BlockKind.LADDER -> (ProgressRules.awaitingConfirmation(s.learning.lessons, s.learning.records.value, LocalDate.now()).firstOrNull()?.let { tr("ยืนยัน ${it.id} ${it.title}", "Confirm ${it.title}", "${it.title}を確認") }
         ?: ProgressRules.nextToLearn(s.learning.lessons, s.learning.records.value)?.let { "${it.id} ${it.title}" } ?: tr("ทบทวนขั้นที่ผ่านแล้ว", "Review passed steps", "合格した段階を復習"))
-    BlockKind.SIGHT -> tr("โน้ตที่ไม่เคยเห็น ระดับ ${b.target} · เล่นครั้งเดียวแล้วไปต่อ", "Music you've never seen · play once and move on", "初めて見る楽譜 · 1回弾いて次へ")
+    BlockKind.SIGHT -> tr("โน้ตที่ไม่เคยเห็น · เล่นครั้งเดียวแล้วไปต่อ", "Music you've never seen · play once and move on", "初めて見る楽譜 · 1回弾いて次へ")
     BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, s.progress.checks.value, LocalDate.now()).level).summary()
     BlockKind.SOLO -> b.target?.toIntOrNull()?.let { PlanContent.soloSummary(it) } ?: ""
     BlockKind.EAR -> EarProgress.currentStage(EarProgress.parse(s.db.get(EarProgress.KEY))).let { tr("ขั้น ${it.n} ${it.title}", "${it.title}", "${it.title}") }

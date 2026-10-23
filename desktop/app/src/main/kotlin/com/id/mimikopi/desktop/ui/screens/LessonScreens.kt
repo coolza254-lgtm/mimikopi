@@ -1,5 +1,6 @@
 package com.id.mimikopi.desktop.ui.screens
 
+import com.id.mimikopi.desktop.ui.components.PassPill
 import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -89,25 +90,27 @@ fun LessonsScreen() {
     Page {
         LargeTitle(tr("บทเรียน", "Lessons", "レッスン"), tr("ทีละขั้น ผ่านแต่ละบทเมื่อทำได้ตามเกณฑ์ในวันที่ต่างกัน ไม่ล็อกเวลา", "Step by step: pass each lesson by meeting its criteria on different days, no time limit", "1段階ずつ：別々の日に基準を満たすと各レッスンに合格、時間制限なし"))
         current?.let { l ->
-            PrimaryButton(tr("ฝึกต่อ: ${l.id} ${l.title}", "Continue: ${l.title}", "続き：${l.title}"), onClick = { app.nav.open(Screen.Lesson(l.id)) })
+            PrimaryButton(tr("ฝึกต่อ: ${l.title}", "Continue: ${l.title}", "続き：${l.title}"), onClick = { app.nav.open(Screen.Lesson(l.id)) })
         }
         for ((stage, lessons) in learning.lessons.groupBy { it.stage }) {
-            GroupHeader(STAGES[stage] ?: tr("ขั้น $stage", "Stage", "段階"))
+            GroupHeader(com.id.mimikopi.core.i18n.Stages.name(stage))
             Group {
                 lessons.forEachIndexed { i, l ->
                     if (i > 0) GroupDivider(52.dp)
                     val status = ProgressRules.status(l, records)
                     val days = records[l.id]?.passDays?.size ?: 0
                     GroupRow(
-                        title = "${l.id}  ${l.title}",
+                        title = l.title,
                         subtitle = when (status) {
-                            LessonStatus.PASSED -> tr("ผ่านแล้ว", "Passed", "合格")
+                            LessonStatus.PASSED -> null
                             LessonStatus.LOCKED -> tr("ต้องผ่าน ${l.prerequisites.joinToString()} ก่อน", "Pass ${l.prerequisites.joinToString()} first", "先に${l.prerequisites.joinToString()}に合格")
                             else -> if (days > 0) tr("ผ่านเกณฑ์ $days/${l.pass.days} วัน", "Criteria met $days/${l.pass.days} days", "基準達成 $days/${l.pass.days}日") else l.goal
                         },
                         onClick = { app.nav.open(Screen.Lesson(l.id)) },
                         leading = { StepMark(status == LessonStatus.PASSED, l.id == current?.id) },
+                        trailing = if (status == LessonStatus.PASSED) ({ PassPill() }) else null,
                         titleColor = if (status == LessonStatus.LOCKED) Tokens.Palette.InkMuted else Tokens.Palette.Ink,
+                        background = if (status == LessonStatus.LOCKED) Tokens.Palette.Locked else null,
                     )
                 }
             }

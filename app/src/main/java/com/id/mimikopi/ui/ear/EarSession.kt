@@ -469,7 +469,7 @@ class EarSessionViewModel(app: Application, args: SavedStateHandle) : AndroidVie
                 val status = SkillBook.status(level.skill, p.checks.value, LocalDate.now())
                 summary = summary.copy(
                     passed = verdict.passed,
-                    verdict = listOf(if (verdict.passed) tr("ผ่านระดับ ${level.level}: ${level.canDo}", "Passed: ${level.canDo}", "合格：${level.canDo}") else tr("ยังไม่ผ่านระดับ ${level.level}", "Not passed yet", "まだ不合格")) + verdict.lines +
+                    verdict = listOf(if (verdict.passed) tr("ผ่านแล้ว: ${level.canDo}", "Passed: ${level.canDo}", "合格：${level.canDo}") else tr("ยังไม่ผ่าน", "Not passed yet", "まだ不合格")) + verdict.lines +
                         (if (verdict.passed) tr("ระดับหูตอนนี้ ${status.level} จาก ${status.maxLevel}", "Ear level now ${status.level} of ${status.maxLevel}", "現在の耳のレベル ${status.maxLevel}中${status.level}")
                         else if (status.lockedToday) tr("ลองครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น", "Both tries used today; keep practising and try another day", "今日の2回を使いました。練習して別の日に") else tr("ยังลองได้อีกครั้งวันนี้", "One more try today", "今日あと1回挑戦できます")),
                 )

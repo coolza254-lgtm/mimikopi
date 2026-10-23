@@ -117,7 +117,7 @@ private fun Hero(ui: SkillUi, open: (TodayItem) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         SmallCaps(kindLabel(next.kind))
         Box(Modifier.weight(1f).height(1.dp).background(Tokens.Palette.Line))
-        if (row != null) SmallCaps(stringResource(R.string.ladder_stage, row.lesson.stage))
+        if (row != null) SmallCaps(com.id.mimikopi.core.i18n.Stages.name(row.lesson.stage))
     }
     if (row != null) Text(
         row.lesson.id, fontFamily = Tokens.Fonts.mono, fontWeight = FontWeight.Light, fontSize = 96.sp, lineHeight = 100.sp,
@@ -209,7 +209,7 @@ private fun Ladder(ui: SkillUi, skill: Skill, onOpenStep: (String) -> Unit, onOp
         if (row.lesson.stage != lastStage) {
             lastStage = row.lesson.stage
             Spacer(Modifier.height(20.dp))
-            SmallCaps(stringResource(R.string.ladder_stage, row.lesson.stage))
+            SmallCaps(com.id.mimikopi.core.i18n.Stages.name(row.lesson.stage))
             Spacer(Modifier.height(4.dp))
             Hairline()
         }
@@ -223,18 +223,17 @@ private fun Ladder(ui: SkillUi, skill: Skill, onOpenStep: (String) -> Unit, onOp
             else -> R.string.ladder_open_step
         }
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 52.dp)
-                .clickable(enabled = !locked) { onOpenStep(row.lesson.id) },
+            Modifier.fillMaxWidth().then(if (locked) Modifier.background(Tokens.Palette.Locked) else Modifier).heightIn(min = 52.dp)
+                .clickable(enabled = !locked) { onOpenStep(row.lesson.id) }.padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(row.lesson.id, fontFamily = Tokens.Fonts.mono, fontSize = 13.sp, color = if (locked) Tokens.Palette.Dim else Tokens.Palette.InkMuted,
-                modifier = Modifier.width(40.dp))
             Text(row.lesson.title, style = MaterialTheme.typography.bodyMedium, maxLines = 2, modifier = Modifier.weight(1f).padding(vertical = 6.dp),
                 fontWeight = if (row.current) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (locked) Tokens.Palette.Dim else Tokens.Palette.Ink)
-            Text(stringResource(label), style = MaterialTheme.typography.labelSmall,
-                color = if (row.current || passed) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
+            if (passed) com.id.mimikopi.ui.components.PassPill(stringResource(label))
+            else Text(stringResource(label), style = MaterialTheme.typography.labelSmall,
+                color = if (row.current) Tokens.Palette.Ink else Tokens.Palette.InkMuted)
         }
         Hairline()
     }

@@ -38,5 +38,7 @@ class ContentL10nTest {
             assertEquals("鍵盤の地図：C、F、G", ja.title)
         } finally { L10n.lang = Lang.TH }
         assertEquals(th, Lesson.parse(f))
+        // Thai shows lesson titles without level numbers.
+        contentDir().resolve("lessons").listFiles()!!.forEach { assertTrue(!Regex(" L\\d").containsMatchIn(Lesson.parse(it.readText()).title), it.name) }
     }
 }

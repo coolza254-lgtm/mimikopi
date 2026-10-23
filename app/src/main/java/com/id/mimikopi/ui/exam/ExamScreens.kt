@@ -265,7 +265,7 @@ private fun Requirements(grade: Grade, chosen: List<String>, vm: ExamViewModel, 
     GroupHeader(tr("อ่านโน้ตใหม่", "Sight-reading", "初見"))
     Group {
         val hands = when (Exams.sightHand(grade)) { "LEFT" -> tr("มือซ้าย", "Left hand", "左手"); "BOTH" -> tr("สองมือ", "Both hands", "両手"); else -> tr("มือขวา", "Right hand", "右手") }
-        GroupRow(tr("บทใหม่ระดับ L${grade.sightLevel} · $hands · ♩ = ${grade.sightBpm}", "New piece · $hands · ♩ = ${grade.sightBpm}", "新しい曲 · $hands · ♩ = ${grade.sightBpm}"), subtitle = tr("ดูโน้ต 30 วินาทีแล้วเริ่มเล่นทันที เล่นครั้งเดียว", "Look for 30 seconds, then play straight away, once", "30秒見てすぐに弾く、1回だけ"),
+        GroupRow(tr("บทใหม่ · $hands · ♩ = ${grade.sightBpm}", "New piece · $hands · ♩ = ${grade.sightBpm}", "新しい曲 · $hands · ♩ = ${grade.sightBpm}"), subtitle = tr("ดูโน้ต 30 วินาทีแล้วเริ่มเล่นทันที เล่นครั้งเดียว", "Look for 30 seconds, then play straight away, once", "30秒見てすぐに弾く、1回だけ"),
             value = tr("ฝึก", "Practise", "練習"), onClick = { onOpen(if (grade.sightLevel <= 5) Open.Sight(grade.sightLevel) else Open.Skill(SkillId.SIGHT)) })
     }
 
@@ -303,7 +303,7 @@ private fun partLine(part: ExamPart, s: ExamSitting, grade: Grade, vm: ExamViewM
     ExamPart.PIECE_2 -> vm.pieceTitle(s.pieces[1])
     ExamPart.POP -> Exams.pop(grade).title
     ExamPart.SCALES -> tr("${grade.ask} ข้อต่อกัน ♩ = ${grade.scaleBpm}", "${grade.ask} in a row ♩ = ${grade.scaleBpm}", "${grade.ask}個続けて ♩ = ${grade.scaleBpm}")
-    ExamPart.SIGHT -> tr("ระดับ L${grade.sightLevel} · ดูโน้ต 30 วินาที", "Look at the music for 30 seconds", "楽譜を30秒見る")
+    ExamPart.SIGHT -> tr("ดูโน้ต 30 วินาที", "Look at the music for 30 seconds", "楽譜を30秒見る")
     ExamPart.AURAL -> tr("${grade.aural.count} ข้อ ตอบครั้งเดียว", "${grade.aural.count} questions, answer once", "${grade.aural.count}問、回答は1回")
 }
 

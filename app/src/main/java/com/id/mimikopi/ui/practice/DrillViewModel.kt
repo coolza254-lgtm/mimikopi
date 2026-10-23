@@ -847,7 +847,7 @@ class DrillViewModel(app: Application, args: SavedStateHandle) : AndroidViewMode
             else if (status.lockedToday) tr("ลองระดับนี้ครบ 2 ครั้งของวันนี้แล้ว ฝึกต่อแล้วลองใหม่วันอื่น", "You've used both tries for this level today; keep practising and try another day", "このレベルは今日2回挑戦しました。練習して別の日に")
             else tr("ยังลองได้อีกครั้งวันนี้ หรือฝึกก่อนแล้วค่อยลอง", "One more try today, or practise first and then try", "今日あと1回挑戦できます。先に練習してからでも")
             _ui.value = DrillUi.Result(
-                if (passed) tr("ผ่านระดับ ${level.level}: ${level.canDo}", "Passed: ${level.canDo}", "合格：${level.canDo}") else tr("ยังไม่ผ่านระดับ ${level.level}", "Not passed yet", "まだ不合格"),
+                if (passed) tr("ผ่านแล้ว: ${level.canDo}", "Passed: ${level.canDo}", "合格：${level.canDo}") else tr("ยังไม่ผ่าน", "Not passed yet", "まだ不合格"),
                 passed, false, lines,
             )
         }

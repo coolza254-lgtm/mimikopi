@@ -16,14 +16,14 @@ import java.time.temporal.ChronoUnit
  * level fails twice in a row (the user asked for an honest picture: "ไม่อวย").
  */
 enum class SkillId(private val names: Array<String>, private val abouts: Array<String>) {
-    KEYS(arrayOf("หาคีย์บนคีย์บอร์ด", "Finding keys", "鍵盤の位置"), arrayOf("รู้ว่าคีย์แต่ละตัวอยู่ตรงไหนโดยไม่ต้องนับ", "Know where each key is without counting", "数えずにどの鍵盤か分かる")),
-    NOTES(arrayOf("อ่านโน้ต", "Note reading", "読譜"), arrayOf("ดูโน้ตบนบรรทัดแล้วรู้ทันทีว่าเป็นตัวไหน", "See a note on the staff and know it at once", "五線の音符を見てすぐ分かる")),
-    RHYTHM(arrayOf("จังหวะ", "Rhythm", "リズム"), arrayOf("กดตรงจังหวะตามที่เขียนไว้ ตั้งแต่ตัวดำจนถึงซิงโคเพชัน", "Play in time as written, from quarter notes to syncopation", "四分音符からシンコペーションまで、書かれた通りのリズムで")),
-    SIGHT(arrayOf("อ่านโน้ตใหม่", "Sight-reading", "初見"), arrayOf("เล่นโน้ตที่ไม่เคยเห็นได้ครั้งแรก ตามจังหวะ", "Play music you have never seen, first time, in time", "初めて見る楽譜をその場でリズム通りに")),
-    TECH(arrayOf("นิ้วและสเกล", "Fingers and scales", "指とスケール"), arrayOf("นิ้วเดินสม่ำเสมอ สเกลมือเดียวและสองมือ", "Even fingers, scales hands separately and together", "均等な指づかい、片手と両手のスケール")),
-    EAR(arrayOf("หู", "Ear", "耳"), arrayOf("ฟังแล้วบอกโน้ต ทำนอง คอร์ด และทางเดินคอร์ดได้ เพื่อแกะเพลงเอง", "Hear notes, melodies, chords and progressions, to play songs by ear", "音・メロディ・コード・進行を聞き取り、耳コピできる")),
-    CHORDS(arrayOf("คอร์ด", "Chords", "コード"), arrayOf("เห็นชื่อคอร์ดแล้วกดได้ และเปลี่ยนคอร์ดได้ทัน", "See a chord name and play it, change chords in time", "コード名を見て押さえ、遅れずに切り替える")),
-    SOLO(arrayOf("เล่นเดี่ยวสองมือ", "Two-hand solo", "両手ソロ"), arrayOf("ทำนองมือขวากับรูปแบบประกอบมือซ้าย เล่นคนเดียวแบบ piano solo", "Right-hand melody over a left-hand pattern, played alone as a piano solo", "右手メロディと左手伴奏をひとりで弾くピアノソロ"));
+    KEYS(arrayOf(tr("หาคีย์บนคีย์บอร์ด", "Finding keys", "鍵盤を探す"), "Finding keys", "鍵盤の位置"), arrayOf(tr("รู้ว่าคีย์แต่ละตัวอยู่ตรงไหนโดยไม่ต้องนับ", "Know where each key is without counting", "数えずにどの鍵盤がどこかわかる"), "Know where each key is without counting", "数えずにどの鍵盤か分かる")),
+    NOTES(arrayOf(tr("อ่านโน้ต", "Note reading", "読譜"), "Note reading", "読譜"), arrayOf(tr("ดูโน้ตบนบรรทัดแล้วรู้ทันทีว่าเป็นตัวไหน", "See a note on the staff and know it at once", "五線の音符を見てすぐにわかる"), "See a note on the staff and know it at once", "五線の音符を見てすぐ分かる")),
+    RHYTHM(arrayOf(tr("จังหวะ", "Rhythm", "リズム"), "Rhythm", "リズム"), arrayOf(tr("กดตรงจังหวะตามที่เขียนไว้ ตั้งแต่ตัวดำจนถึงซิงโคเพชัน", "Play in time as written, from crotchets to syncopation", "四分音符からシンコペーションまで、書かれたリズムどおりに押す"), "Play in time as written, from quarter notes to syncopation", "四分音符からシンコペーションまで、書かれた通りのリズムで")),
+    SIGHT(arrayOf(tr("อ่านโน้ตใหม่", "Sight-reading", "初見"), "Sight-reading", "初見"), arrayOf(tr("เล่นโน้ตที่ไม่เคยเห็นได้ครั้งแรก ตามจังหวะ", "Play music you've never seen the first time, in time", "初めての楽譜を初見でリズムどおりに弾く"), "Play music you have never seen, first time, in time", "初めて見る楽譜をその場でリズム通りに")),
+    TECH(arrayOf(tr("นิ้วและสเกล", "Fingers and scales", "指とスケール"), "Fingers and scales", "指とスケール"), arrayOf(tr("นิ้วเดินสม่ำเสมอ สเกลมือเดียวและสองมือ", "Even fingers, scales in one hand and two", "均等な指の動き、片手と両手のスケール"), "Even fingers, scales hands separately and together", "均等な指づかい、片手と両手のスケール")),
+    EAR(arrayOf(tr("หู", "Ear", "耳"), "Ear", "耳"), arrayOf(tr("ฟังแล้วบอกโน้ต ทำนอง คอร์ด และทางเดินคอร์ดได้ เพื่อแกะเพลงเอง", "Hear and name notes, melodies, chords and progressions, to work out songs yourself", "聞いて音、メロディ、コード、コード進行がわかる。自分で耳コピするために"), "Hear notes, melodies, chords and progressions, to play songs by ear", "音・メロディ・コード・進行を聞き取り、耳コピできる")),
+    CHORDS(arrayOf(tr("คอร์ด", "Chords", "コード"), "Chords", "コード"), arrayOf(tr("เห็นชื่อคอร์ดแล้วกดได้ และเปลี่ยนคอร์ดได้ทัน", "Press a chord when you see its name, and change in time", "コード名を見て押し、時間内にチェンジできる"), "See a chord name and play it, change chords in time", "コード名を見て押さえ、遅れずに切り替える")),
+    SOLO(arrayOf(tr("เล่นเดี่ยวสองมือ", "Piano solo", "ピアノソロ"), "Two-hand solo", "両手ソロ"), arrayOf(tr("ทำนองมือขวากับรูปแบบประกอบมือซ้าย เล่นคนเดียวแบบ piano solo", "Right-hand melody with a left-hand accompaniment pattern, playing alone as a piano solo", "右手のメロディと左手の伴奏パターンで、一人でピアノソロを弾く"), "Right-hand melody over a left-hand pattern, played alone as a piano solo", "右手メロディと左手伴奏をひとりで弾くピアノソロ"));
 
     val title: String get() = tr(names[0], names[1], names[2])
     val about: String get() = tr(abouts[0], abouts[1], abouts[2])

@@ -1,12 +1,13 @@
 package com.id.mimikopi.core.practice
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.lesson.Drill
 import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.core.music.SpelledPitch
 
 /** Note-reading practice pools (shared by the phone and the computer). Small, explicit pools of exact pitches. */
-enum class ReadingClef(val title: String) { TREBLE("กุญแจซอล"), BASS("กุญแจฟา"), BOTH("สลับซอล / ฟา") }
-enum class ReadingRange(val title: String) { FIVE("ห้าโน้ต"), OCTAVE("หนึ่งอ็อกเทฟ"), STAFF("ช่วงกว้าง") }
+enum class ReadingClef(val title: String) { TREBLE(tr("กุญแจซอล", "Treble clef", "ト音記号")), BASS(tr("กุญแจฟา", "Bass clef", "ヘ音記号")), BOTH(tr("สลับซอล / ฟา", "Treble / bass mixed", "ト音/ヘ音を交互")) }
+enum class ReadingRange(val title: String) { FIVE(tr("ห้าโน้ต", "Five notes", "5音")), OCTAVE(tr("หนึ่งอ็อกเทฟ", "One octave", "1オクターブ")), STAFF(tr("ช่วงกว้าง", "Wide range", "広い音域")) }
 
 data class ReadingPractice(
     val clef: ReadingClef = ReadingClef.TREBLE,
@@ -32,6 +33,6 @@ data class ReadingPractice(
                 }
             }
         }
-        return Drill(ExerciseType.E_NOTEID, "อ่านโน้ตทีละตัว", items = items.coerceIn(10, 30), pool = pool)
+        return Drill(ExerciseType.E_NOTEID, tr("อ่านโน้ตทีละตัว", "Read notes one by one", "1音ずつ読む"), items = items.coerceIn(10, 30), pool = pool)
     }
 }

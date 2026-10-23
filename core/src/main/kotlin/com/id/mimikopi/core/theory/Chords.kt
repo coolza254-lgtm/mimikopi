@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.theory
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.music.Letter
 import com.id.mimikopi.core.music.SpelledPitch
 
@@ -89,10 +90,10 @@ object ChordQualities {
 
     /** Thai names for the lesson UI. */
     val NAMES = mapOf(
-        "" to "เมเจอร์", "m" to "ไมเนอร์", "dim" to "ดิมินิช", "aug" to "ออกเมนเต็ด", "sus2" to "ซัส 2", "sus4" to "ซัส 4",
-        "6" to "ซิกซ์", "m6" to "ไมเนอร์ซิกซ์", "7" to "โดมิแนนท์ 7", "maj7" to "เมเจอร์ 7", "m7" to "ไมเนอร์ 7", "m7b5" to "ฮาล์ฟดิมินิช (m7♭5)",
-        "dim7" to "ดิมินิช 7", "7sus4" to "7 ซัส 4", "mM7" to "ไมเนอร์เมเจอร์ 7", "aug7" to "ออกเมนเต็ด 7", "add9" to "แอด 9", "madd9" to "ไมเนอร์แอด 9",
-        "9" to "ไนน์", "maj9" to "เมเจอร์ 9", "m9" to "ไมเนอร์ 9", "7b9" to "7♭9", "11" to "อีเลฟเวนท์", "13" to "เทอร์ทีนท์",
+        "" to tr("เมเจอร์", "major", "メジャー"), "m" to tr("ไมเนอร์", "minor", "マイナー"), "dim" to tr("ดิมินิช", "diminished", "ディミニッシュ"), "aug" to tr("ออกเมนเต็ด", "augmented", "オーギュメント"), "sus2" to tr("ซัส 2", "sus 2", "サスツー"), "sus4" to tr("ซัส 4", "sus 4", "サスフォー"),
+        "6" to tr("ซิกซ์", "sixth", "シックス"), "m6" to tr("ไมเนอร์ซิกซ์", "minor sixth", "マイナーシックス"), "7" to tr("โดมิแนนท์ 7", "dominant 7", "ドミナントセブンス"), "maj7" to tr("เมเจอร์ 7", "major 7", "メジャーセブンス"), "m7" to tr("ไมเนอร์ 7", "minor 7", "マイナーセブンス"), "m7b5" to tr("ฮาล์ฟดิมินิช (m7♭5)", "half-diminished (m7♭5)", "ハーフディミニッシュ（m7♭5）"),
+        "dim7" to tr("ดิมินิช 7", "diminished 7", "ディミニッシュセブンス"), "7sus4" to tr("7 ซัส 4", "7 sus 4", "セブンスサスフォー"), "mM7" to tr("ไมเนอร์เมเจอร์ 7", "minor major 7", "マイナーメジャーセブンス"), "aug7" to tr("ออกเมนเต็ด 7", "augmented 7", "オーギュメントセブンス"), "add9" to tr("แอด 9", "add 9", "アドナインス"), "madd9" to tr("ไมเนอร์แอด 9", "minor add 9", "マイナーアドナインス"),
+        "9" to tr("ไนน์", "ninth", "ナインス"), "maj9" to tr("เมเจอร์ 9", "major 9", "メジャーナインス"), "m9" to tr("ไมเนอร์ 9", "minor 9", "マイナーナインス"), "7b9" to "7♭9", "11" to tr("อีเลฟเวนท์", "eleventh", "イレブンス"), "13" to tr("เทอร์ทีนท์", "thirteenth", "サーティーンス"),
     )
 }
 

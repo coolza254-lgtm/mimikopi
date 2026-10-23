@@ -1,12 +1,13 @@
 package com.id.mimikopi.core.recall
 
+import com.id.mimikopi.core.i18n.tr
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.net.URI
 import java.time.LocalDate
 
-@Serializable enum class RecallHand(val title: String) { RIGHT("มือขวา"), LEFT("มือซ้าย"), BOTH("สองมือ") }
-@Serializable enum class RecallOutcome(val title: String) { INDEPENDENT("เล่นเองได้"), HELPED("ใช้ตัวช่วย"), STUCK("ยังติด") }
+@Serializable enum class RecallHand(val title: String) { RIGHT(tr("มือขวา", "Right hand", "右手")), LEFT(tr("มือซ้าย", "Left hand", "左手")), BOTH(tr("สองมือ", "Both hands", "両手")) }
+@Serializable enum class RecallOutcome(val title: String) { INDEPENDENT(tr("เล่นเองได้", "Played it myself", "自分で弾けた")), HELPED(tr("ใช้ตัวช่วย", "With help", "補助あり")), STUCK(tr("ยังติด", "Still stuck", "まだつまずく")) }
 @Serializable data class RecallAttempt(
     val id: String, val day: String, val hand: RecallHand, val outcome: RecallOutcome,
     val revision: Int, val note: String = "", val presses: Int = 0, val externalPiano: Boolean = false, val hintUsed: Boolean = false, val unaidedConfirmed: Boolean = false, val beforeViewing: Boolean = false,
@@ -60,35 +61,35 @@ object PrivateRecall {
     const val MAX_CHORDS = 64
     val json = Json { ignoreUnknownKeys = false; encodeDefaults = true }
     fun validate(song: PrivateSong) {
-        require(song.id.matches(Regex("[A-Za-z0-9-]{1,80}"))) { "รหัสเพลงไม่ถูกต้อง" }
-        require(song.title.isNotBlank() && song.title.length <= 120) { "ตั้งชื่อเพลงไม่เกิน 120 ตัวอักษร" }
-        require(song.sourceUrl.length <= 300 && VideoReference.canonical(song.sourceUrl) != null) { "ใช้ลิงก์วิดีโอ YouTube แบบ https หรือเว้นว่าง" }
-        require(song.phrases.size <= 100 && song.phrases.map { it.id }.distinct().size == song.phrases.size) { "ช่วงเพลงมากเกินไปหรือรหัสซ้ำ" }
+        require(song.id.matches(Regex("[A-Za-z0-9-]{1,80}"))) { tr("รหัสเพลงไม่ถูกต้อง", "Invalid song code", "曲コードが正しくありません") }
+        require(song.title.isNotBlank() && song.title.length <= 120) { tr("ตั้งชื่อเพลงไม่เกิน 120 ตัวอักษร", "Song name up to 120 characters", "曲名は120文字まで") }
+        require(song.sourceUrl.length <= 300 && VideoReference.canonical(song.sourceUrl) != null) { tr("ใช้ลิงก์วิดีโอ YouTube แบบ https หรือเว้นว่าง", "Use an https YouTube video link, or leave it empty", "httpsのYouTube動画リンクを使うか空欄に") }
+        require(song.phrases.size <= 100 && song.phrases.map { it.id }.distinct().size == song.phrases.size) { tr("ช่วงเพลงมากเกินไปหรือรหัสซ้ำ", "Too many sections or a duplicate code", "区間が多すぎるかコードが重複しています") }
         for (p in song.phrases) {
-            require(p.id.matches(Regex("[A-Za-z0-9-]{1,80}")) && p.title.isNotBlank() && p.title.length <= 120) { "ชื่อหรือรหัสช่วงไม่ถูกต้อง" }
-            require(p.startSeconds in 0..86_399 && p.endSeconds in (p.startSeconds + 1)..86_400) { "เวลาจบต้องมากกว่าเวลาเริ่ม" }
-            require(p.cue.length <= 500 && p.revision > 0 && p.attempts.size <= KEEP_ATTEMPTS) { "ข้อมูลช่วงยาวเกินกำหนด" }
-            require(p.chords.size <= MAX_CHORDS && p.chords.all { it.isNotBlank() && it.length <= 16 }) { "คอร์ดต่อช่วงไม่เกิน $MAX_CHORDS ตัว ตัวละไม่เกิน 16 ตัวอักษร" }
-            require(p.attempts.map { it.id }.distinct().size == p.attempts.size) { "รหัสผลฝึกซ้ำ" }
+            require(p.id.matches(Regex("[A-Za-z0-9-]{1,80}")) && p.title.isNotBlank() && p.title.length <= 120) { tr("ชื่อหรือรหัสช่วงไม่ถูกต้อง", "Invalid section name or code", "区間名かコードが正しくありません") }
+            require(p.startSeconds in 0..86_399 && p.endSeconds in (p.startSeconds + 1)..86_400) { tr("เวลาจบต้องมากกว่าเวลาเริ่ม", "End time must be after the start time", "終了時刻は開始時刻より後にしてください") }
+            require(p.cue.length <= 500 && p.revision > 0 && p.attempts.size <= KEEP_ATTEMPTS) { tr("ข้อมูลช่วงยาวเกินกำหนด", "Section data is too long", "区間のデータが長すぎます") }
+            require(p.chords.size <= MAX_CHORDS && p.chords.all { it.isNotBlank() && it.length <= 16 }) { tr("คอร์ดต่อช่วงไม่เกิน $MAX_CHORDS ตัว ตัวละไม่เกิน 16 ตัวอักษร", "At most $MAX_CHORDS chords per section, 16 characters each", "1区間のコードは${MAX_CHORDS}個まで、各16文字まで") }
+            require(p.attempts.map { it.id }.distinct().size == p.attempts.size) { tr("รหัสผลฝึกซ้ำ", "Duplicate practice result code", "練習結果コードが重複しています") }
             for ((key, days) in p.recallDays.entries + p.coldRecallDays.entries) {
                 require(key.matches(Regex("[1-9][0-9]*\\|(RIGHT|LEFT|BOTH)")) && days.size <= 20_000 && days.distinct().size == days.size)
                 require(days.all { runCatching { LocalDate.parse(it).year in 1970..2200 }.getOrDefault(false) })
             }
             require(p.lastDifficulty.all { (key, day) -> key.matches(Regex("[1-9][0-9]*\\|(RIGHT|LEFT|BOTH)")) && runCatching { LocalDate.parse(day).year in 1970..2200 }.getOrDefault(false) })
             for (a in p.attempts) {
-                require(a.id.matches(Regex("[A-Za-z0-9-]{1,80}")) && a.revision in 1..p.revision && a.note.length <= 300 && a.presses >= 0) { "ผลฝึกไม่ถูกต้อง" }
-                require(runCatching { LocalDate.parse(a.day).year in 1970..2200 }.getOrDefault(false)) { "วันที่ผลฝึกไม่ถูกต้อง" }
-                require(!a.beforeViewing || a.outcome == RecallOutcome.INDEPENDENT) { "การทวนก่อนดูต้องเป็นรอบเล่นเอง" }
-                require(a.outcome != RecallOutcome.INDEPENDENT || (!a.hintUsed && a.unaidedConfirmed)) { "ผลเล่นเองต้องยืนยันว่าไม่ใช้คำตอบ" }
-                require(a.presses > 0 || a.externalPiano) { "ผลฝึกต้องมีการเล่นหรือระบุว่าใช้เปียโนนอกแอป" }
+                require(a.id.matches(Regex("[A-Za-z0-9-]{1,80}")) && a.revision in 1..p.revision && a.note.length <= 300 && a.presses >= 0) { tr("ผลฝึกไม่ถูกต้อง", "Invalid practice result", "練習結果が正しくありません") }
+                require(runCatching { LocalDate.parse(a.day).year in 1970..2200 }.getOrDefault(false)) { tr("วันที่ผลฝึกไม่ถูกต้อง", "Invalid practice result date", "練習結果の日付が正しくありません") }
+                require(!a.beforeViewing || a.outcome == RecallOutcome.INDEPENDENT) { tr("การทวนก่อนดูต้องเป็นรอบเล่นเอง", "A recall before looking must be a round played on your own", "見る前の復習は自分で弾いた回である必要があります") }
+                require(a.outcome != RecallOutcome.INDEPENDENT || (!a.hintUsed && a.unaidedConfirmed)) { tr("ผลเล่นเองต้องยืนยันว่าไม่ใช้คำตอบ", "A played-alone result must confirm no answer was used", "自分で弾けた結果には答えを使っていない確認が必要です") }
+                require(a.presses > 0 || a.externalPiano) { tr("ผลฝึกต้องมีการเล่นหรือระบุว่าใช้เปียโนนอกแอป", "A practice result needs playing, or saying a piano outside the app was used", "練習結果には演奏か、アプリ外のピアノを使った指定が必要です") }
             }
         }
     }
     fun export(song: PrivateSong): String { validate(song); return json.encodeToString(PrivateSongFile.serializer(), PrivateSongFile(song = song)) }
     fun import(text: String): PrivateSong {
-        require(text.toByteArray(Charsets.UTF_8).size <= MAX_BYTES) { "ไฟล์ใหญ่เกิน 4 MB" }
+        require(text.toByteArray(Charsets.UTF_8).size <= MAX_BYTES) { tr("ไฟล์ใหญ่เกิน 4 MB", "File is larger than 4 MB", "ファイルが4 MBを超えています") }
         val file = json.decodeFromString(PrivateSongFile.serializer(), text)
-        require(file.format == "mimikopi-private-recall" && file.version == 1) { "ไฟล์ไม่ใช่เพลงส่วนตัวรุ่นที่รองรับ" }
+        require(file.format == "mimikopi-private-recall" && file.version == 1) { tr("ไฟล์ไม่ใช่เพลงส่วนตัวรุ่นที่รองรับ", "Not a supported private song file", "対応している個人曲ファイルではありません") }
         validate(file.song)
         return file.song
     }

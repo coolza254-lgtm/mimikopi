@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.interchange
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.editor.ScoreMeta
 import com.id.mimikopi.core.editor.TimedNote
 import com.id.mimikopi.core.editor.Timeline
@@ -152,13 +153,13 @@ object MusicXml {
             f.isExpandEntityReferences = false
             f.isNamespaceAware = false
             f.newDocumentBuilder().parse(ByteArrayInputStream(xml))
-        }.getOrElse { throw ImportException("อ่านไฟล์ XML ไม่ได้ (${it.message})") }
+        }.getOrElse { throw ImportException(tr("อ่านไฟล์ XML ไม่ได้ (${it.message})", "Couldn't read the XML file (${it.message})", "XMLファイルを読めません（${it.message}）")) }
         val root = doc.documentElement
-        if (root.tagName == "score-timewise") throw ImportException("ยังไม่รองรับ MusicXML แบบ timewise (ส่งออกแบบ partwise จากโปรแกรมเดิม)")
-        if (root.tagName != "score-partwise") throw ImportException("ไม่ใช่ไฟล์ MusicXML")
-        val title = root.child("work")?.child("work-title")?.text() ?: root.child("movement-title")?.text() ?: "เพลงที่นำเข้า"
+        if (root.tagName == "score-timewise") throw ImportException(tr("ยังไม่รองรับ MusicXML แบบ timewise (ส่งออกแบบ partwise จากโปรแกรมเดิม)", "Timewise MusicXML isn't supported yet (export as partwise from the original program)", "timewise形式のMusicXMLにはまだ対応していません（元のソフトからpartwise形式でエクスポートしてください）"))
+        if (root.tagName != "score-partwise") throw ImportException(tr("ไม่ใช่ไฟล์ MusicXML", "Not a MusicXML file", "MusicXMLファイルではありません"))
+        val title = root.child("work")?.child("work-title")?.text() ?: root.child("movement-title")?.text() ?: tr("เพลงที่นำเข้า", "Imported piece", "インポートした曲")
         val composer = root.child("identification")?.children("creator")?.firstOrNull { it.getAttribute("type") == "composer" }?.text() ?: ""
-        val part = root.children("part").firstOrNull() ?: throw ImportException("ไม่มีแนวเพลง (part) ในไฟล์")
+        val part = root.children("part").firstOrNull() ?: throw ImportException(tr("ไม่มีแนวเพลง (part) ในไฟล์", "No parts in the file", "ファイルにパートがありません"))
 
         var divisions = 1
         var key: Int? = null
@@ -178,7 +179,7 @@ object MusicXml {
         var warnings = 0
 
         fun to16(d: Int): Int {
-            if ((d * 4) % divisions != 0) throw ImportException("มีโน้ตที่ละเอียดกว่าเขบ็ตสองชั้นหรือเป็นไตรเพลต ซึ่งยังไม่รองรับ")
+            if ((d * 4) % divisions != 0) throw ImportException(tr("มีโน้ตที่ละเอียดกว่าเขบ็ตสองชั้นหรือเป็นไตรเพลต ซึ่งยังไม่รองรับ", "Has notes finer than semiquavers or tuplets, which aren't supported yet", "16分音符より細かい音符か連符があり、まだ対応していません"))
             return d * 4 / divisions
         }
 
@@ -197,7 +198,7 @@ object MusicXml {
                             val type = t.child("beat-type")?.text()?.toIntOrNull()
                             if (beats != null && type != null) {
                                 val ts = listOf(beats, type)
-                                if (time == null) time = ts else if (time != ts) throw ImportException("เพลงนี้เปลี่ยนจังหวะ (time signature) กลางเพลง ซึ่งยังไม่รองรับ")
+                                if (time == null) time = ts else if (time != ts) throw ImportException(tr("เพลงนี้เปลี่ยนจังหวะ (time signature) กลางเพลง ซึ่งยังไม่รองรับ", "The time signature changes mid-piece, which isn't supported yet", "曲の途中で拍子が変わっており、まだ対応していません"))
                             }
                         }
                         el.child("staves")?.text()?.toIntOrNull()?.let { staves = it }
@@ -247,7 +248,7 @@ object MusicXml {
                             val step = p.child("step")?.text() ?: return@let null
                             val alter = p.child("alter")?.text()?.toDoubleOrNull()?.toInt() ?: 0
                             val octave = p.child("octave")?.text()?.toIntOrNull() ?: return@let null
-                            if (alter !in -2..2) throw ImportException("มีเครื่องหมายแปลงเสียงที่ไม่รองรับ")
+                            if (alter !in -2..2) throw ImportException(tr("มีเครื่องหมายแปลงเสียงที่ไม่รองรับ", "Has accidentals that aren't supported", "対応していない臨時記号があります"))
                             SpelledPitch(Letter.valueOf(step), alter, octave)
                         }
                         if (el.child("unpitched") != null) { warnings++; continue }
@@ -262,11 +263,11 @@ object MusicXml {
             // A pickup (anacrusis) shorter than the bar is aligned to the end of the first measure.
             val shift = if (mi == 0 && measure.getAttribute("implicit") == "yes" && content16 < measureLen16) measureLen16 - content16 else 0
             for (r in measureRaws) raws += r.copy(start = measureStart16 + shift + to16(r.start), dur = to16(r.dur))
-            if (content16 > measureLen16) throw ImportException("ห้องที่ ${mi + 1} มีโน้ตเกินจังหวะ")
+            if (content16 > measureLen16) throw ImportException(tr("ห้องที่ ${mi + 1} มีโน้ตเกินจังหวะ", "Bar ${mi + 1} has more notes than its time allows", "${mi + 1}小節目の音符が拍子より多くなっています"))
             measureStart16 += measureLen16
         }
         val ts = time ?: listOf(4, 4)
-        if (ts[1] !in listOf(2, 4, 8)) throw ImportException("ยังไม่รองรับจังหวะ ${ts[0]}/${ts[1]}")
+        if (ts[1] !in listOf(2, 4, 8)) throw ImportException(tr("ยังไม่รองรับจังหวะ ${ts[0]}/${ts[1]}", "${ts[0]}/${ts[1]} time isn't supported yet", "${ts[0]}/${ts[1]}拍子にはまだ対応していません"))
         val handOf = { staff: Int ->
             when {
                 staves >= 2 -> if (staff == 1) Hand.RIGHT else Hand.LEFT
@@ -306,7 +307,7 @@ object MusicXml {
                 if (!e.isDirectory) {
                     val data = z.readBytes()
                     total += data.size
-                    if (total > 50_000_000) throw ImportException("ไฟล์ใหญ่เกินไป")
+                    if (total > 50_000_000) throw ImportException(tr("ไฟล์ใหญ่เกินไป", "File is too large", "ファイルが大きすぎます"))
                     entries[e.name] = data
                 }
                 e = z.nextEntry
@@ -315,7 +316,7 @@ object MusicXml {
         val container = entries["META-INF/container.xml"]?.toString(Charsets.UTF_8)
         val rootPath = container?.let { Regex("""full-path="([^"]+)"""").find(it)?.groupValues?.get(1) }
         return rootPath?.let { entries[it] } ?: entries.entries.firstOrNull { it.key.endsWith(".xml") || it.key.endsWith(".musicxml") }?.value
-            ?: throw ImportException("ไม่พบไฟล์เพลงในไฟล์ .mxl")
+            ?: throw ImportException(tr("ไม่พบไฟล์เพลงในไฟล์ .mxl", "No score found in the .mxl file", ".mxlファイルに楽譜が見つかりません"))
     }
 
     private fun Element.childElements(): List<Element> = (0 until childNodes.length).map { childNodes.item(it) }.filter { it.nodeType == Node.ELEMENT_NODE }.map { it as Element }

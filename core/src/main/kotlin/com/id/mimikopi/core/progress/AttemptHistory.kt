@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.progress
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.backup.AttemptRow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -40,18 +41,18 @@ object AttemptHistory {
     fun fraction(value: Double?): String? = value?.takeIf { it.isFinite() && it in 0.0..1.0 }?.let { "${(it * 100).roundToInt()}%" }
 
     fun handLabel(hand: String?): String = when (hand) {
-        "R", "RIGHT" -> "มือขวา"
-        "L", "LEFT" -> "มือซ้าย"
-        "RL", "BOTH", "RIGHT+LEFT", "LEFT+RIGHT" -> "สองมือ"
-        else -> "ไม่ได้ระบุมือ"
+        "R", "RIGHT" -> tr("มือขวา", "Right hand", "右手")
+        "L", "LEFT" -> tr("มือซ้าย", "Left hand", "左手")
+        "RL", "BOTH", "RIGHT+LEFT", "LEFT+RIGHT" -> tr("สองมือ", "Both hands", "両手")
+        else -> tr("ไม่ได้ระบุมือ", "Hand not set", "手の指定なし")
     }
 
     fun modeLabel(mode: String?): String = when (mode) {
-        "WAIT" -> "โหมดรอ · ไม่ตัดสินจังหวะ"
-        "TEMPO" -> "ตามจังหวะ"
-        "ANSWER" -> "ตอบคำถาม"
-        "PULSE" -> "เคาะจังหวะ"
-        "CHORD_CHANGE" -> "เปลี่ยนคอร์ด"
-        else -> "ประวัติเดิม"
+        "WAIT" -> tr("โหมดรอ · ไม่ตัดสินจังหวะ", "Wait mode · timing not judged", "待ちモード · リズムは判定しません")
+        "TEMPO" -> tr("ตามจังหวะ", "In time", "リズムに合わせて")
+        "ANSWER" -> tr("ตอบคำถาม", "Answering questions", "問題に答える")
+        "PULSE" -> tr("เคาะจังหวะ", "Tapping rhythm", "リズムタップ")
+        "CHORD_CHANGE" -> tr("เปลี่ยนคอร์ด", "Chord changes", "コードチェンジ")
+        else -> tr("ประวัติเดิม", "Older history", "以前の履歴")
     }
 }

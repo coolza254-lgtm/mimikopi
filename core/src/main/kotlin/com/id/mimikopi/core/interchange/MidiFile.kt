@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.interchange
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.editor.ScoreMeta
 import com.id.mimikopi.core.editor.TimedNote
 import com.id.mimikopi.core.editor.Timeline
@@ -114,14 +115,14 @@ object MidiFile {
     fun read(bytes: ByteArray, id: String): Timeline {
         val r = Reader(bytes)
         try {
-            if (r.tag() != "MThd") throw ImportException("ไม่ใช่ไฟล์ MIDI")
+            if (r.tag() != "MThd") throw ImportException(tr("ไม่ใช่ไฟล์ MIDI", "Not a MIDI file", "MIDIファイルではありません"))
             val headerLen = r.u32()
             val format = r.u16()
             val trackCount = r.u16()
             val division = r.u16()
             r.p += headerLen - 6
-            if (division and 0x8000 != 0) throw ImportException("ไฟล์ MIDI แบบ SMPTE ยังไม่รองรับ")
-            if (format == 2) throw ImportException("ไฟล์ MIDI แบบ format 2 ยังไม่รองรับ")
+            if (division and 0x8000 != 0) throw ImportException(tr("ไฟล์ MIDI แบบ SMPTE ยังไม่รองรับ", "SMPTE-timed MIDI files aren't supported yet", "SMPTE形式のMIDIファイルにはまだ対応していません"))
+            if (format == 2) throw ImportException(tr("ไฟล์ MIDI แบบ format 2 ยังไม่รองรับ", "Format 2 MIDI files aren't supported yet", "フォーマット2のMIDIファイルにはまだ対応していません"))
             val ppq = division
             val notes = mutableListOf<Note>()
             var tempo: Int? = null
@@ -168,7 +169,7 @@ object MidiFile {
                 }
                 r.p = end
             }
-            if (notes.isEmpty()) throw ImportException("ไม่พบโน้ตในไฟล์ MIDI")
+            if (notes.isEmpty()) throw ImportException(tr("ไม่พบโน้ตในไฟล์ MIDI", "No notes found in the MIDI file", "MIDIファイルに音符が見つかりません"))
             val ts = time?.takeIf { it[1] in listOf(2, 4, 8) && it[0] in 1..16 } ?: listOf(4, 4)
             val sixteenth = ppq / 4.0
             fun q(tick: Long) = Math.round(tick / sixteenth).toInt()
@@ -202,9 +203,9 @@ object MidiFile {
         } catch (e: ImportException) {
             throw e
         } catch (e: IndexOutOfBoundsException) {
-            throw ImportException("ไฟล์ MIDI ไม่สมบูรณ์")
+            throw ImportException(tr("ไฟล์ MIDI ไม่สมบูรณ์", "Incomplete MIDI file", "MIDIファイルが不完全です"))
         } catch (e: ArrayIndexOutOfBoundsException) {
-            throw ImportException("ไฟล์ MIDI ไม่สมบูรณ์")
+            throw ImportException(tr("ไฟล์ MIDI ไม่สมบูรณ์", "Incomplete MIDI file", "MIDIファイルが不完全です"))
         }
     }
 

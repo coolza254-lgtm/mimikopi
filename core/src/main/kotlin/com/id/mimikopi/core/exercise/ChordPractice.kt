@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.exercise
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.lesson.Drill
 import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.core.theory.ChordQualities
@@ -39,41 +40,41 @@ data class ChordPractice(
 
     /** The drill the existing runner plays. */
     fun drill(): Drill = when (mode) {
-        Mode.NAME -> Drill(ExerciseType.E_CHORD_BUILD, "ฝึกคอร์ด: ${summary()}", items = items, keys = safeKeys, qualities = qualities)
-        Mode.NUMERAL -> Drill(ExerciseType.E_CHORD_BUILD, "ฝึกคอร์ด: ${summary()}", items = items, keys = safeKeys, degrees = numerals)
-        Mode.CHANGE -> Drill(ExerciseType.E_CHORD_CHANGE, "ฝึกคอร์ด: ${summary()}", keys = safeKeys.take(1), progression = progression, seconds = seconds)
+        Mode.NAME -> Drill(ExerciseType.E_CHORD_BUILD, tr("ฝึกคอร์ด: ${summary()}", "Chord practice: ${summary()}", "コード練習：${summary()}"), items = items, keys = safeKeys, qualities = qualities)
+        Mode.NUMERAL -> Drill(ExerciseType.E_CHORD_BUILD, tr("ฝึกคอร์ด: ${summary()}", "Chord practice: ${summary()}", "コード練習：${summary()}"), items = items, keys = safeKeys, degrees = numerals)
+        Mode.CHANGE -> Drill(ExerciseType.E_CHORD_CHANGE, tr("ฝึกคอร์ด: ${summary()}", "Chord practice: ${summary()}", "コード練習：${summary()}"), keys = safeKeys.take(1), progression = progression, seconds = seconds)
     }
 
     /** One line saying what is practised ("เมเจอร์/ไมเนอร์ · คีย์ C, G"). */
     fun summary(): String {
-        val keyText = "คีย์ " + safeKeys.joinToString(", ") { Keys.name(it) }
+        val keyText = tr("คีย์ ", "Key ", "キー ") + safeKeys.joinToString(", ") { Keys.name(it) }
         return when (mode) {
             Mode.NAME -> GROUPS.filter { it.id in groups }.joinToString(" + ") { it.title }.ifEmpty { GROUPS.first().title } + " · " + keyText
             Mode.NUMERAL -> NUMERAL_SETS.filter { it.id in numeralSets }.joinToString(" + ") { it.title }.ifEmpty { NUMERAL_SETS.first().title } + " · " + keyText
             Mode.CHANGE -> {
                 val degrees = ChordDrills.progressionDegrees(progression).joinToString(" ")
-                "$progression ($degrees) · คีย์ ${Keys.name(safeKeys.first())} · $seconds วินาที"
+                tr("$progression ($degrees) · คีย์ ${Keys.name(safeKeys.first())} · $seconds วินาที", "$progression ($degrees) · key ${Keys.name(safeKeys.first())} · $seconds s", "$progression（$degrees） · キー ${Keys.name(safeKeys.first())} · ${seconds}秒")
             }
         }
     }
 
     companion object {
         val GROUPS = listOf(
-            Group("triads", "เมเจอร์/ไมเนอร์", listOf("", "m")),
-            Group("dimaug", "ดิม/ออก", listOf("dim", "aug")),
-            Group("sus", "ซัส 2/ซัส 4", listOf("sus2", "sus4")),
-            Group("sevenths", "คอร์ด 7 (7, maj7, m7)", listOf("7", "maj7", "m7")),
+            Group("triads", tr("เมเจอร์/ไมเนอร์", "Major/minor", "メジャー/マイナー"), listOf("", "m")),
+            Group("dimaug", tr("ดิม/ออก", "Dim/aug", "ディミニッシュ/オーギュメント"), listOf("dim", "aug")),
+            Group("sus", tr("ซัส 2/ซัส 4", "Sus2/sus4", "sus2/sus4"), listOf("sus2", "sus4")),
+            Group("sevenths", tr("คอร์ด 7 (7, maj7, m7)", "7th chords (7, maj7, m7)", "セブンスコード（7、maj7、m7）"), listOf("7", "maj7", "m7")),
             Group("moresevenths", "m7♭5, dim7", listOf("m7b5", "dim7")),
             Group("sixths", "6, m6", listOf("6", "m6")),
             Group("add9", "add9, madd9", listOf("add9", "madd9")),
         )
 
         val NUMERAL_SETS = listOf(
-            Group("diatonic", "คอร์ดในคีย์ (I–vii°)", listOf("I", "ii", "iii", "IV", "V", "vi", "vii")),
-            Group("primary", "คอร์ดหลัก (I IV V)", listOf("I", "IV", "V")),
-            Group("sevenths", "คอร์ด 7 ในคีย์", listOf("Imaj7", "ii7", "iii7", "IVmaj7", "V7", "vi7", "vii7")),
-            Group("secondary", "โดมิแนนท์รอง (V7/…)", listOf("V7/ii", "V7/iii", "V7/IV", "V7/V", "V7/vi")),
-            Group("borrowed", "คอร์ดยืม (♭III ♭VI ♭VII iv)", listOf("bIII", "bVI", "bVII", "iv")),
+            Group("diatonic", tr("คอร์ดในคีย์ (I–vii°)", "Chords in the key (I–vii°)", "キーの中のコード（I–vii°）"), listOf("I", "ii", "iii", "IV", "V", "vi", "vii")),
+            Group("primary", tr("คอร์ดหลัก (I IV V)", "Primary chords (I IV V)", "主要三和音（I IV V）"), listOf("I", "IV", "V")),
+            Group("sevenths", tr("คอร์ด 7 ในคีย์", "7th chords in the key", "キーの中のセブンスコード"), listOf("Imaj7", "ii7", "iii7", "IVmaj7", "V7", "vi7", "vii7")),
+            Group("secondary", tr("โดมิแนนท์รอง (V7/…)", "Secondary dominants (V7/…)", "副属和音（V7/…）"), listOf("V7/ii", "V7/iii", "V7/IV", "V7/V", "V7/vi")),
+            Group("borrowed", tr("คอร์ดยืม (♭III ♭VI ♭VII iv)", "Borrowed chords (♭III ♭VI ♭VII iv)", "借用和音（♭III ♭VI ♭VII iv）"), listOf("bIII", "bVI", "bVII", "iv")),
         )
 
         /** Keys offered, in the order they are usually learnt, then the rest. */

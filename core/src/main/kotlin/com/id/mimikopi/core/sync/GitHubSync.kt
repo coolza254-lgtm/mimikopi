@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.sync
 
+import com.id.mimikopi.core.i18n.tr
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -58,7 +59,7 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
         if (code == 404) {
             // No sync branch or no device has synced yet: tell those apart from a missing repo, which needs fixing.
             val (repoCode, _) = call("GET", "")
-            if (repoCode == 404) throw SyncFailure("ไม่พบ repo ${config.repo} หรือ token เข้าถึงไม่ได้ ตรวจชื่อ repo และสิทธิ์ Contents ของ token")
+            if (repoCode == 404) throw SyncFailure(tr("ไม่พบ repo ${config.repo} หรือ token เข้าถึงไม่ได้ ตรวจชื่อ repo และสิทธิ์ Contents ของ token", "Repo ${config.repo} not found or the token can't reach it; check the repo name and the token's Contents permission", "リポジトリ${config.repo}が見つからないか、トークンでアクセスできません。リポジトリ名とトークンのContents権限を確認してください"))
             // The first sync of all: make the branch now, so this device's file can be written to it.
             if (call("GET", "git/ref/heads/$BRANCH").first == 404) createBranch()
             return emptyMap()
@@ -71,7 +72,7 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
                 if (!name.endsWith(".json")) return@mapNotNull null
                 name.removeSuffix(".json") to (o["sha"]?.jsonPrimitive?.content ?: "")
             }.toMap()
-        }.getOrElse { throw SyncFailure("ข้อมูลจาก GitHub อ่านไม่ได้", it) }
+        }.getOrElse { throw SyncFailure(tr("ข้อมูลจาก GitHub อ่านไม่ได้", "Couldn't read the data from GitHub", "GitHubのデータを読めません"), it) }
     }
 
     override fun read(deviceId: String): String? {
@@ -111,10 +112,10 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
     private fun check(code: Int, body: String) {
         when {
             code in 200..299 -> Unit
-            code == 401 -> throw SyncFailure("token ใช้ไม่ได้หรือหมดอายุ สร้าง token ใหม่แล้วใส่อีกครั้ง")
-            code == 403 || code == 404 -> throw SyncFailure("token ไม่มีสิทธิ์เขียน ${config.repo} (ต้องการ Contents: Read and write)")
-            code == 409 || code == 422 -> throw SyncFailure("มีอีกเครื่องซิงค์พร้อมกัน ลองใหม่อีกครั้ง")
-            else -> throw SyncFailure("GitHub ตอบ $code: ${body.take(120)}")
+            code == 401 -> throw SyncFailure(tr("token ใช้ไม่ได้หรือหมดอายุ สร้าง token ใหม่แล้วใส่อีกครั้ง", "The token is invalid or expired; make a new one and enter it again", "トークンが無効か期限切れです。新しく作って入力し直してください"))
+            code == 403 || code == 404 -> throw SyncFailure(tr("token ไม่มีสิทธิ์เขียน ${config.repo} (ต้องการ Contents: Read and write)", "The token can't write to ${config.repo} (needs Contents: Read and write)", "トークンに${config.repo}への書き込み権限がありません（Contents: Read and writeが必要）"))
+            code == 409 || code == 422 -> throw SyncFailure(tr("มีอีกเครื่องซิงค์พร้อมกัน ลองใหม่อีกครั้ง", "Another device is syncing at the same time; try again", "別の端末が同時に同期しています。もう一度お試しください"))
+            else -> throw SyncFailure(tr("GitHub ตอบ $code: ${body.take(120)}", "GitHub replied $code: ${body.take(120)}", "GitHubの応答 $code：${body.take(120)}"))
         }
     }
 
@@ -123,7 +124,7 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
         val c = try {
             URI(url).toURL().openConnection() as HttpURLConnection
         } catch (e: Exception) {
-            throw SyncFailure("ที่อยู่ repo ไม่ถูกต้อง", e)
+            throw SyncFailure(tr("ที่อยู่ repo ไม่ถูกต้อง", "Invalid repo address", "リポジトリのアドレスが正しくありません"), e)
         }
         try {
             c.requestMethod = method
@@ -144,7 +145,7 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
         } catch (e: SyncFailure) {
             throw e
         } catch (e: IOException) {
-            throw SyncFailure("ต่อ GitHub ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่", e)
+            throw SyncFailure(tr("ต่อ GitHub ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่", "Couldn't reach GitHub; check the internet and try again", "GitHubに接続できません。インターネットを確認してもう一度"), e)
         } finally {
             c.disconnect()
         }
@@ -160,9 +161,9 @@ class GitHubContents(private val config: GitHubSyncConfig, private val api: Stri
 data class SyncReport(val devices: List<String>, val changed: Int, val uploaded: Boolean) {
     /** One line in Thai. */
     fun text(): String = buildList {
-        add(if (devices.isEmpty()) "ยังไม่มีเครื่องอื่นในที่ซิงค์" else "รวมจาก ${devices.joinToString()}")
-        add(if (changed > 0) "อัปเดต $changed รายการ" else "ความคืบหน้าตรงกันแล้ว")
-        if (uploaded) add("ส่งของเครื่องนี้ขึ้นแล้ว")
+        add(if (devices.isEmpty()) tr("ยังไม่มีเครื่องอื่นในที่ซิงค์", "No other device in the sync yet", "同期先にほかの端末はまだありません") else tr("รวมจาก ${devices.joinToString()}", "Merged from ${devices.joinToString()}", "${devices.joinToString()}から統合"))
+        add(if (changed > 0) tr("อัปเดต $changed รายการ", "Updated $changed items", "${changed}件を更新") else tr("ความคืบหน้าตรงกันแล้ว", "Progress already matches", "進捗はすでに一致しています"))
+        if (uploaded) add(tr("ส่งของเครื่องนี้ขึ้นแล้ว", "This device's data was sent", "この端末のデータを送信しました"))
     }.joinToString(" · ")
 }
 

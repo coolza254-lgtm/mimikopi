@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.playalong
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.score.Hand
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
@@ -23,9 +24,9 @@ object HeroicPlan {
     const val THEME = "heroic-polonaise-theme"
     data class Target(val id: String, val piece: String, val from: Int, val to: Int,
         val hands: Set<Hand>, val mode: PlayMode, val bpm: Int) {
-        val handLabel get() = when (hands.size) { 2 -> "สองมือ"; else -> if (Hand.RIGHT in hands) "มือขวา" else "มือซ้าย" }
-        val label get() = "ห้อง ${from + 1}–${to + 1} · $handLabel"
-        val goal get() = if (mode == PlayMode.WAIT) "โหมดรอ · อ่านให้ถูกก่อน ไม่วัดจังหวะ" else "ตามจังหวะ $bpm bpm · ปิดชื่อโน้ตเมื่อวัดผล"
+        val handLabel get() = when (hands.size) { 2 -> tr("สองมือ", "Both hands", "両手"); else -> if (Hand.RIGHT in hands) tr("มือขวา", "Right hand", "右手") else tr("มือซ้าย", "Left hand", "左手") }
+        val label get() = tr("ห้อง ${from + 1}–${to + 1} · $handLabel", "Bars ${from + 1}–${to + 1} · $handLabel", "${from + 1}–${to + 1}小節 · $handLabel")
+        val goal get() = if (mode == PlayMode.WAIT) tr("โหมดรอ · อ่านให้ถูกก่อน ไม่วัดจังหวะ", "Wait mode · read correctly first, timing not measured", "待ちモード · まず正しく読む、リズムは測りません") else tr("ตามจังหวะ $bpm bpm · ปิดชื่อโน้ตเมื่อวัดผล", "In time $bpm bpm · note names off when measuring", "リズム $bpm bpm · 測定時は音名を消す")
         fun completed(e: StudyEvidence) = e.days.distinct().size >= if (mode == PlayMode.WAIT) 1 else 2
     }
     val targets: List<Target> = buildList {

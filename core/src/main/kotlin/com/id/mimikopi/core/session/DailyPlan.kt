@@ -57,8 +57,8 @@ enum class BlockKind(val log: String, private val titles: Array<String>, private
     REVIEW("review", arrayOf("ทวนโน้ตที่รู้แล้ว", "Review known notes", "覚えた音の復習"), arrayOf("เริ่มจากง่าย ทีละตัว ให้ตาและมือเข้ากัน", "Start easy, one at a time, eyes and hands together", "簡単なものから一つずつ、目と手を合わせる")),
     CHECK("check", arrayOf("ทดสอบ", "Test", "テスト"), arrayOf("วัดว่าเก่งขึ้นจริงไหม ทำตอนยังสดอยู่", "See if you really improved, while fresh", "本当に上達したか、頭がさえているうちに")),
     LADDER("ladder", arrayOf("ขั้นหลัก", "Main step", "メインステップ"), arrayOf("เรื่องใหม่ของวันนี้ ฝึกจนผ่านเกณฑ์", "Today's new topic, practised until it passes", "今日の新しい内容、合格するまで")),
-    SIGHT("sight", arrayOf("อ่านโน้ตใหม่", "Sight-reading", "初見"), arrayOf("โน้ตที่ไม่เคยเห็น เล่นครั้งเดียวแล้วไปต่อ", "New music, played once, then move on", "初めての楽譜を一度弾いて次へ")),
-    CHORDS("chords", arrayOf("คอร์ด", "Chords", "コード"), arrayOf("กดคอร์ดให้คล่องมือ", "Make chords easy for your hands", "コードを手になじませる")),
+    SIGHT("sight", arrayOf(tr("อ่านโน้ตใหม่", "Sight-reading", "初見"), "Sight-reading", "初見"), arrayOf("โน้ตที่ไม่เคยเห็น เล่นครั้งเดียวแล้วไปต่อ", "New music, played once, then move on", "初めての楽譜を一度弾いて次へ")),
+    CHORDS("chords", arrayOf(tr("คอร์ด", "Chords", "コード"), "Chords", "コード"), arrayOf("กดคอร์ดให้คล่องมือ", "Make chords easy for your hands", "コードを手になじませる")),
     SOLO("solo", arrayOf("สองมือแบบ piano solo", "Two-hand piano solo", "両手ピアノソロ"), arrayOf("ทำนองกับมือซ้ายประกอบ ช้า ๆ แบบรอ", "Melody with left-hand accompaniment, slowly in wait mode", "メロディと左手伴奏を待ちモードでゆっくり")),
     EAR("ear", arrayOf("ฝึกหู", "Ear training", "耳トレ"), arrayOf("ฟังแล้วรู้ว่าเป็นโน้ตตัวไหน", "Hear a note and know which it is", "聞いてどの音か分かる")),
     SONG("song", arrayOf("เล่นเพลง", "Play songs", "曲を弾く"), arrayOf("เพลงที่ชอบ ไม่มีคะแนน", "Songs you like, no score", "好きな曲を、採点なしで"));

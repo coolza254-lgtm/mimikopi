@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.session
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.exercise.ChordPractice
 import com.id.mimikopi.core.progress.SkillId
 import kotlinx.serialization.Serializable
@@ -51,16 +52,19 @@ object PracticeLog {
  * known. [WARMUP] is no longer planned (a finger drill first was too hard before reading is fluent); it stays so
  * older stored plans and logs still read.
  */
-enum class BlockKind(val log: String, val title: String, val why: String) {
-    WARMUP("warmup", "วอร์มนิ้ว", "นิ้วพร้อม หัวพร้อม ก่อนเรื่องยาก"),
-    REVIEW("review", "ทวนโน้ตที่รู้แล้ว", "เริ่มจากง่าย ทีละตัว ให้ตาและมือเข้ากัน"),
-    CHECK("check", "ทดสอบวัดระดับ", "วัดว่าเก่งขึ้นจริงไหม ทำตอนยังสดอยู่"),
-    LADDER("ladder", "ขั้นหลัก", "เรื่องใหม่ของวันนี้ ฝึกจนผ่านเกณฑ์"),
-    SIGHT("sight", "อ่านโน้ตใหม่", "โน้ตที่ไม่เคยเห็น เล่นครั้งเดียวแล้วไปต่อ"),
-    CHORDS("chords", "คอร์ด", "กดคอร์ดให้คล่องมือ"),
-    SOLO("solo", "สองมือแบบ piano solo", "ทำนองกับมือซ้ายประกอบ ช้า ๆ แบบรอ"),
-    EAR("ear", "ฝึกหู", "ฟังแล้วรู้ว่าเป็นโน้ตตัวไหน"),
-    SONG("song", "เล่นเพลง", "เพลงที่ชอบ ไม่มีคะแนน"),
+enum class BlockKind(val log: String, private val titles: Array<String>, private val whys: Array<String>) {
+    WARMUP("warmup", arrayOf("วอร์มนิ้ว", "Warm-up", "ウォームアップ"), arrayOf("นิ้วพร้อม หัวพร้อม ก่อนเรื่องยาก", "Fingers and mind ready before the hard part", "難しいことの前に指と頭を準備")),
+    REVIEW("review", arrayOf("ทวนโน้ตที่รู้แล้ว", "Review known notes", "覚えた音の復習"), arrayOf("เริ่มจากง่าย ทีละตัว ให้ตาและมือเข้ากัน", "Start easy, one at a time, eyes and hands together", "簡単なものから一つずつ、目と手を合わせる")),
+    CHECK("check", arrayOf("ทดสอบ", "Test", "テスト"), arrayOf("วัดว่าเก่งขึ้นจริงไหม ทำตอนยังสดอยู่", "See if you really improved, while fresh", "本当に上達したか、頭がさえているうちに")),
+    LADDER("ladder", arrayOf("ขั้นหลัก", "Main step", "メインステップ"), arrayOf("เรื่องใหม่ของวันนี้ ฝึกจนผ่านเกณฑ์", "Today's new topic, practised until it passes", "今日の新しい内容、合格するまで")),
+    SIGHT("sight", arrayOf("อ่านโน้ตใหม่", "Sight-reading", "初見"), arrayOf("โน้ตที่ไม่เคยเห็น เล่นครั้งเดียวแล้วไปต่อ", "New music, played once, then move on", "初めての楽譜を一度弾いて次へ")),
+    CHORDS("chords", arrayOf("คอร์ด", "Chords", "コード"), arrayOf("กดคอร์ดให้คล่องมือ", "Make chords easy for your hands", "コードを手になじませる")),
+    SOLO("solo", arrayOf("สองมือแบบ piano solo", "Two-hand piano solo", "両手ピアノソロ"), arrayOf("ทำนองกับมือซ้ายประกอบ ช้า ๆ แบบรอ", "Melody with left-hand accompaniment, slowly in wait mode", "メロディと左手伴奏を待ちモードでゆっくり")),
+    EAR("ear", arrayOf("ฝึกหู", "Ear training", "耳トレ"), arrayOf("ฟังแล้วรู้ว่าเป็นโน้ตตัวไหน", "Hear a note and know which it is", "聞いてどの音か分かる")),
+    SONG("song", arrayOf("เล่นเพลง", "Play songs", "曲を弾く"), arrayOf("เพลงที่ชอบ ไม่มีคะแนน", "Songs you like, no score", "好きな曲を、採点なしで"));
+
+    val title: String get() = tr(titles[0], titles[1], titles[2])
+    val why: String get() = tr(whys[0], whys[1], whys[2])
 }
 
 /** One block of today's plan; [target] says what it opens (a step, a level, a test key), null for the default. */
@@ -262,12 +266,12 @@ object PlanContent {
      */
     fun solo(level: Int): com.id.mimikopi.core.lesson.Drill? =
         (com.id.mimikopi.core.progress.SkillBook.level(SkillId.SOLO, level)?.run as? com.id.mimikopi.core.progress.CheckRun.ScoreRun)?.drill
-            ?.let { it.copy(title = it.title.replace("ทดสอบ: ", "ฝึก: "), mode = "WAIT") }
+            ?.let { it.copy(title = tr("ฝึก: ", "Practice: ", "練習: ") + it.title.substringAfter(": "), mode = "WAIT") }
 
     /** "อาร์เพจจิโอ 1-5-8 · คีย์ C G F · แบบรอ" for the two-hand part of [level]. */
     fun soloSummary(level: Int): String? = solo(level)?.let { d ->
-        (com.id.mimikopi.core.theory.Accompaniment.LEVEL_NAMES[d.pattern] ?: "") + " · คีย์ " +
-            d.keys.joinToString(" ") { com.id.mimikopi.core.theory.Keys.name(it) } + " · แบบรอ"
+        (com.id.mimikopi.core.theory.Accompaniment.name(d.pattern)) + tr(" · คีย์ ", " · keys ", " · キー ") +
+            d.keys.joinToString(" ") { com.id.mimikopi.core.theory.Keys.name(it) } + tr(" · แบบรอ", " · wait mode", " · 待ちモード")
     }
 
     /** The ear part is always the ear course's adaptive round (it picks the stage and the weak items itself). */

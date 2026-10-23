@@ -1,5 +1,6 @@
 package com.id.mimikopi.core.exercise
 
+import com.id.mimikopi.core.i18n.tr
 import com.id.mimikopi.core.lesson.Drill
 import com.id.mimikopi.core.theory.Chord
 import com.id.mimikopi.core.theory.ChordQualities
@@ -26,7 +27,7 @@ object ChordDrills {
             val item = if (drill.degrees.isNotEmpty()) {
                 val d = drill.degrees[rnd.nextInt(drill.degrees.size)]
                 val c = StageGenerators.degreeChord(d, fifths)
-                ChordItem(c, "$d ในคีย์ ${Keys.name(fifths)}", fifths)
+                ChordItem(c, tr("$d ในคีย์ ${Keys.name(fifths)}", "$d in ${Keys.name(fifths)}", "${Keys.name(fifths)} の $d"), fifths)
             } else {
                 val root = Keys.scale(fifths)[rnd.nextInt(7)]
                 val q = drill.qualities.ifEmpty { listOf("", "m") }.let { it[rnd.nextInt(it.size)] }

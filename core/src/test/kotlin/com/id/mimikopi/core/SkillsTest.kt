@@ -100,7 +100,7 @@ class SkillsTest {
         // Once tested it stays open, even if a skill it builds on drops later.
         val dropped = reading + rec(5, false, 2, SkillId.SIGHT) + rec(5, false, 1, SkillId.SIGHT) + rec(1, false, 8, SkillId.SOLO)
         assertFalse(SkillBook.status(SkillId.SOLO, dropped, today).locked)
-        assertEquals("เปิดเมื่อ อ่านโน้ตใหม่ระดับ 5 · คอร์ดระดับ 1", SkillBook.opensText(SkillId.SOLO))
+        assertEquals("เปิดเมื่ออ่านสองมือได้และกดคอร์ดพื้นฐานได้", SkillBook.opensText(SkillId.SOLO))
     }
 
     @Test

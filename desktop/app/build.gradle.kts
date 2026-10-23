@@ -65,6 +65,8 @@ compose.desktop {
             // The native audio library (desktop/native, built by CMake) ships beside the jars.
             appResourcesRootDir.set(project.layout.projectDirectory.dir("../native/dist"))
             windows {
+                // The app's logo (docs/brand/icon-preview-512.png) for the shortcut, Start menu and installer.
+                iconFile.set(project.layout.projectDirectory.file("icons/mimikopi.ico"))
                 menu = true
                 menuGroup = "Mimikopi"
                 shortcut = true

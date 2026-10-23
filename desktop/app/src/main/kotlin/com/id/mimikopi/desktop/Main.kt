@@ -91,6 +91,7 @@ fun main() {
                 exitApplication()
             },
             state = state,
+            icon = androidx.compose.ui.graphics.vector.rememberVectorPainter(com.id.mimikopi.desktop.ui.components.MimikopiLogo),
             title = tr("ミミコピ ฝึกเปียโน", "ミミコピ piano practice", "ミミコピ ピアノ練習"),
             onPreviewKeyEvent = handler@{ e ->
                 val code = e.key.nativeKeyCode

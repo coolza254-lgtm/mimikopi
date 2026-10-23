@@ -156,7 +156,7 @@ fun AnswerHaptics(correct: Boolean?, done: Boolean = false) {
 /** Plays one of [com.id.mimikopi.core.fx.AnswerSound]'s short sounds on the app's piano, unless turned off. */
 suspend fun playAnswerSound(context: android.content.Context, notes: List<Triple<Int, Int, Int>>) {
     if (!answerSoundOn(context)) return
-    val piano = (context.applicationContext as com.id.mimikopi.MimikopiApp).piano
+    val piano = (context.applicationContext as? com.id.mimikopi.MimikopiApp)?.piano ?: return
     kotlinx.coroutines.coroutineScope {
         for ((note, start, length) in notes) launch {
             kotlinx.coroutines.delay(start.toLong())

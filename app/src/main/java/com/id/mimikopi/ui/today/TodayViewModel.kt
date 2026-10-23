@@ -138,7 +138,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun build(minutes: Int, today: LocalDate): List<PlanBlock> =
-        DailyPlan.build(PlanContent.input(minutes, learning.lessons, learning.records.value, progress.checks.value, learning.readingDueItems().size, today))
+        DailyPlan.build(PlanContent.input(minutes, learning.lessons, learning.records.value, progress.checks.value, learning.readingDueItems().size, today, services.pieces.progress.value.values))
 
     private suspend fun publish(plan: List<PlanBlock>, minutes: Int, today: LocalDate) {
         val earState = com.id.mimikopi.core.ear.EarProgress.parse(dao.get(com.id.mimikopi.core.ear.EarProgress.KEY))
@@ -184,12 +184,13 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         } ?: ""
         BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { it.skill.title } ?: ""
         BlockKind.REVIEW -> tr("โน้ตและคีย์ที่ถึงกำหนดทวน", "Notes and keys due for review", "復習時期の音とキー")
-        BlockKind.LADDER -> ProgressRules.nextToLearn(learning.lessons, learning.records.value)?.let { tr("ขั้น ${it.id} · ${it.title}", "${it.title}", "${it.title}") } ?: tr("ยืนยันขั้นที่ผ่านแล้ว", "Confirm a passed step", "合格した段階を確認")
+        BlockKind.LADDER -> ProgressRules.nextToLearn(learning.lessons, learning.records.value)?.let { it.title } ?: tr("ยืนยันขั้นที่ผ่านแล้ว", "Confirm a passed step", "合格した段階を確認")
         BlockKind.SIGHT -> tr("โน้ตที่ไม่เคยเห็น", "Music you've never seen", "初めて見る楽譜")
         BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, progress.checks.value, LocalDate.now()).level).summary()
         BlockKind.SOLO -> b.target?.toIntOrNull()?.let { PlanContent.soloSummary(it) } ?: ""
-        BlockKind.EAR -> tr("ขั้น ${earStage.n} ${earStage.title}", "${earStage.title}", "${earStage.title}")
-        BlockKind.SONG -> tr("เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น", "A library piece, full-sheet practice", "ライブラリの曲、楽譜全体で練習")
+        BlockKind.EAR -> earStage.title
+        BlockKind.SONG -> b.target?.let { t -> services.pieces.pieces.firstOrNull { it.id == t }?.let { tr("ทวนเพลง: ${it.title}", "Review: ${it.title}", "復習：${it.title}") } }
+            ?: tr("เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น", "A library piece, full-sheet practice", "ライブラリの曲、楽譜全体で練習")
     } + tr(" · ${b.minutes} นาที", " · ${b.minutes} min", " · ${b.minutes}分")
 
     /** What a block opens; the chord part first writes its practice for the drill to read. */
@@ -208,7 +209,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 BlockKind.SOLO -> Open.Solo(b.target?.toIntOrNull() ?: 1)
                 BlockKind.EAR -> Open.Ear()
-                BlockKind.SONG -> Open.Songs
+                BlockKind.SONG -> b.target?.let { Open.Piece(it) } ?: Open.Songs
             } ?: return@launch
             go(target)
         }

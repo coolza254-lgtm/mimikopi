@@ -89,6 +89,8 @@ data class PlanInput(
     val weakest: SkillId?,
     /** Two-hand solo level to practise ([PlanContent.solo]), null while the skill is not open. */
     val soloLevel: Int? = null,
+    /** A passed library piece due for review ([com.id.mimikopi.core.playalong.SongReview]), for the song part. */
+    val songDue: String? = null,
 )
 
 /**
@@ -134,7 +136,7 @@ object DailyPlan {
             if (input.chords) add(BlockKind.CHORDS to null)
             if (input.soloLevel != null) add(BlockKind.SOLO to input.soloLevel.toString())
             if (input.earLevel != null) add(BlockKind.EAR to input.earLevel)
-            add(BlockKind.SONG to null)
+            add(BlockKind.SONG to input.songDue)
         }
         // Short days: the essentials and the weakest part only.
         val kept = (if (total <= 10) candidates.filter { it.first in setOf(BlockKind.CHECK, BlockKind.LADDER) || it.first == weak }
@@ -212,6 +214,7 @@ object PlanContent {
         checks: List<com.id.mimikopi.core.progress.CheckRecord>,
         reviewDue: Int,
         today: java.time.LocalDate,
+        pieces: Collection<com.id.mimikopi.core.playalong.PieceProgress> = emptyList(),
     ): PlanInput {
         fun level(s: SkillId) = com.id.mimikopi.core.progress.SkillBook.status(s, checks, today).level
         val rules = com.id.mimikopi.core.lesson.ProgressRules
@@ -226,6 +229,7 @@ object PlanContent {
             weakest = com.id.mimikopi.core.progress.SkillBook.weakest(checks, today),
             soloLevel = com.id.mimikopi.core.progress.SkillBook.status(SkillId.SOLO, checks, today)
                 .takeIf { !it.locked }?.let { (it.level + 1).coerceAtMost(it.maxLevel) },
+            songDue = com.id.mimikopi.core.playalong.SongReview.due(pieces, today).firstOrNull()?.pieceId,
         )
     }
 

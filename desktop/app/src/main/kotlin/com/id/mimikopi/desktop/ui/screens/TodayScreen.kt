@@ -70,7 +70,7 @@ private const val DEFAULT_MINUTES = 20
 private fun todayPlan(s: Services, minutes: Int, today: LocalDate): List<PlanBlock> {
     val stored = DailyPlan.parse(s.db.get(ProgressStore.PLAN))
     if (stored != null && stored.date == today.toString() && stored.minutes == minutes) return stored.blocks
-    val input = PlanContent.input(minutes, s.learning.lessons, s.learning.records.value, s.progress.checks.value, s.learning.readingDueItems().size, today)
+    val input = PlanContent.input(minutes, s.learning.lessons, s.learning.records.value, s.progress.checks.value, s.learning.readingDueItems().size, today, s.pieces.progress.value.values)
     return DailyPlan.build(input).also { s.db.put(ProgressStore.PLAN, DailyPlan.encode(DailyPlan.Stored(today.toString(), minutes, it))) }
 }
 
@@ -94,7 +94,7 @@ private fun open(app: AppContext, b: PlanBlock) {
         }
         BlockKind.SOLO -> app.nav.open(Screen.Reader(ReaderArgs(solo = b.target?.toIntOrNull() ?: 1)))
         BlockKind.EAR -> app.nav.open(Screen.Ear(EarArgs()))
-        BlockKind.SONG -> app.nav.home(Tab.SONGS)
+        BlockKind.SONG -> b.target?.let { app.nav.open(Screen.Reader(ReaderArgs(pieceId = it))) } ?: app.nav.home(Tab.SONGS)
     }
 }
 
@@ -102,13 +102,14 @@ private fun open(app: AppContext, b: PlanBlock) {
 private fun detail(s: Services, b: PlanBlock): String = when (b.kind) {
     BlockKind.WARMUP, BlockKind.REVIEW -> tr("ทีละตัว ช้า ๆ ให้ตาและมือเข้ากัน", "One at a time, slowly, eyes and hands together", "1つずつゆっくり、目と手を合わせて")
     BlockKind.CHECK -> SkillBook.parseKey(b.target)?.let { it.skill.title } ?: ""
-    BlockKind.LADDER -> (ProgressRules.awaitingConfirmation(s.learning.lessons, s.learning.records.value, LocalDate.now()).firstOrNull()?.let { tr("ยืนยัน ${it.id} ${it.title}", "Confirm ${it.title}", "${it.title}を確認") }
-        ?: ProgressRules.nextToLearn(s.learning.lessons, s.learning.records.value)?.let { "${it.id} ${it.title}" } ?: tr("ทบทวนขั้นที่ผ่านแล้ว", "Review passed steps", "合格した段階を復習"))
+    BlockKind.LADDER -> (ProgressRules.awaitingConfirmation(s.learning.lessons, s.learning.records.value, LocalDate.now()).firstOrNull()?.let { tr("ยืนยัน ${it.title}", "Confirm ${it.title}", "${it.title}を確認") }
+        ?: ProgressRules.nextToLearn(s.learning.lessons, s.learning.records.value)?.let { it.title } ?: tr("ทบทวนขั้นที่ผ่านแล้ว", "Review passed steps", "合格した段階を復習"))
     BlockKind.SIGHT -> tr("โน้ตที่ไม่เคยเห็น · เล่นครั้งเดียวแล้วไปต่อ", "Music you've never seen · play once and move on", "初めて見る楽譜 · 1回弾いて次へ")
     BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, s.progress.checks.value, LocalDate.now()).level).summary()
     BlockKind.SOLO -> b.target?.toIntOrNull()?.let { PlanContent.soloSummary(it) } ?: ""
-    BlockKind.EAR -> EarProgress.currentStage(EarProgress.parse(s.db.get(EarProgress.KEY))).let { tr("ขั้น ${it.n} ${it.title}", "${it.title}", "${it.title}") }
-    BlockKind.SONG -> tr("เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น", "A library piece, full-sheet practice", "ライブラリの曲、楽譜全体で練習")
+    BlockKind.EAR -> EarProgress.currentStage(EarProgress.parse(s.db.get(EarProgress.KEY))).let { it.title }
+    BlockKind.SONG -> b.target?.let { t -> s.pieces.pieces.firstOrNull { it.id == t }?.let { tr("ทวนเพลง: ${it.title}", "Review: ${it.title}", "復習：${it.title}") } }
+        ?: tr("เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น", "A library piece, full-sheet practice", "ライブラリの曲、楽譜全体で練習")
 }
 
 /**

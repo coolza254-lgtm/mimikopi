@@ -615,7 +615,7 @@ Zen Maru Gothic: The Zen Maru Gothic Project Authors · SIL Open Font License 1.
     <string name="ladder_tab_steps">ขั้นเล่นและอ่าน</string>
     <string name="ladder_tab_ear">ขั้นฝึกฟัง</string>
     <string name="ladder_legend">เขียว ผ่าน · เหลือง รอยืนยัน · ชมพู ตอนนี้</string>
-    <string name="ladder_stage">ด่าน %1$d</string>
+    <string name="ladder_stage">ด่าน</string>
     <string name="ladder_passed">ผ่านแล้ว</string>
     <string name="ladder_confirm">รอยืนยัน</string>
     <string name="ladder_now">ตอนนี้</string>

@@ -133,7 +133,7 @@ private fun OverallCard(ui: SkillsUi, onOpen: (Open) -> Unit) {
     val measured = ui.statuses.count { it.lastTested != null }
     val total = ui.statuses.size
     val month = ui.records.filter { r -> runCatching { LocalDate.parse(r.date) >= today.minusDays(30) }.getOrDefault(false) }
-    val next = ui.statuses.filter { it.nextTest != null && !it.lockedToday }.let { open -> open.firstOrNull { it.due } ?: open.firstOrNull() }
+    val next = ui.statuses.filter { it.nextTest != null && !it.lockedToday && !it.locked }.let { open -> open.firstOrNull { it.due } ?: open.firstOrNull() }
     PageCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
             CountRing(measured, total)
@@ -194,7 +194,9 @@ private fun SkillRow(s: SkillStatus, onClick: () -> Unit) {
         SkillIcon(icon, color, size = 42.dp, filled = true)
         Column(Modifier.weight(1f)) {
             Text(s.skill.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
-            if (s.lastTested == null) {
+            if (s.locked) {
+                Text("ยังไม่เปิด", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
+            } else if (s.lastTested == null) {
                 Text("ยังไม่ได้วัด", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
             } else {
                 LevelBars(s.level, s.maxLevel, width = 20.dp, color = color.ink, gap = 4.dp, modifier = Modifier.padding(top = 6.dp))
@@ -229,6 +231,7 @@ internal fun look(skill: SkillId): Pair<Int, Tokens.SkillColor> = when (skill) {
     SkillId.TECH -> R.drawable.ic_skill_hand to Tokens.Skill.Chords
     SkillId.EAR -> R.drawable.ic_skill_ear to Tokens.Skill.Ear
     SkillId.CHORDS -> R.drawable.ic_nav_piano to Tokens.Skill.Chords
+    SkillId.SOLO -> R.drawable.ic_skill_hand to Tokens.Skill.Keys
 }
 
 /**
@@ -274,6 +277,9 @@ fun SkillDetailScreen(skill: SkillId, onBack: () -> Unit, onOpen: (Open) -> Unit
                         Text(if (next.level == s.level) "ยืนยันระดับ ${next.level}" else "ระดับ ${next.level}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Ink)
                         Text(next.canDo, fontSize = 15.sp, lineHeight = 20.sp, color = Tokens.Palette.Ink, modifier = Modifier.padding(top = 4.dp))
                         Text("เกณฑ์ผ่าน: ${next.criteriaText()}", fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
+                        if (s.locked) SkillBook.opensText(skill)?.let {
+                            Text("ยังไม่เปิดในแผนวันนี้ · $it ทดสอบเองก่อนได้", fontSize = 14.sp, lineHeight = 19.sp, color = Tokens.Palette.InkMuted, modifier = Modifier.padding(top = 6.dp))
+                        }
                         Spacer(Modifier.height(18.dp))
                         PrimaryButton(
                             if (s.lockedToday) "พรุ่งนี้ลองใหม่ได้" else "ทดสอบระดับ ${next.level}",
@@ -352,5 +358,9 @@ private fun practice(skill: SkillId, s: SkillStatus): List<Pair<String, Open>> {
         SkillId.SIGHT -> listOf("ฝึกอ่านโน้ต: ทีละตัวและทำนอง" to Open.Reading, "อ่านโน้ตใหม่ ระดับ L${s.level.coerceIn(1, 5)}" to Open.Sight(s.level.coerceIn(1, 5)), ladder)
         SkillId.EAR -> listOf("ฝึกหู (รอบปรับตามจุดอ่อน)" to Open.Ear(), "หน้าฝึกหู: เส้นทางและภาพรวม" to Open.EarHome)
         SkillId.CHORDS -> listOf("คอร์ด: ฝึกกด เปลี่ยนคอร์ด วิธีจับ" to Open.ChordHome)
+        SkillId.SOLO -> listOf(
+            "สองมือแบบรอ: เนื้อหาของระดับ ${(s.level + 1).coerceAtMost(s.maxLevel)}" to Open.Solo((s.level + 1).coerceAtMost(s.maxLevel)),
+            "คอร์ด: ฝึกกด เปลี่ยนคอร์ด วิธีจับ" to Open.ChordHome,
+        )
     }
 }

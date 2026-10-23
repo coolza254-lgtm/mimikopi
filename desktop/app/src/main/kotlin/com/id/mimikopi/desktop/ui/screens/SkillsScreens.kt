@@ -20,6 +20,7 @@ import com.id.mimikopi.core.progress.SkillBook
 import com.id.mimikopi.core.progress.SkillId
 import com.id.mimikopi.core.progress.SkillLevel
 import com.id.mimikopi.core.progress.SkillStatus
+import com.id.mimikopi.core.session.PlanContent
 import com.id.mimikopi.desktop.session.DrillSource
 import com.id.mimikopi.desktop.session.EarArgs
 import com.id.mimikopi.desktop.session.ReaderArgs
@@ -55,6 +56,7 @@ private fun metricsText(r: CheckRecord): String = listOfNotNull(
 ).joinToString(" · ")
 
 private fun statusLine(s: SkillStatus): String {
+    if (s.locked) return "ยังไม่เปิด · " + (SkillBook.opensText(s.skill) ?: "")
     val tested = s.lastTested ?: return "ยังไม่ได้วัด"
     val parts = mutableListOf("ระดับ ${s.level} จาก ${s.maxLevel}", "ทดสอบ${ago(tested)}")
     if (s.due) parts += "ถึงเวลาทดสอบ"
@@ -70,6 +72,7 @@ internal fun look(skill: SkillId): Pair<String, Tokens.SkillColor> = when (skill
     SkillId.TECH -> "∿" to Tokens.Skill.Chords
     SkillId.EAR -> "◉" to Tokens.Skill.Ear
     SkillId.CHORDS -> "♬" to Tokens.Skill.Chords
+    SkillId.SOLO -> "♪♪" to Tokens.Skill.Keys
 }
 
 /** The page a level test runs on: drills in the drill runner, played tests in the score player, ear tests in ear training. */
@@ -114,6 +117,11 @@ fun SkillsScreen() {
             GroupRow("ฝึกหู", "โน้ต ทำนอง คอร์ด ทางเดินคอร์ด", onClick = { app.nav.home(Tab.EAR) })
             GroupDivider()
             GroupRow("คอร์ด", "กดคอร์ดตามชื่อ · เปลี่ยนคอร์ดตามเวลา · วิธีจับคอร์ด", onClick = { app.nav.open(Screen.Chords) })
+            statuses.firstOrNull { it.skill == SkillId.SOLO }?.let { solo ->
+                val level = (solo.level + 1).coerceAtMost(solo.maxLevel)
+                GroupDivider()
+                GroupRow("สองมือแบบ piano solo", PlanContent.soloSummary(level) ?: "", onClick = { app.nav.open(Screen.Reader(ReaderArgs(solo = level))) })
+            }
         }
         GroupFooter("ฝึกส่วนไหนก็นับเวลาเข้าแผนวันนี้")
     }
@@ -151,6 +159,7 @@ fun SkillDetailScreen(skill: SkillId) {
                     Text(if (next.level == s.level) "ยืนยันระดับ ${next.level}" else "ระดับ ${next.level}", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Text(next.canDo, fontSize = 15.sp, color = Tokens.Palette.Ink)
                     Text("เกณฑ์ผ่าน: ${next.criteriaText()}", fontSize = 14.sp, color = Tokens.Palette.InkMuted)
+                    if (s.locked) SkillBook.opensText(skill)?.let { Text("ยังไม่เปิดในแผนวันนี้ · $it ทดสอบเองก่อนได้", fontSize = 14.sp, color = Tokens.Palette.InkMuted) }
                     Spacer(Modifier.height(18.dp))
                     PrimaryButton(if (s.lockedToday) "พรุ่งนี้ลองใหม่ได้" else "ทดสอบระดับ ${next.level}",
                         onClick = { app.nav.open(checkScreen(SkillBook.key(skill, next.level), next.run)) }, enabled = !s.lockedToday)

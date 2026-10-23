@@ -11,6 +11,7 @@ import com.id.mimikopi.core.input.InputSource
 import com.id.mimikopi.core.lesson.Drill
 import com.id.mimikopi.core.lesson.ExerciseType
 import com.id.mimikopi.core.lesson.Lesson
+import com.id.mimikopi.core.session.PlanContent
 import com.id.mimikopi.core.metronome.FrameTimestamp
 import com.id.mimikopi.core.metronome.JitterAnalysis
 import com.id.mimikopi.core.music.NoteNameStyle
@@ -71,6 +72,8 @@ data class ReaderArgs(
     val exam: String? = null,
     val part: ExamPart? = null,
     val newReading: Int? = null,
+    /** Two-hand solo practice on the material of this solo level (PlanContent.solo). */
+    val solo: Int? = null,
     val benchmark: Int? = null,
     /** A Heroic plan target id (with [pieceId]). */
     val target: String? = null,
@@ -106,6 +109,8 @@ class ReaderSession(
         data class Piece(val id: String, val hand: HandChoice?) : Source
         data class LessonDrill(val lesson: Lesson, val index: Int) : Source { val drill: Drill get() = lesson.drills[index] }
         data class NewReading(val level: Int) : Source
+        /** Practice from the Today plan or a skill page on app-made material (two-hand solo); nothing is passed. */
+        data class Practice(val drill: Drill, val log: String) : Source
         data class Benchmark(val level: Int) : Source
         data class Check(val level: SkillLevel) : Source { val drill: Drill get() = (level.run as CheckRun.ScoreRun).drill }
         data class Exam(val sitting: String, val part: ExamPart) : Source
@@ -122,6 +127,7 @@ class ReaderSession(
             ?.let { l -> args.drill?.takeIf { it in l.drills.indices }?.let { Source.LessonDrill(l, it) } } ?: Source.Piece("", null)
         args.check != null -> SkillBook.parseKey(args.check)?.takeIf { it.run is CheckRun.ScoreRun }?.let { Source.Check(it) } ?: Source.Piece("", null)
         args.exam != null && args.part != null -> Source.Exam(args.exam, args.part)
+        args.solo != null -> PlanContent.solo(args.solo)?.let { Source.Practice(it, "solo") } ?: Source.Piece("", null)
         args.newReading != null -> Source.NewReading(args.newReading.coerceIn(1, 5))
         else -> Source.Benchmark((args.benchmark ?: 1).coerceIn(1, Benchmarks.MAX_LEVEL))
     }
@@ -164,6 +170,7 @@ class ReaderSession(
             is Source.Check -> scoreFor(src.drill)
             is Source.Exam -> examScore(src)
             is Source.LessonDrill -> scoreFor(src.drill)
+            is Source.Practice -> scoreFor(src.drill)
             is Source.NewReading -> Score.from(ScoreGenerators.sightReading(newReadingDrill(src.level), seed))
             is Source.Benchmark -> Score.from(ScoreGenerators.sightReading(Benchmarks.sightReadingDrill(benchLevel), Benchmarks.sightReadingSeed(benchLevel)))
         }
@@ -237,6 +244,7 @@ class ReaderSession(
         val bpm = when (val src = source) {
             is Source.LessonDrill -> src.drill.bpm
             is Source.Check -> src.drill.bpm
+            is Source.Practice -> src.drill.bpm
             is Source.NewReading -> _ui.value.bpm
             is Source.Benchmark -> 60
             is Source.Piece, is Source.Exam -> s.tempo
@@ -245,8 +253,8 @@ class ReaderSession(
     }
 
     private fun fixedOptions(saved: ReaderOptions): ReaderOptions = when (val src = source) {
-        is Source.LessonDrill, is Source.Check -> {
-            val d = if (src is Source.Check) src.drill else (src as Source.LessonDrill).drill
+        is Source.LessonDrill, is Source.Check, is Source.Practice -> {
+            val d = when (src) { is Source.Check -> src.drill; is Source.Practice -> src.drill; else -> (src as Source.LessonDrill).drill }
             ReaderOptions(
                 mode = if (d.mode == "WAIT") PlayMode.WAIT else PlayMode.TEMPO,
                 hands = runCatching { HandChoice.valueOf(d.hand) }.getOrDefault(HandChoice.RIGHT),
@@ -267,6 +275,7 @@ class ReaderSession(
         is Source.Piece -> score?.title ?: ""
         is Source.LessonDrill -> "${src.lesson.id} · ${src.drill.title}" + (transposeKey?.let { " · เล่นในคีย์ ${Keys.name(it)}" } ?: "")
         is Source.NewReading -> "อ่านโน้ตใหม่ (ระดับ L${src.level})"
+        is Source.Practice -> src.drill.title
         is Source.Benchmark -> "วัดผล: อ่านโน้ตระดับ L$benchLevel"
         is Source.Check -> "ทดสอบวัดระดับ · ${src.level.skill.title} ระดับ ${src.level.level}"
         is Source.Exam -> "สอบ ${exam()?.second?.name ?: ""} · ${src.part.title}"
@@ -810,7 +819,7 @@ class ReaderSession(
         newPieceNext = generated && (clean || runsOnPiece >= 3) && source !is Source.Benchmark
         val seconds = if (result.hasNoteInput) (System.currentTimeMillis() - runStartedAt) / 1000 else 0L
         if (source !is Source.Check && source !is Source.Exam) services.appScope.launch {
-            services.progress.log(via ?: when (source) { is Source.NewReading -> "sight"; is Source.Benchmark -> "check"; else -> "ladder" }, seconds)
+            services.progress.log(via ?: when (source) { is Source.NewReading -> "sight"; is Source.Practice -> source.log; is Source.Benchmark -> "check"; else -> "ladder" }, seconds)
         }
         services.appScope.launch {
             services.progress.addMistakes(Mistakes.fromPlay(j, result, "score", System.currentTimeMillis(), LocalDate.now().toString()))
@@ -903,6 +912,15 @@ class ReaderSession(
                     }
                     if (helper && required) lines += CoachLine("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่าน")
                     if (early) lines += CoachLine("หยุดก่อนจบ รอบนี้จึงไม่นับเป็นรอบสะอาดและไม่นำมาเทียบพัฒนาการ")
+                }
+                is Source.Practice -> withContext(io) {
+                    learning.saveAttempt(
+                        exerciseId = "PRACTICE:${src.log}:${src.drill.type}:${src.drill.pattern}", paramsJson = """{"seed":$seed,"mode":"${result.setup.mode}","completed":${!stoppedEarly}}""",
+                        startedAt = runStartedAt, tempoBpm = if (result.timingJudged) result.setup.bpm else null, noteAccuracy = result.summary?.noteAccuracy,
+                        timingWithinTol = if (result.timingJudged) result.summary?.fractionWithinTiming else null,
+                        clean = if (result.timingJudged) clean else null, helperUses = if (helper) 1 else 0,
+                        events = emptyList(), sessionId = sessionId, stumbles = result.stumbles,
+                    )
                 }
                 is Source.NewReading -> withContext(io) {
                     learning.saveAttempt(

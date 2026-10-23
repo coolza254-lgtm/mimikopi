@@ -22,6 +22,7 @@ enum class SkillId(val title: String, val about: String) {
     TECH("นิ้วและสเกล", "นิ้วเดินสม่ำเสมอ สเกลมือเดียวและสองมือ"),
     EAR("หู", "ฟังแล้วบอกโน้ต ทำนอง คอร์ด และทางเดินคอร์ดได้ เพื่อแกะเพลงเอง"),
     CHORDS("คอร์ด", "เห็นชื่อคอร์ดแล้วกดได้ และเปลี่ยนคอร์ดได้ทัน"),
+    SOLO("เล่นเดี่ยวสองมือ", "ทำนองมือขวากับรูปแบบประกอบมือซ้าย เล่นคนเดียวแบบ piano solo"),
 }
 
 /** How a test is run: a drill (key finding, note reading, chords), a score in the reader, or an ear level. */
@@ -120,6 +121,8 @@ data class SkillStatus(
     val lockedToday: Boolean,
     /** The level was lost: the current level's test failed twice in a row after it was earned. */
     val dropped: Boolean,
+    /** Not open yet: the skills it builds on are not held ([SkillBook.opensWith]); no test is suggested. */
+    val locked: Boolean = false,
 ) {
     val fraction: Double get() = level.toDouble() / maxLevel
 }
@@ -175,6 +178,18 @@ object SkillBook {
     private fun chords(p: ChordPractice) = CheckRun.DrillRun(p.drill().copy(title = "ทดสอบ: " + p.summary()))
 
     private val ALL_KEYS = ChordPractice.KEYS
+
+    /**
+     * Melody and accompaniment together (learning-system.md 2.12): an app-made melody over a progression, the left
+     * hand in one pattern of the 8.2 ladder, both hands played, in tempo. Keys move to the flat side the target
+     * songs use (A♭, E♭, B♭, E) and tempos towards the songs' 100+.
+     */
+    private fun solo(pattern: Int, progression: String, keys: List<Int>, bpm: Int, bars: Int = 4) = CheckRun.ScoreRun(
+        Drill(ExerciseType.E_COMP_PATTERN, "ทดสอบ: สองมือ " + com.id.mimikopi.core.theory.Accompaniment.LEVEL_NAMES.getValue(pattern),
+            items = 1, hand = "BOTH", mode = "TEMPO", bpm = bpm, bars = bars, keys = keys, progression = progression, pattern = pattern),
+    )
+
+    private val ROYAL = "ทางหลวง (王道進行)"
 
     private val SCORE = Criteria(minAccuracy = 0.95, minTiming = 0.85)
     private val READING = Criteria(minAccuracy = 0.9, minTiming = 0.8)
@@ -246,7 +261,25 @@ object SkillBook {
             SkillLevel(SkillId.CHORDS, 6, "เปลี่ยนคอร์ด Canon ในคีย์ G ได้คล่อง", chords(ChordPractice(ChordPractice.Mode.CHANGE, listOf(1), progression = "Canon", seconds = 60)), Criteria(minCount = 20)),
             SkillLevel(SkillId.CHORDS, 7, "เปลี่ยนคอร์ด ii–V–I (คอร์ด 7) ในคีย์ F", chords(ChordPractice(ChordPractice.Mode.CHANGE, listOf(-1), progression = "ii–V–I", seconds = 60)), Criteria(minCount = 15)),
         ),
+        SkillId.SOLO to listOf(
+            SkillLevel(SkillId.SOLO, 1, "เล่นทำนองง่ายพร้อมโน้ตรากยาวมือซ้าย คีย์ C", solo(1, "Axis", listOf(0), 60), READING),
+            SkillLevel(SkillId.SOLO, 2, "ทำนองกับอาร์เพจจิโอ 1-5-8 คีย์ C G F", solo(2, "Axis", listOf(0, 1, -1), 60), READING),
+            SkillLevel(SkillId.SOLO, 3, "ทำนองกับคอร์ดบล็อก คีย์ C G F", solo(3, "โกมุโร", listOf(0, 1, -1), 66), READING),
+            SkillLevel(SkillId.SOLO, 4, "ทำนองกับคอร์ดทุกจังหวะ คีย์ฝั่งแฟลต F B♭ E♭", solo(4, "วงจร 50s", listOf(-1, -2, -3), 72), READING),
+            SkillLevel(SkillId.SOLO, 5, "เบสอ็อกเทฟกับคอร์ดจังหวะยกใน 王道進行 คีย์ A♭ E♭", solo(5, ROYAL, listOf(-4, -3), 80), READING),
+            SkillLevel(SkillId.SOLO, 6, "อาร์เพจจิโอ 8 ตัวไหลต่อเนื่อง คีย์ A♭ E♭ B♭ E", solo(6, ROYAL, listOf(-4, -3, -2, 4), 88), READING),
+            SkillLevel(SkillId.SOLO, 7, "ซิงโคเพชัน 16 บีตที่ความเร็วเพลงจริง 100", solo(7, "Canon", listOf(-4, -3, 4, 0), 100, bars = 8), READING),
+        ),
     )
+
+    /**
+     * What a skill builds on before its tests are offered: two-hand solo playing needs simple two-hand reading
+     * (new reading level 5) and the first chord level. A skill already tested stays open.
+     */
+    val opensWith: Map<SkillId, Map<SkillId, Int>> = mapOf(SkillId.SOLO to mapOf(SkillId.SIGHT to 5, SkillId.CHORDS to 1))
+
+    /** "เปิดเมื่อ อ่านโน้ตใหม่ระดับ 5 · คอร์ดระดับ 1", or null for a skill open from the start. */
+    fun opensText(skill: SkillId): String? = opensWith[skill]?.entries?.joinToString(" · ", prefix = "เปิดเมื่อ ") { (s, n) -> "${s.title}ระดับ $n" }
 
     fun levels(skill: SkillId): List<SkillLevel> = LEVELS.getValue(skill)
     fun level(skill: SkillId, n: Int): SkillLevel? = levels(skill).getOrNull(n - 1)
@@ -266,6 +299,7 @@ object SkillBook {
      */
     fun status(skill: SkillId, records: List<CheckRecord>, today: LocalDate): SkillStatus {
         val mine = records.filter { it.skill == skill }
+        val locked = mine.isEmpty() && opensWith[skill].orEmpty().any { (s, n) -> status(s, records, today).level < n }
         val max = maxLevel(skill)
         var level = mine.filter { it.passed }.maxOfOrNull { it.level } ?: 0
         var dropped = false
@@ -285,7 +319,7 @@ object SkillBook {
         }
         val failsToday = next?.let { n -> mine.count { it.level == n && it.date == today.toString() && !it.passed } } ?: 0
         val due = next != null && (sinceLast == null || sinceLast >= RETEST_DAYS || (level == max && next == max))
-        return SkillStatus(skill, level, max, last, next, due && failsToday < TRIES_PER_DAY, failsToday >= TRIES_PER_DAY, dropped)
+        return SkillStatus(skill, level, max, last, next, !locked && due && failsToday < TRIES_PER_DAY, failsToday >= TRIES_PER_DAY, dropped, locked)
     }
 
     /** The test to suggest today: a never-tested skill first (placement), then the one tested longest ago. */

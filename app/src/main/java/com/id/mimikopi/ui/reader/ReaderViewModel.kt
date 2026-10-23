@@ -150,6 +150,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         data class Piece(val id: String, val hand: HandChoice?) : Source
         data class LessonDrill(val lesson: Lesson, val index: Int) : Source { val drill: Drill get() = lesson.drills[index] }
         data class NewReading(val level: Int) : Source
+        /** Practice from the Today plan or a skill page on app-made material (two-hand solo); nothing is passed. */
+        data class Practice(val drill: Drill, val log: String) : Source
         data class Benchmark(val level: Int) : Source
         /** A level test of the skill page (rhythm, sight-reading, technique). */
         data class Check(val level: com.id.mimikopi.core.progress.SkillLevel) : Source {
@@ -176,6 +178,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             ?.takeIf { it.run is com.id.mimikopi.core.progress.CheckRun.ScoreRun }?.let { Source.Check(it) } ?: Source.Piece("", null)
         args.get<String>("exam") != null -> ExamPart.entries.firstOrNull { it.name == args.get<String>("part") }
             ?.let { Source.Exam(args.get<String>("exam")!!, it) } ?: Source.Piece("", null)
+        args.get<String>("solo") != null -> args.get<String>("solo")!!.toIntOrNull()?.let { com.id.mimikopi.core.session.PlanContent.solo(it) }
+            ?.let { Source.Practice(it, "solo") } ?: Source.Piece("", null)
         args.get<String>("newread") != null -> Source.NewReading(args.get<String>("newread")!!.toIntOrNull()?.coerceIn(1, 5) ?: 1)
         else -> Source.Benchmark(args.get<String>("bench")?.toIntOrNull()?.coerceIn(1, Benchmarks.MAX_LEVEL) ?: 1)
     }
@@ -223,6 +227,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
             is Source.Check -> scoreFor(src.drill)
             is Source.Exam -> examScore(src)
             is Source.LessonDrill -> scoreFor(src.drill)
+            is Source.Practice -> scoreFor(src.drill)
             is Source.NewReading -> Score.from(ScoreGenerators.sightReading(newReadingDrill(src.level), seed))
             is Source.Benchmark -> Score.from(ScoreGenerators.sightReading(Benchmarks.sightReadingDrill(benchLevel), Benchmarks.sightReadingSeed(benchLevel)))
         }
@@ -303,6 +308,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         val bpm = when (val src = source) {
             is Source.LessonDrill -> src.drill.bpm
             is Source.Check -> src.drill.bpm
+            is Source.Practice -> src.drill.bpm
             is Source.NewReading -> _ui.value.bpm
             is Source.Benchmark -> 60
             is Source.Piece, is Source.Exam -> s.tempo
@@ -312,8 +318,8 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
 
     /** Options a fixed source dictates (mode, hands, no ramp); the keyboard choice stays the user's. */
     private fun fixedOptions(saved: ReaderOptions): ReaderOptions = when (val src = source) {
-        is Source.LessonDrill, is Source.Check -> {
-            val d = if (src is Source.Check) src.drill else (src as Source.LessonDrill).drill
+        is Source.LessonDrill, is Source.Check, is Source.Practice -> {
+            val d = when (src) { is Source.Check -> src.drill; is Source.Practice -> src.drill; else -> (src as Source.LessonDrill).drill }
             ReaderOptions(
                 mode = if (d.mode == "WAIT") PlayMode.WAIT else PlayMode.TEMPO,
                 hands = runCatching { HandChoice.valueOf(d.hand) }.getOrDefault(HandChoice.RIGHT),
@@ -338,6 +344,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         is Source.LessonDrill -> "${src.lesson.id} · ${src.drill.title}" +
             (transposeKey?.let { " · เล่นในคีย์ ${com.id.mimikopi.core.theory.Keys.name(it)}" } ?: "")
         is Source.NewReading -> "อ่านโน้ตใหม่ (ระดับ L${src.level})"
+        is Source.Practice -> src.drill.title
         is Source.Benchmark -> "วัดผล: อ่านโน้ตระดับ L$benchLevel"
         is Source.Check -> "ทดสอบวัดระดับ · ${src.level.skill.title} ระดับ ${src.level.level}"
         is Source.Exam -> "สอบ ${exam()?.second?.name ?: ""} · ${src.part.title}"
@@ -911,7 +918,7 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
         newPieceNext = generated && (clean || runsOnPiece >= 3) && source !is Source.Benchmark
         val seconds = if (result.hasNoteInput) (System.currentTimeMillis() - runStartedAt) / 1000 else 0L
         if (source !is Source.Check && source !is Source.Exam) services.appScope.launch {
-            services.progress.log(via ?: when (source) { is Source.NewReading -> "sight"; is Source.Benchmark -> "check"; else -> "ladder" }, seconds)
+            services.progress.log(via ?: when (source) { is Source.NewReading -> "sight"; is Source.Practice -> source.log; is Source.Benchmark -> "check"; else -> "ladder" }, seconds)
         }
         services.appScope.launch {
             services.progress.addMistakes(com.id.mimikopi.core.progress.Mistakes.fromPlay(j, result, "score", System.currentTimeMillis(), java.time.LocalDate.now().toString()))
@@ -996,6 +1003,13 @@ class ReaderViewModel(app: Application, args: SavedStateHandle) : AndroidViewMod
                     }
                     if (helper && required) lines += CoachLine("รอบนี้เปิดชื่อโน้ตไว้ จึงไม่นับเป็นการผ่าน")
                 }
+                is Source.Practice -> learning.saveAttempt(
+                    exerciseId = "PRACTICE:${src.log}:${src.drill.type}:${src.drill.pattern}", paramsJson = """{"seed":$seed,"mode":"${result.setup.mode}","completed":${!stoppedEarly}}""",
+                    startedAt = runStartedAt, tempoBpm = if (result.timingJudged) result.setup.bpm else null, noteAccuracy = result.summary?.noteAccuracy,
+                    timingWithinTol = if (result.timingJudged) result.summary?.fractionWithinTiming else null,
+                    clean = if (result.timingJudged) clean else null, helperUses = if (helper) 1 else 0,
+                    events = emptyList(), sessionId = services.session.currentId(), stumbles = result.stumbles,
+                )
                 is Source.NewReading -> learning.saveAttempt(
                     exerciseId = "NEW_READING:L${src.level}", paramsJson = """{"seed":$seed,"level":${src.level}}""",
                     startedAt = runStartedAt, tempoBpm = if (result.timingJudged) result.setup.bpm else null, noteAccuracy = result.summary?.noteAccuracy,

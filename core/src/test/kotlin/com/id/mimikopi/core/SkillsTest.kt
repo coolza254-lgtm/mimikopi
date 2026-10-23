@@ -83,4 +83,41 @@ class SkillsTest {
         assertTrue(l.judge(CheckMetrics(accuracy = 0.9, medianSec = 2.0)).passed)
         assertEquals(l, SkillBook.parseKey(SkillBook.key(SkillId.NOTES, 2)))
     }
+
+    @Test
+    fun soloOpensOnlyAfterTwoHandReadingAndTheFirstChordLevel() {
+        val solo = SkillBook.status(SkillId.SOLO, emptyList(), today)
+        assertTrue(solo.locked)
+        assertFalse(solo.due)
+        // A beginner's placement never starts with the two-hand test.
+        assertTrue(SkillBook.dueCheck(emptyList(), today)?.skill != SkillId.SOLO)
+        val reading = (1..5).map { rec(it, true, 30L - it, SkillId.SIGHT) }
+        assertTrue(SkillBook.status(SkillId.SOLO, reading, today).locked)
+        val open = SkillBook.status(SkillId.SOLO, reading + rec(1, true, 20, SkillId.CHORDS), today)
+        assertFalse(open.locked)
+        assertTrue(open.due)
+        assertEquals(1, open.nextTest)
+        // Once tested it stays open, even if a skill it builds on drops later.
+        val dropped = reading + rec(5, false, 2, SkillId.SIGHT) + rec(5, false, 1, SkillId.SIGHT) + rec(1, false, 8, SkillId.SOLO)
+        assertFalse(SkillBook.status(SkillId.SOLO, dropped, today).locked)
+        assertEquals("เปิดเมื่อ อ่านโน้ตใหม่ระดับ 5 · คอร์ดระดับ 1", SkillBook.opensText(SkillId.SOLO))
+    }
+
+    @Test
+    fun soloTestsPlayBothHandsInTheirKeysAndMoveToTheFlatSide() {
+        val levels = SkillBook.levels(SkillId.SOLO)
+        assertEquals((1..7).toList(), levels.map { (it.run as CheckRun.ScoreRun).drill.pattern })
+        for (l in levels) {
+            val d = (l.run as CheckRun.ScoreRun).drill
+            assertTrue(d.judgesTiming && d.hand == "BOTH", "level ${l.level}")
+            for (seed in 1L..5L) {
+                val piece = com.id.mimikopi.core.exercise.ScoreGenerators.comp(d, seed)
+                assertTrue(piece.key in d.keys, "level ${l.level} key ${piece.key}")
+                assertTrue(piece.rh.any { it.any(Char::isLetter) && it.replace("r/", "").any { c -> c in "ABCDEFG" } }, "melody ${l.level}")
+                assertTrue(piece.lh.any { bar -> bar.any { c -> c in "ABCDEFG" } }, "left hand ${l.level}")
+            }
+        }
+        assertTrue(levels.drop(3).all { l -> (l.run as CheckRun.ScoreRun).drill.keys.any { it < -1 || it >= 4 } })
+        assertTrue(levels.zipWithNext().all { (a, b) -> (a.run as CheckRun.ScoreRun).drill.bpm <= (b.run as CheckRun.ScoreRun).drill.bpm })
+    }
 }

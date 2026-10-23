@@ -128,6 +128,7 @@ private fun look(kind: BlockKind): Pair<Tokens.SkillColor, Int> = when (kind) {
     BlockKind.CHECK -> Tokens.Skill.Reading to R.drawable.ic_nav_skills
     BlockKind.EAR -> Tokens.Skill.Ear to R.drawable.ic_skill_ear
     BlockKind.CHORDS -> Tokens.Skill.Chords to R.drawable.ic_nav_piano
+    BlockKind.SOLO -> Tokens.Skill.Keys to R.drawable.ic_skill_hand
     BlockKind.SONG -> Tokens.Skill.Keys to R.drawable.ic_nav_songs
 }
 

@@ -91,6 +91,7 @@ private fun open(app: AppContext, b: PlanBlock) {
             s.db.put(ProgressStore.CHORDS_TODAY, com.id.mimikopi.core.exercise.ChordPractice.encode(PlanContent.chords(level)))
             app.nav.open(Screen.Drill(DrillSource.Chords(true)))
         }
+        BlockKind.SOLO -> app.nav.open(Screen.Reader(ReaderArgs(solo = b.target?.toIntOrNull() ?: 1)))
         BlockKind.EAR -> app.nav.open(Screen.Ear(EarArgs()))
         BlockKind.SONG -> app.nav.home(Tab.SONGS)
     }
@@ -104,6 +105,7 @@ private fun detail(s: Services, b: PlanBlock): String = when (b.kind) {
         ?: ProgressRules.nextToLearn(s.learning.lessons, s.learning.records.value)?.let { "${it.id} ${it.title}" } ?: "ทบทวนขั้นที่ผ่านแล้ว")
     BlockKind.SIGHT -> "โน้ตที่ไม่เคยเห็น ระดับ ${b.target} · เล่นครั้งเดียวแล้วไปต่อ"
     BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, s.progress.checks.value, LocalDate.now()).level).summary()
+    BlockKind.SOLO -> b.target?.toIntOrNull()?.let { PlanContent.soloSummary(it) } ?: ""
     BlockKind.EAR -> EarProgress.currentStage(EarProgress.parse(s.db.get(EarProgress.KEY))).let { "ขั้น ${it.n} ${it.title}" }
     BlockKind.SONG -> "เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น"
 }

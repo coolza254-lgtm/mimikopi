@@ -31,6 +31,8 @@ sealed interface Open {
     data object Review : Open
     data object Ladder : Open
     data class Sight(val level: Int) : Open
+    /** Two-hand solo practice: the material of a solo level, in wait mode. */
+    data class Solo(val level: Int) : Open
     /** An ear-course round ([focus]: one kind only, an EarKind name). */
     data class Ear(val focus: String? = null) : Open
     data object EarHome : Open
@@ -184,6 +186,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
         BlockKind.LADDER -> ProgressRules.nextToLearn(learning.lessons, learning.records.value)?.let { "ขั้น ${it.id} · ${it.title}" } ?: "ยืนยันขั้นที่ผ่านแล้ว"
         BlockKind.SIGHT -> "ระดับ L${b.target}"
         BlockKind.CHORDS -> PlanContent.chords(SkillBook.status(SkillId.CHORDS, progress.checks.value, LocalDate.now()).level).summary()
+        BlockKind.SOLO -> b.target?.toIntOrNull()?.let { PlanContent.soloSummary(it) } ?: ""
         BlockKind.EAR -> "ขั้น ${earStage.n} ${earStage.title}"
         BlockKind.SONG -> "เพลงจากคลัง ฝึกแบบชีตเต็มแผ่น"
     } + " · ${b.minutes} นาที"
@@ -202,6 +205,7 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
                     dao.put(SettingEntity(ProgressStore.CHORDS_TODAY, com.id.mimikopi.core.exercise.ChordPractice.encode(PlanContent.chords(level))))
                     Open.ChordsToday
                 }
+                BlockKind.SOLO -> Open.Solo(b.target?.toIntOrNull() ?: 1)
                 BlockKind.EAR -> Open.Ear()
                 BlockKind.SONG -> Open.Songs
             } ?: return@launch

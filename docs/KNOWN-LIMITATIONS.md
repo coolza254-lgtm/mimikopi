@@ -2,6 +2,15 @@
 
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
+## Two-hand solo track (unreleased)
+- Solo material is generated: a chord-tone melody over a fixed progression with one left-hand pattern of 8.2. It is not
+  an arrangement of any real song, and it has no right-hand harmony (3rds/6ths/octaves) or colour chords yet.
+- Levels, keys, tempos and the opening rule (new reading 5 + chords 1) are my settings, not an outside grade.
+  Practice in the daily plan is wait mode; only the tempo test on a cable moves the level.
+- A check record of the new skill cannot be read by an app older than this change: update the phone and the PC together.
+  An older app keeps its own records and skips the other device's file until it is updated.
+- The phone and desktop UI changes were not compiled in the session that wrote them (no access to Google's Maven); CI builds them.
+
 ## Mobile performance and lesson history (v0.29.0)
 - Score playback requests sensor landscape, hides system bars and restores the prior policy on exit. Android may override orientation on large-screen/multi-window configurations; physical phone rotation/cutout/navigation still needs device validation.
 - History reads the existing attempts table without a schema reset. New completed lesson runs include mode/completion metadata; older rows with unknown completion remain visible but excluded from comparisons.

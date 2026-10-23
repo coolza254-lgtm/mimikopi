@@ -32,19 +32,19 @@ object IdolGoal {
         TargetSong(
             "kokoro-placard", "心のプラカード", "AKB48 (2014)",
             listOf("ราว 98 bpm", "ทำนองช่วงแคบ ราว C4–C5", "ยังไม่ทราบคีย์และคอร์ด ต้องแกะจากหู"),
-            mapOf(SkillId.NOTES to 4, SkillId.RHYTHM to 4, SkillId.SIGHT to 3, SkillId.TECH to 3, SkillId.EAR to 5, SkillId.CHORDS to 4),
+            mapOf(SkillId.NOTES to 4, SkillId.RHYTHM to 4, SkillId.SIGHT to 3, SkillId.TECH to 3, SkillId.EAR to 5, SkillId.CHORDS to 4, SkillId.SOLO to 3),
             "ทำนองแคบและช้าที่สุดในสามเพลง เหมาะเป็นเพลงแรกที่ลองแกะเอง",
         ),
         TargetSong(
             "i-wish", "I WISH", "モーニング娘。 (2000)",
             listOf("ราว 90–102 bpm (แหล่งข้อมูลไม่ตรงกัน)", "ทำนองแคบ ราว A♯3–F♯4", "คีย์ A♭ แล้วไป E♭ คอร์ด add9 maj9 sus4 สแลช m7♭5 aug 13 (จากเว็บคอร์ดเว็บเดียว)"),
-            mapOf(SkillId.NOTES to 6, SkillId.RHYTHM to 4, SkillId.SIGHT to 5, SkillId.TECH to 6, SkillId.EAR to 7, SkillId.CHORDS to 6),
+            mapOf(SkillId.NOTES to 6, SkillId.RHYTHM to 4, SkillId.SIGHT to 5, SkillId.TECH to 6, SkillId.EAR to 7, SkillId.CHORDS to 6, SkillId.SOLO to 5),
             "ทำนองไม่ยาก แต่ฮาร์โมนีหลากหลาย มีเปลี่ยนคีย์ และอยู่ในคีย์แฟลตเยอะ",
         ),
         TargetSong(
             "love-revolution-21", "恋愛レボリューション21", "モーニング娘。 (2000)",
             listOf("ราว 133 bpm", "ทำนองกว้าง ราว F♯3–D♯5", "น่าจะคีย์ C (อนุมาน) มี maj9 m7 E7 D7 A7♭9 aug A♭M7"),
-            mapOf(SkillId.NOTES to 6, SkillId.RHYTHM to 6, SkillId.SIGHT to 6, SkillId.TECH to 7, SkillId.EAR to 8, SkillId.CHORDS to 7),
+            mapOf(SkillId.NOTES to 6, SkillId.RHYTHM to 6, SkillId.SIGHT to 6, SkillId.TECH to 7, SkillId.EAR to 8, SkillId.CHORDS to 7, SkillId.SOLO to 7),
             "เร็วที่สุดและทำนองกว้างที่สุด คอร์ดยืมและโดมิแนนท์ข้างเคียงเยอะ ควรเป็นเพลงที่สาม",
         ),
     )

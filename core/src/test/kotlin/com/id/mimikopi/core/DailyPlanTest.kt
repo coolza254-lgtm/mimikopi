@@ -95,6 +95,22 @@ class DailyPlanTest {
         val block = DailyPlan.build(full).first { it.kind == BlockKind.EAR }
         assertTrue(DailyPlan.isDone(block, PracticeLog.on(log, d), false, 0) == (180 >= block.minutes * 36))
     }
+    @Test
+    fun theTwoHandPartComesWhenSoloIsOpenAndNeedsNoCable() {
+        assertTrue(DailyPlan.build(full).none { it.kind == BlockKind.SOLO })
+        val plan = DailyPlan.build(full.copy(soloLevel = 2))
+        val solo = plan.first { it.kind == BlockKind.SOLO }
+        assertEquals("2", solo.target)
+        assertEquals(30, plan.sumOf { it.minutes })
+        assertTrue(!DailyPlan.needsCable(solo, ladderTimed = true))
+        val drill = com.id.mimikopi.core.session.PlanContent.solo(2)!!
+        assertEquals("WAIT", drill.mode)
+        assertTrue(!drill.judgesTiming && drill.pattern == 2 && drill.hand == "BOTH")
+        assertTrue(com.id.mimikopi.core.session.PlanContent.solo(99) == null)
+        // A weak solo skill gets its extra time in the two-hand part.
+        val weak = DailyPlan.build(full.copy(minutes = 45, soloLevel = 2, weakest = SkillId.SOLO)).first { it.kind == BlockKind.SOLO }.minutes
+        assertTrue(weak > DailyPlan.build(full.copy(minutes = 45, soloLevel = 2)).first { it.kind == BlockKind.SOLO }.minutes)
+    }
 }
 
 class PlanContentTest {
@@ -125,4 +141,5 @@ class PlanContentTest {
             assertTrue(!DailyPlan.needsCable(com.id.mimikopi.core.session.PlanBlock(k, 3), ladderTimed = true), "$k")
         }
     }
+
 }

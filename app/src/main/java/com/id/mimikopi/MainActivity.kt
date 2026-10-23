@@ -126,6 +126,7 @@ private object Routes {
     const val CHECK_SCORE = "check/score?check={check}"
     const val CHECK_EAR = "check/ear?check={check}"
     const val NEW_READING = "newread/{newread}?via={via}"
+    const val SOLO = "solo/{solo}"
 
     const val DIAGNOSTICS = "diagnostics"
     const val ABOUT = "about"
@@ -183,6 +184,7 @@ private fun openPage(nav: NavController, app: MimikopiApp, o: Open, selectTab: (
         Open.Review -> nav.navigate(Routes.REVIEW_NOW)
         Open.Ladder -> nav.navigate(Routes.LADDER)
         is Open.Sight -> nav.navigate("newread/${o.level}")
+        is Open.Solo -> nav.navigate("solo/${o.level}")
         is Open.Ear -> nav.navigate(Routes.earSession(o.focus))
         Open.EarHome -> nav.navigate(Routes.EAR)
         Open.ChordsToday -> nav.navigate("chorddrill/chords-today")
@@ -237,7 +239,7 @@ private fun AppNavigation() {
     Scaffold(
         containerColor = com.id.mimikopi.ui.theme.Tokens.Palette.Paper,
         // Playing screens own their insets, including portrait and fixed exercise/exam routes.
-        contentWindowInsets = if (route in setOf(Routes.READER, Routes.SCORE_DRILL, Routes.NEW_READING,
+        contentWindowInsets = if (route in setOf(Routes.READER, Routes.SCORE_DRILL, Routes.NEW_READING, Routes.SOLO,
                 Routes.CHECK_SCORE, Routes.EXAM_PLAY, Routes.NOTE_READING, Routes.DRILL, Routes.REVIEW,
                 Routes.CHECK_DRILL, Routes.CHORD_DRILL)) WindowInsets(0, 0, 0, 0)
             else ScaffoldDefaults.contentWindowInsets,
@@ -304,6 +306,7 @@ private fun AppNavigation() {
         composable(Routes.CHECK_DRILL, arguments = listOf(optional("check"))) { DrillScreen(onBack = back) }
         composable(Routes.CHECK_SCORE, arguments = listOf(optional("check"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
         composable(Routes.NEW_READING, arguments = listOf(optional("via"))) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
+        composable(Routes.SOLO) { ReaderScreen(onBack = back, onOpenMidi = openMidi) }
         composable(Routes.DIAGNOSTICS) { DiagnosticsScreen(onBack = back) }
         composable(Routes.ABOUT) { AboutScreen(onBack = back, onOpenCredits = { nav.navigate(Routes.CREDITS) }) }
         composable(Routes.CREDITS) { CreditsScreen(onBack = back) }

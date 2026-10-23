@@ -58,6 +58,7 @@ enum class BlockKind(val log: String, val title: String, val why: String) {
     LADDER("ladder", "ขั้นหลัก", "เรื่องใหม่ของวันนี้ ฝึกจนผ่านเกณฑ์"),
     SIGHT("sight", "อ่านโน้ตใหม่", "โน้ตที่ไม่เคยเห็น เล่นครั้งเดียวแล้วไปต่อ"),
     CHORDS("chords", "คอร์ด", "กดคอร์ดให้คล่องมือ"),
+    SOLO("solo", "สองมือแบบ piano solo", "ทำนองกับมือซ้ายประกอบ ช้า ๆ แบบรอ"),
     EAR("ear", "ฝึกหู", "ฟังแล้วรู้ว่าเป็นโน้ตตัวไหน"),
     SONG("song", "เล่นเพลง", "เพลงที่ชอบ ไม่มีคะแนน"),
 }
@@ -82,6 +83,8 @@ data class PlanInput(
     val check: String?,
     /** The weakest measured skill, which gets more time. */
     val weakest: SkillId?,
+    /** Two-hand solo level to practise ([PlanContent.solo]), null while the skill is not open. */
+    val soloLevel: Int? = null,
 )
 
 /**
@@ -112,6 +115,7 @@ object DailyPlan {
         SkillId.TECH -> BlockKind.LADDER
         SkillId.EAR -> BlockKind.EAR
         SkillId.CHORDS -> BlockKind.CHORDS
+        SkillId.SOLO -> BlockKind.SOLO
         null -> null
     }
 
@@ -124,6 +128,7 @@ object DailyPlan {
             if (input.ladder) add(BlockKind.LADDER to null)
             if (input.sightLevel != null) add(BlockKind.SIGHT to input.sightLevel.toString())
             if (input.chords) add(BlockKind.CHORDS to null)
+            if (input.soloLevel != null) add(BlockKind.SOLO to input.soloLevel.toString())
             if (input.earLevel != null) add(BlockKind.EAR to input.earLevel)
             add(BlockKind.SONG to null)
         }
@@ -137,7 +142,7 @@ object DailyPlan {
         if (kept.all { it.first in fixed }) kept += BlockKind.SONG to null
         val weight = mapOf(
             BlockKind.REVIEW to 2.0, BlockKind.LADDER to 7.0, BlockKind.SIGHT to 3.0, BlockKind.CHORDS to 2.5,
-            BlockKind.EAR to 3.0, BlockKind.SONG to if (total >= 45) 5.0 else 3.0,
+            BlockKind.SOLO to 3.5, BlockKind.EAR to 3.0, BlockKind.SONG to if (total >= 45) 5.0 else 3.0,
         )
         val flexible = kept.filter { it.first !in fixed }
         val budget = total - kept.sumOf { fixed[it.first] ?: 0 }
@@ -215,6 +220,8 @@ object PlanContent {
             chords = level(SkillId.KEYS) >= 2 || level(SkillId.CHORDS) >= 1,
             check = com.id.mimikopi.core.progress.SkillBook.dueCheck(checks, today)?.let { st -> st.nextTest?.let { com.id.mimikopi.core.progress.SkillBook.key(st.skill, it) } },
             weakest = com.id.mimikopi.core.progress.SkillBook.weakest(checks, today),
+            soloLevel = com.id.mimikopi.core.progress.SkillBook.status(SkillId.SOLO, checks, today)
+                .takeIf { !it.locked }?.let { (it.level + 1).coerceAtMost(it.maxLevel) },
         )
     }
 
@@ -247,6 +254,20 @@ object PlanContent {
         4 -> ChordPractice(ChordPractice.Mode.NAME, listOf(0, 1, -1, 2, -2), listOf("sevenths"), items = 12)
         5 -> ChordPractice(ChordPractice.Mode.CHANGE, listOf(1), progression = "Canon", seconds = 60)
         else -> ChordPractice(ChordPractice.Mode.CHANGE, listOf(-1), progression = "ii–V–I", seconds = 60)
+    }
+
+    /**
+     * The two-hand part: the material of the solo level's test (pattern, progression, keys), in wait mode so it can be
+     * learnt slowly and on the phone too; the test itself is in tempo on a cable.
+     */
+    fun solo(level: Int): com.id.mimikopi.core.lesson.Drill? =
+        (com.id.mimikopi.core.progress.SkillBook.level(SkillId.SOLO, level)?.run as? com.id.mimikopi.core.progress.CheckRun.ScoreRun)?.drill
+            ?.let { it.copy(title = it.title.replace("ทดสอบ: ", "ฝึก: "), mode = "WAIT") }
+
+    /** "อาร์เพจจิโอ 1-5-8 · คีย์ C G F · แบบรอ" for the two-hand part of [level]. */
+    fun soloSummary(level: Int): String? = solo(level)?.let { d ->
+        (com.id.mimikopi.core.theory.Accompaniment.LEVEL_NAMES[d.pattern] ?: "") + " · คีย์ " +
+            d.keys.joinToString(" ") { com.id.mimikopi.core.theory.Keys.name(it) } + " · แบบรอ"
     }
 
     /** The ear part is always the ear course's adaptive round (it picks the stage and the weak items itself). */

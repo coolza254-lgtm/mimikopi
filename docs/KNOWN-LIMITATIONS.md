@@ -1,5 +1,7 @@
 # Known limitations
 
+> หมายเหตุ 2026-10-23: แอปมือถือถูกเลิกแล้ว ข้อที่พูดถึงมือถือ/Android ในไฟล์นี้ไม่ใช้แล้ว
+
 Updated each milestone. Mirrors the "ยังไม่มีในรุ่นนี้" list on the About screen.
 
 ## Two-hand solo track (v0.33.0)

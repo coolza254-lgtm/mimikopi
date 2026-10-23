@@ -15,7 +15,7 @@
 | `desktop/app/` | UI Compose Desktop: `ui/screens/*Screen.kt`, `ui/components/` (`Design.kt`, `FallingNotes.kt`, `PianoKeys.kt`), `ui/score/` (`ScoreView`, `LiveScore`), `ui/theme/Tokens.kt`, ฟอนต์ใน `desktop/app/fonts/` |
 | `desktop/native/` | ไลบรารีเสียง C++ (miniaudio, CMake) |
 | `content/` | เนื้อหาบทเรียน/แบบฝึก (แก้ได้), แปลใน `core/src/main/resources/i18n/content-*.json` |
-| `docs/learning-system.md` | สเปกระบบการเรียน (ต้นฉบับ) · `docs/DESKTOP.md` · `docs/ARCHITECTURE.md` |
+| `docs/SYSTEM.md` | สรุประบบ หลักการ เงื่อนไข · `docs/learning-system.md` สเปกฉบับเต็ม · `docs/DESKTOP.md` |
 | `release-notes/vX.Y.Z.md` | โน้ตรุ่นภาษาไทย (ต้องมีก่อนปล่อย) · `docs/CHANGELOG.md` |
 
 ## สร้าง / ทดสอบ / ปล่อย

@@ -136,7 +136,7 @@ class LearningRepository(private val context: Context, private val db: AppDataba
     /** Allowed onset error for a stage and tempo in the user's strictness mode (or NORMAL for benchmarks). */
     fun toleranceMs(stage: Int, bpm: Double, benchmark: Boolean = false): Int =
         com.id.mimikopi.core.practice.TimingRules(config.timing)
-            .toleranceMs(stage, bpm, if (benchmark) com.id.mimikopi.core.practice.TimingMode.NORMAL else _timingMode.value)
+            .toleranceMs(stage, bpm, com.id.mimikopi.core.practice.TimingMode.NORMAL /* one tolerance everywhere: the strictness setting was removed (2026-10-23) */)
 
     /**
      * Updates a lesson's record after drill [drillIndex] ran. [met] = the drill met its criterion (only drills the

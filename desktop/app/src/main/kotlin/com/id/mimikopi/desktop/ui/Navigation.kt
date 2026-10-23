@@ -9,16 +9,16 @@ import com.id.mimikopi.desktop.Services
 import com.id.mimikopi.desktop.session.DrillSource
 import com.id.mimikopi.desktop.session.ReaderArgs
 
-/** The main sections, in the left rail. */
-enum class Tab(val title: String, val mark: String) {
-    TODAY("วันนี้", "◎"),
-    LESSONS("บทเรียน", "≡"),
-    SKILLS("ทักษะ", "◆"),
-    SONGS("เพลง", "♪"),
-    EAR("ฝึกหู", "◉"),
-    PROGRESS("พัฒนาการ", "↗"),
-    PIANO("เปียโน", "▥"),
-    SETTINGS("ตั้งค่า", "⚙"),
+/** The main sections, in the left rail: a name (read aloud and shown nowhere else) and a line icon. */
+enum class Tab(val title: String, val icon: List<String>) {
+    TODAY("วันนี้", com.id.mimikopi.desktop.ui.components.LineIcons.today),
+    LESSONS("บทเรียน", com.id.mimikopi.desktop.ui.components.LineIcons.lessons),
+    SKILLS("ทักษะ", com.id.mimikopi.desktop.ui.components.LineIcons.skills),
+    SONGS("เพลง", com.id.mimikopi.desktop.ui.components.LineIcons.songs),
+    EAR("ฝึกหู", com.id.mimikopi.desktop.ui.components.LineIcons.ear),
+    PROGRESS("พัฒนาการ", com.id.mimikopi.desktop.ui.components.LineIcons.progress),
+    PIANO("เปียโน", com.id.mimikopi.desktop.ui.components.LineIcons.piano),
+    SETTINGS("ตั้งค่า", com.id.mimikopi.desktop.ui.components.LineIcons.settings),
 }
 
 sealed interface Screen {

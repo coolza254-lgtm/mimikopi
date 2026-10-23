@@ -116,58 +116,48 @@ fun App(ctx: AppContext) {
     }
 }
 
+/**
+ * The sidebar (approved design 2026-10-23): a narrow white column with the app's logo on top and one icon per page,
+ * no words (as on the phone's tab bar); the current page in an accentSoft capsule. A green dot above settings shows a
+ * MIDI piano is connected; its name and the sound are on the settings page.
+ */
 @Composable
 private fun Rail(ctx: AppContext) {
     val ports by ctx.services.midi.ports.collectAsState()
-    val pianoNames by ctx.services.pianoNames.collectAsState()
-    val audio by ctx.services.piano.status.collectAsState()
     val currentTab = (ctx.nav.stack.firstOrNull() as? Screen.Home)?.tab
     val shape = RoundedCornerShape(Tokens.Radius.card)
-    Box(Modifier.width(232.dp).fillMaxHeight().padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 8.dp)) {
+    Box(Modifier.width(96.dp).fillMaxHeight().padding(start = 16.dp, top = 16.dp, bottom = 16.dp)) {
         Column(
-            Modifier.fillMaxSize().softShadow(shape).clip(shape).background(Tokens.Palette.Group).padding(vertical = 22.dp, horizontal = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            Modifier.fillMaxSize().softShadow(shape).clip(shape).background(Tokens.Palette.Group).padding(vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Row(Modifier.padding(start = 8.dp, bottom = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(Modifier.size(36.dp).clip(CircleShape).background(Tokens.Palette.AccentSoft), contentAlignment = Alignment.Center) {
-                    Text("\uE050", fontFamily = Bravura, fontSize = 18.sp, color = Tokens.Palette.Accent, modifier = Modifier.offset(y = (-13).dp))
-                }
-                Text("ミミコピ", fontFamily = Tokens.Fonts.kana, fontSize = 20.sp, color = Tokens.Palette.Ink)
-            }
+            com.id.mimikopi.desktop.ui.components.Logo(48.dp, Modifier.padding(bottom = 14.dp).clickable { ctx.nav.home(Tab.TODAY) })
             for (t in Tab.entries) {
                 if (t == Tab.SETTINGS) continue
                 RailItem(t, t == currentTab) { ctx.nav.home(t) }
             }
             Spacer(Modifier.weight(1f))
-            val midi = ports.count { it.open }
-            Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(Tokens.Radius.box)).background(Tokens.Palette.Paper)
-                    .clickable { ctx.nav.home(Tab.SETTINGS) }.padding(horizontal = 12.dp, vertical = 10.dp),
-            ) {
-                StatusDot(midi > 0, if (midi > 0) "MIDI ${com.id.mimikopi.core.input.PianoNames.display(ports.first { it.open }.name, pianoNames)}" else "ไม่มี MIDI · ใช้เมาส์/คีย์บอร์ด")
-                StatusDot(audio.open || audio.error == null, when {
-                    audio.error != null -> "เสียง: ${audio.error}"
-                    audio.samples -> "เสียงเปียโนจริง"
-                    else -> "เสียงพื้นฐาน"
-                })
-            }
+            val midi = ports.any { it.open }
+            Box(Modifier.size(8.dp).clip(CircleShape).background(if (midi) Tokens.Palette.Positive else Tokens.Palette.Dim))
             RailItem(Tab.SETTINGS, currentTab == Tab.SETTINGS) { ctx.nav.home(Tab.SETTINGS) }
-            Text("F11 เต็มจอ · Esc กลับ", fontSize = 12.sp, color = Tokens.Palette.Dim, modifier = Modifier.padding(start = 12.dp, top = 4.dp))
         }
     }
 }
 
-/** One page in the sidebar: the current one an accentSoft capsule in accentDeep. */
+/** One page in the sidebar: its line icon, the current one in an accentSoft capsule. */
 @Composable
 private fun RailItem(t: Tab, on: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 46.dp).clip(RoundedCornerShape(23.dp))
-            .background(if (on) Tokens.Palette.AccentSoft else Tokens.Palette.Group)
-            .clickable(onClick = onClick).padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Box(
+        Modifier.size(52.dp).clip(CircleShape).background(if (on) Tokens.Palette.AccentSoft else Tokens.Palette.Group)
+            .clickable(onClickLabel = t.title, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(t.mark, fontSize = 16.sp, color = if (on) Tokens.Palette.AccentDeep else Tokens.Palette.InkMuted, modifier = Modifier.width(20.dp))
-        Text(t.title, fontSize = 15.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium, color = if (on) Tokens.Palette.AccentDeep else Tokens.Palette.Ink)
+        androidx.compose.material3.Icon(
+            remember(t) { com.id.mimikopi.desktop.ui.components.lineIcon(t.name, androidx.compose.ui.graphics.Color.Black, *t.icon.toTypedArray()) },
+            contentDescription = t.title,
+            tint = if (on) Tokens.Palette.AccentDeep else Tokens.Palette.InkMuted,
+            modifier = Modifier.size(22.dp),
+        )
     }
 }

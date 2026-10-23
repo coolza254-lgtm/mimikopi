@@ -113,7 +113,7 @@ class LearningRepository(private val db: Database) {
     }
 
     fun toleranceMs(stage: Int, bpm: Double, benchmark: Boolean = false): Int =
-        TimingRules(config.timing).toleranceMs(stage, bpm, if (benchmark) TimingMode.NORMAL else _timingMode.value)
+        TimingRules(config.timing).toleranceMs(stage, bpm, TimingMode.NORMAL /* one tolerance everywhere: the strictness setting was removed (2026-10-23) */)
 
     /** Updates a lesson's record after drill [drillIndex] ran; returns true if the lesson is now passed. */
     fun recordDrill(lesson: Lesson, drillIndex: Int, met: Boolean, helperUsed: Boolean, day: LocalDate = LocalDate.now()): Boolean {

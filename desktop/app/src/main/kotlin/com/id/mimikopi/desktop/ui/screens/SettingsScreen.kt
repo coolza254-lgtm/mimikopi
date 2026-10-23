@@ -103,6 +103,7 @@ fun SettingsScreen() {
     Page {
         LargeTitle("ตั้งค่า", "เสียง · เปียโน MIDI · ข้อมูลในเครื่อง")
 
+        SyncButton()
         GroupHeader("เสียงของโปรแกรม")
         Group {
             GroupRow("สถานะ", when {
@@ -249,8 +250,6 @@ fun SettingsScreen() {
         }
         GroupFooter("ดาวน์โหลดจาก GitHub ของโปรเจกต์ ตรวจค่า SHA-256 ก่อนติดตั้งทุกครั้ง · ข้อมูลการฝึกในเครื่องอยู่ครบ")
 
-        GroupHeader("ซิงค์กับมือถือผ่าน GitHub")
-        SyncGroup()
 
         GroupHeader("ข้อมูลในเครื่อง")
         Group {
@@ -323,29 +322,40 @@ fun sourceName(source: String): String = when (source) {
     else -> source
 }
 
-/** Sync with the phone through a private GitHub repository: its name and a fine-grained token, kept on this computer. */
+/**
+ * Sync with the phone: one button (the user asked for nothing else). The repository and branch are built in; the first
+ * press asks once for the GitHub token, which can't ship inside a public app, and keeps it on this computer only.
+ */
 @Composable
-private fun SyncGroup() {
+private fun SyncButton() {
     val s = LocalApp.current.services
     val scope = rememberCoroutineScope()
     val status by s.sync.status.collectAsState()
-    val saved = remember { s.sync.config() }
-    var repo by remember { mutableStateOf(saved.repo) }
-    var token by remember { mutableStateOf(saved.token) }
-    Group {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("รวมความคืบหน้าของคอมกับมือถือ (ไม่รวมเพลงส่วนตัวและการตั้งค่าเครื่อง) ซิงค์เองตอนเปิดและปิดโปรแกรม สำรองข้อมูลก่อนรวมทุกครั้ง",
-                fontSize = 14.sp, color = Tokens.Palette.InkMuted)
-            OutlinedTextField(repo, { repo = it.take(100) }, singleLine = true, label = { Text("repo (เจ้าของ/ชื่อ)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(token, { token = it.take(200) }, singleLine = true, label = { Text("token (fine-grained · Contents อ่านและเขียน)") },
-                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
-            Text("token เก็บในเครื่องนี้เท่านั้น ไม่อยู่ในไฟล์ส่งออก และไม่ถูกส่งไปที่อื่นนอกจาก GitHub", fontSize = 13.sp, color = Tokens.Palette.InkMuted)
-            PrimaryButton(if (status.running) "กำลังซิงค์…" else "บันทึกและซิงค์ตอนนี้", enabled = !status.running, onClick = {
-                s.sync.saveConfig(com.id.mimikopi.core.sync.GitHubSyncConfig(repo, token))
-                scope.launch(Dispatchers.IO) { s.sync.sync() }
-            })
-            status.line?.let { Text(it, fontSize = 14.sp, color = if (status.failed) Tokens.Palette.Ink else Tokens.Palette.InkMuted) }
-        }
+    var asking by remember { mutableStateOf(false) }
+    var token by remember { mutableStateOf("") }
+    Column(Modifier.padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PrimaryButton(if (status.running) "กำลังซิงค์…" else "Sync", enabled = !status.running, onClick = {
+            if (s.sync.config().ready) scope.launch(Dispatchers.IO) { s.sync.sync() } else asking = true
+        })
+        status.line?.let { Text(it, fontSize = 14.sp, color = if (status.failed) Tokens.Palette.Ink else Tokens.Palette.InkMuted) }
     }
+    if (asking) AlertDialog(
+        onDismissRequest = { asking = false },
+        title = { Text("เชื่อมต่อครั้งแรก") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("ใส่ GitHub token ครั้งเดียว เก็บในเครื่องนี้เท่านั้น")
+                OutlinedTextField(token, { token = it.trim().take(200) }, singleLine = true, label = { Text("token") },
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                s.sync.saveConfig(com.id.mimikopi.core.sync.GitHubSyncConfig(token = token))
+                asking = false
+                scope.launch(Dispatchers.IO) { s.sync.sync() }
+            }, enabled = token.isNotBlank()) { Text("Sync") }
+        },
+        dismissButton = { TextButton(onClick = { asking = false }) { Text("ยกเลิก") } },
+    )
 }
-

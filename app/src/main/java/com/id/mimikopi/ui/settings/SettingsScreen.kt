@@ -138,19 +138,10 @@ fun SettingsScreen(
                     } },
                     { app.setThemeMode(it) },
                 )
-                Label(stringResource(R.string.timing_title), Modifier.padding(top = 20.dp))
-                val modes = listOf(
-                    com.id.mimikopi.core.practice.TimingMode.STRICT to R.string.timing_strict,
-                    com.id.mimikopi.core.practice.TimingMode.NORMAL to R.string.timing_normal,
-                    com.id.mimikopi.core.practice.TimingMode.FORGIVING to R.string.timing_forgiving,
-                )
-                val labels = modes.associate { (m, label) -> m to stringResource(label, vm.exampleMs(m)) }
-                Segmented(modes.map { it.first }, timingMode, { labels.getValue(it).substringBefore(" (") }, vm::setTimingMode)
-                Body(stringResource(R.string.timing_body) + " · ตอนนี้ " + labels.getValue(timingMode), muted = true)
             }
         }
 
-        Section("ซิงค์กับคอม") { SyncCard() }
+        SyncButton()
 
         Section("ข้อมูลและอัปเดต") {
             PageCard {
@@ -329,35 +320,43 @@ private fun FooterLink(text: String, onClick: () -> Unit) {
 }
 
 /**
- * Sync with the PC through a private GitHub repository (learning-system.md 2.11): the repository name and a
- * fine-grained token, saved on this phone only; it also runs by itself when the app opens and closes.
+ * Sync with the PC (learning-system.md 2.11): one button (the user asked for nothing else). The repository and branch are
+ * built in; the first press asks once for the GitHub token, which can't ship inside a public app, and keeps it on this
+ * phone only. Sync also runs by itself when the app opens and closes.
  */
 @Composable
-private fun SyncCard() {
+private fun SyncButton() {
     val app = LocalContext.current.applicationContext as com.id.mimikopi.MimikopiApp
     val status by app.sync.status.collectAsStateWithLifecycle()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val saved = remember { app.sync.config() }
-    var repo by remember { mutableStateOf(saved.repo) }
-    var token by remember { mutableStateOf(saved.token) }
-    PageCard {
-        Label("ผ่าน GitHub repo ส่วนตัว")
-        Body("รวมความคืบหน้าของมือถือกับคอมผ่าน repo ส่วนตัว (ไม่รวมเพลงส่วนตัวและการตั้งค่าเครื่อง) ซิงค์เองตอนเปิดและปิดแอป สำรองข้อมูลก่อนรวมทุกครั้ง")
-        androidx.compose.material3.OutlinedTextField(repo, { repo = it.take(100) }, singleLine = true, label = { Text("repo (เจ้าของ/ชื่อ)") },
-            modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.s))
-        androidx.compose.material3.OutlinedTextField(token, { token = it.take(200) }, singleLine = true, label = { Text("token (fine-grained · Contents อ่านและเขียน)") },
-            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth().padding(top = Tokens.Space.xs))
-        Body("token เก็บในเครื่องนี้เท่านั้น ไม่อยู่ในไฟล์สำรองและไม่ถูกส่งไปที่อื่นนอกจาก GitHub", muted = true)
+    var asking by remember { mutableStateOf(false) }
+    var token by remember { mutableStateOf("") }
+    Column(Modifier.padding(top = 20.dp)) {
         PrimaryButton(
-            if (status.running) "กำลังซิงค์…" else "บันทึกและซิงค์ตอนนี้",
-            onClick = {
-                app.sync.saveConfig(com.id.mimikopi.core.sync.GitHubSyncConfig(repo, token))
-                scope.launch { app.sync.sync() }
-            },
+            if (status.running) "กำลังซิงค์…" else "Sync",
+            onClick = { if (app.sync.config().ready) scope.launch { app.sync.sync() } else asking = true },
             enabled = !status.running,
-            modifier = Modifier.padding(top = 12.dp),
         )
         status.line?.let { Body(it, muted = !status.failed, error = status.failed) }
     }
+    if (asking) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { asking = false },
+        title = { Text("เชื่อมต่อครั้งแรก") },
+        text = {
+            Column {
+                Text("ใส่ GitHub token ครั้งเดียว เก็บในเครื่องนี้เท่านั้น")
+                androidx.compose.material3.OutlinedTextField(token, { token = it.trim().take(200) }, singleLine = true, label = { Text("token") },
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = {
+                app.sync.saveConfig(com.id.mimikopi.core.sync.GitHubSyncConfig(token = token))
+                asking = false
+                scope.launch { app.sync.sync() }
+            }, enabled = token.isNotBlank()) { Text("Sync") }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { asking = false }) { Text("ยกเลิก") } },
+    )
 }
 

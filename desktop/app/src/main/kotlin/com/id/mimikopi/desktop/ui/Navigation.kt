@@ -61,6 +61,8 @@ class KeyRouting {
     var onSpace: (() -> Unit)? = null
     /** Returns true when it stopped something (otherwise Esc goes back). */
     var onEscape: (() -> Boolean)? = null
+    /** Left arrow; returns true when the page used it. */
+    var onLeft: (() -> Boolean)? = null
     var textInput by mutableStateOf(false)
 }
 

@@ -64,11 +64,16 @@ internal class FallingGeometry(range: IntRange, width: Float, height: Float) {
  */
 internal object FallingColors {
     val stage = Color(0xFF2B2B2B)
-    val leftWhite = Color(0xFF8AA6D3)
-    val leftBlack = Color(0xFF3F64AC)
-    val rightWhite = Color(0xFF9FD46B)
-    val rightBlack = Color(0xFF5C9E30)
-    val hitLine = Color(0xFFD23F45)
+    // Approved design: right hand pink, left hand yellow, each bar a soft gradient on a dark warm stage.
+    val stageTop = Color(0xFF3A2A33)
+    val stageBottom = Color(0xFF141113)
+    val leftWhite = Color(0xFFFFE29A)
+    val leftBlack = Color(0xFFF3BE52)
+    val rightWhite = Color(0xFFF7B2C4)
+    val rightBlack = Color(0xFFE6889E)
+    val missed = Color(0xFF8A8486)
+    val hitLine = Color(0xFFF7B2C4)
+    val hitLineEnd = Color(0xFFFFE29A)
     val timing = Color(0xFFFFC56B)
     val error = Color(0xFFFF6577)
     val ink = Color(0xFF16251B)
@@ -79,8 +84,7 @@ internal object FallingColors {
     }
     fun feedback(event: FallingFeedback) = when (event.verdict) {
         FallingVerdict.HIT, FallingVerdict.CORRECTED -> hand(event.left)
-        FallingVerdict.EARLY, FallingVerdict.LATE -> timing
-        FallingVerdict.WRONG, FallingVerdict.MISS -> error
+        FallingVerdict.EARLY, FallingVerdict.LATE, FallingVerdict.WRONG, FallingVerdict.MISS -> missed
     }
     fun darker(c: Color, f: Float = 0.68f) = Color(c.red * f, c.green * f, c.blue * f, c.alpha)
 }
@@ -148,12 +152,13 @@ internal class FallingRenderer(private val range: IntRange, private val measurer
         val hitY = g.hitY
         val unit = hitY / window.coerceAtLeast(.1).toFloat()
         val whiteW = g.whiteWidth
-        drawRect(FallingColors.stage, size = Size(size.width, hitY))
+        drawRect(Brush.radialGradient(listOf(FallingColors.stageTop, FallingColors.stageBottom), Offset(size.width / 2, hitY * .3f),
+            maxOf(size.width, hitY) * .8f), size = Size(size.width, hitY))
         clipRect(bottom = hitY) {
             // A faint line at every C and F, as on the keyboard's groups of two and three black keys.
             for (k in g.keyboard.whiteKeys) {
                 val pc = k.note % 12
-                if (pc == 0 || pc == 5) drawLine(Color.White.copy(alpha = if (pc == 0) .14f else .08f), Offset(k.left, 0f), Offset(k.left, hitY), 1.2f)
+                drawLine(Color.White.copy(alpha = if (pc == 0) .12f else .04f), Offset(k.left, 0f), Offset(k.left, hitY), 1f)
             }
             for (b in lines) {
                 val y = hitY - ((b - cursor) * unit).toFloat()
@@ -180,11 +185,14 @@ internal class FallingRenderer(private val range: IntRange, private val measurer
                         drawRoundRect(color.copy(alpha = .38f), Offset(x, t), Size(w, h), radius)
                         drawRoundRect(color.copy(alpha = .6f), Offset(x, t), Size(w, h), radius, style = Stroke(1.5f))
                     }
-                    FallingState.MISSED -> drawRoundRect(FallingColors.error.copy(alpha = .7f), Offset(x, t), Size(w, h), radius, style = Stroke(2f))
+                    // A missed or off-time note just fades to grey: no cross.
+                    FallingState.MISSED -> drawRoundRect(FallingColors.missed.copy(alpha = .4f), Offset(x, t), Size(w, h), radius)
                     else -> {
                         val alpha = if (n.state == FallingState.DONE) .28f else 1f
-                        drawRoundRect(color.copy(alpha = alpha), Offset(x, t), Size(w, h), radius)
-                        drawRoundRect(FallingColors.darker(color).copy(alpha = alpha), Offset(x, t), Size(w, h), radius, style = Stroke(1.6f))
+                        val light = FallingColors.hand(n.left, false)
+                        val deep = FallingColors.hand(n.left, true)
+                        if (n.state == FallingState.WAITING) drawRoundRect(light.copy(alpha = .22f), Offset(x - 3f, t - 3f), Size(w + 6f, h + 6f), CornerRadius(radius.x + 3f))
+                        drawRoundRect(Brush.verticalGradient(listOf(light.copy(alpha = alpha), deep.copy(alpha = alpha)), t, t + h), Offset(x, t), Size(w, h), radius)
                     }
                 }
                 if (n.state == FallingState.WAITING && h > 12f && n.label.isNotEmpty()) {
@@ -220,8 +228,9 @@ internal class FallingRenderer(private val range: IntRange, private val measurer
             keyLabel(k.note)?.let { label(measurer, blackLabels, it, (k.left + k.right) / 2, hitY + k.bottom - 12f, (k.width * .5f).coerceAtMost(13.sp.toPx()), Color(0xFFF5F5EE), k.width + 6f) }
         }
         // The line the notes are played at.
-        drawLine(FallingColors.hitLine.copy(alpha = .3f), Offset(0f, hitY - 2f), Offset(size.width, hitY - 2f), 6f)
-        drawLine(FallingColors.hitLine, Offset(0f, hitY), Offset(size.width, hitY), 3f)
+        val line = Brush.horizontalGradient(listOf(FallingColors.hitLine, FallingColors.hitLineEnd))
+        drawLine(line, Offset(0f, hitY - 2f), Offset(size.width, hitY - 2f), 10f, alpha = .25f)
+        drawLine(line, Offset(0f, hitY), Offset(size.width, hitY), 3f)
         caption?.let { label(measurer, captionLabels, it, 0f, hitY - 8f, 13.sp.toPx(), Color.White.copy(alpha = .6f), alignLeft = 10f) }
         // One pulse per judged event. Quiet accompaniment and ignored inputs never create a success pulse.
         for (e in feedback) {
@@ -232,37 +241,22 @@ internal class FallingRenderer(private val range: IntRange, private val measurer
             val color = FallingColors.feedback(e)
             val alpha = 1 - age
             val center = Offset(x, hitY - 3f)
-            if (e.verdict == FallingVerdict.WRONG || e.verdict == FallingVerdict.MISS) {
-                val r = (whiteW * .25f).coerceAtLeast(5f) + age * 6f
-                val cy = hitY - 20f - age * 14f
-                if (e.verdict == FallingVerdict.WRONG) {
-                    drawLine(color.copy(alpha = alpha), Offset(x - r, cy - r), Offset(x + r, cy + r), 4f)
-                    drawLine(color.copy(alpha = alpha), Offset(x - r, cy + r), Offset(x + r, cy - r), 4f)
-                } else drawLine(color.copy(alpha = alpha), Offset(x - r, cy), Offset(x + r, cy), 4f)
+            if (e.verdict == FallingVerdict.WRONG || e.verdict == FallingVerdict.MISS || e.verdict == FallingVerdict.EARLY || e.verdict == FallingVerdict.LATE) {
+                // Off: the bar itself greys out; nothing pops.
             } else {
                 val glowR = whiteW * (1f + age * .8f)
                 drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = alpha * .8f), color.copy(alpha = alpha * .4f), color.copy(alpha = 0f)), center, glowR), glowR, center)
                 drawCircle(color.copy(alpha = alpha), whiteW * (.2f + age * .7f), center, style = Stroke(2f * alpha + .5f))
-                for (i in 0..6) {
-                    val angle = (i * Math.PI / 6).toFloat()
+                for (i in 0 until 6) {
+                    val angle = (Math.PI / 12 + i * Math.PI / 6).toFloat()
                     val reach = whiteW * (.25f + age * 1.5f)
                     val p = Offset(x + cos(angle) * reach, hitY - sin(angle) * reach - age * 16f)
                     drawLine(Color.White.copy(alpha = alpha), p, p + Offset(cos(angle) * 4f, -sin(angle) * 6f), 1.5f)
                 }
             }
         }
-        feedback.lastOrNull { it.age(now) < 1f && it.midi in g.byNote }?.let { e ->
-            val age = e.age(now)
-            val textSize = 14.sp.toPx()
-            val text = captionLabels.get(this, measurer, e.verdict.caption, textSize, FallingColors.ink)
-            val k = g.byNote.getValue(e.midi)
-            val centerX = ((k.left + k.right) / 2).coerceIn(text.size.width / 2f + 8f, (size.width - text.size.width / 2f - 8f).coerceAtLeast(text.size.width / 2f + 8f))
-            val bottom = hitY - 44f - age * 20f
-            drawRoundRect(FallingColors.feedback(e).copy(alpha = (1f - age) * .95f), Offset(centerX - text.size.width / 2f - 6f, bottom - text.size.height - 3f), Size(text.size.width + 12f, text.size.height + 6f), CornerRadius(5f))
-            drawText(text, topLeft = Offset(centerX - text.size.width / 2f, bottom - text.size.height), alpha = 1f - age)
-        }
         drawRect(Color(0xFF1C1C1C), size = Size(size.width, 4f))
-        if (totalBeats > 0) drawRect(Color.White.copy(alpha = .55f), size = Size(size.width * (cursor / totalBeats).toFloat().coerceIn(0f, 1f), 4f))
+        if (totalBeats > 0) drawRect(Brush.horizontalGradient(listOf(FallingColors.hitLine, FallingColors.hitLineEnd)), size = Size(size.width * (cursor / totalBeats).toFloat().coerceIn(0f, 1f), 4f))
     }
 }
 /** Bounded layouts, including fitted sizes for short notes and multi-character names; [outline] > 0 draws a text outline. */

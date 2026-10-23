@@ -92,7 +92,9 @@ fun ReaderScreen(args: ReaderArgs) {
             if (running) r.stop()
             running
         }
+        app.keys.onLeft = { if (r.ui.value.phase == Phase.PLAYING && !r.fixed) { r.replayFrom(back = true); true } else false }
         onDispose {
+            app.keys.onLeft = null
             app.keys.onSpace = null
             app.keys.onEscape = null
             r.dispose()
@@ -184,6 +186,16 @@ private fun PlayingBar(r: ReaderSession, ui: ReaderUi, midi: Boolean) {
         }
         Text(tr("$what · ${ui.options.hands.title} · ${ui.bpm} bpm · ห้อง ${ui.section.first + 1}–${ui.section.last + 1}", "$what · ${ui.options.hands.title} · ${ui.bpm} bpm · bars ${ui.section.first + 1}–${ui.section.last + 1}", "$what · ${ui.options.hands.title} · ${ui.bpm} bpm · ${ui.section.first + 1}–${ui.section.last + 1}小節") + (if (midi) " · MIDI" else ""),
             fontSize = 14.sp, color = Tokens.Palette.InkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        // Live accuracy, minimal and green, as in the approved falling-notes design.
+        val judged = ui.results.values.filter { it != NoteResult.PENDING }
+        if (judged.isNotEmpty()) {
+            val good = judged.count { it == NoteResult.CORRECT || it == NoteResult.EARLY || it == NoteResult.LATE || it == NoteResult.CORRECTED }
+            Text("${good * 100 / judged.size}%", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color(0xFF4CB86E))
+        }
+        if (ui.phase == Phase.PLAYING && !r.fixed) {
+            SecondaryButton(tr("‹ ย้อนห้อง", "‹ Back a bar", "‹ 1小節戻る"), onClick = { r.replayFrom(back = true) })
+            SecondaryButton(tr("↻ เล่นห้องนี้ใหม่", "↻ Replay this bar", "↻ この小節から"), onClick = { r.replayFrom(back = false) })
+        }
         if (ui.options.falling && !r.fixed) SecondaryButton(if (ui.options.fallingKeyLabels) tr("ชื่อบนคีย์: เปิด", "Names on keys: on", "鍵盤に音名：表示") else tr("ชื่อบนคีย์", "Names on keys", "鍵盤に音名"),
             onClick = { r.setFallingKeyLabels(!ui.options.fallingKeyLabels) })
         StopButton(r::stop)

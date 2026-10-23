@@ -110,6 +110,7 @@ fun main() {
                         true
                     }
                     keys.textInput -> false
+                    code == KeyEvent.VK_LEFT && down && keys.onLeft?.invoke() == true -> true
                     code == KeyEvent.VK_SPACE && down -> { keys.onSpace?.invoke(); keys.onSpace != null }
                     code == KeyEvent.VK_SPACE -> keys.onSpace != null
                     (code == ComputerKeyboard.OCTAVE_DOWN || code == ComputerKeyboard.OCTAVE_UP) && down -> {

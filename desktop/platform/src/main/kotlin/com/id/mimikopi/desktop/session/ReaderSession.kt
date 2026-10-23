@@ -471,6 +471,27 @@ class ReaderSession(
     /** Tests: the downbeat of the running tempo run on System.nanoTime, and its quarter-note length. */
     internal val clockForTest: Pair<Long, Long>? get() = if (clockRunning) clockT0 to clockBeatNanos else null
 
+    /** The bar (0-based) the cursor is in now. */
+    fun currentBar(): Int {
+        val s = score ?: return 0
+        val beat = cursorAt(System.nanoTime())
+        var m = 0
+        while (m + 1 < s.measures && s.measureStart(m + 1) <= beat + 1e-6) m++
+        return m
+    }
+
+    /** Restart from the bar under the cursor ([back] = the bar before it) to the section's end, without leaving. */
+    fun replayFrom(back: Boolean) {
+        val s = score ?: return
+        val u = _ui.value
+        val end = u.section.last
+        val bar = (currentBar() - if (back) 1 else 0).coerceIn(0, (s.measures - 1).coerceAtLeast(0))
+        val running = u.phase == Phase.PLAYING || u.phase == Phase.COUNT_IN
+        if (running) stop()
+        practiseMeasures(bar, maxOf(bar, end))
+        start()
+    }
+
     fun cursorAt(frameNanos: Long): Double {
         val u = _ui.value
         return when {

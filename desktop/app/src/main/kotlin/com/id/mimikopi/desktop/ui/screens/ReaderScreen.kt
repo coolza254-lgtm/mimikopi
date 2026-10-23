@@ -71,6 +71,7 @@ fun ReaderScreen(args: ReaderArgs) {
     val scope = rememberCoroutineScope()
     val r = remember(args) { ReaderSession(s, args, scope) }
     val ui by r.ui.collectAsState()
+    com.id.mimikopi.desktop.ui.components.AnswerFx(ui.result?.clean, done = true)
     val piece by r.piece.collectAsState()
     val pressed by r.pressed.collectAsState()
     val ports by s.midi.ports.collectAsState()

@@ -1,5 +1,7 @@
 package com.id.mimikopi.desktop.ui.components
 
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
 import com.id.mimikopi.core.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -269,4 +271,41 @@ fun SkillIcon(mark: String, color: Tokens.SkillColor, size: Dp = 40.dp, filled: 
 fun PassPill(text: String = com.id.mimikopi.core.i18n.tr("ผ่านแล้ว", "Passed", "合格")) {
     Text(text, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Tokens.Palette.Pass,
         modifier = Modifier.clip(RoundedCornerShape(50)).background(Tokens.Palette.PassSoft).padding(horizontal = 10.dp, vertical = 3.dp))
+}
+
+/**
+ * Answer feedback (user-approved design, 2026-10-23): a green ✓ or a small ink ✕ pops in near the top and fades in
+ * under half a second, with a short soft sound on the app's piano ([com.id.mimikopi.core.fx.AnswerSound]) unless
+ * the answer sounds are turned off. [done]: the end of a round (a bigger mark and ド ミ ソ).
+ */
+@Composable
+fun AnswerFx(correct: Boolean?, done: Boolean = false) {
+    if (correct == null) return
+    val services = com.id.mimikopi.desktop.ui.LocalApp.current.services
+    val scale = androidx.compose.runtime.remember(correct) { androidx.compose.animation.core.Animatable(0.4f) }
+    val alpha = androidx.compose.runtime.remember(correct) { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(correct) {
+        if (services.db.get(com.id.mimikopi.core.fx.AnswerSound.KEY) != "0") {
+            val notes = if (done && correct) com.id.mimikopi.core.fx.AnswerSound.DONE else if (correct) com.id.mimikopi.core.fx.AnswerSound.CORRECT else com.id.mimikopi.core.fx.AnswerSound.WRONG
+            for ((note, start, length) in notes) launch {
+                kotlinx.coroutines.delay(start.toLong())
+                services.piano.noteOn(note, com.id.mimikopi.core.fx.AnswerSound.VELOCITY)
+                kotlinx.coroutines.delay(length.toLong())
+                services.piano.noteOff(note)
+            }
+        }
+        launch { alpha.animateTo(1f, androidx.compose.animation.core.tween(120)) }
+        scale.animateTo(1.15f, androidx.compose.animation.core.tween(140))
+        scale.animateTo(1f, androidx.compose.animation.core.tween(90))
+        kotlinx.coroutines.delay(if (done) 900 else 450)
+        alpha.animateTo(0f, androidx.compose.animation.core.tween(220))
+    }
+    val size = if (done) 80.dp else if (correct) 48.dp else 36.dp
+    androidx.compose.ui.window.Popup(alignment = Alignment.TopCenter, offset = androidx.compose.ui.unit.IntOffset(0, 160)) {
+        Box(
+            Modifier.size(size).graphicsLayer { scaleX = scale.value; scaleY = scale.value; this.alpha = alpha.value }
+                .clip(androidx.compose.foundation.shape.CircleShape).background(if (correct) Tokens.Palette.Pass else Tokens.Palette.Ink),
+            contentAlignment = Alignment.Center,
+        ) { Text(if (correct) "✓" else "✕", color = Color.White, fontSize = (size.value * 0.5f).sp, fontWeight = FontWeight.Bold) }
+    }
 }

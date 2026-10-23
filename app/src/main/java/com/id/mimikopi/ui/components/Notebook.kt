@@ -1,5 +1,8 @@
 package com.id.mimikopi.ui.components
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import kotlinx.coroutines.launch
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -135,14 +138,64 @@ fun MeterBar(fraction: Float, modifier: Modifier = Modifier, color: Color = Toke
 
 /** A light tap on the hand for right / wrong answers (once per change). */
 @Composable
-fun AnswerHaptics(correct: Boolean?) {
+fun AnswerHaptics(correct: Boolean?, done: Boolean = false) {
     val haptic = LocalHapticFeedback.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(correct) {
         when (correct) {
             true -> haptic.performHapticFeedback(HapticFeedbackType.Confirm)
             false -> haptic.performHapticFeedback(HapticFeedbackType.Reject)
             null -> Unit
         }
+        if (correct != null) playAnswerSound(context, if (done && correct) com.id.mimikopi.core.fx.AnswerSound.DONE
+            else if (correct) com.id.mimikopi.core.fx.AnswerSound.CORRECT else com.id.mimikopi.core.fx.AnswerSound.WRONG)
+    }
+    AnswerBadge(correct, big = done)
+}
+
+/** Plays one of [com.id.mimikopi.core.fx.AnswerSound]'s short sounds on the app's piano, unless turned off. */
+suspend fun playAnswerSound(context: android.content.Context, notes: List<Triple<Int, Int, Int>>) {
+    if (!answerSoundOn(context)) return
+    val piano = (context.applicationContext as com.id.mimikopi.MimikopiApp).piano
+    kotlinx.coroutines.coroutineScope {
+        for ((note, start, length) in notes) launch {
+            kotlinx.coroutines.delay(start.toLong())
+            piano.noteOn(note, com.id.mimikopi.core.fx.AnswerSound.VELOCITY)
+            kotlinx.coroutines.delay(length.toLong())
+            piano.noteOff(note)
+        }
+    }
+}
+
+fun answerSoundOn(context: android.content.Context): Boolean =
+    context.getSharedPreferences("ui", android.content.Context.MODE_PRIVATE).getBoolean(com.id.mimikopi.core.fx.AnswerSound.KEY, true)
+
+fun setAnswerSound(context: android.content.Context, on: Boolean) =
+    context.getSharedPreferences("ui", android.content.Context.MODE_PRIVATE).edit().putBoolean(com.id.mimikopi.core.fx.AnswerSound.KEY, on).apply()
+
+/**
+ * The answer mark: a green ✓ (or a small ink ✕) pops in near the top of the screen and fades, in under half a
+ * second, drawn in a popup so it never moves the page.
+ */
+@Composable
+fun AnswerBadge(correct: Boolean?, big: Boolean = false) {
+    if (correct == null) return
+    val scale = remember(correct) { androidx.compose.animation.core.Animatable(0.4f) }
+    val alpha = remember(correct) { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(correct) {
+        launch { alpha.animateTo(1f, androidx.compose.animation.core.tween(120)) }
+        scale.animateTo(1.15f, androidx.compose.animation.core.tween(140))
+        scale.animateTo(1f, androidx.compose.animation.core.tween(90))
+        kotlinx.coroutines.delay(if (big) 900 else 450)
+        alpha.animateTo(0f, androidx.compose.animation.core.tween(220))
+    }
+    val size = if (big) 72.dp else if (correct) 44.dp else 34.dp
+    androidx.compose.ui.window.Popup(alignment = Alignment.TopCenter, offset = androidx.compose.ui.unit.IntOffset(0, 220)) {
+        Box(
+            Modifier.size(size).graphicsLayer { scaleX = scale.value; scaleY = scale.value; this.alpha = alpha.value }
+                .clip(CircleShape).background(if (correct) Tokens.Palette.Pass else Tokens.Palette.Ink),
+            contentAlignment = Alignment.Center,
+        ) { Text(if (correct) "✓" else "✕", color = androidx.compose.ui.graphics.Color.White, fontSize = (size.value * 0.5f).sp, fontWeight = FontWeight.Bold) }
     }
 }
 

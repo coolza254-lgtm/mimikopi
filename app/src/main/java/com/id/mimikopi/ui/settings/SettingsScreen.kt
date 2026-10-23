@@ -142,6 +142,10 @@ fun SettingsScreen(
                     }
                 })
                 Spacer(Modifier.height(20.dp))
+                Label(com.id.mimikopi.core.i18n.tr("เสียงตอบถูก/ผิด", "Answer sounds", "正解・不正解の音"))
+                var fx by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.id.mimikopi.ui.components.answerSoundOn(context)) }
+                Segmented(listOf(true, false), fx, { if (it) com.id.mimikopi.core.i18n.tr("เปิด", "On", "オン") else com.id.mimikopi.core.i18n.tr("ปิด", "Off", "オフ") }, { fx = it; com.id.mimikopi.ui.components.setAnswerSound(context, it) })
+                Spacer(Modifier.height(20.dp))
                 Label(stringResource(R.string.theme_title))
                 Segmented(
                     listOf(com.id.mimikopi.ui.theme.ThemeMode.LIGHT, com.id.mimikopi.ui.theme.ThemeMode.DARK, com.id.mimikopi.ui.theme.ThemeMode.SYSTEM),

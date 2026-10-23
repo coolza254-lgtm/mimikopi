@@ -63,6 +63,12 @@ fun DrillScreen(source: DrillSource, via: String?) {
     val session = remember(source) { DrillSession(s, source, scope, via) }
     val ui by session.ui.collectAsState()
     val showNames by session.showNames.collectAsState()
+    com.id.mimikopi.desktop.ui.components.AnswerFx(when (val s = ui) {
+        is DrillUi.Question -> s.feedback
+        is DrillUi.ChordAsk -> s.feedback
+        is DrillUi.Interval -> s.feedback
+        else -> null
+    }?.let { it == com.id.mimikopi.desktop.session.Feedback.CORRECT })
     val pressed by session.pressed.collectAsState()
     val ports by s.midi.ports.collectAsState()
     val lowC by s.keysLowC.collectAsState()

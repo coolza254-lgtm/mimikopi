@@ -71,7 +71,7 @@ import com.id.mimikopi.ui.reading.ReadingKeyboard
 @Composable
 fun ReaderScreen(onBack: () -> Unit, onOpenMidi: () -> Unit, vm: ReaderViewModel = viewModel()) {
     val ui by vm.ui.collectAsStateWithLifecycle()
-    com.id.mimikopi.ui.components.AnswerHaptics(ui.result?.clean)
+    com.id.mimikopi.ui.components.AnswerHaptics(ui.result?.clean, done = true)
     val piece by vm.piece.collectAsStateWithLifecycle()
     var showOptions by remember { mutableStateOf(false) }
     val connected = midiConnected()

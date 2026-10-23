@@ -203,6 +203,12 @@ fun SettingsScreen() {
                     { com.id.mimikopi.desktop.ui.LangState.set(s, it) }, Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(tr("เสียงตอบถูก/ผิด", "Answer sounds", "正解・不正解の音"), modifier = Modifier.width(140.dp))
+                var fx by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(s.db.get(com.id.mimikopi.core.fx.AnswerSound.KEY) != "0") }
+                Segmented(listOf(true, false), fx, { if (it) tr("เปิด", "On", "オン") else tr("ปิด", "Off", "オフ") },
+                    { fx = it; s.db.put(com.id.mimikopi.core.fx.AnswerSound.KEY, if (it) "1" else "0") }, Modifier.weight(1f))
+            }
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(tr("สี", "Colours", "色"), modifier = Modifier.width(140.dp))
                 Segmented(listOf("LIGHT", "DARK", "SYSTEM"), Look.mode, { when (it) { "DARK" -> tr("มืด", "Dark", "ダーク"); "LIGHT" -> tr("สว่าง", "Light", "ライト"); else -> tr("ตามระบบ", "System", "システムに合わせる") } },
                     { Look.mode = it; s.db.put(SettingKeys.THEME_MODE, it) }, Modifier.weight(1f))

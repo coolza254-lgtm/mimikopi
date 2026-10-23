@@ -44,6 +44,7 @@ fun EarSessionContent(
     onRetry: () -> Unit, result: @Composable () -> Unit,
 ) {
     val c = earColors()
+    com.id.mimikopi.desktop.ui.components.AnswerFx(ui.right.takeIf { ui.phase == EarPhase.FEEDBACK })
     Column(Modifier.fillMaxSize().background(c.paper)
         .testTag("ear-session"), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(Modifier.widthIn(max = 920.dp).fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {

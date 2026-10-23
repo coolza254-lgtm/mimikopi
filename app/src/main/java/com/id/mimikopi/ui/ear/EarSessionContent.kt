@@ -43,6 +43,7 @@ internal fun EarSessionContent(
     onRetry: () -> Unit, result: @Composable () -> Unit,
 ) {
     val c = earColors()
+    com.id.mimikopi.ui.components.AnswerHaptics(ui.right.takeIf { ui.phase == EarPhase.FEEDBACK })
     Column(Modifier.fillMaxSize().background(c.paper).then(if (ui.phase != EarPhase.DONE) Modifier.keepScreenOn() else Modifier)
         .testTag("ear-session"), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(Modifier.widthIn(max = 920.dp).fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
